@@ -19,6 +19,8 @@
 | `PROJECT_MEMORY.md` | Oturumlar arası devir teslim | Her oturum başı + sonu |
 | `docs/ROADMAP.md` | 50 faz, kapsam, kabul kriterleri | Her oturum başı |
 | `docs/SESSION-TEMPLATE.md` | Oturum akışı + faz→spec eşlemesi | Her oturum başı |
+| `docs/OUTPUT-FORMAT.md` | Alt görev rapor formatı | Her alt görev sonu |
+| `docs/DEPENDENCY-WATCH.md` | Sürüm takip listesi | Her faz başı |
 | `docs/V2-BACKLOG.md` | Kapsam dışı fikirler | Fikir çıkınca |
 | `docs/spec/01-database.md` | Veritabanı şeması | Faz 3,4,7-9,11,12,46 |
 | `docs/spec/02-attributes.md` | Nitelik sistemi, CA/PA, türetme | Faz 10,11,14,30-38,46 |

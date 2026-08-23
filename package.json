@@ -22,8 +22,9 @@
     "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "turbo run test",
-    "dev": "turbo run dev"
+    "test": "vitest run --dir packages && pnpm test:rules",
+    "dev": "turbo run dev",
+    "test:rules": "node tools/eslint-local-rules/no-hardcoded-path.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -35,6 +36,7 @@
     "prettier": "^3.9.6",
     "turbo": "^2.10.11",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.67.0"
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.11"
   }
 }

@@ -49,6 +49,21 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // '_' öneki 'bilerek kullanılmıyor' demektir — destructuring ile alan
+      // atlarken (const { a: _a, ...rest }) gerekli.
+      // NOT: bu kural, eklentinin tanımlı olduğu blokta ayarlanmalı; flat
+      // config'de kural ile eklenti aynı yapılandırma nesnesinde olmak zorunda.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
   },
 
   // ─── 4. Düz JS/MJS — tip bilgisi yok ───────────────────────────────────
@@ -74,10 +89,34 @@ export default tseslint.config(
     },
   },
 
-  // ─── 6. Yerel kural eklentisi (iskelet) ────────────────────────────────
-  // Kurallar boş; no-hardcoded-path Faz 1.4'te, Türkçe metin kuralı Faz 5'te.
+  // ─── 6. Yerel kurallar ─────────────────────────────────────────────────
+  // Türkçe metin kuralı (K5) Faz 5'te eklenecek.
   {
     plugins: { local: localRules },
+    rules: {
+      'local/no-hardcoded-path': 'error',
+    },
+  },
+
+  // Alt yolun TANIM YERİ. Bu üç konum '/fms' ve '/api' dizgilerini bilmek
+  // zorundadır — kuralın kendisi, kuralın testi ve tabanı türeten modüller.
+  // Başka hiçbir yerde istisna yoktur; hepsi basePath() üzerinden geçer.
+  {
+    files: [
+      'packages/shared/src/base-path.ts',
+      'packages/shared/src/env.ts',
+      'tools/eslint-local-rules/**',
+      // Birim testler yolları VERİ olarak kullanır: '/api/health' bir test
+      // girdisidir, bir istek değildir. Kural burada açık kalsaydı her test
+      // dosyası eslint-disable ile dolardı ve kural güvenilirliğini yitirirdi.
+      // DİKKAT: yalnızca *.test.* muaf. Uçtan uca testler (*.spec.ts, Faz 17+)
+      // gerçek istek atar ve basePath() kullanmak ZORUNDADIR — muaf değildir.
+      '**/*.test.ts',
+      '**/*.test.mjs',
+    ],
+    rules: {
+      'local/no-hardcoded-path': 'off',
+    },
   },
 
   // ─── 7. Anayasa kuralları ──────────────────────────────────────────────

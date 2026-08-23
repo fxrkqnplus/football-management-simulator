@@ -42,6 +42,7 @@ FAZ KAPANIŞI
 20. Kısa demo notu + (arayüz fazıysa) ekran görüntüsü.
 
 KURALLAR
+- Her alt görev raporu docs/OUTPUT-FORMAT.md biçiminde verilir (zorunlu).
 - PROJECT_MEMORY.md yazılmadan faz KAPANMAZ (K15).
 - Yapılmayan şey "yapıldı" yazılmaz. Sağlanmayan kriter [ ] bırakılır, gerekçesi yazılır.
 - Eski faz kayıtları geriye dönük DEĞİŞTİRİLMEZ. Düzeltme yeni kayda not olarak eklenir.

@@ -204,8 +204,12 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 - [x] **1.1** Güvenlik zemini + workspace iskeleti — `.gitignore`, `LICENSE`, `.gitattributes`, `.nvmrc`, `.npmrc`, 8 paket, Node sürüm kapısı
 - [x] **1.2** TypeScript strict + turbo derleme hattı — `tsconfig.base.json`, paket tsconfig'leri, sürüm kataloğu, tsconfig `types` kapısı
 - [x] **1.3** ESLint 10 flat config + Prettier + import sıralama *(tek kök config, projectService, eslint-config-prettier)*
-- [ ] **1.4** Alt yol kilidi + env doğrulama — `base-path.ts`, `env.ts` (Zod 4), `no-hardcoded-path` ESLint kuralı
-- [ ] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4)
+- [x] **1.4** Alt yol kilidi + env doğrulama — `base-path.ts`, `env.ts` (Zod 4), `no-hardcoded-path` ESLint kuralı *(kuralın kendi testi RuleTester ile aynı alt görevde)*
+- [ ] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4).
+      1.4'ten devreden üç iş:
+      (a) Vitest paket olarak kuruldu ama **yapılandırması yok** — config, `projects[]`, coverage eşikleri ve turbo `test` task'ı burada;
+      (b) `globals: true` ayarlanınca ESLint `RuleTester` testi Vitest altında da koşar; şimdilik ayrı komutla (`pnpm test:rules`) çalışıyor;
+      (c) `tsconfig.build.json` deseni (testleri emit dışında tutar) yalnızca `packages/shared`'da — test kazanan her pakete yayılmalı
 - [ ] **1.6** `arch:check` — katman yönü, engine yasakları, `console.log`, mutlak yol.
       **`scripts/` için DAR muafiyet:** yalnızca `process.stderr.write`/`process.stdout.write` serbest;
       `console.log` her yerde yasak, katman kuralları `scripts/**`e aynen uygulanır. Muafiyetin
