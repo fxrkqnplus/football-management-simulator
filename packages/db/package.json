@@ -1,0 +1,7 @@
+{
+  "name": "@fms/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Drizzle şeması, migration'lar, WorldView / WorldMutation"
+}

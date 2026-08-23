@@ -1,0 +1,7 @@
+{
+  "name": "@fms/data-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Veri ingest, doğrulama ve üretim komut satırı aracı"
+}

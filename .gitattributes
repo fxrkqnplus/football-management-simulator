@@ -1,0 +1,28 @@
+# Satır sonu normalizasyonu.
+# Geliştirme Windows'ta, üretim Linux/ARM64'te. CRLF sızıntısı Docker imajında
+# shebang'leri ve kabuk betiklerini bozar — depo içinde her şey LF tutulur.
+* text=auto eol=lf
+
+# Kabuk betikleri ve konteyner dosyaları KESİNLİKLE LF
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.Dockerfile    text eol=lf
+.env.example    text eol=lf
+
+# İkili dosyalar — normalizasyon uygulanmaz
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.avif  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.mp3   binary
+*.ogg   binary
+*.wav   binary
+*.pdf   binary
+
+# Üretilmiş dosyalar — diff gürültüsünü azalt
+pnpm-lock.yaml  -diff linguist-generated=true

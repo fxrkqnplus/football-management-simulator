@@ -1,0 +1,7 @@
+{
+  "name": "@fms/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Tasarım sistemi bileşenleri + Storybook"
+}

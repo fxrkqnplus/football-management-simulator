@@ -1,0 +1,7 @@
+{
+  "name": "@fms/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SAF simülasyon motoru (K3): db/ağ/dosya/Date.now/Math.random/global durum YOK"
+}

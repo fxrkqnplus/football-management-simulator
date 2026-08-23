@@ -1,0 +1,30 @@
+{
+  "name": "football-management-simulator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web tabanlı, Türkçe, 2 boyutlu, tur tabanlı futbol menajerlik simülasyonu",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fxrkqnplus/football-management-simulator.git"
+  },
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24.0.0 <25.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "preinstall": "node ./scripts/check-node-version.mjs",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev": "turbo run dev"
+  },
+  "devDependencies": {
+    "@types/node": "~24.13.3",
+    "turbo": "^2.10.11",
+    "typescript": "~6.0.3"
+  }
+}

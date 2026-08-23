@@ -1,0 +1,7 @@
+{
+  "name": "@fms/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Paylaşılan tipler, Zod şemaları, sabitler, logger, basePath — hiçbir şeye bağımlı değildir"
+}
