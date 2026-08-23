@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Veri ingest, doğrulama ve üretim komut satırı aracı",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

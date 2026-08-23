@@ -1,18 +1,22 @@
 /**
  * `no-hardcoded-path` kuralının kendi testi.
  *
- * NEDEN BU ALT GÖREVDE: bir lint kuralının en büyük riski yanlış pozitiftir.
- * Geliştirici meşru koduna hata aldığında kuralı devre dışı bırakır ve kural
- * bir daha hiçbir şey yakalamaz. Bu yüzden kural yazıldığı anda test edilir,
- * Vitest'i beklemez.
+ * NEDEN VAR: bir lint kuralının en büyük riski yanlış pozitiftir. Geliştirici
+ * meşru koduna hata aldığında kuralı devre dışı bırakır ve kural bir daha
+ * hiçbir şey yakalamaz. Bu yüzden geçerli senaryolar en az geçersizler kadar
+ * ayrıntılı test edilir.
  *
- * ESLint'in `RuleTester`'ı bağımsız çalışır: `describe`/`it` genelleri yoksa
- * testleri anında koşturur ve başarısızlıkta fırlatır. Vitest kurulduğunda
- * (Faz 1.5) bu dosya olduğu gibi Vitest altında da koşar.
+ * RuleTester, `describe`/`it` bulamazsa testleri senkron koşturur ve Vitest'e
+ * hiçbir süit kaydetmez ("No test suite found"). Statik alanlara açıkça
+ * bağlamak, `globals: true`'ya güvenmekten daha sağlam.
  */
 import { RuleTester } from 'eslint';
+import { describe, it } from 'vitest';
 
 import rule from './no-hardcoded-path.js';
+
+RuleTester.describe = describe;
+RuleTester.it = it;
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -91,7 +95,3 @@ ruleTester.run('no-hardcoded-path', rule, {
     },
   ],
 });
-
-// RuleTester bir test çerçevesi bulamazsa testleri senkron koşturur ve
-// başarısızlıkta fırlatır. Buraya ulaşıldıysa hepsi geçmiştir.
-process.stdout.write('✓ no-hardcoded-path: 15 geçerli + 8 geçersiz senaryo\n');

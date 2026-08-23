@@ -21,41 +21,41 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 1 — 1.5 sırada** |
-| **Son tamamlanan** | Faz 1, alt görev **1.4** — Alt yol kilidi + env doğrulama |
+| **Aktif faz / alt görev** | **Faz 1 — 1.6 sırada** |
+| **Son tamamlanan** | Faz 1, alt görev **1.5** — Vitest 4 + kapsam eşikleri |
 | **Tamamlanma tarihi** | 2026-08-24 |
-| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **4/10** alt görevi bitti |
+| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **5/10** alt görevi bitti |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `6dcaa75` — `feature/faz-01-monorepo`, push edildi |
+| **Son commit** | `9efe34b` — `feature/faz-01-monorepo`, push edildi |
 | **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` (üçü de origin'de) |
 | **typecheck** | ✅ 8/8 paket, 0 hata |
-| **lint** | ✅ 0 hata (soğuk 3,0 sn / sıcak 1,7 sn — Faz 20 karşılaştırması için) |
-| **build** | ✅ 8/8 paket, turbo cache çalışıyor |
-| **test** | ⚠️ 21 birim testi + kural testi geçiyor, ama **Vitest yapılandırılmadı** — kapsam eşiği YOK (1.5'in işi) |
+| **lint** | ✅ 0 hata (soğuk 3,0 sn / sıcak 1,7 sn) |
+| **build** | ✅ 8/8 paket, dist'e test sızmıyor |
+| **test** | ✅ **44 test / 3 dosya** — 21 birim + 23 ESLint kural senaryosu |
+| **kapsam** | ✅ Satır %92,7 · İfade %91,8 · Dal %82,7 · Fonksiyon %85,7 (eşik: global %70, `packages/engine` %85) |
 | **arch:check** | ⛔ Henüz yok (1.6'nın işi) |
 | **Açık sorun sayısı** | 0 |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (ikisi de Faz 16 vadeli) |
 
 **Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.5**
-2. `pnpm install` → `pnpm typecheck` → `pnpm lint` → `pnpm build` (temiz mi doğrula)
-3. `docs/spec/09-quality-protocol.md` §11.4 oku — `coverage.include` şartı
-4. `docs/DEPENDENCY-WATCH.md` → bu faza bağlanmış satır var mı bak
-5. 1.5'i yap, eşiklerin gerçekten ısırdığını **negatif testle** kanıtla, dur
+1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.6**
+2. `pnpm install` → `typecheck` → `lint` → `test` → `build` (temiz mi doğrula)
+3. `docs/spec/09-quality-protocol.md` §11.5 oku — `arch:check` neyi denetlemeli
+4. `docs/ADR/0004` §2 oku — import harf duyarlılığı kuralı 1.6'nın parçası
+5. Her kuralı **negatif testle** kanıtla (ihlal et, yakalandığını gör), dur
 
-**1.4'ten devreden üç iş (1.5 kapsamında):**
-- **(a)** Vitest paket olarak kurulu ama **yapılandırılmadı** — `vitest.config.ts`,
-  `projects[]`, coverage eşikleri ve turbo `test` task'ı 1.5'e ait.
-- **(b)** `globals: true` ayarlanınca ESLint `RuleTester` testi Vitest altında da
-  koşar; şu an ayrı komutla çalışıyor (`pnpm test:rules`).
-- **(c)** `tsconfig.build.json` deseni (testleri emit dışında tutar) yalnızca
-  `packages/shared`'da — test kazanan her pakete yayılmalı.
+**1.6 kapsamı (ROADMAP'te ayrıntılı):**
+- Katman bağımlılık yönü (CLAUDE.md 2.4) · engine yasakları (`db`, `fs`, `http`, `Date.now`, `Math.random`) · `console.log` · mutlak yol
+- **Import yolu harf duyarlılığı** — Windows duyarsız, üretim Linux/ARM64 duyarlı; `forceConsistentCasingInFileNames` bunu YAKALAMAZ
+- `scripts/` için **dar** muafiyet: yalnızca `process.stderr/stdout.write` serbest; `console.log` her yerde yasak, katman kuralları aynen uygulanır
 
 **Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
 - TypeScript `~6.0.3`, `^` **yasak** (typescript-eslint peer sınırı) → `docs/ADR/0003`
 - Node 24.19.0 tek hat; kapı `scripts/check-node-version.mjs` (`.nvmrc` tek kaynak)
 - Windows geliştirme ↔ Linux/ARM64 üretim ayrışması → `docs/ADR/0004`
 - Alt yol tek kaynağı: `packages/shared/src/base-path.ts`; kodda mutlak yol yasak (`local/no-hardcoded-path`)
+- **`coverage.include` silinmez** — silinirse kapsam eşikleri sessizce yalan söyler (kanıtı 1.5 commit'inde)
+- `lint` ve `test` turbo'dan geçmez: tek kök yapılandırma, tek süreç. `build` ve `typecheck` paket başına.
 - Sürüm takibi: `docs/DEPENDENCY-WATCH.md` — her faz başında okunur
 - Rapor formatı: `docs/OUTPUT-FORMAT.md` — her alt görev sonunda
 

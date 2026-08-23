@@ -205,7 +205,7 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 - [x] **1.2** TypeScript strict + turbo derleme hattı — `tsconfig.base.json`, paket tsconfig'leri, sürüm kataloğu, tsconfig `types` kapısı
 - [x] **1.3** ESLint 10 flat config + Prettier + import sıralama *(tek kök config, projectService, eslint-config-prettier)*
 - [x] **1.4** Alt yol kilidi + env doğrulama — `base-path.ts`, `env.ts` (Zod 4), `no-hardcoded-path` ESLint kuralı *(kuralın kendi testi RuleTester ile aynı alt görevde)*
-- [ ] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4).
+- [x] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4).
       1.4'ten devreden üç iş:
       (a) Vitest paket olarak kuruldu ama **yapılandırması yok** — config, `projects[]`, coverage eşikleri ve turbo `test` task'ı burada;
       (b) `globals: true` ayarlanınca ESLint `RuleTester` testi Vitest altında da koşar; şimdilik ayrı komutla (`pnpm test:rules`) çalışıyor;

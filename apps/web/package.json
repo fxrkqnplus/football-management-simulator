@@ -5,7 +5,7 @@
   "type": "module",
   "description": "React SPA (Vite, base: /fms/)",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

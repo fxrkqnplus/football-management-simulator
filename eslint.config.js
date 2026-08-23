@@ -45,7 +45,13 @@ export default tseslint.config(
     extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          // Kök seviyesindeki yapılandırma dosyaları (vitest.config.ts ve
+          // ileride eklenecekler) hiçbir paket tsconfig'ine dahil değil.
+          // Bunlar olmadan projectService "was not found by the project
+          // service" hatası verir. Glob `**` içermemeli.
+          allowDefaultProject: ['*.config.ts'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

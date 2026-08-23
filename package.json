@@ -22,13 +22,15 @@
     "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run --dir packages && pnpm test:rules",
+    "test": "vitest run",
     "dev": "turbo run dev",
-    "test:rules": "node tools/eslint-local-rules/no-hardcoded-path.test.mjs"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "~24.13.3",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.9.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^14.0.0",
