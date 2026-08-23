@@ -1,0 +1,18 @@
+# Web konteyneri — statik dosya sunucusu.
+# Üretimde önünde ayrı bir Caddy var (docs/spec/10-deployment.md §13.2):
+#   handle /fms/api/* -> api    ·    handle /fms/* -> web:3000
+# Ön ek soyulmadan geldiği için burada handle_path ile soyuyoruz.
+#
+# Alt yol SABİT YAZILMAZ (K6): {$PUBLIC_BASE_PATH} ortamdan gelir ve JS paketine
+# derleme sırasında gömülen değerle aynı olmalıdır.
+:3000 {
+	handle_path {$PUBLIC_BASE_PATH}/* {
+		root * /srv/app
+		try_files {path} /index.html
+		file_server
+	}
+
+	handle {
+		respond "Bu sunucu yalnızca {$PUBLIC_BASE_PATH} altını servis eder." 404
+	}
+}
