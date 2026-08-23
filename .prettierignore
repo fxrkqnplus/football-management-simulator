@@ -1,0 +1,16 @@
+dist/
+node_modules/
+coverage/
+.turbo/
+pnpm-lock.yaml
+LICENSE
+
+# Markdown KAPSAM DIŞI — bilinçli karar.
+# docs/ altındaki belgeler elle yazılmış spesifikasyonlar: hizalanmış tablolar,
+# kasıtlı satır sarmaları, ASCII çerçeveler. Prettier'ın markdown biçimlendiricisi
+# bunları yeniden yazar ve iki zarar verir:
+#   1. Tek seferlik dev bir diff, spesifikasyon içeriğiyle karışır
+#   2. PROJECT_MEMORY.md append-only bir kayıt defteri — diff okunabilirliği
+#      onun için doğrudan bir kalite özelliği
+# Kod bloklarının içi zaten inceleme sırasında gözden geçiriliyor.
+*.md

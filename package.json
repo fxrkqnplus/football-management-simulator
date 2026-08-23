@@ -18,13 +18,23 @@
     "preinstall": "node ./scripts/check-node-version.mjs",
     "build": "turbo run build",
     "typecheck": "node ./scripts/check-tsconfig-types.mjs && turbo run typecheck",
-    "lint": "turbo run lint",
+    "lint": "eslint . --cache --cache-location node_modules/.cache/eslint/",
+    "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "turbo run test",
     "dev": "turbo run dev"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "~24.13.3",
+    "eslint": "^10.9.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
     "turbo": "^2.10.11",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.67.0"
   }
 }

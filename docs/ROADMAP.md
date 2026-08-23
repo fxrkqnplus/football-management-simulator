@@ -203,7 +203,7 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 - [x] **1.0** Sürüm doğrulaması — 28 paket npm registry'den teyit, `CLAUDE.md` §2.1 güncellemesi, ADR-0003, SAPMA-003, BORÇ-001/002
 - [x] **1.1** Güvenlik zemini + workspace iskeleti — `.gitignore`, `LICENSE`, `.gitattributes`, `.nvmrc`, `.npmrc`, 8 paket, Node sürüm kapısı
 - [x] **1.2** TypeScript strict + turbo derleme hattı — `tsconfig.base.json`, paket tsconfig'leri, sürüm kataloğu, tsconfig `types` kapısı
-- [ ] **1.3** ESLint 10 flat config + Prettier + import sıralama
+- [x] **1.3** ESLint 10 flat config + Prettier + import sıralama *(tek kök config, projectService, eslint-config-prettier)*
 - [ ] **1.4** Alt yol kilidi + env doğrulama — `base-path.ts`, `env.ts` (Zod 4), `no-hardcoded-path` ESLint kuralı
 - [ ] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4)
 - [ ] **1.6** `arch:check` — katman yönü, engine yasakları, `console.log`, mutlak yol.
