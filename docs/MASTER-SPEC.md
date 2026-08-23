@@ -28,7 +28,9 @@ docs/spec/08-admin-panel.md        ← Bölüm 10
 docs/spec/09-quality-protocol.md   ← Bölüm 11
 docs/spec/10-deployment.md         ← Bölüm 13
 docs/spec/11-project-memory.md     ← Bölüm 12 (hafıza sisteminin kuralları)
+docs/spec/12-data-packs.md         ← Bölüm 17 (veri paketleri, gerçek varlık hattı)
 docs/SESSION-TEMPLATE.md           ← Bölüm 15
+docs/PROMPT-KITAPCIGI.md           ← ateşleme / faz / kurtarma promptları
 docs/ROADMAP.md                    ← faz-yol-haritasi.md
 docs/V2-BACKLOG.md                 ← yol haritasındaki v2 kasası
 ```

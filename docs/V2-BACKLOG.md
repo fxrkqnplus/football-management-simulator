@@ -45,3 +45,14 @@ Bir fikir çıktığında alttaki "Sonradan Eklenenler" bölümüne şu formatta
 
 _(Geliştirme sırasında çıkan fikirler buraya)_
 
+---
+
+## Not: Veri Paketleri v1'dedir
+
+Gerçek veri (armalar, portreler, isimler, formalar, stadyumlar) **v2'de değil, v1'dedir**.
+`DATA_MODE=full` varsayılandır ve veri paketi hattı Faz 7-9 ile Faz 11'de kurulur.
+Spesifikasyon: `docs/spec/12-data-packs.md`
+
+v2'ye kalan tek veri konusu **V14 — Veri Güncelleme Hattı**: her yeni gerçek sezon için
+otomatik güncelleme ve mevcut kayıtları etkilemeden yeni kariyer verisi yenileme.
+

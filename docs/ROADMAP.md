@@ -389,9 +389,13 @@ docs/glossary.md
   - `FootballDataOrgProvider` — resmi API, fikstür/sonuç/kadro
   - `ApiFootballProvider` — resmi API (abonelik), kadro + logo + fotoğraf
   - `StatsProvider` — FBref/Understat/StatsBomb açık veri, nitelik türetimi için
-  - `LocalPackProvider` — `/data/packs/<pack-adi>/` klasöründen okur (manifest + görsel + JSON)
+  - **`LocalPackProvider` — `/data/packs/<ACTIVE_PACK>/` klasöründen okur. `DATA_MODE=full` modunda ZİNCİRİN BAŞINDA yer alır** (gerçek armalar, portreler, isimler, formalar, stadyumlar). Tam format: `docs/spec/12-data-packs.md`
   - `ProceduralProvider` — hiçbir kaynak bulunamazsa üretir (asla boş ekran olmaz)
 - **Zincir mantığı:** `ProviderChain` — sırayla dener, ilk başarılıyı alır, `source` alanına kaynağı yazar
+- **Zincir sırası `DATA_MODE`'a göre değişir:**
+  - `full` (varsayılan): LocalPack → ApiFootball → Wikidata → OpenFootball → Procedural
+  - `clean`: Procedural → OpenFootball
+- **Anahtar eşleme:** paketteki varlığın oyundaki hangi varlık olduğunu bulma (slug / explicit / hybrid + bulanık eşleme). Yanlış eşleşme kabul edilemez — bkz. spec 12, Bölüm 17.3
 - Yerel dosya önbelleği (`.cache/`) + TTL + hash doğrulama
 - Hız sınırlama + üstel geri çekilme (exponential backoff) + devre kesici (circuit breaker)
 - **Görsel işleme hattı:** indir → doğrula → yeniden boyutlandır (arma 256/128/64, portre 256/128/64, bayrak 64/32) → WebP + AVIF → `/data/assets/`
@@ -400,7 +404,9 @@ docs/glossary.md
 **Kabul kriterleri:**
 - [ ] Sağlayıcı sırası config'den değişiyor, kod değişmiyor
 - [ ] Bir sağlayıcı hata verince zincir bir sonrakine geçiyor, oyun çalışmaya devam ediyor
+- [ ] `DATA_MODE=full` + paket varken zincir LocalPack'i birinci sırada kullanıyor
 - [ ] Tüm sağlayıcılar kapalıyken `ProceduralProvider` devreye giriyor ve tam bir dünya üretiyor
+- [ ] Her varlığın `source` alanı doğru dolduruluyor (`pack` | `api` | `wikidata` | `procedural`)
 - [ ] `data-cli verify` eksik varlıkları raporluyor
 - [ ] Görsel hattı 1.000 varlığı işleyip WebP+AVIF üretiyor
 
@@ -518,7 +524,9 @@ docs/glossary.md
 - Oyun içi **Veri Editörü** ekranı (ana menüden erişilir)
 - Düzenlenebilir: kulüp (isim, renk, prestij, tesis, bütçe), oyuncu (tüm nitelikler, CA/PA, kişilik, sözleşme), personel, lig kuralları, turnuva formatı
 - Toplu düzenleme: filtrele → seç → toplu değişiklik (örn. "tüm Süper Lig kalecilerinin Reflexes +2")
-- **Paket sistemi:** `manifest.json` (isim, sürüm, yazar, temel veri hash'i) + `data/*.json` + `assets/`
+- **Paket sistemi:** tam format `docs/spec/12-data-packs.md` (Bölüm 17.2–17.4)
+- **İçe aktarma akışı (9 adım):** paket seç → manifest oku → **kuru çalıştırma (önizleme)** → çakışma çözümü → elle eşleme → transaction içinde içe aktar → varlık hattı (görsel işleme) → doğrula → rapor
+- **Kuru çalıştırma zorunlu:** kullanıcı ne olacağını görmeden içe aktarma yapılamaz
 - Paket dışa aktarma (`.fmspack` — zip) ve içe aktarma
 - **Doğrulayıcı (`validateWorld`):** 40+ kural
   - Her kulüpte ≥ 18 oyuncu, ≥ 2 kaleci
@@ -536,6 +544,9 @@ docs/glossary.md
 - [ ] Bir oyuncunun niteliği editörden değişip kaydediliyor
 - [ ] Toplu düzenleme 500 oyuncuda < 2 sn
 - [ ] Paket dışa/içe aktarma tam döngü çalışıyor
+- [ ] Kuru çalıştırma gerçekten hiçbir şey yazmıyor, doğru önizleme veriyor
+- [ ] Eşleşmeyen varlıklar raporlanıyor ve elle eşlenebiliyor
+- [ ] İçe aktarma yarıda kesilirse veritabanı tutarlı kalıyor (transaction geri alma)
 - [ ] Kasıtlı olarak bozulmuş veri (kalecisiz kulüp) doğrulayıcı tarafından yakalanıyor
 - [ ] 40 doğrulama kuralının tamamı test edilmiş
 - [ ] Undo/redo 50 adım derinliğinde çalışıyor
@@ -2060,9 +2071,14 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   - **Geri yükleme tatbikatı:** yedekten sıfır sunucuya tam geri yükleme **bir kez test edilir ve süresi ölçülür**
   - Kaynak izleme: CPU/RAM/disk alarmı (disk %80 dolunca uyarı, 200 GB sınırı takibi)
   - **`docs/HOSTING-FALLBACK.md`:** Oracle limitleri tekrar düşürürse taşınacak alternatif ücretsiz/ucuz sağlayıcılar ve taşıma prosedürü
-- **Yasal sayfalar yayında:** Aydınlatma metni, Gizlilik Politikası, Kullanım Koşulları, Çerez Politikası
+- **Yasal sayfalar:** Aydınlatma metni, Gizlilik Politikası, Kullanım Koşulları, Çerez Politikası
+  `docs/LEGAL/` altında **yazılır** ama yalnızca `SERVER_MODE=public` iken gösterilir.
+  Kişisel kurulumda (Özel mod) bu sayfalar devre dışıdır.
 - **Lisans dosyası:** `LICENSE` (AGPL-3.0 önerilir) + `NOTICE` (üçüncü taraf veri kaynakları ve lisansları: Wikidata CC0, openfootball, Commons atıfları)
-- **İlk yayın modu:** Sunucu **Özel modda** açılır, siz test edip hazır olduğunuzda Public'e alırsınız
+- **Varsayılan mod:** Sunucu **Özel modda** açılır ve kişisel kullanımda öyle kalır.
+  Public'e geçmek bilinçli bir karardır ve KVKK metinlerini otomatik aktive eder.
+- **Veri paketi kurulumu:** `/data/packs/` altına paket yerleştirilir, `ACTIVE_PACK` ayarlanır,
+  Veri Editörü'nden içe aktarılır ve doğrulanır
 - **Kabul testi:** 10+ gerçek kullanıcı 1 hafta oynar, geri bildirim toplanır
 - **v1.0.0 etiketi**
 
@@ -2085,7 +2101,9 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] **Geri yükleme tatbikatı yapılmış** — sıfır sunucudan tam geri yükleme başarılı, süresi belgelenmiş
 - [ ] Dengeli modda 20 kullanıcı eşzamanlı oynarken sistem stabil (CPU < %80, kuyruk < 20 sn)
 - [ ] Aylık maliyet **$0** — tüm servisler ücretsiz kademede, hiçbir sınır aşılmıyor
-- [ ] Yasal sayfalar yayında, "hesabımı sil" ve "verilerimi indir" çalışıyor
+- [ ] `DATA_MODE=full` ile gerçek armalar, portreler, formalar, logolar görünüyor
+- [ ] (Public modda) Yasal sayfalar yayında, "hesabımı sil" ve "verilerimi indir" çalışıyor
+- [ ] Özel modda izin listesi dışındaki hesap oyunu başlatamıyor
 - [ ] `HOSTING-FALLBACK.md` yazılmış ve taşıma adımları test edilmiş
 - [ ] v1.0.0 etiketlenmiş
 

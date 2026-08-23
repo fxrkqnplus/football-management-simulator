@@ -295,7 +295,7 @@ football-management-simulator/
 │   ├── V2-BACKLOG.md            # kapsam dışı fikirler buraya
 │   ├── ADR/                     # mimari karar kayıtları
 │   ├── spec/                    # bu belgenin bölümleri
-│   └── LEGAL/                   # KVKK metinleri, veri envanteri
+│   └── LEGAL/                   # KVKK metinleri (yalnızca public modda gösterilir)
 │
 └── data/                        # .gitignore'da
     ├── packs/                   # kullanıcı veri paketleri
@@ -499,7 +499,10 @@ v1.0.0 şu koşullar sağlandığında yayınlanır:
 - Mobilde 360px genişlikte her ekran kullanılabilir
 - Aylık maliyet **$0**
 - Geri yükleme tatbikatı yapılmış ve belgelenmiş
-- KVKK metinleri yayında, "hesabımı sil" ve "verilerimi indir" çalışıyor
+- `DATA_MODE=full` ile gerçek armalar, portreler, formalar, logolar ekranda görünüyor
+- `PORTRAIT_STYLE=stylized` modunda gerçek ve prosedürel portreler ayırt edilemiyor
+- (Yalnızca `SERVER_MODE=public` ise) KVKK metinleri yayında, "hesabımı sil" ve
+  "verilerimi indir" çalışıyor
 - 10+ gerçek kullanıcı 1 hafta test etmiş
 
 ---

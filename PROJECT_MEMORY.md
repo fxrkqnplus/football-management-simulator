@@ -144,6 +144,8 @@ docs/spec/08-admin-panel.md        [YENİ]
 docs/spec/09-quality-protocol.md   [YENİ]
 docs/spec/10-deployment.md         [YENİ]
 docs/spec/11-project-memory.md     [YENİ]
+docs/spec/12-data-packs.md         [YENİ] Veri paketi formatı, gerçek varlık hattı
+docs/PROMPT-KITAPCIGI.md           [YENİ] Ateşleme / faz / kurtarma promptları
 ```
 
 #### 10. Yeni Açılan Sorun / Borç / Sapma

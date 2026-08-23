@@ -18,7 +18,16 @@ Cloudflare (fxrkqn.org)
   R2 → fms-assets bucket, özel alan adı
 
 Alt yol: https://fxrkqn.org/fms
+Varsayılan mod: SERVER_MODE=private   (yalnızca izin listesi oynar)
+Veri modu:      DATA_MODE=full        (gerçek armalar, portreler, formalar)
 ```
+
+**Veri paketi yerleşimi (üretim):**
+```
+/data/packs/<ACTIVE_PACK>/    ← paket buraya (repo'ya commit EDİLMEZ)
+/data/assets/                 ← işlenmiş görseller (WebP/AVIF, 3 boyut)
+```
+Her ikisi de `.gitignore`'da. Yedekleme haftalık tam arşivle R2'ye alınır (13.4).
 
 ## 13.2 Caddy Yapılandırması
 

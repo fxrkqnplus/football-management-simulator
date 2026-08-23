@@ -8,3 +8,12 @@ sürümleme: [Semantic Versioning](https://semver.org/lang/tr/).
 
 ### Eklendi
 - Faz 0: Belge yapısı kuruldu (CLAUDE.md, docs/spec/, PROJECT_MEMORY.md, ROADMAP.md)
+- `docs/spec/12-data-packs.md`: veri paketi formatı, anahtar eşleme, varlık işleme hattı,
+  portre tutarlılık sistemi
+- `docs/PROMPT-KITAPCIGI.md`: ateşleme / faz başlatma / oturum kurtarma promptları
+
+### Değiştirildi
+- Veri modeli gerçek-birincil hale getirildi (`DATA_MODE=full` varsayılan). Prosedürel
+  üretim yedek role çekildi (newgen'ler ve eksik varlıklar için)
+- Sunucu varsayılanı `SERVER_MODE=private` — kişisel kurulum
+- KVKK/GDPR zorunludan koşullu hale geldi (yalnızca `SERVER_MODE=public` ise)

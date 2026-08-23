@@ -8,6 +8,11 @@
 type ServerMode = 'public' | 'private' | 'maintenance';
 ```
 
+> **Varsayılan `private`.** `.env`'de `SERVER_MODE=private` ile açılır. Kişisel kurulumda
+> bu modda kalır: kayıt teknik olarak açıktır ama yalnızca izin listesindeki hesaplar
+> oyunu başlatabilir. `public` moda geçiş bilinçli bir karardır ve KVKK metinlerini
+> (`docs/LEGAL/`) otomatik olarak aktive eder.
+
 | Mod | Kayıt | Giriş | Oyun | Erişim |
 |---|---|---|---|---|
 | `public` | Açık | Herkes | Herkes | Herkes |

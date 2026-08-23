@@ -34,13 +34,18 @@ Bu proje aşağıdaki açık lisanslı veri kaynaklarını kullanır:
 TELİFLİ VARLIKLAR HAKKINDA
 --------------------------------------------------------------------------------
 
-Bu yazılımın herkese açık dağıtımı hiçbir telifli kulüp arması, lig logosu,
-forma tasarımı veya oyuncu fotoğrafı barındırmaz. Bu varlıklar prosedürel olarak
-üretilir (bkz. docs/spec/01-database.md, ProceduralProvider).
+Bu depo (repository) hiçbir kulüp arması, lig logosu, forma tasarımı veya oyuncu
+fotoğrafı içermez. Bu tür görseller depoya commit edilmez ve .gitignore ile hariç
+tutulur (/data/packs/, /data/assets/).
 
-Kullanıcılar kendi veri paketlerini kendi tarayıcılarında yükleyebilir; bu
-paketler sunucuda saklanmaz ve dağıtılmaz.
+Yazılım gerçek veriyle çalışacak şekilde tasarlanmıştır. Kullanıcı, kendi kurulumunda
+kullanacağı veri paketini kendisi temin eder ve /data/packs/ klasörüne yerleştirir.
+Bu paketlerin içeriğinden ve kullanımından kullanıcı sorumludur.
 
-Kulüp isimleri, lig isimleri ve oyuncu isimleri ilgili hak sahiplerinin
-tescilli markaları olabilir. Bu proje bu kuruluşlarla ilişkili değildir ve
-onlar tarafından onaylanmamıştır.
+Veri paketi bulunmayan varlıklar için yazılım prosedürel üretim yapar
+(bkz. docs/spec/12-data-packs.md).
+
+Kulüp isimleri, lig isimleri, oyuncu isimleri ve armaları ilgili hak sahiplerinin
+tescilli markaları olabilir. Bu proje bu kuruluşlarla ilişkili değildir ve onlar
+tarafından onaylanmamıştır.
+

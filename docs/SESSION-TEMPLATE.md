@@ -55,11 +55,11 @@ KURALLAR
 | 3–4 | Bölüm 3 |
 | 5 | Bölüm 13 |
 | 6 | Bölüm 7 |
-| 7–9 | Bölüm 3, 17 (veri paketleri) |
+| 7–9 | Bölüm 3, 17 (`docs/spec/12-data-packs.md`) |
 | 10 | Bölüm 4 |
-| 11 | Bölüm 3, 4, 11, 17 |
+| 11 | Bölüm 3, 4, 11, 17 (`docs/spec/12-data-packs.md`) |
 | 12 | Bölüm 3 |
-| 13 | Bölüm 10, 13 |
+| 13 | Bölüm 10, 13 (mod sistemi: `private` varsayılan) |
 | 14–15 | Bölüm 4, 6 |
 | 16 | Bölüm 5, 11 |
 | 17–19 | Bölüm 7, 13 |
