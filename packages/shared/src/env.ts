@@ -71,6 +71,15 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
 
+  // Docker Compose (yerel veri katmanı) — uygulama bunları kullanmaz ama
+  // doğrular: DATABASE_URL ile tutarsız kalırlarsa açılışta hata verilir.
+  POSTGRES_USER: z.string().optional(),
+  POSTGRES_PASSWORD: z.string().optional(),
+  POSTGRES_DB: z.string().optional(),
+  POSTGRES_PORT: port.default(5432),
+  REDIS_PORT: port.default(6379),
+  ADMINER_PORT: port.default(8080),
+
   // Kimlik
   JWT_SECRET: z.string().min(32, {
     error: 'En az 32 karakter olmalı; kısa bir sır jetonların taklit edilmesine izin verir.',
@@ -155,6 +164,58 @@ export function formatEnvError(
 }
 
 /**
+ * `docker-compose.yml` `POSTGRES_*` değerlerini okur, uygulama ise
+ * `DATABASE_URL`'i. İkisi ayrı yerde yazıldığı için sessizce ayrışabilirler:
+ * parolayı bir yerde değiştirip diğerini unutmak, "bağlanamıyorum" ile biten
+ * ve sebebi geç anlaşılan bir hata sınıfıdır.
+ *
+ * Yalnızca konak/port DEĞİL, kimlik bilgileri karşılaştırılır: konak yerelde
+ * `localhost`, konteyner içinde `postgres` olur ve bu normaldir.
+ *
+ * @returns uyumsuzluk açıklaması, yoksa null
+ */
+export function checkDatabaseUrlConsistency(env: Env): string | null {
+  const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB } = env;
+  if (POSTGRES_USER === undefined && POSTGRES_PASSWORD === undefined && POSTGRES_DB === undefined) {
+    return null; // Compose kullanılmıyor
+  }
+
+  let url: URL;
+  try {
+    url = new URL(env.DATABASE_URL);
+  } catch {
+    return null; // Biçim sorunu bu kontrolün işi değil
+  }
+
+  const mismatches: string[] = [];
+  const compare = (name: string, fromUrl: string, fromCompose: string | undefined): void => {
+    if (fromCompose !== undefined && fromCompose !== fromUrl) {
+      mismatches.push(`      ${name}: DATABASE_URL='${fromUrl}' ↔ ${name}='${fromCompose}'`);
+    }
+  };
+
+  compare('POSTGRES_USER', decodeURIComponent(url.username), POSTGRES_USER);
+  compare('POSTGRES_PASSWORD', decodeURIComponent(url.password), POSTGRES_PASSWORD);
+  compare('POSTGRES_DB', decodeURIComponent(url.pathname.replace(/^\//, '')), POSTGRES_DB);
+
+  if (mismatches.length === 0) return null;
+
+  return [
+    '',
+    '  ✖ DATABASE_URL ile Docker Compose değerleri uyuşmuyor:',
+    '',
+    ...mismatches,
+    '',
+    '    Docker Compose veritabanını POSTGRES_* ile kurar, uygulama ise',
+    '    DATABASE_URL ile bağlanır. İkisi ayrışırsa konteyner ayağa kalkar ama',
+    '    uygulama bağlanamaz.',
+    '',
+    '    .env dosyasında her iki tarafı da aynı değere getirin.',
+    '',
+  ].join('\n');
+}
+
+/**
  * Ortam değişkenlerini doğrular. Başarısızsa eyleme dönüştürülebilir Türkçe
  * mesajla `Error` fırlatır — uygulama açılmaz.
  */
@@ -162,6 +223,11 @@ export function parseEnv(source: Readonly<Record<string, string | undefined>>): 
   const result = envSchema.safeParse(source);
   if (!result.success) {
     throw new Error(formatEnvError(result.error.issues, source));
+  }
+
+  const mismatch = checkDatabaseUrlConsistency(result.data);
+  if (mismatch !== null) {
+    throw new Error(mismatch);
   }
 
   // Ç6: DATA_MODE=full iken ACTIVE_PACK boş olabilir — sağlayıcı zinciri bir alt

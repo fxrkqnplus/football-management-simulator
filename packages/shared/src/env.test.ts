@@ -92,3 +92,51 @@ describe('parseEnv — hata mesajı eyleme dönüştürülebilir (K1.3)', () => 
     expect(() => parseEnv({ ...MINIMAL, PUBLIC_URL: 'fxrkqn.org' })).toThrow(/Tam bir adres/);
   });
 });
+
+describe('checkDatabaseUrlConsistency — compose ↔ uygulama (1.7)', () => {
+  const COMPOSE = {
+    ...MINIMAL,
+    DATABASE_URL: 'postgresql://fms:gizli@localhost:5432/fms',
+    POSTGRES_USER: 'fms',
+    POSTGRES_PASSWORD: 'gizli',
+    POSTGRES_DB: 'fms',
+  } as const;
+
+  it('uyumlu değerlerde geçer', () => {
+    expect(() => parseEnv(COMPOSE)).not.toThrow();
+  });
+
+  it('konak farkını sorun saymaz (konteyner içi vs yerel)', () => {
+    expect(() =>
+      parseEnv({ ...COMPOSE, DATABASE_URL: 'postgresql://fms:gizli@postgres:5432/fms' }),
+    ).not.toThrow();
+  });
+
+  it('parola ayrışmasını yakalar — en olası hata', () => {
+    let message = '';
+    try {
+      parseEnv({ ...COMPOSE, POSTGRES_PASSWORD: 'baska' });
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toContain('POSTGRES_PASSWORD');
+    expect(message).toContain('uyuşmuyor');
+    expect(message).toContain('.env');
+  });
+
+  it('kullanıcı ve veritabanı adı ayrışmasını yakalar', () => {
+    expect(() => parseEnv({ ...COMPOSE, POSTGRES_USER: 'baska' })).toThrow(/POSTGRES_USER/);
+    expect(() => parseEnv({ ...COMPOSE, POSTGRES_DB: 'baska' })).toThrow(/POSTGRES_DB/);
+  });
+
+  it('POSTGRES_* hiç tanımlı değilse kontrol yapılmaz', () => {
+    expect(() => parseEnv(MINIMAL)).not.toThrow();
+  });
+
+  it('compose portları varsayılanlarla gelir', () => {
+    const env = parseEnv(MINIMAL);
+    expect(env.POSTGRES_PORT).toBe(5432);
+    expect(env.REDIS_PORT).toBe(6379);
+    expect(env.ADMINER_PORT).toBe(8080);
+  });
+});

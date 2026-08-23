@@ -109,6 +109,10 @@ const SAVE_INVARIANTS = [
 > dosya hesaba katılmadığı için %85 kapısı sessizce yalan söyler. **K10'un geçerliliği bu ayara
 > bağlıdır.** Ayrıca `coverage.ignoreEmptyLines` kaldırıldı ve V8 sağlayıcısı AST tabanlı
 > yeniden eşlemeye geçti; v3'ten gelen rakamlarla birebir karşılaştırma yapılmaz.
+>
+> **`tools/` kapsam eşiğine dahil DEĞİLDİR.** `coverage.include` yalnızca
+> `*/src/**` desenini alır; geliştirme araçları (`arch-check`, `eslint-local-rules`)
+> test edilir ama ürün kodu sayılmaz ve %70/%85 eşiklerine girmez.
 
 **Fuzz testi:** Motora rastgele nitelik kombinasyonları (1-20 arası tüm uçlar dahil) verilir; `NaN`, `Infinity`, negatif skor, sonsuz döngü **asla** oluşmamalı.
 

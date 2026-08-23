@@ -21,42 +21,46 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 1 — 1.7 sırada** |
-| **Son tamamlanan** | Faz 1, alt görev **1.6** — `arch:check` mimari denetimi |
+| **Aktif faz / alt görev** | **Faz 1 — 1.8 sırada** |
+| **Son tamamlanan** | Faz 1, alt görev **1.7** — Docker Compose (veri katmanı) |
 | **Tamamlanma tarihi** | 2026-08-24 |
-| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **6/10** alt görevi bitti |
+| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **7/10** alt görevi bitti |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `chore(arch): mimari denetim — katman yönü, motor saflığı, import harf duyarlılığı` — `feature/faz-01-monorepo`, push edildi |
+| **Son commit** | `chore(infra): Docker Compose veri katmanı — Postgres, Redis, adminer` — `feature/faz-01-monorepo`, push edildi |
 | **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` (üçü de origin'de) |
-| **typecheck** | ✅ 8/8 paket, 0 hata |
-| **lint** | ✅ 0 hata (soğuk 3,0 sn / sıcak 1,7 sn) |
+| **typecheck** | ✅ 8/8 paket |
+| **lint** | ✅ 0 hata |
 | **build** | ✅ 8/8 paket |
-| **test** | ✅ **64 test / 4 dosya** (21 birim + 23 ESLint kuralı + 20 arch:check) |
-| **kapsam** | ✅ Satır %92,7 · İfade %91,8 · Dal %82,7 · Fonksiyon %85,7 |
-| **arch:check** | ✅ **0 ihlal, ~54 ms** — beş kural da negatif testle doğrulandı |
+| **test** | ✅ **70 test / 4 dosya** |
+| **kapsam** | ✅ eşiklerin üzerinde (global %70, `packages/engine` %85) |
+| **arch:check** | ✅ 0 ihlal, ~54 ms |
+| **docker compose** | ✅ `postgres:16` + `redis:7` **healthy**, `adminer:6` çalışıyor |
 | **Açık sorun sayısı** | 0 |
-| **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (ikisi de Faz 16 vadeli) |
+| **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
 **Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.7**
+1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.8**
 2. `pnpm install` → `typecheck` → `lint` → `test` → `build` → `arch:check`
-3. `docs/spec/10-deployment.md` §13.1 oku (üretim ortamı, ARM64)
-4. **PostgreSQL majörünü Docker Hub'dan DOĞRULA** — tahminle yazma (ROADMAP 1.7 notu)
-5. `docker compose up` → Postgres ve Redis sağlıklı olmalı (kabul kriteri)
+3. `docker compose up -d` → ikisi de `healthy` mi doğrula
+4. `docs/ROADMAP.md` Bölüm 0.1d oku — alt yolun etkilediği katman tablosu
+5. **NestJS 11 / Express 5 tuzakları:** joker rota `/*splat`, `setGlobalPrefix` bilinen sorunu, CORS'ta PUT/PATCH/DELETE açıkça tanımlanmalı
 
-**1.7 kapsamı:**
-- `docker-compose.yml` (Postgres, Redis 7, adminer) + healthcheck'ler
-- Tüm imajlar `linux/arm64` uyumlu olmalı — üretim Oracle Ampere A1
-- `docker-compose.prod.yml` iskeleti
-- Docker Desktop + WSL2 hazır, `buildx ls` çıktısında `linux/arm64` destekleniyor
+**1.8 kapsamı — fazın en pahalı hata sınıfı:**
+- Minimal `apps/web` (Vite 8 `base`) + minimal `apps/api` (NestJS 11 global prefix)
+- `/fms/api/health` çalışmalı; çerez `path` ve 404 davranışı test edilmeli
+- `PUBLIC_BASE_PATH` değiştirilince **her katman** uymalı (birim testi 1.4'te hazır, burada uçtan uca)
+- **Rolldown çıktısı "derlendi" ile geçilmez** — gerçekten servis edilip `/fms` altında çalıştığı doğrulanacak
+- Kaçış yolu: Rolldown bloke ederse `vite@7.3.6` + `plugin-react@5`, BORÇ kütüğüne yaz, devam et
 
 **Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
 - TypeScript `~6.0.3`, `^` **yasak** → `docs/ADR/0003`
 - Node 24.19.0 tek hat; kapı `scripts/check-node-version.mjs`
-- Windows geliştirme ↔ Linux/ARM64 üretim → `docs/ADR/0004` *(§2 Faz 1.6'da ölçümle düzeltildi)*
+- Windows geliştirme ↔ Linux/ARM64 üretim → `docs/ADR/0004` *(§2 ölçümle düzeltildi, SAPMA-005)*
 - Alt yol tek kaynağı: `packages/shared/src/base-path.ts`
 - **`coverage.include` silinmez** — silinirse kapsam eşikleri sessizce yalan söyler
 - **ESLint ↔ arch:check iş bölümü** (`docs/spec/09` §11.5): hiçbir kural iki yerde denetlenmez
+- **Postgres healthcheck'i `pg_isready` DEĞİL** — o var olmayan veritabanına da "healthy" der (ölçüldü). `psql -c 'SELECT 1'` kullanılıyor.
+- `.env` içindeki `POSTGRES_*` ile `DATABASE_URL` tutarlılığı açılışta denetlenir
 - `lint`, `test` ve `arch:check` turbo'dan geçmez; `build` ve `typecheck` paket başına
 - Sürüm takibi: `docs/DEPENDENCY-WATCH.md` — her faz başında okunur
 - Rapor formatı: `docs/OUTPUT-FORMAT.md` — her alt görev sonunda
@@ -64,15 +68,11 @@
 **Bilinen kayıt düzeltmeleri:**
 
 > ⚠️ **DÜZELTME (Faz 1):** Faz 0 kaydının 9. başlığı `docs/PROMPT-KITAPCIGI.md`
-> dosyasını `[YENİ]` olarak listeliyor. Bu dosya repoda **yok** ve kasıtlı olarak
-> repo dışında tutuluyor. Faz 0 kaydı append-only olduğu için değiştirilmedi.
+> dosyasını `[YENİ]` olarak listeliyor. Dosya repoda **yok**, kasıtlı olarak repo
+> dışında tutuluyor. Faz 0 kaydı append-only olduğu için değiştirilmedi.
 
-> ⚠️ **DÜZELTME (Faz 1.6):** `docs/ADR/0004` §2'nin ilk sürümü
-> "`forceConsistentCasingInFileNames` tek ve tutarlı ama yanlış harfli bir yazımı
-> yakalamaz" diyordu. Ölçüldü ve **yanlış** çıktı: `include: ["src/**/*"]` gerçek
-> dosyayı zaten programa aldığı için TS1149 tetikleniyor. Gerçek boşluk yalnızca
-> `.mjs`/`.js` dosyalarında. ADR düzeltildi, `arch:check` kuralı birincil değil
-> **tamamlayıcı** savunma olarak konumlandırıldı.
+> ⚠️ **DÜZELTME (Faz 1.6):** `docs/ADR/0004` §2'nin ilk sürümündeki harf
+> duyarlılığı iddiası ölçümle çürütüldü — ayrıntı SAPMA-005.
 
 ---
 
@@ -99,6 +99,7 @@
 
 | ID | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|
+| SAPMA-005 | 1 | `docs/ADR/0004` §2'deki *"`forceConsistentCasingInFileNames` tek ve tutarlı ama yanlış harfli bir yazımı yakalamaz"* iddiası **ölçümle çürütüldü**. Gerçek boşluk yalnızca `.mjs`/`.js` dosyalarında. | `packages/shared/src/CasingProbe.ts` oluşturulup `./casingprobe.js` diye import edildi: `tsc` **TS1149** ile yakaladı (`include: ["src/**/*"]` gerçek dosyayı zaten programa aldığı için yanlış import ikinci bir yazım üretiyor). Aynı deney `.mjs` ile tekrarlandı: `typecheck` göremedi, Node çalıştırdı, yalnızca `arch:check` yakaladı. `arch:check` kuralı birincil değil **tamamlayıcı** savunma olarak konumlandırıldı. | ✅ `docs/ADR/0004` §2 (ölçüm tablosu + üç hatlı model), `docs/ROADMAP.md` Faz 1 madde 1.6 |
 | SAPMA-004 | 1 | `PROJECT_MEMORY.md` ANLIK DURUM bloğunun güncelleme sıklığı **faz başınadan alt görev başına** çekildi. Tam faz kaydı (11 başlık) ve kütükler değişmedi. | Bloğun tek amacı oturum kurtarma; kurtarmaya ihtiyaç duyulan an tam olarak faz ortası. On alt görevlik bir fazda blok yalnızca sonda yazılırsa, faz ortasında kopan oturum yapılan işi göremez — nitekim 1.4 sonunda dosya kendi içinde çelişiyordu (blok "Faz 0, 0 teknik borç" derken kütükte iki BORÇ kayıtlıydı). | ✅ `docs/spec/11-project-memory.md` §12.1/§12.3, `CLAUDE.md` K15, `docs/SESSION-TEMPLATE.md`, `docs/OUTPUT-FORMAT.md` |
 | SAPMA-003 | 1 | Teknoloji yığını sürümleri (`CLAUDE.md` §2.1) 2024 bilgisiyle kilitlenmişti; 2026-08-23'te npm registry doğrulamasıyla bugüne çekildi. TypeScript bilinçli olarak en yeni majöre (7.0.2) **çıkarılmadı**, `~6.0.3` ile pinlendi. `ioredis`/`bullmq` taze majörleri alınmadı (BORÇ-001, BORÇ-002). | TS 7.0 programatik derleyici API'si olmadan yayınlandı — kanıt: `typescript-eslint` peer aralığı `>=4.8.4 <6.1.0` ve `nest build`'in `createProgram()` çağrısı. `^6.0.3` yazılırsa pnpm 6.1.0'a çıkıp peer aralığının dışına taşar, bu yüzden `~`. TS 7.1 (programatik API) sonrası yeniden değerlendirilecek. | ✅ `CLAUDE.md` §2.1, `docs/ADR/0003-typescript-surum-kilidi.md`, `docs/spec/09-quality-protocol.md` §11.4 |
 | SAPMA-002 | Spec yazımı | Veri modeli "prosedürel birincil" → "gerçek birincil" (`DATA_MODE=full` varsayılan). KVKK/GDPR zorunludan koşullu hale geldi (`SERVER_MODE=public` ise). | Proje herkese açık yayınlanmayacak, kişisel kurulum. Sunucu Özel modda açılır, yalnızca izin listesi oynar. Gerçek veri estetik kalite için gerekli. | ✅ `CLAUDE.md` K9, `docs/spec/12-data-packs.md`, ROADMAP Faz 8/9/13 |

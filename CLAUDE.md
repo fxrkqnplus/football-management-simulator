@@ -392,6 +392,8 @@ packages/db → packages/shared
 packages/engine → packages/shared        (SADECE tipler ve saf yardımcılar)
 packages/ui → packages/shared
 packages/shared → (hiçbir şey)
+tools/data-cli  → packages/shared, packages/db   (motoru import ETMEZ)
+scripts/        → (hiçbir şey — önyükleme betikleri)
 ```
 
 `packages/engine` asla `packages/db`'yi import etmez. Motor veriyi **parametre olarak alır**.

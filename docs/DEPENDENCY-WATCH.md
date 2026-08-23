@@ -24,6 +24,8 @@
 | `@tanstack/react-table` | 9.1.2 | **Faz 18** | Taze majör (9.0 → 4 Ağu 2026). v8 Nis 2025'ten beri güncellenmiyor, bu yüzden v9'da başlandı; notlar tablo motoru yazılırken okunacak. |
 | `i18next` / `react-i18next` | 26.4.0 / 17.0.12 | **Faz 5** | İki majör atlama (24→26, 15→17), notlar okunmadı. |
 | `recharts` | 3.10.1 | **Faz 29** | 2 → 3 majör atlaması, notlar okunmadı. İlk kullanım maç sonrası analiz. |
+| `postgres` (Docker) | 16 | **Faz 3** | 18 mevcut (18.6, Ağu 2026). 16 bakımda ve **EOL Kas 2028**; 18'in EOL'ü Kas 2030. Şema Faz 3'te yazılıyor — majör değişimi ondan sonra dump/restore ister, öncesinde bedava. |
+| `redis` (Docker) | 7 | **Faz 16** | 8 mevcut (8.8.2). `ioredis`/`bullmq` majör kararlarıyla (BORÇ-001, BORÇ-002) aynı fazda birlikte değerlendirilir. |
 | `typescript` | ~6.0.3 | **TS 7.1 çıkınca** | ADR-0003. 7.0'da programatik derleyici API'si yok → `typescript-eslint` ve `nest build` çalışmıyor. 7.1 çıkınca üç maddelik kontrol listesi işletilir. |
 
 ## Kural
