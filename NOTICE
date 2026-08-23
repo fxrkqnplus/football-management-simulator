@@ -1,0 +1,46 @@
+Football Management Simulator
+Copyright (C) 2026
+
+Bu yazılım AGPL-3.0 lisansı altında dağıtılmaktadır.
+
+--------------------------------------------------------------------------------
+ÜÇÜNCÜ TARAF VERİ KAYNAKLARI
+--------------------------------------------------------------------------------
+
+Bu proje aşağıdaki açık lisanslı veri kaynaklarını kullanır:
+
+1. Wikidata — CC0 1.0 Universal (Public Domain Dedication)
+   https://www.wikidata.org/
+   Kullanım: oyuncu doğum tarihi, boy, uyruk, mevki gibi olgusal veriler
+
+2. openfootball — CC0 / Public Domain
+   https://github.com/openfootball
+   Kullanım: lig yapısı, kulüp listeleri, fikstür verisi
+
+3. Wikimedia Commons — çeşitli serbest lisanslar (CC BY-SA, CC0, Public Domain)
+   https://commons.wikimedia.org/
+   Kullanım: ülke bayrakları, serbest lisanslı görseller
+   Her varlığın lisansı ve atfı /data/assets/ATTRIBUTIONS.json içinde tutulur.
+
+4. football-data.org — kendi kullanım şartlarına tabi
+   https://www.football-data.org/
+   Kullanım: fikstür ve sonuç verisi (opsiyonel, API anahtarı gerektirir)
+
+5. API-Football — kendi kullanım şartlarına tabi
+   https://www.api-football.com/
+   Kullanım: kadro ve istatistik verisi (opsiyonel, abonelik gerektirir)
+
+--------------------------------------------------------------------------------
+TELİFLİ VARLIKLAR HAKKINDA
+--------------------------------------------------------------------------------
+
+Bu yazılımın herkese açık dağıtımı hiçbir telifli kulüp arması, lig logosu,
+forma tasarımı veya oyuncu fotoğrafı barındırmaz. Bu varlıklar prosedürel olarak
+üretilir (bkz. docs/spec/01-database.md, ProceduralProvider).
+
+Kullanıcılar kendi veri paketlerini kendi tarayıcılarında yükleyebilir; bu
+paketler sunucuda saklanmaz ve dağıtılmaz.
+
+Kulüp isimleri, lig isimleri ve oyuncu isimleri ilgili hak sahiplerinin
+tescilli markaları olabilir. Bu proje bu kuruluşlarla ilişkili değildir ve
+onlar tarafından onaylanmamıştır.
