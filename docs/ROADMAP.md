@@ -210,6 +210,9 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
       **`scripts/` için DAR muafiyet:** yalnızca `process.stderr.write`/`process.stdout.write` serbest;
       `console.log` her yerde yasak, katman kuralları `scripts/**`e aynen uygulanır. Muafiyetin
       gerekçesi config içinde yorum olarak yazılır. (Türkçe metin kuralı Faz 5'e kadar no-op.)
+      **Ayrıca import yolu harf duyarlılığı denetimi:** her göreli import yolu diskteki gerçek
+      dosya adıyla birebir eşleşmeli. Windows duyarsız, üretim Linux/ARM64 duyarlı —
+      `forceConsistentCasingInFileNames` bunu yakalamaz (bkz. `docs/ADR/0004`).
 - [ ] **1.7** Docker Compose (Postgres 16, Redis 7, adminer) + ARM64 — **PostgreSQL majörü Docker Hub'dan doğrulanacak, tahminle yazılmayacak**
 - [ ] **1.8** `/fms` uçtan uca kanıtı — minimal web + api. **NestJS 11 / Express 5 joker rota (`/*splat`) ve `setGlobalPrefix` bilinen sorunu açıkça test edilir; CORS'ta PUT/PATCH/DELETE tanımlanır. Rolldown çıktısı "derlendi" ile geçilmez, gerçekten servis edilip `/fms` altında çalıştığı doğrulanır.**
 - [ ] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**

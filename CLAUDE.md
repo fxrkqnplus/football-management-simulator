@@ -98,6 +98,7 @@ Her yeni modül aynı commit'te birim testiyle gelir. Kapsam: global ≥%70, `pa
 
 **K11 — Tek seferde tek alt görev.**
 Bir alt görev bitince dur, `docs/ROADMAP.md`'de işaretle, kullanıcının onayını bekle. "Evet" veya "y" gelmeden sıradakine geçme.
+Alt görev listesi onaylandığı anda — ilk koda dokunmadan önce — `docs/ROADMAP.md`'deki faz bölümüne yazılır. **Plan sohbette yaşamaz:** oturum koparsa commit'ler "ne yapıldı"yı taşır, ROADMAP listesi "sırada ne var"ı taşır.
 
 **K12 — Kapsam kayması yasak.**
 Yol haritasında olmayan bir özellik aklına gelirse **yapma**. `docs/V2-BACKLOG.md`'ye ekle ve devam et.

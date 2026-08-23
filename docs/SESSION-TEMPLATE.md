@@ -23,6 +23,10 @@ BAĞLAM (bu sırayla)
 
 ÇALIŞMA
 9.  Kapsamı alt görevlere böl, listeyi bana göster, onay al.
+    ⚠️ Onaylanan liste, İLK KODA DOKUNMADAN ÖNCE docs/ROADMAP.md'deki ilgili faz
+       bölümüne yazılır. Plan sohbette yaşamaz. Her alt görev bitince orada [x]
+       işaretlenir. Gerekçe: commit'ler "ne yapıldı"yı kurtarır, ROADMAP alt görev
+       listesi "sırada ne var"ı kurtarır — oturum kurtarma ikisini de gerektirir.
 10. Alt görevleri TEK TEK yap. Her birinden sonra DUR ve onay bekle (K11).
 11. Her alt görevde: kod + birim testi + i18n anahtarları AYNI commit'te.
 12. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
