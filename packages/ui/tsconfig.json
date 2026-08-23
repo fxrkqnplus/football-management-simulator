@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Tarayıcı tarafı: Node tipleri YOK ("types": []), DOM var.
+  // Sunucu API'si sızarsa derleme kırılır — K1 (sunucu otoritesi) için
+  // ilk savunma hattı.
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": []
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

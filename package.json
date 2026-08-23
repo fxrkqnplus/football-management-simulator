@@ -17,7 +17,7 @@
   "scripts": {
     "preinstall": "node ./scripts/check-node-version.mjs",
     "build": "turbo run build",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "node ./scripts/check-tsconfig-types.mjs && turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "dev": "turbo run dev"

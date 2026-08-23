@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // K3 — MOTOR SAFTIR.
+  // types: [] burada yalnızca TS 6 varsayılanını tekrarlamıyor; motorun
+  // Node API'lerini GÖREMEMESİNİ tip seviyesinde garanti ediyor. @types/node
+  // bu pakete bağımlılık olarak da EKLENMEZ. process, fs, Buffer yazan kod
+  // derlenmez — kural CI'ı beklemeden editörde patlar.
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": []
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

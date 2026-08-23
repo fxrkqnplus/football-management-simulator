@@ -210,8 +210,8 @@ docs/ADR/0001-monorepo-secimi.md
 
 **Kabul kriterleri:**
 - [ ] `docker compose up` → Postgres ve Redis sağlıklı
-- [ ] `pnpm install && pnpm build` → tüm paketler hatasız derleniyor
-- [ ] `pnpm typecheck` → 0 hata
+- [x] `pnpm install && pnpm build` → tüm paketler hatasız derleniyor *(1.2 — 8 paket, turbo FULL TURBO cache)*
+- [x] `pnpm typecheck` → 0 hata *(1.2 — tsconfig types kapısı dahil)*
 - [ ] Kasıtlı bir tip hatası eklenince CI kırmızıya dönüyor (kanıtla)
 - [ ] Eksik `.env` değişkeniyle uygulama **açılmıyor** ve net hata mesajı veriyor
 - [ ] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor

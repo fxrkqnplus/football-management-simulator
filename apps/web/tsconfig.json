@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Tarayıcı tarafı: Node tipleri YOK ("types": []), DOM var.
+  // Sunucu API'si sızarsa derleme kırılır — K1 (sunucu otoritesi) için
+  // ilk savunma hattı.
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": [],
+    // Uygulama paketi: başka paket bunun .d.ts'ini tüketmez.
+    "declaration": false,
+    "declarationMap": false,
+    // Gerçek paketleme Vite ile Faz 1.8'de gelir; şimdilik yalnızca tip denetimi.
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

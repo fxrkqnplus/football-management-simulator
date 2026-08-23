@@ -2,3 +2,11 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'tools/*'
+
+# Sürüm kataloğu — tek doğruluk kaynağı.
+# Paketler "typescript": "catalog:" yazar, sürümü burada tutarız. Böylece
+# TypeScript pini (ADR-0003: ~6.0.3, typescript-eslint peer sınırı <6.1.0)
+# sekiz ayrı package.json'a dağılmaz ve biri güncellenip diğeri unutulmaz.
+catalog:
+  typescript: ~6.0.3
+  '@types/node': ~24.13.3

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // TS 6'da types alanı varsayılan BOŞ. @types/node kurulu olsa bile burada
+    // yazılmazsa 'process', 'Buffer', 'node:*' görünmez ve hata mesajı
+    // "Cannot find name 'process'" olur — sebebi ise bu satırın eksikliğidir.
+    "types": ["node"],
+    // Uygulama paketi: başka paket bunun .d.ts'ini tüketmez.
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}
