@@ -210,13 +210,14 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
       (a) Vitest paket olarak kuruldu ama **yapılandırması yok** — config, `projects[]`, coverage eşikleri ve turbo `test` task'ı burada;
       (b) `globals: true` ayarlanınca ESLint `RuleTester` testi Vitest altında da koşar; şimdilik ayrı komutla (`pnpm test:rules`) çalışıyor;
       (c) `tsconfig.build.json` deseni (testleri emit dışında tutar) yalnızca `packages/shared`'da — test kazanan her pakete yayılmalı
-- [ ] **1.6** `arch:check` — katman yönü, engine yasakları, `console.log`, mutlak yol.
+- [x] **1.6** `arch:check` — katman yönü, engine yasakları, `console.log`, mutlak yol.
       **`scripts/` için DAR muafiyet:** yalnızca `process.stderr.write`/`process.stdout.write` serbest;
       `console.log` her yerde yasak, katman kuralları `scripts/**`e aynen uygulanır. Muafiyetin
       gerekçesi config içinde yorum olarak yazılır. (Türkçe metin kuralı Faz 5'e kadar no-op.)
       **Ayrıca import yolu harf duyarlılığı denetimi:** her göreli import yolu diskteki gerçek
-      dosya adıyla birebir eşleşmeli. Windows duyarsız, üretim Linux/ARM64 duyarlı —
-      `forceConsistentCasingInFileNames` bunu yakalamaz (bkz. `docs/ADR/0004`).
+      dosya adıyla birebir eşleşmeli. Windows duyarsız, üretim Linux/ARM64 duyarlı. TypeScript
+      `.ts` dosyalarında bunu TS1149 ile zaten yakalıyor; boşluk `.mjs`/`.js` dosyalarında
+      (ölçüm ve düzeltme: `docs/ADR/0004` §2).
 - [ ] **1.7** Docker Compose (Postgres 16, Redis 7, adminer) + ARM64 — **PostgreSQL majörü Docker Hub'dan doğrulanacak, tahminle yazılmayacak**
 - [ ] **1.8** `/fms` uçtan uca kanıtı — minimal web + api. **NestJS 11 / Express 5 joker rota (`/*splat`) ve `setGlobalPrefix` bilinen sorunu açıkça test edilir; CORS'ta PUT/PATCH/DELETE tanımlanır. Rolldown çıktısı "derlendi" ile geçilmez, gerçekten servis edilip `/fms` altında çalıştığı doğrulanır.**
 - [ ] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**
@@ -240,7 +241,7 @@ docs/ADR/0001-monorepo-secimi.md
 - [ ] Eksik `.env` değişkeniyle uygulama **açılmıyor** ve net hata mesajı veriyor
 - [ ] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor
 - [ ] Uygulama `/fms` alt yolunda çalışıyor; `PUBLIC_BASE_PATH` değiştirilince her yer uyuyor
-- [ ] Kodda mutlak yol yazılınca ESLint hata veriyor
+- [x] Kodda mutlak yol yazılınca ESLint hata veriyor *(1.4 — `local/no-hardcoded-path`, 23 senaryoluk kendi testi)*
 - [ ] Repo'ya sır push edilmeye çalışılınca GitHub push koruması engelliyor
 
 **Bağımlılık:** Yok

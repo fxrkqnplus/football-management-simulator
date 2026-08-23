@@ -129,12 +129,24 @@ pnpm perf:budget            # Faz 6+
 pnpm arch:check             # katman bağımlılık ihlali
 ```
 
+**ESLint ile arch:check arasındaki iş bölümü** — hiçbir kural iki yerde denetlenmez.
+Tekrar eden kural, iki yerden birinde gevşetilince sessizce ölür.
+
+| Kural | Nerede | Neden orada |
+|---|---|---|
+| `console.log` (K8) | **ESLint** | Çekirdek kural, editörde anında geri bildirim |
+| Kaynak kodda mutlak yol (K6) | **ESLint** (`local/no-hardcoded-path`) | AST erişimi ve otomatik düzeltme ESLint'te |
+| Sabit kodlanmış Türkçe metin (K5) | **ESLint** (Faz 5) | Aynı gerekçe |
+| Katman bağımlılık yönü (§2.4) | **arch:check** | Paket sınırı bilgisi ESLint kapsamının dışında |
+| Motor saflığı (K3) | **arch:check** | Yasaklı modül + sözdizimi + modül düzeyi durum birlikte denetlenir |
+| Import yolu harf duyarlılığı | **arch:check** | Dosya sistemi erişimi ister; `.mjs`/`.js` dosyalarını TS görmez |
+| TS olmayan varlıklarda mutlak yol | **arch:check** | ESLint `.html`/`.json`/`.css` denetlemez |
+
 `pnpm arch:check` şunları denetler:
-- `packages/engine` içinde `db`, `fs`, `http`, `Date.now`, `Math.random` kullanımı → HATA
-- Katman bağımlılık yönü ihlali → HATA
-- `console.log` → HATA
-- Sabit kodlanmış Türkçe metin → HATA
-- Sabit kodlanmış mutlak yol → HATA
+- `packages/engine` içinde `@fms/db`, `node:*`/`fs`/`http` vb., `Date.now()`, `Math.random()`, `new Date()` ve modül düzeyi değiştirilebilir bağlama → HATA
+- Katman bağımlılık yönü ihlali (CLAUDE.md §2.4) → HATA
+- Göreli import yolunun diskteki dosya adıyla harf uyuşmazlığı → HATA
+- `.html`/`.json`/`.css` kaynak varlıklarında mutlak uygulama yolu → HATA
 
 ## 11.6 Performans Bütçesi
 

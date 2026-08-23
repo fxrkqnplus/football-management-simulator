@@ -64,17 +64,41 @@ derlemesinde ortaya çıkar, yerelde asla tekrar üretilemez.
 Risk Faz 6'dan (tasarım sistemi) itibaren gerçek: yüzlerce bileşen dosyası,
 her biri PascalCase, her import elle yazılıyor.
 
-**İki savunma hattı:**
+> **⚠️ DÜZELTME (Faz 1.6, 2026-08-24).** Bu bölümün ilk sürümü riskin
+> boyutunu **fazla tahmin ediyordu**. Şöyle yazılmıştı: *"`forceConsistentCasingInFileNames`
+> yalnızca aynı dosyaya iki farklı yazımla referans verilmesini yakalar; tek ve
+> tutarlı ama yanlış harfli bir yazımı yakalamaz."* Bu iddia **bu projenin
+> yapılandırmasında yanlış**. Aşağısı ölçüme dayalı düzeltilmiş hâlidir.
 
-1. **CI Linux'ta koşar** (Faz 1.9) — birinci ve kesin hat. Yanlış harf
-   kullanımı PR'da yakalanır.
-2. **`arch:check` import yolu denetimi** (Faz 1.6) — ikinci ve yerel hat.
-   Her göreli import yolunun diskteki gerçek dosya adıyla **birebir**
-   eşleştiği doğrulanır. Geliştiriciyi PR'a kadar bekletmez.
+**Ölçüm (Faz 1.6).** `packages/shared/src/CasingProbe.ts` oluşturulup
+`./casingprobe.js` diye import edildi:
 
-`forceConsistentCasingInFileNames` zaten `tsconfig.base.json`'da açık, ama
-o yalnızca **aynı dosyaya iki farklı yazımla** referans verilmesini yakalar;
-tek ve tutarlı ama yanlış harfli bir yazımı yakalamaz. Bu yüzden yetmez.
+| Kontrol | Sonuç |
+|---|---|
+| `tsc --noEmit` (`.ts` dosyası) | **YAKALADI** — `TS1149: File name ... differs from already included file name ... only in casing` |
+| `tsc` (`.mjs`/`.js` dosyası) | **GÖREMEDİ** — bu dosyalar hiçbir tsconfig'e dahil değil |
+| Node çalışma zamanı (Windows) | Sorunsuz çalıştı |
+| `arch:check` | Her ikisini de yakaladı |
+
+**Neden TypeScript yakalıyor:** her paketin tsconfig'i `include: ["src/**/*"]`
+kullanıyor, yani gerçek adıyla (`CasingProbe.ts`) zaten programa dahil. Yanlış
+harfli import ikinci bir yazım ürettiği anda TS1149 tetikleniyor. Yani "iki
+farklı yazım" koşulu, `include` deseni sayesinde **her zaman** sağlanıyor.
+
+**Kalan gerçek boşluk** — `.mjs` / `.js` dosyaları (`scripts/`, `tools/`).
+Bunlar hiçbir TypeScript programına girmez; `pnpm typecheck` onları hiç görmez.
+Ölçümde `typecheck` geçti, Node çalıştırdı, yalnızca `arch:check` yakaladı.
+
+**Üç savunma hattı (öncelik sırasıyla):**
+
+1. **TypeScript (TS1149)** — `.ts`/`.tsx` için birincil hat, editörde anında.
+2. **`arch:check` import denetimi** (Faz 1.6) — `.mjs`/`.js` boşluğunu kapatır,
+   ayrıca dizin adı harf hatalarını ve TS programına girmeyen dosyaları görür.
+3. **CI Linux'ta koşar** (Faz 1.9) — kesin hat. Yukarıdaki ikisi bir şekilde
+   atlanırsa gerçek duyarlı dosya sistemi kararı verir.
+
+Risk hâlâ gerçek ama ilk yazıldığı kadar geniş değil; `arch:check` kuralı
+birincil değil **tamamlayıcı** savunmadır.
 
 ### 3. Satır sonları — çözülmüş
 

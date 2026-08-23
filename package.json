@@ -20,6 +20,7 @@
     "typecheck": "node ./scripts/check-tsconfig-types.mjs && turbo run typecheck",
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint/",
     "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
+    "arch:check": "node tools/arch-check/index.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",

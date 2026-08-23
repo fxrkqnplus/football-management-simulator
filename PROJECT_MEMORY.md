@@ -21,41 +21,43 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 1 — 1.6 sırada** |
-| **Son tamamlanan** | Faz 1, alt görev **1.5** — Vitest 4 + kapsam eşikleri |
+| **Aktif faz / alt görev** | **Faz 1 — 1.7 sırada** |
+| **Son tamamlanan** | Faz 1, alt görev **1.6** — `arch:check` mimari denetimi |
 | **Tamamlanma tarihi** | 2026-08-24 |
-| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **5/10** alt görevi bitti |
+| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **6/10** alt görevi bitti |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `test(quality): Vitest 4 yapılandırması ve gerçekten ısıran kapsam eşikleri` — `feature/faz-01-monorepo`, push edildi |
+| **Son commit** | `chore(arch): mimari denetim — katman yönü, motor saflığı, import harf duyarlılığı` — `feature/faz-01-monorepo`, push edildi |
 | **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` (üçü de origin'de) |
 | **typecheck** | ✅ 8/8 paket, 0 hata |
 | **lint** | ✅ 0 hata (soğuk 3,0 sn / sıcak 1,7 sn) |
-| **build** | ✅ 8/8 paket, dist'e test sızmıyor |
-| **test** | ✅ **44 test / 3 dosya** — 21 birim + 23 ESLint kural senaryosu |
-| **kapsam** | ✅ Satır %92,7 · İfade %91,8 · Dal %82,7 · Fonksiyon %85,7 (eşik: global %70, `packages/engine` %85) |
-| **arch:check** | ⛔ Henüz yok (1.6'nın işi) |
+| **build** | ✅ 8/8 paket |
+| **test** | ✅ **64 test / 4 dosya** (21 birim + 23 ESLint kuralı + 20 arch:check) |
+| **kapsam** | ✅ Satır %92,7 · İfade %91,8 · Dal %82,7 · Fonksiyon %85,7 |
+| **arch:check** | ✅ **0 ihlal, ~54 ms** — beş kural da negatif testle doğrulandı |
 | **Açık sorun sayısı** | 0 |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (ikisi de Faz 16 vadeli) |
 
 **Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.6**
-2. `pnpm install` → `typecheck` → `lint` → `test` → `build` (temiz mi doğrula)
-3. `docs/spec/09-quality-protocol.md` §11.5 oku — `arch:check` neyi denetlemeli
-4. `docs/ADR/0004` §2 oku — import harf duyarlılığı kuralı 1.6'nın parçası
-5. Her kuralı **negatif testle** kanıtla (ihlal et, yakalandığını gör), dur
+1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.7**
+2. `pnpm install` → `typecheck` → `lint` → `test` → `build` → `arch:check`
+3. `docs/spec/10-deployment.md` §13.1 oku (üretim ortamı, ARM64)
+4. **PostgreSQL majörünü Docker Hub'dan DOĞRULA** — tahminle yazma (ROADMAP 1.7 notu)
+5. `docker compose up` → Postgres ve Redis sağlıklı olmalı (kabul kriteri)
 
-**1.6 kapsamı (ROADMAP'te ayrıntılı):**
-- Katman bağımlılık yönü (CLAUDE.md 2.4) · engine yasakları (`db`, `fs`, `http`, `Date.now`, `Math.random`) · `console.log` · mutlak yol
-- **Import yolu harf duyarlılığı** — Windows duyarsız, üretim Linux/ARM64 duyarlı; `forceConsistentCasingInFileNames` bunu YAKALAMAZ
-- `scripts/` için **dar** muafiyet: yalnızca `process.stderr/stdout.write` serbest; `console.log` her yerde yasak, katman kuralları aynen uygulanır
+**1.7 kapsamı:**
+- `docker-compose.yml` (Postgres, Redis 7, adminer) + healthcheck'ler
+- Tüm imajlar `linux/arm64` uyumlu olmalı — üretim Oracle Ampere A1
+- `docker-compose.prod.yml` iskeleti
+- Docker Desktop + WSL2 hazır, `buildx ls` çıktısında `linux/arm64` destekleniyor
 
 **Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
-- TypeScript `~6.0.3`, `^` **yasak** (typescript-eslint peer sınırı) → `docs/ADR/0003`
-- Node 24.19.0 tek hat; kapı `scripts/check-node-version.mjs` (`.nvmrc` tek kaynak)
-- Windows geliştirme ↔ Linux/ARM64 üretim ayrışması → `docs/ADR/0004`
-- Alt yol tek kaynağı: `packages/shared/src/base-path.ts`; kodda mutlak yol yasak (`local/no-hardcoded-path`)
-- **`coverage.include` silinmez** — silinirse kapsam eşikleri sessizce yalan söyler (kanıtı 1.5 commit'inde)
-- `lint` ve `test` turbo'dan geçmez: tek kök yapılandırma, tek süreç. `build` ve `typecheck` paket başına.
+- TypeScript `~6.0.3`, `^` **yasak** → `docs/ADR/0003`
+- Node 24.19.0 tek hat; kapı `scripts/check-node-version.mjs`
+- Windows geliştirme ↔ Linux/ARM64 üretim → `docs/ADR/0004` *(§2 Faz 1.6'da ölçümle düzeltildi)*
+- Alt yol tek kaynağı: `packages/shared/src/base-path.ts`
+- **`coverage.include` silinmez** — silinirse kapsam eşikleri sessizce yalan söyler
+- **ESLint ↔ arch:check iş bölümü** (`docs/spec/09` §11.5): hiçbir kural iki yerde denetlenmez
+- `lint`, `test` ve `arch:check` turbo'dan geçmez; `build` ve `typecheck` paket başına
 - Sürüm takibi: `docs/DEPENDENCY-WATCH.md` — her faz başında okunur
 - Rapor formatı: `docs/OUTPUT-FORMAT.md` — her alt görev sonunda
 
@@ -63,8 +65,14 @@
 
 > ⚠️ **DÜZELTME (Faz 1):** Faz 0 kaydının 9. başlığı `docs/PROMPT-KITAPCIGI.md`
 > dosyasını `[YENİ]` olarak listeliyor. Bu dosya repoda **yok** ve kasıtlı olarak
-> repo dışında tutuluyor. Faz 0 kaydı append-only olduğu için değiştirilmedi;
-> düzeltme buraya yazıldı.
+> repo dışında tutuluyor. Faz 0 kaydı append-only olduğu için değiştirilmedi.
+
+> ⚠️ **DÜZELTME (Faz 1.6):** `docs/ADR/0004` §2'nin ilk sürümü
+> "`forceConsistentCasingInFileNames` tek ve tutarlı ama yanlış harfli bir yazımı
+> yakalamaz" diyordu. Ölçüldü ve **yanlış** çıktı: `include: ["src/**/*"]` gerçek
+> dosyayı zaten programa aldığı için TS1149 tetikleniyor. Gerçek boşluk yalnızca
+> `.mjs`/`.js` dosyalarında. ADR düzeltildi, `arch:check` kuralı birincil değil
+> **tamamlayıcı** savunma olarak konumlandırıldı.
 
 ---
 

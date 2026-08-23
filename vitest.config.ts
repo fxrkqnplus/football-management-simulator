@@ -96,6 +96,15 @@ export default defineConfig({
           include: ['*.test.mjs'],
         },
       },
+      {
+        // Mimari denetim aracının kendi testleri.
+        test: {
+          name: 'arch-check',
+          root: './tools/arch-check',
+          environment: 'node',
+          include: ['*.test.mjs'],
+        },
+      },
     ],
 
     coverage: {

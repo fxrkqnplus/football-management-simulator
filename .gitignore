@@ -55,6 +55,9 @@ logs/
 npm-debug.log*
 pnpm-debug.log*
 
+# Denetim çıktısı — yerel üretilir, repoya girmez
+durum-raporu.txt
+
 # Geçici
 tmp/
 *.tmp

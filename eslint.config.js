@@ -112,6 +112,8 @@ export default tseslint.config(
       'packages/shared/src/base-path.ts',
       'packages/shared/src/env.ts',
       'tools/eslint-local-rules/**',
+      // arch:check de yol ön eklerini VERİ olarak tutar (APP_PATH_PREFIXES).
+      'tools/arch-check/**',
       // Birim testler yolları VERİ olarak kullanır: '/api/health' bir test
       // girdisidir, bir istek değildir. Kural burada açık kalsaydı her test
       // dosyası eslint-disable ile dolardı ve kural güvenilirliğini yitirirdi.
