@@ -82,7 +82,11 @@ const ASSET_EXTENSIONS = ['.html', '.json', '.css'];
 
 /** Dosya yolundan katman adını bulur. Bulunamazsa null. */
 export function resolveLayer(relPath) {
-  const normalized = relPath.split(sep).join('/');
+  // Her iki ayraç da normalize edilir. İlk yazımda `split(sep)` kullanmıştım:
+  // `sep` ÇALIŞILAN platformun ayracı olduğu için Linux'ta ters bölü hiç
+  // çevrilmiyordu ve Windows'ta yazılmış bir yol Linux CI'da katmansız
+  // görünüyordu. CI (Linux) yakaladı — Faz 1.9.
+  const normalized = relPath.split('\\').join('/');
   const layers = Object.keys(LAYER_RULES).sort((a, b) => b.length - a.length);
   return layers.find((layer) => normalized.startsWith(`${layer}/`)) ?? null;
 }
