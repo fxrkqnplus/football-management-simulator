@@ -198,6 +198,23 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 - Dal stratejisi: `main` / `develop` / `feature/faz-XX-<slug>`
 - `CHANGELOG.md` + `docs/ADR/` (mimari karar kayıtları) klasörü
 
+**Alt görevler** (onaylanan bölüm — her biri kendi commit'iyle kapanır):
+
+- [x] **1.0** Sürüm doğrulaması — 28 paket npm registry'den teyit, `CLAUDE.md` §2.1 güncellemesi, ADR-0003, SAPMA-003, BORÇ-001/002
+- [x] **1.1** Güvenlik zemini + workspace iskeleti — `.gitignore`, `LICENSE`, `.gitattributes`, `.nvmrc`, `.npmrc`, 8 paket, Node sürüm kapısı
+- [x] **1.2** TypeScript strict + turbo derleme hattı — `tsconfig.base.json`, paket tsconfig'leri, sürüm kataloğu, tsconfig `types` kapısı
+- [ ] **1.3** ESLint 10 flat config + Prettier + import sıralama
+- [ ] **1.4** Alt yol kilidi + env doğrulama — `base-path.ts`, `env.ts` (Zod 4), `no-hardcoded-path` ESLint kuralı
+- [ ] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4)
+- [ ] **1.6** `arch:check` — katman yönü, engine yasakları, `console.log`, mutlak yol.
+      **`scripts/` için DAR muafiyet:** yalnızca `process.stderr.write`/`process.stdout.write` serbest;
+      `console.log` her yerde yasak, katman kuralları `scripts/**`e aynen uygulanır. Muafiyetin
+      gerekçesi config içinde yorum olarak yazılır. (Türkçe metin kuralı Faz 5'e kadar no-op.)
+- [ ] **1.7** Docker Compose (Postgres 16, Redis 7, adminer) + ARM64 — **PostgreSQL majörü Docker Hub'dan doğrulanacak, tahminle yazılmayacak**
+- [ ] **1.8** `/fms` uçtan uca kanıtı — minimal web + api. **NestJS 11 / Express 5 joker rota (`/*splat`) ve `setGlobalPrefix` bilinen sorunu açıkça test edilir; CORS'ta PUT/PATCH/DELETE tanımlanır. Rolldown çıktısı "derlendi" ile geçilmez, gerçekten servis edilip `/fms` altında çalıştığı doğrulanır.**
+- [ ] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**
+- [ ] **1.10** Belgeler + faz kapanışı — ADR 0001/0002, `docs/DEPENDENCY-WATCH.md`, `docs/HOSTING-FALLBACK.md` iskeleti, README "Geliştirme Ortamı" bölümü + PROMPT-KITAPCIGI atfının kaldırılması, spec düzeltmeleri (Ç1/Ç2/Ç4/Ç5/Ç6), push koruması testi, `PROJECT_MEMORY.md` faz kaydı
+
 **Ana dosyalar:**
 ```
 pnpm-workspace.yaml, turbo.json, tsconfig.base.json
