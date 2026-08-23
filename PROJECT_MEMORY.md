@@ -26,7 +26,7 @@
 | **Tamamlanma tarihi** | 2026-08-24 |
 | **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **5/10** alt görevi bitti |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `9efe34b` — `feature/faz-01-monorepo`, push edildi |
+| **Son commit** | `test(quality): Vitest 4 yapılandırması ve gerçekten ısıran kapsam eşikleri` — `feature/faz-01-monorepo`, push edildi |
 | **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` (üçü de origin'de) |
 | **typecheck** | ✅ 8/8 paket, 0 hata |
 | **lint** | ✅ 0 hata (soğuk 3,0 sn / sıcak 1,7 sn) |

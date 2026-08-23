@@ -59,10 +59,15 @@ Her **alt görev** sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyu
 | **Sıradaki faz** | Faz 13 — Açık Kayıt, Sunucu Modları ve Yasal Uyum |
 | **Genel ilerleme** | 12 / 50 (%24) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `a3f9c21` on `develop` |
+| **Son commit** | `docs(spec): ...` (commit BAŞLIĞI, hash değil) on `develop` |
 | **Testler** | ✅ 284 geçti, 0 başarısız, kapsam %78 (motor %89) |
 | **Açık sorun sayısı** | 2 (biri düşük öncelikli) |
 | **Teknik borç sayısı** | 3 |
+
+> **Neden hash değil başlık?** ANLIK DURUM alt görevin KENDİ commit'inin içinde
+> yazılır; o commit'in hash'i yazma anında henüz yoktur ve `--amend` ile
+> doldurulmaya çalışılırsa hash yeniden değişir. Commit başlığı kararlıdır ve
+> `git log --oneline --grep` ile hash'e bir adımda ulaşılır.
 
 **Sıradaki oturumda ilk yapılacak:**
 1. `docs/spec/08-admin-panel.md` ve `docs/spec/10-deployment.md` oku
