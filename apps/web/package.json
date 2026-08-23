@@ -5,10 +5,22 @@
   "type": "module",
   "description": "React SPA (Vite, base: /fms/)",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "node ../../scripts/check-env-file.mjs && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "typescript": "catalog:",
+    "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "@fms/shared": "workspace:*",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router": "^8.3.0"
   }
 }

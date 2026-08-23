@@ -21,49 +21,54 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 1 — 1.8 sırada** |
-| **Son tamamlanan** | Faz 1, alt görev **1.7** — Docker Compose (veri katmanı) |
+| **Aktif faz / alt görev** | **Faz 1 — 1.9 sırada** |
+| **Son tamamlanan** | Faz 1, alt görev **1.8** — `/fms` uçtan uca kanıtı |
 | **Tamamlanma tarihi** | 2026-08-24 |
-| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **7/10** alt görevi bitti |
+| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **8/10** alt görevi bitti |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `chore(infra): Docker Compose veri katmanı — Postgres, Redis, adminer` — `feature/faz-01-monorepo`, push edildi |
+| **Son commit** | `feat(app): /fms alt yolu uçtan uca — minimal API ve web` — `feature/faz-01-monorepo`, push edildi |
 | **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` (üçü de origin'de) |
 | **typecheck** | ✅ 8/8 paket |
 | **lint** | ✅ 0 hata |
-| **build** | ✅ 8/8 paket |
-| **test** | ✅ **70 test / 4 dosya** |
-| **kapsam** | ✅ eşiklerin üzerinde (global %70, `packages/engine` %85) |
-| **arch:check** | ✅ 0 ihlal, ~54 ms |
-| **docker compose** | ✅ `postgres:16` + `redis:7` **healthy**, `adminer:6` çalışıyor |
+| **build** | ✅ 8/8 paket (web artık Vite ile gerçek paketleme yapıyor) |
+| **test** | ✅ 70 test / 4 dosya |
+| **kapsam** | ✅ eşiklerin üzerinde |
+| **arch:check** | ✅ 0 ihlal |
+| **docker compose** | ✅ postgres + redis **healthy** |
+| **uygulama** | ✅ `/fms/` 200 · `/fms/api/health` 200 · çerez `Path=/fms` · konsol temiz |
+| **web paketi** | 228 kB (gzip 73 kB) — üretim React'i |
 | **Açık sorun sayısı** | 0 |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
 **Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.8**
-2. `pnpm install` → `typecheck` → `lint` → `test` → `build` → `arch:check`
-3. `docker compose up -d` → ikisi de `healthy` mi doğrula
-4. `docs/ROADMAP.md` Bölüm 0.1d oku — alt yolun etkilediği katman tablosu
-5. **NestJS 11 / Express 5 tuzakları:** joker rota `/*splat`, `setGlobalPrefix` bilinen sorunu, CORS'ta PUT/PATCH/DELETE açıkça tanımlanmalı
+1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.9**
+2. Kapılar: `install` → `typecheck` → `lint` → `test` → `build` → `arch:check`
+3. **1.8'den devreden:** CI'da `.env` yok. `apps/web` derlemesi `PUBLIC_BASE_PATH` olmadan **bilerek duruyor** — CI ya `.env.example`'ı kopyalamalı ya da değişkeni ortamdan vermeli.
+4. Node sürümü `pnpm install`'dan ÖNCE kontrol edilmeli (`actions/setup-node` + `.nvmrc`)
+5. `docker buildx` amd64 + arm64 — native ARM runner (`ubuntu-24.04-arm`), QEMU'ya düşme
+6. Kasıtlı tip hatasıyla CI'ın kırmızıya döndüğü **kanıtlanmalı**
 
-**1.8 kapsamı — fazın en pahalı hata sınıfı:**
-- Minimal `apps/web` (Vite 8 `base`) + minimal `apps/api` (NestJS 11 global prefix)
-- `/fms/api/health` çalışmalı; çerez `path` ve 404 davranışı test edilmeli
-- `PUBLIC_BASE_PATH` değiştirilince **her katman** uymalı (birim testi 1.4'te hazır, burada uçtan uca)
-- **Rolldown çıktısı "derlendi" ile geçilmez** — gerçekten servis edilip `/fms` altında çalıştığı doğrulanacak
-- Kaçış yolu: Rolldown bloke ederse `vite@7.3.6` + `plugin-react@5`, BORÇ kütüğüne yaz, devam et
+**Uygulamayı yerelde çalıştırma:**
+```
+docker compose up -d
+node --env-file=.env apps/api/dist/main.js      # API  → :3001
+pnpm --filter @fms/web exec vite preview        # Web  → :3000/fms/
+```
 
 **Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
 - TypeScript `~6.0.3`, `^` **yasak** → `docs/ADR/0003`
 - Node 24.19.0 tek hat; kapı `scripts/check-node-version.mjs`
-- Windows geliştirme ↔ Linux/ARM64 üretim → `docs/ADR/0004` *(§2 ölçümle düzeltildi, SAPMA-005)*
-- Alt yol tek kaynağı: `packages/shared/src/base-path.ts`
+- Windows geliştirme ↔ Linux/ARM64 üretim → `docs/ADR/0004` (§2 ölçümle düzeltildi, SAPMA-005)
+- Alt yol tek kaynağı: `packages/shared/src/base-path.ts` — `/oyun` testiyle doğrulandı
+- **`.env` içinde `NODE_ENV` TUTULMAZ** — Vite onu üretim kararına uygular, React dev sürümü pakete girer (ölçüldü: 429 kB → 228 kB). Kapı: `scripts/check-env-file.mjs`
+- **`packages/shared` `sideEffects: false`** — olmazsa `env.ts` + Zod tarayıcı paketine giriyor
+- `vite.config.ts`'te `envDir` göreli (`'../..'`) — `import.meta.url` Windows'ta `/C:/fms/` üretiyor ve `base` sessizce `/` oluyor
 - **`coverage.include` silinmez** — silinirse kapsam eşikleri sessizce yalan söyler
 - **ESLint ↔ arch:check iş bölümü** (`docs/spec/09` §11.5): hiçbir kural iki yerde denetlenmez
-- **Postgres healthcheck'i `pg_isready` DEĞİL** — o var olmayan veritabanına da "healthy" der (ölçüldü). `psql -c 'SELECT 1'` kullanılıyor.
-- `.env` içindeki `POSTGRES_*` ile `DATABASE_URL` tutarlılığı açılışta denetlenir
+- **Postgres healthcheck'i `pg_isready` DEĞİL** — o var olmayan veritabanına da "healthy" der
+- **Express 5 joker rota:** eski sözdizimi çökmez, sessizce dönüştürülür (SAPMA-006) — `*splat` elle yazılır
 - `lint`, `test` ve `arch:check` turbo'dan geçmez; `build` ve `typecheck` paket başına
-- Sürüm takibi: `docs/DEPENDENCY-WATCH.md` — her faz başında okunur
-- Rapor formatı: `docs/OUTPUT-FORMAT.md` — her alt görev sonunda
+- Sürüm takibi: `docs/DEPENDENCY-WATCH.md` · Rapor formatı: `docs/OUTPUT-FORMAT.md`
 
 **Bilinen kayıt düzeltmeleri:**
 
@@ -71,8 +76,11 @@
 > dosyasını `[YENİ]` olarak listeliyor. Dosya repoda **yok**, kasıtlı olarak repo
 > dışında tutuluyor. Faz 0 kaydı append-only olduğu için değiştirilmedi.
 
-> ⚠️ **DÜZELTME (Faz 1.6):** `docs/ADR/0004` §2'nin ilk sürümündeki harf
-> duyarlılığı iddiası ölçümle çürütüldü — ayrıntı SAPMA-005.
+> ⚠️ **DÜZELTME (Faz 1.6):** `docs/ADR/0004` §2'deki harf duyarlılığı iddiası
+> ölçümle çürütüldü — ayrıntı SAPMA-005.
+
+> ⚠️ **DÜZELTME (Faz 1.8):** Express 5 joker rota varsayımı kısmen yanlıştı —
+> ayrıntı SAPMA-006.
 
 ---
 
@@ -99,6 +107,7 @@
 
 | ID | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|
+| SAPMA-006 | 1 | *"Express 5 joker rota sözdizimi katılaştı; `/*` geçersiz"* varsayımı **kısmen yanlış** çıktı: NestJS 11'de eski sözdizimi uygulamayı çökertmiyor. | Ölçüm: `@Get('echo/*')` ile uygulama **başarıyla açıldı**. `LegacyRouteConverter` devreye girip `WARN Unsupported route path ... Attempting to auto-convert to "{*path}"` basıyor ve rotayı otomatik çeviriyor. Tuzak "patlayan" değil "sessizce dönüştürülen" cinsten — log okunmazsa fark edilmez ve dönüştürülmüş desen niyetten sapabilir. Doğru sözdizimi (`*splat`) elle yazılır, otomatik dönüştürücüye güvenilmez. | ✅ `apps/api/src/health.controller.ts` (ölçüm yorumda), `docs/ROADMAP.md` Faz 1 madde 1.8 |
 | SAPMA-005 | 1 | `docs/ADR/0004` §2'deki *"`forceConsistentCasingInFileNames` tek ve tutarlı ama yanlış harfli bir yazımı yakalamaz"* iddiası **ölçümle çürütüldü**. Gerçek boşluk yalnızca `.mjs`/`.js` dosyalarında. | `packages/shared/src/CasingProbe.ts` oluşturulup `./casingprobe.js` diye import edildi: `tsc` **TS1149** ile yakaladı (`include: ["src/**/*"]` gerçek dosyayı zaten programa aldığı için yanlış import ikinci bir yazım üretiyor). Aynı deney `.mjs` ile tekrarlandı: `typecheck` göremedi, Node çalıştırdı, yalnızca `arch:check` yakaladı. `arch:check` kuralı birincil değil **tamamlayıcı** savunma olarak konumlandırıldı. | ✅ `docs/ADR/0004` §2 (ölçüm tablosu + üç hatlı model), `docs/ROADMAP.md` Faz 1 madde 1.6 |
 | SAPMA-004 | 1 | `PROJECT_MEMORY.md` ANLIK DURUM bloğunun güncelleme sıklığı **faz başınadan alt görev başına** çekildi. Tam faz kaydı (11 başlık) ve kütükler değişmedi. | Bloğun tek amacı oturum kurtarma; kurtarmaya ihtiyaç duyulan an tam olarak faz ortası. On alt görevlik bir fazda blok yalnızca sonda yazılırsa, faz ortasında kopan oturum yapılan işi göremez — nitekim 1.4 sonunda dosya kendi içinde çelişiyordu (blok "Faz 0, 0 teknik borç" derken kütükte iki BORÇ kayıtlıydı). | ✅ `docs/spec/11-project-memory.md` §12.1/§12.3, `CLAUDE.md` K15, `docs/SESSION-TEMPLATE.md`, `docs/OUTPUT-FORMAT.md` |
 | SAPMA-003 | 1 | Teknoloji yığını sürümleri (`CLAUDE.md` §2.1) 2024 bilgisiyle kilitlenmişti; 2026-08-23'te npm registry doğrulamasıyla bugüne çekildi. TypeScript bilinçli olarak en yeni majöre (7.0.2) **çıkarılmadı**, `~6.0.3` ile pinlendi. `ioredis`/`bullmq` taze majörleri alınmadı (BORÇ-001, BORÇ-002). | TS 7.0 programatik derleyici API'si olmadan yayınlandı — kanıt: `typescript-eslint` peer aralığı `>=4.8.4 <6.1.0` ve `nest build`'in `createProgram()` çağrısı. `^6.0.3` yazılırsa pnpm 6.1.0'a çıkıp peer aralığının dışına taşar, bu yüzden `~`. TS 7.1 (programatik API) sonrası yeniden değerlendirilecek. | ✅ `CLAUDE.md` §2.1, `docs/ADR/0003-typescript-surum-kilidi.md`, `docs/spec/09-quality-protocol.md` §11.4 |

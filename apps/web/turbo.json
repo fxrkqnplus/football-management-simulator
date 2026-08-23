@@ -3,12 +3,9 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      // Bu paket şu an yalnızca tip denetimi yapıyor (tsconfig'de noEmit: true).
-      // Gerçek paketleme Vite ile Faz 1.8'de gelecek; o zaman outputs
-      // ["dist/**"] olarak geri açılır. Boş bırakılmasının sebebi turbo'nun
-      // "no output files found" uyarısını susturmak değil, çıktının gerçekten
-      // olmaması — cache anlamı bozulmasın.
-      "outputs": []
+      // Vite çıktısı (Faz 1.8). Önceden bu paket yalnızca tip denetliyordu ve
+      // outputs boştu; artık gerçek paketleme yapıyor.
+      "outputs": ["dist/**"]
     }
   }
 }
