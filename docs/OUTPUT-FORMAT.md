@@ -14,7 +14,7 @@
 **Ne yapıldı:** [TEK cümle, teknik jargon minimum]
 
 **Kapılar:** typecheck [x] · lint [x] · test [x] · build [x] · arch [x]
-**Commit:** `hash` · push [x]
+**Commit:** `hash` · push [x] · ANLIK DURUM güncellendi [x]
 
 **Kanıtlar:**
 - [iddia ettiğim kapı] → [nasıl test ettim] → [sonuç]
@@ -54,6 +54,8 @@ Yukarıdaki özet bu bölüm olmadan da anlaşılır olmalı.]
   yazılır. "Ne yapmamı istersin?" diye açık uçlu sorulmaz — seçenek sunulur.
 - 🔴'da üçü birden yazılır: ne kırık, ne denendi, ne öneriliyor.
 - Özet bölümü **20 satırı geçmez**. Uzun anlatım DETAY'a gider.
+- **ANLIK DURUM güncellenmeden alt görev kapanmaz** (K15) — `PROJECT_MEMORY.md`
+  içindeki blok her alt görev sonunda yeniden yazılır.
 - **Kanıtlar bölümünde test edilmemiş bir kapı test edilmiş gibi yazılmaz.**
   "test edilmedi" yazmak, yanlış "✅"den iyidir.
 - Bir alt görev 🟢 ise ve kullanıcı "devam" derse sıradakine geçilir — tekrar

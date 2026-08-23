@@ -1,0 +1,240 @@
+=== GIT LOG ===
+6dcaa75 feat(shared): alt yol kilidi, env do─ƒrulama ve no-hardcoded-path kural─▒
+1bafb7e chore(lint): ESLint 10 flat config, Prettier ve import s─▒ralamas─▒
+30355a6 docs(env): Windows geli┼ƒtirme ortam─▒n─▒ ADR'ye ba─ƒla, plan kal─▒c─▒l─▒─ƒ─▒n─▒ kuralla┼ƒt─▒r
+63f06eb docs(roadmap): Faz 1 alt g├Ârev listesini kal─▒c─▒ hale getir
+6e9ca35 feat(build): TypeScript strict yap─▒land─▒rmas─▒ ve turbo derleme hatt─▒
+7a236c2 docs(process): commit alt g├Ârev ba┼ƒ─▒na, PR faz ba┼ƒ─▒na kural─▒n─▒ ekle
+7d6134a chore(repo): workspace iskeleti, gitignore, lisans ve node s├╝r├╝m kap─▒s─▒
+20c3188 docs(spec): s├╝r├╝m kilidini registry do─ƒrulamas─▒yla g├╝ncelle
+cb5adcd Faz 0: Dosyalar g├╝ncellendi.
+56c2581 Faz 0: Eksik dosyalar ve bilgiler g├╝ncellendi, proje ba┼ƒlamaya haz─▒r.
+
+=== GIT STATUS ===
+On branch feature/faz-01-monorepo
+Your branch is up to date with 'origin/feature/faz-01-monorepo'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	durum-raporu.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+=== TAKIP EDILEN DOSYALAR ===
+.editorconfig
+.env.example
+.gitattributes
+.gitignore
+.npmrc
+.nvmrc
+.prettierignore
+.prettierrc
+CHANGELOG.md
+CLAUDE.md
+LICENSE
+NOTICE
+PROJECT_MEMORY.md
+README.md
+apps/api/package.json
+apps/api/src/index.ts
+apps/api/tsconfig.json
+apps/web/package.json
+apps/web/src/index.ts
+apps/web/tsconfig.json
+apps/web/turbo.json
+apps/worker/package.json
+apps/worker/src/index.ts
+apps/worker/tsconfig.json
+docs/ADR/0003-typescript-surum-kilidi.md
+docs/ADR/0004-gelistirme-ortami.md
+docs/DEPENDENCY-WATCH.md
+docs/MASTER-SPEC.md
+docs/OUTPUT-FORMAT.md
+docs/ROADMAP.md
+docs/SESSION-TEMPLATE.md
+docs/V2-BACKLOG.md
+docs/spec/01-database.md
+docs/spec/02-attributes.md
+docs/spec/03-match-engine.md
+docs/spec/04-ai-scoring.md
+docs/spec/05-design-system.md
+docs/spec/06-dialogue.md
+docs/spec/07-country-rules.md
+docs/spec/08-admin-panel.md
+docs/spec/09-quality-protocol.md
+docs/spec/10-deployment.md
+docs/spec/11-project-memory.md
+docs/spec/12-data-packs.md
+eslint.config.js
+package.json
+packages/db/package.json
+packages/db/src/index.ts
+packages/db/tsconfig.json
+packages/engine/package.json
+packages/engine/src/index.ts
+packages/engine/tsconfig.json
+packages/shared/package.json
+packages/shared/src/base-path.test.ts
+packages/shared/src/base-path.ts
+packages/shared/src/env.test.ts
+packages/shared/src/env.ts
+packages/shared/src/index.ts
+packages/shared/tsconfig.build.json
+packages/shared/tsconfig.json
+packages/ui/package.json
+packages/ui/src/index.ts
+packages/ui/tsconfig.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+scripts/check-node-version.mjs
+scripts/check-tsconfig-types.mjs
+tools/data-cli/package.json
+tools/data-cli/src/index.ts
+tools/data-cli/tsconfig.json
+tools/eslint-local-rules/index.js
+tools/eslint-local-rules/no-hardcoded-path.js
+tools/eslint-local-rules/no-hardcoded-path.test.mjs
+tsconfig.base.json
+turbo.json
+
+=== ROADMAP FAZ 1 BOLUMU ===
+## FAZ 1 — Monorepo, Araç Zinciri ve Kalite Kapıları
+
+**Hedef:** Tek komutla ayağa kalkan, tip-güvenli, test edilebilir, otomatik denetlenen bir geliştirme ortamı.
+
+**Kapsam:**
+- pnpm workspaces + Turborepo kurulumu
+- Klasör yapısı: `apps/web`, `apps/api`, `apps/worker`, `packages/engine`, `packages/shared`, `packages/db`, `packages/ui`, `tools/data-cli`
+- TypeScript `strict: true`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` — tüm paketlerde
+- ESLint (typescript-eslint strict) + Prettier + import sıralama kuralı
+- Vitest kurulumu + kapsam eşiği (%70 global, %85 `packages/engine`)
+- Docker Compose: Postgres 16, Redis 7, adminer — **tüm imajlar `linux/arm64` uyumlu olmalı** (üretim Oracle A1 ARM üzerinde çalışacak)
+- Yerel geliştirme x86 olabilir; CI `linux/amd64` **ve** `linux/arm64` için build alır (buildx), böylece ARM uyumsuzluğu üretimde değil CI'da yakalanır
+- ARM'da dikkat gerektirenler: `sharp` (görsel işleme), native node modülleri, `argon2` — CI'da doğrulanır
+- `.env.example` + Zod ile ortam değişkeni doğrulama (uygulama eksik değişkenle açılmaz)
+- **Alt yol (subpath) yapılandırması** — `PUBLIC_BASE_PATH=/fms` tek kaynak; Vite `base`, Router `basename`, API prefix, çerez `path`, SW kapsamı hepsi buradan türetilir (bkz. Bölüm 0.1d)
+- `basePath()` yardımcısı + **ESLint kuralı:** kodda mutlak yol (`/api/...`, `/login`) yazımı yasak
+- **Public repo güvenliği:** GitHub gizli tarama (secret scanning) + push koruması açık, Dependabot açık, `.gitignore` → `.env*`, `/data/packs/`, `/data/assets/`, `.cache/`, `*.dump`
+- **LİSANS:** Public repo lisanssız bırakılırsa varsayılan "tüm hakları saklıdır" olur (görülebilir ama yasal olarak yeniden kullanılamaz). Önerim: **AGPL-3.0** — kimse kodu alıp barındırılan bir kopyasını kapalı şekilde yayınlayamaz.
+- GitHub Actions: `lint → typecheck → test → build` zinciri
+- Dal stratejisi: `main` / `develop` / `feature/faz-XX-<slug>`
+- `CHANGELOG.md` + `docs/ADR/` (mimari karar kayıtları) klasörü
+
+**Alt görevler** (onaylanan bölüm — her biri kendi commit'iyle kapanır):
+
+- [x] **1.0** Sürüm doğrulaması — 28 paket npm registry'den teyit, `CLAUDE.md` §2.1 güncellemesi, ADR-0003, SAPMA-003, BORÇ-001/002
+- [x] **1.1** Güvenlik zemini + workspace iskeleti — `.gitignore`, `LICENSE`, `.gitattributes`, `.nvmrc`, `.npmrc`, 8 paket, Node sürüm kapısı
+- [x] **1.2** TypeScript strict + turbo derleme hattı — `tsconfig.base.json`, paket tsconfig'leri, sürüm kataloğu, tsconfig `types` kapısı
+- [x] **1.3** ESLint 10 flat config + Prettier + import sıralama *(tek kök config, projectService, eslint-config-prettier)*
+- [x] **1.4** Alt yol kilidi + env doğrulama — `base-path.ts`, `env.ts` (Zod 4), `no-hardcoded-path` ESLint kuralı *(kuralın kendi testi RuleTester ile aynı alt görevde)*
+- [ ] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4).
+      1.4'ten devreden üç iş:
+      (a) Vitest paket olarak kuruldu ama **yapılandırması yok** — config, `projects[]`, coverage eşikleri ve turbo `test` task'ı burada;
+      (b) `globals: true` ayarlanınca ESLint `RuleTester` testi Vitest altında da koşar; şimdilik ayrı komutla (`pnpm test:rules`) çalışıyor;
+      (c) `tsconfig.build.json` deseni (testleri emit dışında tutar) yalnızca `packages/shared`'da — test kazanan her pakete yayılmalı
+- [ ] **1.6** `arch:check` — katman yönü, engine yasakları, `console.log`, mutlak yol.
+      **`scripts/` için DAR muafiyet:** yalnızca `process.stderr.write`/`process.stdout.write` serbest;
+      `console.log` her yerde yasak, katman kuralları `scripts/**`e aynen uygulanır. Muafiyetin
+      gerekçesi config içinde yorum olarak yazılır. (Türkçe metin kuralı Faz 5'e kadar no-op.)
+      **Ayrıca import yolu harf duyarlılığı denetimi:** her göreli import yolu diskteki gerçek
+      dosya adıyla birebir eşleşmeli. Windows duyarsız, üretim Linux/ARM64 duyarlı —
+      `forceConsistentCasingInFileNames` bunu yakalamaz (bkz. `docs/ADR/0004`).
+- [ ] **1.7** Docker Compose (Postgres 16, Redis 7, adminer) + ARM64 — **PostgreSQL majörü Docker Hub'dan doğrulanacak, tahminle yazılmayacak**
+- [ ] **1.8** `/fms` uçtan uca kanıtı — minimal web + api. **NestJS 11 / Express 5 joker rota (`/*splat`) ve `setGlobalPrefix` bilinen sorunu açıkça test edilir; CORS'ta PUT/PATCH/DELETE tanımlanır. Rolldown çıktısı "derlendi" ile geçilmez, gerçekten servis edilip `/fms` altında çalıştığı doğrulanır.**
+- [ ] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**
+- [ ] **1.10** Belgeler + faz kapanışı — ADR 0001/0002, `docs/DEPENDENCY-WATCH.md`, `docs/HOSTING-FALLBACK.md` iskeleti, README "Geliştirme Ortamı" bölümü + PROMPT-KITAPCIGI atfının kaldırılması, spec düzeltmeleri (Ç1/Ç2/Ç4/Ç5/Ç6), push koruması testi, `PROJECT_MEMORY.md` faz kaydı
+
+**Ana dosyalar:**
+```
+pnpm-workspace.yaml, turbo.json, tsconfig.base.json
+eslint.config.js, .prettierrc, vitest.config.ts
+docker-compose.yml, .env.example
+packages/shared/src/env.ts
+.github/workflows/ci.yml
+docs/ADR/0001-monorepo-secimi.md
+```
+
+**Kabul kriterleri:**
+- [ ] `docker compose up` → Postgres ve Redis sağlıklı
+- [x] `pnpm install && pnpm build` → tüm paketler hatasız derleniyor *(1.2 — 8 paket, turbo FULL TURBO cache)*
+- [x] `pnpm typecheck` → 0 hata *(1.2 — tsconfig types kapısı dahil)*
+- [ ] Kasıtlı bir tip hatası eklenince CI kırmızıya dönüyor (kanıtla)
+- [ ] Eksik `.env` değişkeniyle uygulama **açılmıyor** ve net hata mesajı veriyor
+- [ ] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor
+- [ ] Uygulama `/fms` alt yolunda çalışıyor; `PUBLIC_BASE_PATH` değiştirilince her yer uyuyor
+- [ ] Kodda mutlak yol yazılınca ESLint hata veriyor
+- [ ] Repo'ya sır push edilmeye çalışılınca GitHub push koruması engelliyor
+
+**Bağımlılık:** Yok
+**Risk:** Turborepo cache yapılandırması yanlışsa CI yavaşlar → `turbo.json` output tanımlarını doğrula.
+
+---
+
+
+=== ADR DOSYALARI ===
+
+Name                            Length
+----                            ------
+0003-typescript-surum-kilidi.md   3490
+0004-gelistirme-ortami.md         4404
+
+
+=== CHANGELOG ===
+# Changelog
+
+Bu projedeki tüm önemli değişiklikler bu dosyada kayıt altına alınır.
+Format: [Keep a Changelog](https://keepachangelog.com/tr/1.1.0/),
+sürümleme: [Semantic Versioning](https://semver.org/lang/tr/).
+
+## [Yayınlanmamış]
+
+### Eklendi
+- Faz 0: Belge yapısı kuruldu (CLAUDE.md, docs/spec/, PROJECT_MEMORY.md, ROADMAP.md)
+- `docs/spec/12-data-packs.md`: veri paketi formatı, anahtar eşleme, varlık işleme hattı,
+  portre tutarlılık sistemi
+- `docs/PROMPT-KITAPCIGI.md`: ateşleme / faz başlatma / oturum kurtarma promptları
+
+### Değiştirildi
+- Veri modeli gerçek-birincil hale getirildi (`DATA_MODE=full` varsayılan). Prosedürel
+  üretim yedek role çekildi (newgen'ler ve eksik varlıklar için)
+- Sunucu varsayılanı `SERVER_MODE=private` — kişisel kurulum
+- KVKK/GDPR zorunludan koşullu hale geldi (yalnızca `SERVER_MODE=public` ise)
+
+=== DEPENDENCY-WATCH ===
+# Bağımlılık Takip Listesi
+
+> **Her faz açılışında bu tablo kontrol edilir** (`docs/SESSION-TEMPLATE.md` ÖN KONTROL).
+>
+> Neden var: Faz 1.0'da 28 paketin sürümü npm registry'den doğrulandı, ama
+> 28 changelog'un tamamı okunmadı — bu bir günlük iş olurdu ve paketlerin çoğu
+> Faz 16-45 arasında ilk kez kullanılacak. Okunmayan changelog takip edilmezse
+> unutulur. Bu dosya o borcu görünür tutar.
+>
+> Bir satır, ilgili faza gelindiğinde ele alınır ve **kaldırılmaz** — sonucu
+> yazılır (okundu / bump edildi / karar korundu).
+
+## Aktif takip
+
+| Paket | Kilitli sürüm | Ele alınacak faz | Sebep |
+|---|---|---|---|
+| `pnpm` | 11.22.0 | **Faz 2** | 11.23.0 mevcut. Faz ortasında araç değiştirmek "bu benim kodum mu, aracın değişimi mi" sorusunu bulandırır — faz sınırında bump edilir. |
+| `pino` | 10.3.1 | **Faz 2** | 9 → 10 majör atlaması, notlar okunmadı. İlk kullanım gözlemlenebilirlik fazı. |
+| `@sentry/node`, `@sentry/react` | 10.70.0 | **Faz 2** | Majör atlama, notlar okunmadı. |
+| `drizzle-orm` / `drizzle-kit` | 0.45.2 / 0.31.10 | **Faz 3** | 1.0 hattı hâlâ RC (`1.0.0-rc.5`). Faz 3'te GA olduysa değerlendirilir. |
+| `resend` | 6.22.0 | **Faz 13** | Majör atlama, notlar okunmadı. İlk kullanım e-posta doğrulama. |
+| `ioredis` | 5.11.1 | **Faz 16** | **BORÇ-001** — 6.0.0 mevcut ama kurulum anında 3 haftalıktı. |
+| `bullmq` | 5.81.3 | **Faz 16** | **BORÇ-002** — 6.2.0 mevcut; v6 `ioredis`'i peer'a taşıdı, `pg`/`redis` peer'ları ekledi (kuyruk yapılandırmasını değiştiren mimari değişiklik). |
+| `@tanstack/react-table` | 9.1.2 | **Faz 18** | Taze majör (9.0 → 4 Ağu 2026). v8 Nis 2025'ten beri güncellenmiyor, bu yüzden v9'da başlandı; notlar tablo motoru yazılırken okunacak. |
+| `i18next` / `react-i18next` | 26.4.0 / 17.0.12 | **Faz 5** | İki majör atlama (24→26, 15→17), notlar okunmadı. |
+| `recharts` | 3.10.1 | **Faz 29** | 2 → 3 majör atlaması, notlar okunmadı. İlk kullanım maç sonrası analiz. |
+| `typescript` | ~6.0.3 | **TS 7.1 çıkınca** | ADR-0003. 7.0'da programatik derleyici API'si yok → `typescript-eslint` ve `nest build` çalışmıyor. 7.1 çıkınca üç maddelik kontrol listesi işletilir. |
+
+## Kural
+
+Bir sürümü değiştirmeden önce:
+
+1. Bu tabloya bak — o paket bir faza bağlanmış mı?
+2. Bağlanmışsa, o faza gelmeden bump etme. Erteleme maliyeti bir minor bump;
+   yanlış zamanda bump etmenin maliyeti "regresyon mu, benim kodum mu" belirsizliği.
+3. Bump edildiğinde satır silinmez, **sonucu yazılır**.
+4. `CLAUDE.md` §2.1 güncellenir ve gerekirse `PROJECT_MEMORY.md` SAPMA kütüğüne kayıt açılır.

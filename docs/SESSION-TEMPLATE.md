@@ -29,6 +29,9 @@ BAĞLAM (bu sırayla)
        listesi "sırada ne var"ı kurtarır — oturum kurtarma ikisini de gerektirir.
 10. Alt görevleri TEK TEK yap. Her birinden sonra DUR ve onay bekle (K11).
 11. Her alt görevde: kod + birim testi + i18n anahtarları AYNI commit'te.
+    ⚠️ Alt görev kapanış listesi: ROADMAP'te [x] · PROJECT_MEMORY ANLIK DURUM
+       güncellendi · yeni SORUN/BORÇ/SAPMA kütüğe yazıldı · commit + push ·
+       rapor docs/OUTPUT-FORMAT.md biçiminde.
 12. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
 
 FAZ KAPANIŞI

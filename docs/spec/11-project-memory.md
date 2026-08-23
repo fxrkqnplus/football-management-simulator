@@ -9,13 +9,26 @@
 **Okuma — her oturumun İLK işi:**
 Faz başlarken `PROJECT_MEMORY.md`'nin **"ANLIK DURUM"** bloğu ve **son iki faz kaydı** okunur. Bu yapılmadan koda dokunulmaz.
 
-**Yazma — her fazın SON işi:**
-PR açılmadan önce kayıt yazılır. Kayıt yazılmadan faz kapanmış sayılmaz (K15).
+**Yazma — iki ayrı ritim:**
+
+| Ne | Ne zaman | Maliyet |
+|---|---|---|
+| **ANLIK DURUM bloğu** | **HER ALT GÖREV sonunda** | ~10 satır, ucuz |
+| **Tam faz kaydı** (11 başlık) | Faz sonunda, PR'dan önce | Uzun |
+| **Kütükler** (SORUN/BORÇ/SAPMA) | Kayıt açıldığı anda | Bir satır |
+
+Kayıt yazılmadan faz kapanmış sayılmaz (K15).
+
+> **Neden ANLIK DURUM alt görev başına?** (SAPMA-004)
+> Bu bloğun tek amacı oturum kurtarmadır ve kurtarmaya ihtiyaç duyulan an tam
+> olarak **faz ortasıdır**. Faz sonunda güncellenirse, on alt görevlik bir fazın
+> ortasında oturum koptuğunda yeni oturum yapılan işi göremez. Commit'ler
+> "ne yapıldı"yı taşır, ANLIK DURUM "şu anda neredeyiz"i taşır.
 
 **Değişmezlik:**
 - Dosya **append-only**'dir. Eski faz kayıtları geriye dönük **silinmez ve değiştirilmez**.
 - Bir hata sonradan fark edilirse, eski kayıt düzenlenmez; yeni kayda `> ⚠️ DÜZELTME (Faz XX): Faz YY'deki "..." ifadesi yanlıştı, doğrusu "..."` satırı eklenir.
-- Tek istisna: en üstteki **ANLIK DURUM** bloğu her fazda tamamen yeniden yazılır.
+- Tek istisna: en üstteki **ANLIK DURUM** bloğu **her alt görev sonunda** tamamen yeniden yazılır.
 
 **Sıralama:** En yeni faz kaydı **en üstte** (ANLIK DURUM'un hemen altında). Yeni oturum aşağı kaydırmadan güncel durumu görür.
 
@@ -34,7 +47,7 @@ PROJECT_MEMORY.md
 
 ## 12.3 ANLIK DURUM Bloğu
 
-Her faz sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyunca 30 saniyede konuma oturur.
+Her **alt görev** sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyunca 30 saniyede konuma oturur — fazın ortasında bile.
 
 ```markdown
 ## ⚡ ANLIK DURUM

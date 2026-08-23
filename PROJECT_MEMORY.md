@@ -4,46 +4,67 @@
 > Kuralları: `docs/spec/11-project-memory.md`
 >
 > **Her oturumun İLK işi:** aşağıdaki ANLIK DURUM bloğunu ve son iki faz kaydını okumak.
-> **Her fazın SON işi:** faz kaydını yazmak ve ANLIK DURUM'u yeniden yazmak (K15).
 >
-> Bu dosya **append-only**'dir. Eski faz kayıtları geriye dönük değiştirilmez.
-> Sadece ANLIK DURUM bloğu her fazda tamamen yeniden yazılır.
+> **Yazma iki ritimde (SAPMA-004):**
+> - **ANLIK DURUM bloğu → her ALT GÖREV sonunda** yeniden yazılır (~10 satır).
+> - **Tam faz kaydı (11 başlık) → her FAZ sonunda** eklenir. Yazılmadan faz kapanmaz (K15).
+> - **Kütükler (SORUN/BORÇ/SAPMA) → kayıt açıldığı anda.**
+>
+> Bu dosya **append-only**'dir. Eski faz kayıtları geriye dönük değiştirilmez;
+> düzeltme gerekirse ANLIK DURUM altındaki "Bilinen kayıt düzeltmeleri" bölümüne yazılır.
 
 ---
 
 ## ⚡ ANLIK DURUM
 
+> **Alt görev başına güncellenir** (SAPMA-004). Tam faz kaydı faz sonunda yazılır.
+
 | | |
 |---|---|
-| **Son tamamlanan faz** | Faz 0 — Belge Bölme ve Repo Kurulumu |
-| **Tamamlanma tarihi** | _(doldurulacak)_ |
-| **Sıradaki faz** | **Faz 1 — Monorepo, Araç Zinciri ve Kalite Kapıları** |
-| **Genel ilerleme** | 0 / 50 (%0) |
+| **Aktif faz / alt görev** | **Faz 1 — 1.5 sırada** |
+| **Son tamamlanan** | Faz 1, alt görev **1.4** — Alt yol kilidi + env doğrulama |
+| **Tamamlanma tarihi** | 2026-08-24 |
+| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **4/10** alt görevi bitti |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | — |
-| **Testler** | Henüz test yok |
+| **Son commit** | `6dcaa75` — `feature/faz-01-monorepo`, push edildi |
+| **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` (üçü de origin'de) |
+| **typecheck** | ✅ 8/8 paket, 0 hata |
+| **lint** | ✅ 0 hata (soğuk 3,0 sn / sıcak 1,7 sn — Faz 20 karşılaştırması için) |
+| **build** | ✅ 8/8 paket, turbo cache çalışıyor |
+| **test** | ⚠️ 21 birim testi + kural testi geçiyor, ama **Vitest yapılandırılmadı** — kapsam eşiği YOK (1.5'in işi) |
+| **arch:check** | ⛔ Henüz yok (1.6'nın işi) |
 | **Açık sorun sayısı** | 0 |
-| **Teknik borç sayısı** | 0 |
+| **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (ikisi de Faz 16 vadeli) |
 
 **Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → Faz 1 bölümünü oku
-2. `docs/spec/09-quality-protocol.md` ve `CLAUDE.md` Bölüm 2'yi oku
-3. Faz 1 kapsamını özetle, kullanıcıya onaylat
-4. Alt görevlere böl, onay al, tek tek ilerle
+1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.5**
+2. `pnpm install` → `pnpm typecheck` → `pnpm lint` → `pnpm build` (temiz mi doğrula)
+3. `docs/spec/09-quality-protocol.md` §11.4 oku — `coverage.include` şartı
+4. `docs/DEPENDENCY-WATCH.md` → bu faza bağlanmış satır var mı bak
+5. 1.5'i yap, eşiklerin gerçekten ısırdığını **negatif testle** kanıtla, dur
 
-**Faz 1'e girerken bilinmesi gerekenler:**
-- **Veri modu:** `DATA_MODE=full` varsayılan — gerçek armalar, portreler, isimler, formalar.
-  `docs/spec/12-data-packs.md` bu hattın tam spesifikasyonu. Prosedürel üretim yedek olarak
-  kalır (newgen'ler ve eksik varlıklar için her zaman gerekli).
-- **Sunucu modu:** `SERVER_MODE=private` varsayılan. Kayıt açık ama yalnızca izin listesindeki
-  hesaplar oynar. Public'e geçiş bilinçli bir karar — o zaman KVKK metinleri aktive edilir.
-- `PUBLIC_BASE_PATH=/fms` alt yol yapılandırması **Faz 1'de kilitlenmeli.**
-  Uygulama kök alan adında değil, `fxrkqn.org/fms` alt yolunda çalışacak.
-  Bu sonradan düzeltilmesi çok pahalı bir hata sınıfıdır (Vite base, Router basename,
-  çerez path, servis çalışanı kapsamı, PWA manifest — hepsi ayrı ayrı kırılır).
-- Üretim ortamı **ARM64** (Oracle Ampere A1). CI hem `amd64` hem `arm64` build almalı,
-  yoksa ARM uyumsuzluğu üretimde patlar.
-- Repo **public**. Gizli tarama ve push koruması Faz 1'de açılmalı.
+**1.4'ten devreden üç iş (1.5 kapsamında):**
+- **(a)** Vitest paket olarak kurulu ama **yapılandırılmadı** — `vitest.config.ts`,
+  `projects[]`, coverage eşikleri ve turbo `test` task'ı 1.5'e ait.
+- **(b)** `globals: true` ayarlanınca ESLint `RuleTester` testi Vitest altında da
+  koşar; şu an ayrı komutla çalışıyor (`pnpm test:rules`).
+- **(c)** `tsconfig.build.json` deseni (testleri emit dışında tutar) yalnızca
+  `packages/shared`'da — test kazanan her pakete yayılmalı.
+
+**Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
+- TypeScript `~6.0.3`, `^` **yasak** (typescript-eslint peer sınırı) → `docs/ADR/0003`
+- Node 24.19.0 tek hat; kapı `scripts/check-node-version.mjs` (`.nvmrc` tek kaynak)
+- Windows geliştirme ↔ Linux/ARM64 üretim ayrışması → `docs/ADR/0004`
+- Alt yol tek kaynağı: `packages/shared/src/base-path.ts`; kodda mutlak yol yasak (`local/no-hardcoded-path`)
+- Sürüm takibi: `docs/DEPENDENCY-WATCH.md` — her faz başında okunur
+- Rapor formatı: `docs/OUTPUT-FORMAT.md` — her alt görev sonunda
+
+**Bilinen kayıt düzeltmeleri:**
+
+> ⚠️ **DÜZELTME (Faz 1):** Faz 0 kaydının 9. başlığı `docs/PROMPT-KITAPCIGI.md`
+> dosyasını `[YENİ]` olarak listeliyor. Bu dosya repoda **yok** ve kasıtlı olarak
+> repo dışında tutuluyor. Faz 0 kaydı append-only olduğu için değiştirilmedi;
+> düzeltme buraya yazıldı.
 
 ---
 
@@ -70,6 +91,7 @@
 
 | ID | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|
+| SAPMA-004 | 1 | `PROJECT_MEMORY.md` ANLIK DURUM bloğunun güncelleme sıklığı **faz başınadan alt görev başına** çekildi. Tam faz kaydı (11 başlık) ve kütükler değişmedi. | Bloğun tek amacı oturum kurtarma; kurtarmaya ihtiyaç duyulan an tam olarak faz ortası. On alt görevlik bir fazda blok yalnızca sonda yazılırsa, faz ortasında kopan oturum yapılan işi göremez — nitekim 1.4 sonunda dosya kendi içinde çelişiyordu (blok "Faz 0, 0 teknik borç" derken kütükte iki BORÇ kayıtlıydı). | ✅ `docs/spec/11-project-memory.md` §12.1/§12.3, `CLAUDE.md` K15, `docs/SESSION-TEMPLATE.md`, `docs/OUTPUT-FORMAT.md` |
 | SAPMA-003 | 1 | Teknoloji yığını sürümleri (`CLAUDE.md` §2.1) 2024 bilgisiyle kilitlenmişti; 2026-08-23'te npm registry doğrulamasıyla bugüne çekildi. TypeScript bilinçli olarak en yeni majöre (7.0.2) **çıkarılmadı**, `~6.0.3` ile pinlendi. `ioredis`/`bullmq` taze majörleri alınmadı (BORÇ-001, BORÇ-002). | TS 7.0 programatik derleyici API'si olmadan yayınlandı — kanıt: `typescript-eslint` peer aralığı `>=4.8.4 <6.1.0` ve `nest build`'in `createProgram()` çağrısı. `^6.0.3` yazılırsa pnpm 6.1.0'a çıkıp peer aralığının dışına taşar, bu yüzden `~`. TS 7.1 (programatik API) sonrası yeniden değerlendirilecek. | ✅ `CLAUDE.md` §2.1, `docs/ADR/0003-typescript-surum-kilidi.md`, `docs/spec/09-quality-protocol.md` §11.4 |
 | SAPMA-002 | Spec yazımı | Veri modeli "prosedürel birincil" → "gerçek birincil" (`DATA_MODE=full` varsayılan). KVKK/GDPR zorunludan koşullu hale geldi (`SERVER_MODE=public` ise). | Proje herkese açık yayınlanmayacak, kişisel kurulum. Sunucu Özel modda açılır, yalnızca izin listesi oynar. Gerçek veri estetik kalite için gerekli. | ✅ `CLAUDE.md` K9, `docs/spec/12-data-packs.md`, ROADMAP Faz 8/9/13 |
 | SAPMA-001 | Spec yazımı | Gizli nitelik sayısı 8 → 10 (`adaptability`, `temperament` eklendi) | Faz 34'teki yabancı lig uyum süreci ve Faz 44'teki diyalog tepki sistemi bu ikisi olmadan kurulamıyordu | ✅ `docs/spec/02-attributes.md` Bölüm 4.1 |

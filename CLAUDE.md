@@ -109,7 +109,10 @@ Yol haritasında olmayan bir özellik aklına gelirse **yapma**. `docs/V2-BACKLO
 Tahmin etmek, yanlış varsayımla 500 satır yazmaktan iyidir. Belirsizlik varsa kullanıcıya net bir soru sor.
 
 **K15 — Proje hafızası tutulur.**
-Her faz `PROJECT_MEMORY.md`'ye bir kayıt yazmadan kapanmaz. Oturum başında bu dosya **okunur**, oturum sonunda **yazılır**. Detaylar: Bölüm 12.
+Oturum başında `PROJECT_MEMORY.md` **okunur**. Yazma iki ritimde olur:
+**her alt görev sonunda ANLIK DURUM bloğu**, **her faz sonunda tam faz kaydı** (11 başlık).
+Faz kaydı yazılmadan faz kapanmaz. ANLIK DURUM'un alt görev başına olmasının sebebi,
+oturum kurtarmaya en çok faz ortasında ihtiyaç duyulmasıdır. Detaylar: Bölüm 12.
 
 **K14 — ARM64 uyumluluğu.**
 Üretim Oracle Ampere A1 (ARM) üzerinde çalışır. Her bağımlılık `linux/arm64` üzerinde derlenmeli. CI hem `amd64` hem `arm64` build alır.
