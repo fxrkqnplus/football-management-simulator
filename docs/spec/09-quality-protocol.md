@@ -103,6 +103,13 @@ const SAVE_INVARIANTS = [
 | Erişilebilirlik | axe-core | Tüm ekranlar | 0 kritik ihlal |
 | Yük | k6 | API | 20 eşzamanlı kullanıcı, tur atlama |
 
+> **⚠️ Kapsam eşiklerinin geçerlilik şartı (Vitest 4).**
+> Vitest 4'te `coverage.all` kaldırıldı. `coverage.include` açıkça tanımlanmazsa yalnızca
+> çalıştırılan dosyalar rapora girer ve kapsam eşikleri anlamsızlaşır — hiç test edilmemiş bir
+> dosya hesaba katılmadığı için %85 kapısı sessizce yalan söyler. **K10'un geçerliliği bu ayara
+> bağlıdır.** Ayrıca `coverage.ignoreEmptyLines` kaldırıldı ve V8 sağlayıcısı AST tabanlı
+> yeniden eşlemeye geçti; v3'ten gelen rakamlarla birebir karşılaştırma yapılmaz.
+
 **Fuzz testi:** Motora rastgele nitelik kombinasyonları (1-20 arası tüm uçlar dahil) verilir; `NaN`, `Infinity`, negatif skor, sonsuz döngü **asla** oluşmamalı.
 
 ## 11.5 Faz Kapanış Komutları

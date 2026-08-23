@@ -201,7 +201,7 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 **Ana dosyalar:**
 ```
 pnpm-workspace.yaml, turbo.json, tsconfig.base.json
-.eslintrc.cjs, .prettierrc, vitest.workspace.ts
+eslint.config.js, .prettierrc, vitest.config.ts
 docker-compose.yml, .env.example
 packages/shared/src/env.ts
 .github/workflows/ci.yml

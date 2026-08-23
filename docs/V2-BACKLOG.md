@@ -43,7 +43,14 @@ Bir fikir çıktığında alttaki "Sonradan Eklenenler" bölümüne şu formatta
 
 ## Sonradan Eklenenler
 
-_(Geliştirme sırasında çıkan fikirler buraya)_
+- **tsgo — bloke etmeyen hızlı tip kontrolü** — TypeScript 7'nin Go tabanlı derleyicisini
+  (`tsgo`) CI'da `tsc`'nin yanında **ikinci ve bloke etmeyen** bir kontrol olarak koşturmak.
+  ~10× hız avantajını erken uyarı olarak kullanır, kaynak-doğru derleyici `tsc` kalır.
+  - Nereden çıktı: Faz 1, alt görev 1.0 (sürüm doğrulaması)
+  - Neden v1'de değil: TypeScript 6.0.3'te kilitliyiz (ADR-0003). İki derleyiciyi paralel
+    tutmak CI karmaşıklığı ekler ve Faz 1'in amacı zemin kurmak, hız optimizasyonu değil (K12).
+    TS 7.1 programatik API'yi getirdiğinde zaten tek derleyiciye geçilerek çözülebilir.
+  - Tahmini büyüklük: küçük
 
 ---
 

@@ -172,50 +172,60 @@ Her PR açıklaması: faz numarası, kapsam özeti, kabul kriteri kontrol listes
 ## 2.1 Sürümler (Kilitli)
 
 ```jsonc
+// Sürümler 2026-08-23'te npm registry'den tek tek doğrulandı (SAPMA-003).
+// Bir sürümü değiştirmeden önce docs/DEPENDENCY-WATCH.md'yi oku.
 {
-  "runtime":    "Node.js 22 LTS",
-  "packageManager": "pnpm@9",
-  "monorepo":   "Turborepo 2",
-  "language":   "TypeScript 5.6 (strict)",
+  "runtime":    "Node.js 24 LTS (Krypton, 24.19.0)",
+  "packageManager": "pnpm@11",
+  "monorepo":   "Turborepo 2.10",
+  "language":   "TypeScript 6.0.3 — '~' ile PİNLİ, '^' YASAK (aşağıdaki nota bak)",
 
   "frontend": {
-    "framework": "React 19",
-    "bundler":   "Vite 6",
-    "router":    "react-router 7",
-    "styling":   "Tailwind CSS 4",
+    "framework": "React 19.2",
+    "bundler":   "Vite 8 (Rolldown) + @vitejs/plugin-react 6",
+    "router":    "react-router 8",
+    "styling":   "Tailwind CSS 4.3",
     "components":"shadcn/ui (Radix tabanlı)",
     "state":     "Zustand 5",
     "serverState":"@tanstack/react-query 5",
-    "table":     "@tanstack/react-table 8 + @tanstack/react-virtual 3",
-    "charts":    "recharts 2",
+    "table":     "@tanstack/react-table 9 + @tanstack/react-virtual 3",
+    "charts":    "recharts 3",
     "render2d":  "pixi.js 8",
     "audio":     "howler 2",
-    "i18n":      "i18next 24 + react-i18next 15",
-    "icons":     "lucide-react",
-    "forms":     "react-hook-form 7 + @hookform/resolvers (zod)"
+    "i18n":      "i18next 26 + react-i18next 17",
+    "icons":     "lucide-react 1",
+    "forms":     "react-hook-form 7 + @hookform/resolvers 5 (zod)"
   },
 
   "backend": {
-    "framework": "NestJS 10",
-    "orm":       "drizzle-orm + drizzle-kit",
+    "framework": "NestJS 11 (Express 5 — joker rota sözdizimi değişti: /*splat)",
+    "orm":       "drizzle-orm 0.45 + drizzle-kit 0.31",   // 1.0 hâlâ RC, girilmedi
     "db":        "PostgreSQL 16",
-    "cache":     "ioredis 5",
-    "queue":     "bullmq 5",
-    "validation":"zod 3",
-    "logging":   "pino 9 + nestjs-pino",
-    "auth":      "@node-rs/argon2 + jose (JWT)",
-    "email":     "resend"
+    "cache":     "ioredis 5.11",                          // 6.x → BORÇ-001, Faz 16
+    "queue":     "bullmq 5.81",                           // 6.x → BORÇ-002, Faz 16
+    "validation":"zod 4",
+    "logging":   "pino 10 + nestjs-pino 4",
+    "auth":      "@node-rs/argon2 2 + jose 6 (JWT)",
+    "email":     "resend 6"
   },
 
   "quality": {
-    "test":      "vitest 2",
-    "e2e":       "@playwright/test 1.48",
-    "lint":      "eslint 9 (flat config) + typescript-eslint 8",
+    "test":      "vitest 4",   // vitest.config.ts + projects[]; coverage.include ZORUNLU
+    "e2e":       "@playwright/test 1.62",
+    "lint":      "eslint 10 (yalnızca flat config) + typescript-eslint 8",
     "format":    "prettier 3",
-    "errors":    "@sentry/node + @sentry/react"
+    "errors":    "@sentry/node 10 + @sentry/react 10"
   }
 }
 ```
+
+**TypeScript neden 7 değil, 6.0.3 — ve neden `~` ile pinli:**
+TypeScript 7.0 programatik derleyici API'si olmadan yayınlandı. Kanıt zinciri: `typescript-eslint`
+peer aralığı `>=4.8.4 <6.1.0`, ve `nest build` `createProgram()` çağırıyor. TS 7'ye çıkmak
+tip-farkında lint kurallarını ve NestJS derlemesini kırar. `^6.0.3` yazılırsa pnpm 6.1.0'a
+çıkabilir ve peer aralığının dışına taşar — bu yüzden `~6.0.3` kullanılır. TS 6.0'da
+`types: []` varsayılan boştur; her paketin `tsconfig.json`'ında `types` açıkça listelenir.
+Gerekçenin tamamı: `docs/ADR/0003-typescript-surum-kilidi.md`.
 
 **Yasaklı bağımlılıklar:** herhangi bir 3D kütüphane (three.js, babylon), moment.js (yerine `date-fns`), lodash tamamı (yalnızca gerekli fonksiyon `lodash-es`'ten), jQuery, herhangi bir ücretli SDK.
 
