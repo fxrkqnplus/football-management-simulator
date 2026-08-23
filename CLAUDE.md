@@ -144,6 +144,12 @@ develop   → aktif geliştirme
 feature/faz-XX-<slug>  → her faz bir dal, bir PR
 ```
 
+**Commit alt görev başına, PR faz başına.**
+Her alt görev kendi commit'iyle kapanır; PR faz sonunda açılır. Gerekçe: oturum
+kurtarma `git log` ile kaldığı yeri bulur. Faz boyunca tek commit atılırsa bağlam
+dolduğunda veya oturum koptuğunda yeni oturum git'te hiçbir şey göremez ve
+`PROJECT_MEMORY.md` tek başına on alt görevlik işi taşıyamaz.
+
 Commit formatı (Conventional Commits):
 ```
 feat(engine): pas çözümleme formülünü ekle
