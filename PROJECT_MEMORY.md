@@ -27,7 +27,7 @@
 | **Genel ilerleme** | **1 / 50 faz (%2)** |
 | **Bloke eden var mı?** | Hayır |
 | **Son commit** | `docs(memory): Faz 1 kaydı ve kapanış` — `feature/faz-01-monorepo` |
-| **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` · **PR açık: develop'a** |
+| **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` · **PR #1 açık → develop** |
 | **CI** | ✅ yeşil — amd64 + arm64, ~1 dk 27 sn |
 | **typecheck / lint / format** | ✅ |
 | **test** | ✅ 70 test / 4 dosya |
@@ -140,7 +140,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 ### FAZ 1 — Monorepo, Araç Zinciri ve Kalite Kapıları
 **Tarih:** 2026-08-23 → 2026-08-24 · **Süre:** 2 gün · **Durum:** ✅ Tamamlandı
-**Dal:** `feature/faz-01-monorepo` · **Commit aralığı:** `cb5adcd..HEAD` (18 commit)
+**Dal:** `feature/faz-01-monorepo` · **PR:** #1 → `develop` · **Commit aralığı:** `cb5adcd..1015854` (19 commit)
 
 ---
 
