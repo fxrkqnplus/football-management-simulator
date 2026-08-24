@@ -1,7 +1,21 @@
 /**
- * @fms/shared — paylaşılan tipler, şemalar, sabitler ve yardımcılar.
+ * `@fms/shared` — İZOMORFİK kök giriş.
  *
- * Bu paket hiçbir şeye bağımlı değildir (bkz. CLAUDE.md 2.4 katman kuralları).
+ * Bu paket hiçbir şeye bağımlı değildir (bkz. CLAUDE.md §2.4 katman kuralları).
+ *
+ * ⚠️ BU GİRİŞTEN ÜÇÜNCÜ TARAF PAKET SIZDIRILMAZ.
+ * Buradan dışa aktarılan her şey **hem tarayıcıda hem motorda** çalışmalıdır.
+ * Motor (K3) ve tarayıcı (K1) bu girişi paylaşıyor; buraya `zod` gibi bir
+ * bağımlılığı çeken bir modül eklenirse, o bağımlılık **ikisine birden** bulaşır.
+ *
+ * Ölçülmüş örnek (Faz 2.1): `env.ts` bu barrel'dan dışa aktarılırken
+ * `import { EngineError } from '@fms/shared'` yazan motor, `env.js` üzerinden
+ * **Zod'u da yüklüyordu**. K3 ihlali değildi (yan etki yok) ama Faz 1 hata
+ * #11'in aynı sınıfıydı — orada tarayıcı yönünde, orada motor yönünde.
+ * Çözüm: `env` 2.2a'da `@fms/shared/server` alt yoluna taşındı ve bu giriş
+ * yeniden bağımlılıksız hâle geldi.
+ *
+ * **Sunucuya özgü olan her şey → `@fms/shared/server`.**
  */
 export type { AppPath, BasePathConfig } from './base-path.js';
 export {
@@ -15,14 +29,6 @@ export {
   normalizeBasePath,
   resetBasePathForTests,
 } from './base-path.js';
-export type { Env, EnvIssue } from './env.js';
-export {
-  checkDatabaseUrlConsistency,
-  envSchema,
-  formatEnvError,
-  loadEnv,
-  parseEnv,
-} from './env.js';
 export type {
   AppErrorOptions,
   ErrorContext,

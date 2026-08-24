@@ -5,11 +5,14 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  basePackageOf,
   checkImportCasing,
+  isDependencyDeclared,
   isForbiddenEngineModule,
   isImportAllowed,
   resolveLayer,
   scanSource,
+  subpathRestrictionFor,
 } from './index.mjs';
 
 describe('resolveLayer', () => {
@@ -48,6 +51,102 @@ describe('isImportAllowed — CLAUDE.md §2.4', () => {
     expect(isImportAllowed('apps/web', '@fms/db')).toBe(false);
     expect(isImportAllowed('apps/web', '@fms/engine')).toBe(false);
     expect(isImportAllowed('apps/web', '@fms/ui')).toBe(true);
+  });
+
+  // ── Faz 2.2a: alt yol farkındalığı ──────────────────────────────────────
+  // 2.0'da ÖLÇÜLDÜ: kural tam eşleşme yapıyordu, bu yüzden
+  // isImportAllowed('apps/api', '@fms/shared/server') === false idi —
+  // paket izinli olmasına rağmen SAHTE bir katman ihlali üretiliyordu.
+  it('alt yol taşıyan belirteç TEMEL PAKETE göre değerlendirilir', () => {
+    expect(isImportAllowed('apps/api', '@fms/shared/server')).toBe(true);
+    expect(isImportAllowed('apps/worker', '@fms/shared/server')).toBe(true);
+    expect(isImportAllowed('tools/data-cli', '@fms/shared/server')).toBe(true);
+  });
+
+  it('alt yol, YASAK bir paketi izinli hâle GETİRMEZ', () => {
+    // Katman kuralı gevşetilmemeli: '@fms/db/anything' hâlâ yasak.
+    expect(isImportAllowed('packages/engine', '@fms/db/schema')).toBe(false);
+    expect(isImportAllowed('apps/web', '@fms/engine/match')).toBe(false);
+  });
+});
+
+describe('basePackageOf', () => {
+  it('kapsamlı pakette ilk iki segmenti alır', () => {
+    expect(basePackageOf('@fms/shared')).toBe('@fms/shared');
+    expect(basePackageOf('@fms/shared/server')).toBe('@fms/shared');
+    expect(basePackageOf('@fms/shared/server/deep')).toBe('@fms/shared');
+  });
+
+  it('kapsamsız pakette ilk segmenti alır', () => {
+    expect(basePackageOf('zod')).toBe('zod');
+    expect(basePackageOf('node:fs')).toBe('node:fs');
+    expect(basePackageOf('pino/browser')).toBe('pino');
+  });
+});
+
+describe('subpathRestrictionFor — sunucu alt yolu iki yönlü kapalı (2.2a)', () => {
+  it('tarayıcı tarafı sunucu alt yolunu göremez (K1)', () => {
+    expect(subpathRestrictionFor('apps/web', '@fms/shared/server')).not.toBeNull();
+    expect(subpathRestrictionFor('packages/ui', '@fms/shared/server')).not.toBeNull();
+  });
+
+  it('MOTOR da göremez (K3) — sınır iki yönlü', () => {
+    // 2.1'de ölçüldü: barrel env.js üzerinden Zod'u motora çekiyordu.
+    expect(subpathRestrictionFor('packages/engine', '@fms/shared/server')).not.toBeNull();
+  });
+
+  it('sunucu katmanları görebilir', () => {
+    expect(subpathRestrictionFor('apps/api', '@fms/shared/server')).toBeNull();
+    expect(subpathRestrictionFor('apps/worker', '@fms/shared/server')).toBeNull();
+    expect(subpathRestrictionFor('packages/db', '@fms/shared/server')).toBeNull();
+    expect(subpathRestrictionFor('tools/data-cli', '@fms/shared/server')).toBeNull();
+  });
+
+  it('kısıtsız belirteç için null döner', () => {
+    expect(subpathRestrictionFor('apps/web', '@fms/shared')).toBeNull();
+    expect(subpathRestrictionFor('packages/engine', '@fms/shared')).toBeNull();
+  });
+});
+
+describe('isDependencyDeclared — "izinli" ile "çözümlenebilir" ayrı şeyler (2.2a)', () => {
+  // 2.1'de ÖLÇÜLDÜ: arch:check 12 katman bağına izin veriyordu ama
+  // package.json'larda yalnızca 2'si bildirilmişti. packages/engine
+  // '@fms/shared'ı import edince test "Cannot find package" ile kırıldı;
+  // arch:check ise "temiz" demişti — yanlış NEGATİF.
+  const fakeReader = (map) => (layer) => (layer in map ? map[layer] : null);
+
+  it('bildirilmiş bağımlılığı kabul eder', () => {
+    const read = fakeReader({
+      'packages/engine': { dependencies: { '@fms/shared': 'workspace:*' } },
+    });
+    expect(isDependencyDeclared(read, 'packages/engine', '@fms/shared')).toBe(true);
+  });
+
+  it('BİLDİRİLMEMİŞ bağımlılığı yakalar', () => {
+    const read = fakeReader({ 'packages/engine': { dependencies: {} } });
+    expect(isDependencyDeclared(read, 'packages/engine', '@fms/shared')).toBe(false);
+  });
+
+  it('alt yol importunda TEMEL PAKETE bakar', () => {
+    const read = fakeReader({ 'apps/api': { dependencies: { '@fms/shared': 'workspace:*' } } });
+    // '@fms/shared/server' bildirilmez; bildirilen '@fms/shared'tır.
+    expect(isDependencyDeclared(read, 'apps/api', '@fms/shared/server')).toBe(true);
+  });
+
+  it('devDependencies ve peerDependencies de sayılır', () => {
+    const readDev = fakeReader({
+      'packages/ui': { devDependencies: { '@fms/shared': 'workspace:*' } },
+    });
+    expect(isDependencyDeclared(readDev, 'packages/ui', '@fms/shared')).toBe(true);
+    const readPeer = fakeReader({
+      'packages/ui': { peerDependencies: { '@fms/shared': 'workspace:*' } },
+    });
+    expect(isDependencyDeclared(readPeer, 'packages/ui', '@fms/shared')).toBe(true);
+  });
+
+  it('package.json olmayan katman (scripts/) denetlenmez', () => {
+    const read = fakeReader({});
+    expect(isDependencyDeclared(read, 'scripts', '@fms/shared')).toBe(true);
   });
 });
 

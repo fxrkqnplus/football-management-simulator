@@ -1,6 +1,10 @@
 import 'reflect-metadata';
 
-import { basePathConfig, configureBasePath, loadEnv } from '@fms/shared';
+import { basePathConfig, configureBasePath } from '@fms/shared';
+// Ortam doğrulaması SUNUCU ALT YOLUNDAN gelir: `process.env` okuyor ve şema
+// sistemdeki her sırrın adını sayıyor, bu yüzden izomorfik kök girişte durmamalı
+// (Faz 2.2a). Tarayıcı bu modülü import etmeye kalkarsa derleme kırılır.
+import { loadEnv } from '@fms/shared/server';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module.js';

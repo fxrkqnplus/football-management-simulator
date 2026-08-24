@@ -21,49 +21,52 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.1 bitti, 2.2 bekliyor** |
-| **Son tamamlanan** | ✅ **2.1** Tipli hata sınıfları (`errors.ts`) · `base-path.ts` `TypeError` borcu kapandı |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.2a bitti, 2.2b bekliyor** |
+| **Son tamamlanan** | ✅ **2.2a** Alt yol sınırı (`@fms/shared/server`) · üç yeni `arch:check` kuralı |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 3/11 alt görev (2.0, 2.0b, 2.1) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 4/12 alt görev (2.0, 2.0b, 2.1, 2.2a) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(memory): 2.1 CI sonucunu işle` (2.1'in işi `feat(shared): tipli hata sınıfları…` commit'inde) |
+| **Son commit** | `feat(shared): sunucu alt yolu sınırı ve üç arch:check kuralı` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | ✅ koşu `32788099672` — **dört işin dördü de yeşil**. ARM64 rakamları yerelle birebir aynı: 88,88 / 88,09 / 90,9 / 89,06 · 118 test / 11 dosya. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil |
-| **test** | ✅ **118 test / 11 dosya** (86 → 118: `errors` +21, `base-path` +3, motor hata kullanımı +3, `it.each` çoğaltmaları) |
+| **CI** | 2.2a koşusu **ölçülmedi** — push sonrası bakılacak. (2.1 koşusu `32788099672` dört işte de yeşildi.) |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle doğrulandı) |
+| **test** | ✅ **131 test / 11 dosya** (118 → 131: `arch-check` +13) |
 | **kapsam** | ✅ satır **%89,06** · ifade %88,88 · dal %88,09 · fonksiyon **%90,9** — eşik %70 |
-| **Araç zinciri** | pnpm 11.23.0 · jsdom 30.0.1 · `@testing-library/react` 16.3.2 |
+| **Web paketi** | **229.320 bayt**, tek varlık · `zod`/`pino`/`async_hooks`/sırlar → **0** |
 | **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
-**2.1'de kurulan sözleşme — 2.2/2.4/2.6 bunun üstüne biniyor:**
-`AppError` (soyut taban) + altı somut sınıf. Alanlar: `kind` · `code` ·
-`context` · `message` · `cause`.
-- **`httpStatus` YOK** (SAPMA-010). Eşleme 2.4'teki filter'da olacak ve
-  `Record<ErrorKind, number>` sayesinde eksik bırakılırsa **derleme kırılacak**.
-- **Kullanıcı metni sınıfta üretilmiyor.** Sözleşme `code` + `context`. `code`
-  zaten i18n anahtarı biçiminde (`alan.olay`) → Faz 5 bir tablo yazacak,
-  fırlatma yerlerini gezmeyecek. `message` **geliştirici içindir**.
-- **`context` dar tipli:** JSON-güvenli ilkeller + sığ dizi. İç içe nesne YOK.
-  Anahtar adına göre redaksiyon **2.2'de logger ile birlikte** gelecek —
-  iki savunma hattının iş bölümü orada tek yerde yazılacak.
-- `toJSON()` var: düz `JSON.stringify(new Error('x'))` **`{}`** üretir
-  (`message` numaralandırılamaz). `stack` bilerek dışarıda.
+**⛔ 2.2b'ye girerken BİLİNMESİ ŞART — kontrol deneyi üç varsayımı çürüttü:**
+`App.tsx`'e kasıtlı `@fms/shared/server` importu konup **gerçekten çağrıldı**:
+- `typecheck` **GEÇTİ** — `types: []` Node *globallerini* yasaklar; `loadEnv(): Env`
+  imzasında Node tipi olmadığı için `.d.ts` tarayıcı tsconfig'iyle derleniyor.
+- `vite build` **BAŞARILI** — paket **229.320 → 299.370 bayt** (+%30), içinde
+  `zod` 318, `DATABASE_URL` 7, `POSTGRES_PASSWORD` 3, `JWT_SECRET` 2 eşleşme.
+  **`sideEffects: false` AÇIKKEN** (ağaç sarsma yalnızca *kullanılmayan* kodu siler).
+- **Yalnızca `arch:check` yakaladı.**
 
-**⚠️ 2.2'ye devreden ÜÇ iş (ROADMAP 2.2 maddesinde yazılı):**
-1. `arch:check` **alt yol farkındalığı** (2.0'da ölçülen yanlış pozitif).
-2. `arch:check` **"bildirilmiş bağımlılık"** kuralı — 2.1'de ölçüldü: gate 12
-   katman bağına izin veriyor, `package.json`'da yalnızca **2'si** bildirilmişti.
-   `packages/engine → @fms/shared` "izinli" görünüp **çözümlenemiyordu**. Yanlış
-   POZİTİF ile yanlış NEGATİF aynı gate'in iki yüzü.
-3. Motor için **dar giriş** değerlendirmesi — `@fms/shared` barrel'ı `env.js`
-   üzerinden **Zod'u motora çekiyor** (statik olarak ölçüldü). K3 ihlali değil
-   ama Faz 1 hata #11'in aynı sınıfı.
+Yani dört değil **iki** çalışan hat var: `arch:check` **önler**, paket dize
+taraması **doğrular**. Ölçüm tablosu `spec/09` §11.5b'de (SAPMA-012).
 
-**Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → madde **2.2** (logger mimarisi) — Karar 1 ve Karar 5
-2. Kapılar: `pnpm build` → `typecheck` → `lint` → `test:coverage` → `arch:check` → `format:check`
-3. Hataları **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ**'ne anında yaz (13 satır birikti)
+**⛔ İKİNCİ ŞART — `dist/` garantili temiz olmadan hiçbir tarama kanıt değildir:**
+Turbo `dist/**`'ı önbelleğe alıyor ve önbellek isabetinde **silinmiş çıktıyı geri
+yüklüyor**. Kontrol deneyinin kirli paketi temiz paketin yanında kaldı ve tarama
+yanlış cevap verdi (SAPMA-011). `scripts/clean-dist.mjs` sekiz `build` betiğine
+de bağlandı. **`dist` üzerinde ölçüm yapmadan önce soğuk derleme yap.**
+
+**2.2a'da kurulan sınır:**
+`packages/shared` `exports`: `.` (izomorfik) + `./server` (Node-only).
+`env.ts` → `src/server/env.ts`. Kök barrel artık **hiçbir üçüncü taraf paket
+çekmiyor** → 2.1'in Zod bulgusu kapandı.
+Üç yeni `arch:check` kuralı, üçü de negatif testle kanıtlandı:
+`layer-direction` (alt yol farkındalığı) · `restricted-subpath` (web/ui/engine
+sunucu girişini göremez) · `undeclared-dependency` (import varsa bildirim de olmalı).
+
+**Sıradaki oturumda ilk yapılacak — 2.2b:**
+1. `docs/ROADMAP.md` → madde **2.2b** (pino · redaksiyon · ESLint yasağı)
+2. Kapılar (build önce, **soğuk**): `build` → `typecheck` → `lint` → `test:coverage` → `arch:check` → `format:check`
+3. Hataları **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ**'ne anında yaz (18 satır birikti)
+4. Paket tabanı: **229.320 bayt** — 2.2b sonunda karşılaştır, `pino` → 0 bekleniyor
 
 **⚠️ FAZ 2'DE MUTLAKA KONTROL EDİLECEK — 1.8'den taşınan risk:**
 `@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu; Zod ve env
@@ -196,6 +199,8 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-012 | `düzeltme` | 2 | Faz 2 planındaki *"üç kat savunma: `apps/web` `types: []` → **derlenmez** · `arch:check` · bundle grep"* iddiası **ölçümle çürütüldü**. `types: []` alt yol sınırını korumuyor; `sideEffects: false` de sızıntıyı engellemiyor. | Kontrol deneyi (2.2a): `App.tsx`'e `@fms/shared/server` importu konup **gerçekten çağrıldı**. `typecheck` **GEÇTİ** — çünkü `types: []` Node *globallerini* yasaklar, oysa `loadEnv(): Env` imzasında Node tipi yok ve üretilen `.d.ts` tarayıcı tsconfig'iyle sorunsuz derleniyor. `vite build` **BAŞARILI**; paket **229.320 → 299.370 bayt** (+%30); tarayıcı paketinde `zod` **318**, `DATABASE_URL` **7**, `POSTGRES_PASSWORD` **3**, `JWT_SECRET` **2** eşleşme — `sideEffects: false` AÇIKKEN (ağaç sarsma yalnızca *kullanılmayan* kodu siler). **Yalnızca `arch:check` yakaladı.** Yani gerçekte dört değil **iki** çalışan hat var: `arch:check` önler, paket taraması doğrular. Karar 1'in gerekçesi ("`sideEffects: false` bir paketleyici optimizasyonudur, yapısal sınır değildir") rakamla doğrulanmış oldu. Ek ölçüm: import'u yazıp **kullanmayınca** paket bayt bayt aynı kaldı — kullanılmayan kontrol deneyi yanlış güven üretiyor. | ✅ `docs/spec/09-quality-protocol.md` §11.5b (yeni bölüm + ölçüm tablosu), `docs/ROADMAP.md` Faz 2 madde 2.2a |
+| SAPMA-011 | `düzeltme` | 2 | Turborepo `build` görevinin çıktısını (`dist/**`) önbelleğe alıyor ve önbellek isabetinde **silinmiş çıktıyı geri yüklüyor**. Bir kaynak dosya taşındığında `dist/` içinde öksüz modül kalıyor; `tsc` çıktıyı üzerine yazar ama silmez. | İki ölçüm. **(a)** `packages/shared/src/env.ts` → `src/server/env.ts` taşındı; `rm -rf dist && pnpm build` sonrası `dist/env.js` **yine oradaydı**. Aynı ağaçta `tsc` doğrudan çalıştırılınca dist temiz çıktı — üreten derleyici değil, `>>> FULL TURBO` önbellek isabetiydi. **(b)** Daha kötüsü: 2.2a kontrol deneyinin kirli paketi (`index-DV5Sgexl.js`, 299 kB, içinde `JWT_SECRET`) import geri alındıktan sonra temiz paketin (`index-rtVlQQVC.js`, 229 kB) **yanında** kaldı; turbo önbellekten temizi geri yükledi ama kirliyi silmedi. Sızıntı taraması ikisini birden okuyup hâlâ `JWT_SECRET` buldu — **kanıtın kendisi bozuldu.** `apps/web` ilk başta muaf tutulmuştu ("Vite `outDir`'i zaten boşaltıyor"); doğru ama önbellek isabetinde **Vite hiç çalışmıyor**. Faz 1 hata #7'nin ("bayat dist yeşil yalanı üretir") önbellek kaynaklı akrabası. | ✅ `scripts/clean-dist.mjs` [YENİ] sekiz paketin `build` betiğine bağlandı, `docs/spec/09` §11.5b uyarısı |
 | SAPMA-010 | `karar` | 2 | Yol haritası 2.1'de hata sınıflarının `httpStatus` alanı taşımasını istiyordu; alan **konulmadı**. Kullanıcıya gösterilecek Türkçe mesaj da sınıfta üretilmiyor — sözleşme `code` + `context`. | **`httpStatus`:** HTTP bir taşıma katmanı kaygısı. `packages/engine` bu sınıfları kullanıyor ve motor HTTP bilmiyor; aynı hata kuyruğa, SSE'ye veya CLI'a da gidebilir, oralarda durum kodunun anlamı yok. Eşleme 2.4'teki exception filter'a taşındı. "Ayrı tablo unutulur, sürüklenir" itirazı tip seviyesinde kapatıldı: filter `Record<ErrorKind, number>` tutacak, yani yeni bir `ErrorKind` eklenip eşlemeye yazılmazsa **derleme kırılır**. **Mesaj:** K1.3 (eyleme dönüştürülebilir Türkçe) ile K5 (arayüzde sabit Türkçe yasak) i18n gelmeden ancak `code` + `context` üzerinden uzlaşıyor. `code` zaten i18n anahtarı biçiminde (`alan.olay`), böylece Faz 5 bir **eşleme tablosu** yazmaya iner; yüzlerce fırlatma yerini gezip dizgi sökmeye değil (`spec/11` §12.6'daki "3 faz kayıp" uyarısı tam olarak bu maliyeti anlatıyor). `message` geliştirici içindir, çevrilmez. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.1 ve 2.4, `packages/shared/src/errors.ts` (gerekçe dosya başında) |
 | SAPMA-009 | `düzeltme` | 2 | Faz 2.0'da `docs/spec/09` §11.4'e yazılan *"desen `{ts,tsx,mts,cts}` biçiminde yazılır"* tavsiyesi **araç bağımlıdır ve tsconfig için YANLIŞTIR**. TypeScript'in `include`/`exclude` glob dili süslü parantez genişletmesini desteklemez. | Ölçüm: yedi `tsconfig.build.json`'ın `exclude` deseni `"src/**/*.test.{ts,tsx,mts,cts}"` yapıldı. Hiçbir araç şikâyet etmedi, `typecheck` ve `lint` yeşil kaldı, ama desen **hiçbir dosyayla eşleşmediği** için `pnpm build` sonrası yedi paketin testleri de `dist/`e emit edildi (`apps/api/dist/health.controller.test.js`, `packages/shared/dist/base-path.test.d.ts` …). Uzantılar tek tek yazılınca `dist/` temizlendi. Vitest/ESLint/Prettier süslü parantezi tanır, tsconfig tanımaz — **aynı repoda iki glob lehçesi var.** Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") bunu yakaladı; `typecheck`/`lint`/`test` üçü de göremezdi. | ✅ `docs/spec/09-quality-protocol.md` §11.4 (yeni alt bölüm + doğrulama yöntemi), `packages/ui/tsconfig.build.json` (ölçüm yorumda) |
 | SAPMA-008 | `düzeltme` | 2 | `docs/spec/` bir şey isteyip `docs/ROADMAP.md`'nin hiçbir faza atamadığı **altı madde** tarama ile bulundu: `perf:budget` kapısı (G-01), Playwright kurulumu (G-02), `testcontainers` (G-03), `k6` (G-04), görsel regresyon (G-05), Sentry kotası izleme (G-06). | Bu sınıftan boşluk daha önce **iki kez** tesadüfen yakalanmıştı: Faz 1'de `arch:check` (spec her faz kapanışında çalıştırılmasını istiyordu ama kimse kurmuyordu, Ç3), Faz 2.0'da Sentry kota uyarısı. İki tesadüf desendir. Tek tek yakalamak yerine `spec/09` §11.4/§11.5 ve `spec/10` §13.5 satır satır ROADMAP'te arandı. En sert bulgu G-02: `pnpm test:e2e` spec'te "Faz 17+" derken Playwright kurulumu ROADMAP'te ilk kez **Faz 50**'de geçiyordu — 33 faz gecikme. | ✅ `docs/SPEC-COVERAGE-GAPS.md` [YENİ], `docs/ROADMAP.md` Faz 3/6/17/47/49/50 |
@@ -233,9 +238,14 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | 6 | 2.0b | Lint 17 yanlış pozitif: `no-hardcoded-path` `.test.tsx`'te tetikleniyor | ESLint muafiyet listesi `**/*.test.ts` ve `**/*.test.mjs` diyor, `.tsx` demiyor — SAPMA-007'nin **beşinci** örneği | Liste `.tsx`/`.mts`/`.cts` ile tamamlandı | Muafiyet bloğuna gerekçeli uyarı yorumu |
 | 7 | 2.0b | **Kendi çıkardığım regresyon:** yedi paketin testleri `dist/`e sızdı | `tsconfig.build.json` `exclude` desenini `{ts,tsx,mts,cts}` yaptım; TypeScript glob dili **süslü parantezi desteklemiyor**, desen hiçbir şeyle eşleşmiyor. `typecheck`, `lint`, `test` üçü de sessiz kaldı | Uzantılar tek tek yazıldı | SAPMA-009, `spec/09` §11.4'e "iki glob lehçesi" bölümü + `find dist -name '*.test.*'` doğrulaması. **Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") ikinci kez kurtardı** |
 | 8 | 2.0b | Motor ortam testinde `navigator` kontrolü yanlış olacaktı | Node 21'den beri `navigator` **Node'da da global** (Node 24.19.0'da `typeof navigator === 'object'`) — DOM göstergesi değil | Kontrol yalnızca `document` ve `window`'a indirildi | Testin içine gerekçe yorumu; yazmadan önce ölçüldü |
+| 17 | 2.2a | **Kanıt bozulması:** kontrol deneyi geri alındıktan sonra sızıntı taraması hâlâ `JWT_SECRET` buluyordu | `dist/assets/` içinde İKİ paket birden vardı: kirli `index-DV5Sgexl.js` (299 kB) ve temiz `index-rtVlQQVC.js` (229 kB). Turbo önbellekten temizi geri yükledi, kirliyi silmedi. `apps/web`'i clean-dist'ten muaf tutmuştum ("Vite `outDir`'i boşaltıyor") — doğru ama **önbellek isabetinde Vite hiç çalışmıyor** | `apps/web` de `clean-dist.mjs` kullanıyor | SAPMA-011. **Ders: bir tarama, taranan dizinin garantili temiz olduğu kadar geçerlidir.** Negatif sonuç ("sızıntı yok") kadar pozitif sonuç da ("sızıntı var") yanlış olabilir |
+| 16 | 2.2a | **Kontrol deneyi ilk denemede hiçbir şey kanıtlamadı:** kasıtlı `@fms/shared/server` importu konuldu, paket **bayt bayt aynı** kaldı | `void loadEnv;` yazmıştım — kullanılmayan import. `sideEffects: false` + ağaç sarsma onu tamamen sildi | Deney `loadEnv()` gerçekten **çağrılarak** tekrarlandı; paket 229.320 → 299.370 bayt | **Ders: bir sızıntı deneyi, sızdırılan şeyi KULLANMALI.** Kullanılmayan import "sızıntı yok" der ve yanlış güven üretir. `spec/09` §11.5b'ye uyarı yazıldı |
+| 15 | 2.2a | **Üç savunma hattı iddiası çürüdü:** kasıtlı sunucu importunda `typecheck` **geçti**, `vite build` **başarılı** oldu | `types: []` Node *globallerini* yasaklar; `loadEnv(): Env` imzasında Node tipi yok, üretilen `.d.ts` tarayıcı tsconfig'iyle sorunsuz derleniyor. `sideEffects: false` ise yalnızca kullanılmayan kodu siler | Sınırın tek yapısal bekçisi `arch:check` kısıtlı alt yol kuralı; paket taraması doğrulayıcı ikinci hat | SAPMA-012. `spec/09` §11.5b'ye ölçüm tablosu. **Karar 1 rakamla doğrulandı:** `sideEffects: false` gerçekten bir paketleyici optimizasyonuymuş |
+| 14 | 2.2a | **Turbo silinmiş çıktıyı diriltti:** `env.ts` taşındıktan sonra `dist/env.js` `rm -rf dist && pnpm build` sonrasında bile duruyordu | `tsc` çıktıyı üzerine yazar, silmez. Turbo `dist/**`'ı önbelleğe alıyor ve isabet ettiğinde (`>>> FULL TURBO`) **önbellekteki dizinin tamamını** geri yüklüyor — silinmiş dosya geri geliyor | `scripts/clean-dist.mjs` yazıldı, sekiz paketin `build` betiğine bağlandı | SAPMA-011. Doğrulama: `tsc` doğrudan çalıştırılınca dist temiz çıktı — üreteni önbellek olduğu böyle anlaşıldı |
 | 13 | 2.1 | **`arch:check` yanlış NEGATİF veriyordu:** `packages/engine`'e `@fms/shared` importu yazıldı, arch:check "temiz" dedi, ama test `Cannot find package '@fms/shared'` ile kırıldı | `arch:check` 12 katman bağına izin veriyor; `package.json`'larda yalnızca **2'si** bildirilmişti (`apps/api`, `apps/web`). pnpm'in sıkı `node_modules` düzeninde bildirilmeyen bağımlılık **görünmez**. Yani "izinli" ile "çözümlenebilir" iki ayrı şeydi ve hiçbir kapı ikisini karşılaştırmıyordu | `packages/engine/package.json`'a `@fms/shared: workspace:*` eklendi | **Kural 2.2'ye:** arch:check "bir dosya `@fms/X` import ediyorsa o paketin `package.json`'ında bildirilmiş olmalı" denetimi eklenecek. Spekülatif bildirim gerekmez; boşluk ilk gerçek import'ta yakalanır. Bu, 2.0'daki alt yol **yanlış pozitifinin** aynadaki hâli |
 | 12 | 2.1 | **Mevcut testler hata TİPİNİ hiç kontrol etmiyormuş:** `base-path.ts`'te `TypeError` → `ValidationError` değişimi yapıldı, 53 testin **hiçbiri** kırılmadı | Testlerin hepsi yalnızca mesaj deseni (`toThrow(/regex/)`) sınıyordu. Hata tipi sözleşmenin parçası — exception filter (2.4) `instanceof` ile karar verecek, mesaja bakmayacak — ama hiç sınanmamıştı | Üç yeni test: tip (`toThrow(ValidationError)`), kararlı `code` değerleri, yapısal `context` | Ders: `toThrow(/mesaj/)` bir hatayı **tanımlamaz**. Yeni bir hata fırlatan her fonksiyon için tip + `code` de sınanır |
 | 11 | 2.1 | Statik ölçüm: `@fms/shared` barrel'ı motora **Zod'u çekiyor** | `dist/index.js` → `env.js` → `import { z } from 'zod'`. `errors.js` kendisi hiçbir şey import etmiyor ✅, ama barrel üzerinden gelen her import env modülünü de yüklüyor | Bugün eylem yok — K3 ihlali değil (yan etki yok, I/O yok) ve motorda henüz ürün kodu yok | **2.2'ye taşındı:** Faz 1 hata #11'in aynı sınıfı (orada tarayıcı yönünde, burada motor yönünde). `@fms/shared/server` alt yolu kurulurken motor için dar giriş değerlendirilecek |
+| 18 | 2.2a | `env.ts` taşınınca lint iki yanlış pozitif verdi | ESLint `no-hardcoded-path` muafiyet listesi dosyayı **yoluyla** adlandırıyor (`packages/shared/src/env.ts`); dosya taşınınca satır sessizce eşleşmeyi bıraktı | Yol `src/server/env.ts` olarak güncellendi | Gevşek desen (`**/env.ts`) KULLANILMADI — muafiyetin dar kalması kuralın güvenilirliğinin şartı. Yol içeren her yapılandırma girdisi taşımada güncellenir |
 | 10 | 2.1 | `packages/shared/src/index.ts` lint hatası: `simple-import-sort/exports` | Yeni `errors.js` dışa aktarımlarını dosyanın ortasına elle ekledim; sıralama kuralı `env.js`'ten önce olmasını istiyordu | `pnpm lint:fix` | Yeni bir dışa aktarım bloğu eklerken sıralamayı elle tahmin etme, `lint:fix` çalıştır |
 | 9 | 2.0b | **Uydurulmuş kanıt:** ANLIK DURUM'a CI koşu numarası olarak `32784767832` yazdım — koşu **henüz başlamamıştı**, numara gerçek değildi (gerçeği `32786296752`) | Kaydı sonucu beklemeden doldurma alışkanlığı. Commit mesajından farklı olarak koşu numarası **tahmin edilebilir bir şey değil**; yazıldığı anda ya biliniyordur ya bilinmiyordur | Gerçek numarayla düzeltildi, ARM64 kapsam rakamları da loglardan alınıp yazıldı | **Kural: ölçüm sonucu alanları boş bırakılır, tahminle doldurulmaz.** `spec/11` §12.3'teki "hash değil başlık" gerekçesinin aynısı — bilinmeyen bir kimliği yazmak, eksik bırakmaktan kötüdür çünkü ikincisi eksik, birincisi **yanlış** |
 

@@ -46,6 +46,44 @@ export const LAYER_RULES = {
   scripts: [],
 };
 
+/**
+ * KISITLI ALT YOLLAR — Faz 2.2a.
+ *
+ * Katman kuralı "hangi PAKET" sorusunu cevaplıyor; bu tablo "paketin hangi
+ * GİRİŞİ" sorusunu cevaplıyor. `@fms/shared` her katmana açık, ama onun
+ * `server` girişi iki tarafa birden kapalı:
+ *   • tarayıcı (`apps/web`, `packages/ui`) — K1, sunucu otoritesi. Faz 1.8'de
+ *     `JWT_SECRET` ve `DATABASE_URL` tarayıcı paketine sızmıştı.
+ *   • motor (`packages/engine`) — K3, motor saftır. `process.env` okuyan veya
+ *     Node yerleşiklerine bağlı bir modül motora giremez.
+ *
+ * Sınırın İKİ YÖNLÜ olması bilinçli: 2.1'de ölçüldü ki `@fms/shared` barrel'ı
+ * `env.js` üzerinden Zod'u **motora** çekiyordu — Faz 1 hata #11'in aynı
+ * sınıfı, ters yönde.
+ */
+export const RESTRICTED_SUBPATHS = {
+  '@fms/shared/server': {
+    forbiddenLayers: ['apps/web', 'packages/ui', 'packages/engine'],
+    reason:
+      'Sunucu alt yolu: process.env okur, Node yerleşiklerine bağlıdır ve şema ' +
+      'sistemdeki sırların adlarını sayar. Tarayıcıya (K1) ve motora (K3) giremez.',
+  },
+};
+
+/**
+ * `@fms/shared/server` → `@fms/shared`. Kapsamlı (scoped) paketlerde ilk İKİ
+ * segment paket adıdır; gerisi alt yoldur.
+ *
+ * NEDEN GEREKLİ (2.0'da ölçüldü): `isImportAllowed` tam eşleşme yapıyordu ve
+ * `allowed.includes('@fms/shared/server')` her zaman false dönüyordu. Sonuç
+ * SAHTE bir katman ihlaliydi — `apps/api` `@fms/shared`'ı import edebiliyor
+ * ama `@fms/shared/server`'ı edemiyordu.
+ */
+export function basePackageOf(spec) {
+  const parts = spec.split('/');
+  return spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+}
+
 /** K3 — motorun göremeyeceği modüller. */
 const ENGINE_FORBIDDEN_MODULE_PREFIXES = [
   'node:',
@@ -91,11 +129,49 @@ export function resolveLayer(relPath) {
   return layers.find((layer) => normalized.startsWith(`${layer}/`)) ?? null;
 }
 
-/** Bir katman verilen @fms/* paketini import edebilir mi? */
-export function isImportAllowed(layer, pkgName) {
+/**
+ * Bir katman verilen belirteci import edebilir mi?
+ *
+ * Belirteç alt yol taşıyabilir (`@fms/shared/server`); karar TEMEL PAKETE göre
+ * verilir. Alt yolun kendi kısıtı ayrı bir kural (`isSubpathForbidden`).
+ */
+export function isImportAllowed(layer, spec) {
   const allowed = LAYER_RULES[layer];
   if (allowed === undefined) return true; // tanımsız katman denetlenmez
-  return allowed.includes(pkgName);
+  return allowed.includes(basePackageOf(spec));
+}
+
+/**
+ * Bu katman bu ALT YOLU görebilir mi?
+ * @returns kısıt varsa gerekçe metni, yoksa null
+ */
+export function subpathRestrictionFor(layer, spec) {
+  const rule = RESTRICTED_SUBPATHS[spec];
+  if (rule === undefined) return null;
+  return rule.forbiddenLayers.includes(layer) ? rule.reason : null;
+}
+
+/**
+ * Bu katmanın `package.json`'ı bu paketi BİLDİRMİŞ mi?
+ *
+ * NEDEN GEREKLİ (2.1'de ölçüldü): `arch:check` 12 katman bağına izin veriyordu
+ * ama `package.json`'larda yalnızca 2'si bildirilmişti. `packages/engine`
+ * `@fms/shared`'ı "izinli" olarak import edebiliyor görünüyordu; pnpm'in sıkı
+ * `node_modules` düzeninde ise **hiç çözümlenemiyordu**
+ * (`Cannot find package '@fms/shared'`). Yani kapı yanlış NEGATİF veriyordu:
+ * kullanılamayan bir izni onaylıyordu. 2.0'daki alt yol yanlış POZİTİFİNİN
+ * aynadaki hâli — aynı kapının iki yüzü.
+ *
+ * Kural bilerek "import varsa bildirim de olmalı" biçiminde: spekülatif
+ * bildirim istemez, boşluğu ilk gerçek import'ta yakalar.
+ *
+ * @returns true = bildirilmiş veya denetlenemiyor, false = eksik
+ */
+export function isDependencyDeclared(readPackageJson, layer, spec) {
+  const pkg = readPackageJson(layer);
+  if (pkg === null) return true; // package.json'ı olmayan katman (scripts/) denetlenmez
+  const declared = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies };
+  return Object.prototype.hasOwnProperty.call(declared, basePackageOf(spec));
 }
 
 /** Modül belirteci motorda yasak mı? */
@@ -281,6 +357,23 @@ export function runArchCheck(root) {
   const violations = [];
   const roots = ['apps', 'packages', 'tools', 'scripts'];
 
+  // Katman başına package.json — okuma bir kez yapılır, sonuç önbelleklenir.
+  // `null` = dosya yok (scripts/ gibi), o katman bildirim kuralına girmez.
+  const packageJsonCache = new Map();
+  const readPackageJson = (layer) => {
+    if (!packageJsonCache.has(layer)) {
+      try {
+        packageJsonCache.set(
+          layer,
+          JSON.parse(readFileSync(join(root, layer, 'package.json'), 'utf8')),
+        );
+      } catch {
+        packageJsonCache.set(layer, null);
+      }
+    }
+    return packageJsonCache.get(layer);
+  };
+
   for (const top of roots) {
     for (const abs of walk(join(root, top))) {
       const rel = relative(root, abs).split(sep).join('/');
@@ -322,10 +415,12 @@ export function runArchCheck(root) {
       const isEngine = layer === 'packages/engine';
 
       for (const { spec, line } of imports) {
-        // ① Katman yönü
         if (spec.startsWith('@fms/') && layer !== null) {
           const selfPkg = `@fms/${layer.split('/')[1]}`;
-          if (spec !== selfPkg && !isImportAllowed(layer, spec)) {
+          const isSelfImport = basePackageOf(spec) === selfPkg;
+
+          // ① Katman yönü — karar TEMEL PAKETE göre verilir (2.2a).
+          if (!isSelfImport && !isImportAllowed(layer, spec)) {
             const allowed = LAYER_RULES[layer];
             violations.push({
               file: rel,
@@ -334,6 +429,34 @@ export function runArchCheck(root) {
               message:
                 `Katman ihlali: '${layer}' → '${spec}'. ` +
                 `İzin verilenler: ${allowed.length > 0 ? allowed.join(', ') : '(hiçbiri)'} (CLAUDE.md §2.4).`,
+            });
+          }
+
+          // ⑤ Kısıtlı alt yol (2.2a) — paket izinli olsa da GİRİŞİ kapalı olabilir.
+          const restriction = subpathRestrictionFor(layer, spec);
+          if (restriction !== null) {
+            violations.push({
+              file: rel,
+              line,
+              rule: 'restricted-subpath',
+              message:
+                `'${layer}' katmanı '${spec}' alt yolunu import edemez. ${restriction} ` +
+                `İzomorfik olan her şey kök girişte ('${basePackageOf(spec)}') durur.`,
+            });
+          }
+
+          // ⑥ Bildirilmiş bağımlılık (2.2a) — "izinli" ile "çözümlenebilir" ayrı şeyler.
+          if (!isSelfImport && !isDependencyDeclared(readPackageJson, layer, spec)) {
+            const basePkg = basePackageOf(spec);
+            violations.push({
+              file: rel,
+              line,
+              rule: 'undeclared-dependency',
+              message:
+                `'${layer}' '${spec}' import ediyor ama '${basePkg}' onun package.json'ında ` +
+                `BİLDİRİLMEMİŞ. Katman kuralı izin verse de pnpm'in sıkı node_modules düzeninde ` +
+                `bu import çözümlenmez ("Cannot find package"). ` +
+                `Çözüm: ${layer}/package.json → dependencies'e "${basePkg}": "workspace:*" ekle.`,
             });
           }
         }

@@ -110,7 +110,12 @@ export default tseslint.config(
   {
     files: [
       'packages/shared/src/base-path.ts',
-      'packages/shared/src/env.ts',
+      // Faz 2.2a'da `env.ts` → `src/server/env.ts` taşındı ve bu satır sessizce
+      // eşleşmeyi bıraktı: lint iki yanlış pozitif verdi. Yol içeren her
+      // yapılandırma girdisi, dosya taşındığında güncellenmek zorunda —
+      // burada `**/env.ts` gibi gevşek bir desen KULLANILMIYOR, çünkü muafiyetin
+      // dar kalması kuralın güvenilirliğinin şartı.
+      'packages/shared/src/server/env.ts',
       'tools/eslint-local-rules/**',
       // arch:check de yol ön eklerini VERİ olarak tutar (APP_PATH_PREFIXES).
       'tools/arch-check/**',

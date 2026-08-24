@@ -329,30 +329,76 @@ docs/ADR/0001-monorepo-secimi.md
       **Yan bulgu:** `arch:check` 12 katman bağına izin veriyor ama `package.json`'da yalnızca 2'si tanımlıydı;
       `packages/engine → @fms/shared` hiç çözümlenemiyordu. Motorunki bağlandı, kalan boşluk için kural 2.2'ye.
       **Glob taraması** (uzantı körlüğü sınıfı): altıncı örnek `arch:check`'te bulundu ve düzeltildi.
-- [ ] **2.2** Logger mimarisi — **Karar 1:** kökte `Logger` **arayüzü** (izomorfik), pino uygulaması
+- [x] **2.2a** Alt yol sınırı — *(2.2 ikiye bölündü; gerekçe aşağıda)*
+      **SONUÇ — kontrol deneyi ÜÇ VARSAYIMI ÇÜRÜTTÜ.** `App.tsx`'e kasıtlı
+      `import { loadEnv } from '@fms/shared/server'` konup **gerçekten çağrıldı**:
+      `typecheck` **GEÇTİ** (defans ① çalışmıyor: `loadEnv(): Env` imzasında Node tipi yok, `.d.ts`
+      tarayıcı tsconfig'iyle sorunsuz derleniyor) · `vite build` **BAŞARILI** · paket
+      **229.320 → 299.370 bayt** (+%30) · tarayıcı paketinde `zod` **318**, `DATABASE_URL` **7**,
+      `POSTGRES_PASSWORD` **3**, `JWT_SECRET` **2** eşleşme — `sideEffects: false` AÇIKKEN.
+      **Yalnızca `arch:check` yakaladı.** Yani Faz 1.8'in çözümü gerçekten bir paketleyici
+      optimizasyonuymuş ve tek başına sınır değilmiş — Karar 1 rakamla doğrulandı.
+      **Dört değil İKİ çalışan hat var:** `arch:check` (önleme) + paket dize taraması (doğrulama).
+      `types: []` başka bir şeyi (Node globallerinin tarayıcı koduna girmesini) koruyor, alt yol
+      sınırını değil. `spec/09` ve `ROADMAP` metinleri buna göre düzeltildi.
+      **Yan bulgu 1 — SAPMA-011:** turbo `build` çıktısını (`dist/**`) önbelleğe alıyor; bir kaynak
+      dosya taşındığında önbellek isabetinde **silinmiş çıktı geri geliyor**. `env.ts` taşındıktan
+      sonra `dist/env.js` `>>> FULL TURBO` ile diriltildi. Dahası kontrol deneyinin kirli paketi
+      (`index-DV5Sgexl.js`, içinde `JWT_SECRET`) temiz paketin **yanında** kaldı ve sızıntı taraması
+      yanlış cevap verdi — kanıtın kendisi bozuldu. `scripts/clean-dist.mjs` sekiz pakete de bağlandı.
+      **Yan bulgu 2:** `env.ts` taşınınca ESLint `no-hardcoded-path` muafiyet yolu sessizce eşleşmeyi
+      bıraktı (2 yanlış pozitif).
+      **2.1'in (b) bulgusu kapandı:** kök barrel artık yalnızca `base-path` + `errors` yeniden dışa
+      aktarıyor, hiçbiri üçüncü taraf import etmiyor → **motor Zod çekmiyor**.
+      **2.2b için taban:** 229.320 bayt, tek varlık, `pino`/`async_hooks`/`zod` → 0.
+      **Kapsam:** `packages/shared` `exports` haritası (`.` + `./server`) · `env.ts` → `src/server/env.ts` ·
+      `arch:check`'e **üç kural** · kontrol deneyi. **pino YOK, logger YOK** — onlar 2.2b.
+      **Neden bölündü:** 2.2 dört devreden iş + altı yeni nokta taşıyordu ve R3 (alt yol + `NodeNext` +
+      Vite çözümlemesi) fazın en somut riski. Aynı commit'te hem modül çözümlemesi hem pino olsaydı, bir
+      hata çıktığında "bu çözümleme mi, kütüphane mi?" sorusu doğardı — BORÇ-001/002'nin kaçındığı
+      belirsizliğin ta kendisi. 2.2a sınırı **zaten var olan ve zaten test edilmiş** kodla (`env`) kanıtlar.
+      **`env.ts` sunucuya taşınıyor — gerekçe:** `loadEnv()` `process.env` okuyor (tarayıcıda `process` yok)
+      ve `envSchema` sistemdeki **her sırrın adını sayıyor** (`JWT_SECRET`, `DATABASE_URL`, `R2_SECRET_*`…).
+      Faz 1 hata #11 tam olarak bunu yakalamıştı ve çözüm `sideEffects: false` — bir **paketleyici
+      optimizasyonu** olmuştu. Alt yol bunu **yapısal** sınıra çevirir. Ölçüldü: tek üretim tüketicisi
+      `apps/api/src/main.ts`.
+      **Yan kazanç — 2.1'in (b) bulgusu kapanıyor:** `env` kök barrel'dan çıkınca barrel'da üçüncü taraf
+      import kalmıyor, yani `@fms/shared` **Zod'u motora çekmeyi bırakıyor**.
+      **Üç `arch:check` kuralı:**
+      (i) **Alt yol farkındalığı** — `isImportAllowed` tam eşleşme yapıyor, `@fms/shared/server` importu
+          `@fms/shared` listesiyle eşleşmiyor ve **sahte katman ihlali** üretiyor (2.0'da ölçüldü).
+          Belirteçten temel paket çıkarılıp öyle eşleştirilir.
+      (ii) **Bildirilmemiş katman bağı KIRAR** — 2.1'de ölçüldü: gate 12 bağa izin veriyor, `package.json`'da
+          2'si bildirilmişti; `engine → @fms/shared` "izinli" görünüp **hiç çözümlenemiyordu** (yanlış
+          NEGATİF). Kural: bir dosya `@fms/X` import ediyorsa o paketin `package.json`'ında bildirilmiş olmalı.
+          Spekülatif bildirim gerekmez; boşluk ilk gerçek import'ta yakalanır.
+      (iii) **Kısıtlı alt yol** — `@fms/shared/server`'ı `apps/web`, `packages/ui` ve `packages/engine`
+          göremez. Sınır **iki yönlü**: sunucu kodu tarayıcıya girmesin **ve** Node/IO kodu motora girmesin.
+      **Kontrol deneyi:** `App.tsx`'e kasıtlı `@fms/shared/server` importu konur ve **gerçekten
+      çağrılır**. Yalnızca import etmek YETMEZ — ağaç sarsma kullanılmayan importu siler, paket
+      bayt bayt aynı kalır ve deney hiçbir şey kanıtlamaz (2.2a'da ölçüldü: `void loadEnv;` ile
+      paket değişmedi). Beklenti: `arch:check` kırılır, paket şişer, sızıntı taramasında sırlar görünür.
+- [ ] **2.2b** Logger — **Karar 1:** kökte `Logger` **arayüzü** (izomorfik), pino uygulaması
       `@fms/shared/server` **alt yolunda**. Gerekçe: `sideEffects: false` bir paketleyici optimizasyonudur;
       alt yol **yapısal** sınırdır, modül çözümlemesi seviyesinde çalışır. Üç kat savunma:
       `apps/web` `types: []` → derlenmez · `arch:check` "server alt yolu tarayıcıya girmez" kuralı · bundle grep.
       Kökte kalan (izomorfik): `Logger` arayüzü, `LogContext`, hata sınıfları, `DebugTrace`, `assertInvariant`.
       `server/`'da: pino, redaksiyon, ALS. `apps/web` aynı arayüzü uygulayan kendi ~30 satırlık logger'ını alır.
-      **Ön koşul:** `arch:check` alt yol farkındalığı — `isImportAllowed` tam eşleşme yaptığı için
-      `@fms/shared/server` importu `@fms/shared` listesiyle eşleşmiyor ve **sahte katman ihlali** üretiyor
-      (2.0'da ölçümle doğrulandı).
+      **Ön koşul:** 2.2a'nın üç `arch:check` kuralı ve `exports` haritası.
       **Karar 5:** ESLint'te `apps/**` + `packages/**` için `process.stdout/stderr.write` YASAK;
       `scripts/**` + `tools/**` serbest. `arch:check` bu kuralı **tekrarlamaz** (`spec/09` §11.5).
-      Ürün kodundaki iki yazım (`packages/shared/src/env.ts`, `apps/api/src/main.ts`) logger'a taşınır.
-      **2.1'den devreden iki iş:**
-      (a) **`arch:check`'e "bildirilmiş bağımlılık" kuralı.** 2.1'de ölçüldü: `arch:check` 12 katman bağına
-          izin veriyor ama `package.json`'larda yalnızca **2'si** tanımlıydı. `packages/engine → @fms/shared`
-          "izinli" görünüyordu ama pnpm'in sıkı düzeninde **hiç çözümlenemiyordu** — yani gate bir yanlış
-          NEGATİF veriyordu (2.0'daki alt yol yanlış pozitifinin aynadaki hâli). Kural: bir dosya `@fms/X`
-          import ediyorsa, o paketin `package.json`'ında `@fms/X` **bildirilmiş olmalı**. Böylece
-          spekülatif bildirim gerekmez; boşluk ilk gerçek import'ta yakalanır.
-      (b) **Motor için dar giriş noktası değerlendirmesi.** 2.1'de statik olarak ölçüldü: `errors.js`
-          hiçbir şey import etmiyor ✅, ama `@fms/shared` **barrel'ı** `env.js` üzerinden **Zod'u motora
-          çekiyor**. K3 ihlali değil (yan etki yok) ama Faz 1 hata #11'in aynı sınıfı — orada tarayıcı
-          yönündeydi, burada motor yönünde. `@fms/shared/server` alt yolu kurulurken motorun da dar bir
-          girişten (örn. `@fms/shared/errors`) beslenip beslenmeyeceğine karar verilir.
+      Ürün kodundaki iki yazım (`server/env.ts`, `apps/api/src/main.ts`) logger'a taşınır.
+      **Negatif test:** yasak yola bir yazım konur, lint'in kırıldığı gösterilir.
+      **Redaksiyon:** `context` 2.1'de dar tiplendi ama anahtar ADLARI serbest. Blocklist
+      **büyük/küçük harf duyarsız, ALT DİZE eşleşmesi** — `userPassword`, `passwordHash`, `refreshToken`
+      hepsi yakalanmalı; tam eşleşme hiçbirini yakalamaz. Yanlış pozitif maliyeti bir log alanı,
+      yanlış negatif maliyeti sızmış bir sır — asimetri fazla redaksiyondan yana.
+      **pino yapılandırması:** dev'de `pino-pretty`, üretimde JSON — karar **`NODE_ENV` KOKLAMAYARAK**,
+      açık bir bayrakla verilir (Faz 1 hata #10 dersi). Seviye `LOG_LEVEL`'dan.
+      **Motor loglamaz:** `Logger` arayüzü kökte kalır (yalnızca tip), ama motor bir **uygulama** alamaz
+      çünkü uygulama `server/` altında ve 2.2a'nın (iii) kuralı motoru oradan men ediyor. Motor iz
+      (`debugTrace`) döndürür, log yazmaz — yapısal sınır bu tasarım kuralını arkadan destekler.
+      **Bundle yeniden ölçümü:** 2.2a sonu tabanı ile karşılaştırılır; `pino`/`async_hooks` → 0 beklenir.
 - [ ] **2.3** `correlationId` zinciri — uuid v7 · `AsyncLocalStorage` · NestJS middleware ·
       `X-Correlation-Id` gidiş-dönüş · tarayıcı üretimi · **taşınabilir zarf** (`serializeLogContext` /
       `deserializeLogContext` + Zod).

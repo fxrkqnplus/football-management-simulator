@@ -214,6 +214,49 @@ Tekrar eden kural, iki yerden birinde gevşetilince sessizce ölür.
 - Göreli import yolunun diskteki dosya adıyla harf uyuşmazlığı → HATA
 - `.html`/`.json`/`.css` kaynak varlıklarında mutlak uygulama yolu → HATA
 
+## 11.5b Paket Sınırı Denetimi — hangi savunma gerçekten çalışıyor
+
+> Faz 2.2a'da ölçüldü. Buradaki rakamlar tahmin değil, kontrol deneyinin çıktısı.
+
+`@fms/shared/server` alt yolu kurulduktan sonra `apps/web/src/App.tsx`'e kasıtlı
+bir `import { loadEnv } from '@fms/shared/server'` konuldu **ve gerçekten
+çağrıldı**. Dört savunma hattının hangisinin ötüğü tek tek ölçüldü:
+
+| Savunma | Beklenti | **Ölçüm** |
+|---|---|---|
+| ① `apps/web` tsconfig `types: []` | kırılır | ❌ **GEÇTİ** |
+| ② `sideEffects: false` (ağaç sarsma) | sızıntıyı siler | ❌ **SİLMEDİ** |
+| ③ `arch:check` kısıtlı alt yol kuralı | kırılır | ✅ **YAKALADI** |
+| ④ Paket dize taraması | sızıntıyı gösterir | ✅ **GÖSTERDİ** |
+
+**① neden çalışmadı:** `types: []` Node **globallerini** (`process`, `Buffer`)
+tarayıcı kodunda yasaklar. Ama sunucu modülünün *dışa aktardığı tip yüzeyi*
+Node tipi içermiyorsa (`loadEnv(): Env`), üretilen `.d.ts` tarayıcı
+tsconfig'iyle sorunsuz derlenir. `types: []` değerli bir kural ama **alt yol
+sınırının savunması değil** — başka bir şeyi koruyor.
+
+**② neden çalışmadı:** ağaç sarsma yalnızca **kullanılmayan** kodu siler.
+Modül gerçekten çağrıldığında `sideEffects: false` hiçbir şey yapamaz.
+Ölçüm: paket **229.320 → 299.370 bayt** (+%30); tarayıcı paketinde
+`zod` **318**, `DATABASE_URL` **7**, `POSTGRES_PASSWORD` **3**,
+`JWT_SECRET` **2** eşleşme. Faz 1.8'in çözümü bir **paketleyici
+optimizasyonuydu**, yapısal bir sınır değil.
+
+**Sonuç:** çalışan iki hat var — `arch:check` **önler**, paket taraması
+**doğrular**. Faz kapanışlarında ikisi de koşulur.
+
+> ⚠️ **Kontrol deneyi yaparken import'u KULLAN.** Yalnızca `import` yazıp
+> kullanmamak (`void loadEnv;`) ağaç sarsmaya siler ve paket **bayt bayt aynı**
+> kalır — deney "sızıntı yok" der ve yanlış güven üretir. 2.2a'da tam olarak bu
+> oldu, ikinci deneme gerçek çağrıyla yapıldı.
+
+> ⚠️ **Sızıntı taraması ancak `dist/` GARANTİLİ TEMİZSE bir şey kanıtlar**
+> (SAPMA-011). Turbo `dist/**` çıktısını önbelleğe alır ve önbellek isabetinde
+> eski varlıkları geri yükler; iki farklı derlemenin çıktısı `dist/assets/`
+> içinde yan yana kalabilir. 2.2a'da kontrol deneyinin kirli paketi temiz
+> paketin yanında kaldı ve tarama hâlâ `JWT_SECRET` buldu — **kanıtın kendisi
+> bozuldu.** Her `build` betiği `scripts/clean-dist.mjs` ile başlar.
+
 ## 11.6 Performans Bütçesi
 
 | Metrik | Bütçe |
