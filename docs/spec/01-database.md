@@ -286,7 +286,9 @@ saves: {
   managerId FK                             // people/managers kaydı
   currentDate: date
   turnNumber: integer
-  simulationTier: 'balanced'|'full'
+  simulationPolicy: 'balanced'|'full'   // SimulationPolicy — kayıt başına.
+                                        // EngineTier (full|medium|statistical)
+                                        // ile karıştırma: bkz. spec/03 §5.2
   difficulty: 'easy'|'normal'|'hard'|'legendary'
   allowReplay: boolean                     // true → leaderboardEligible false
   leaderboardEligible: boolean

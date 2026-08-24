@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────
+# Football Management Simulator — .gitignore
+# Repo PUBLIC. Buraya bir şey eklemeden önce iki kez düşün.
+# ─────────────────────────────────────────────────────────────
+
+# Bağımlılıklar
+node_modules/
+.pnpm-store/
+
+# Derleme çıktıları
+dist/
+build/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Ortam değişkenleri — .env.example DIŞINDA hiçbiri commit edilmez
+.env
+.env.*
+!.env.example
+
+# Veri paketleri ve üretilmiş varlıklar (K9 / 13.1 — asla commit edilmez)
+/data/packs/
+/data/assets/
+/data/.cache/
+.cache/
+
+# Veritabanı dökümleri ve yedekler
+# NOT: drizzle migration'ları (packages/db/src/migrations/*.sql) COMMIT EDİLİR,
+#      bu yüzden burada genel bir *.sql kuralı YOK.
+*.dump
+*.dump.gz
+*.sql.gz
+*.bak
+
+# Test ve kapsam çıktıları
+coverage/
+.vitest/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Editör ve işletim sistemi
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Loglar
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# Denetim çıktısı — yerel üretilir, repoya girmez
+durum-raporu.txt
+
+# Geçici
+tmp/
+*.tmp

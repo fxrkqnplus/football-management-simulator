@@ -1,0 +1,45 @@
+{
+  "name": "football-management-simulator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web tabanlı, Türkçe, 2 boyutlu, tur tabanlı futbol menajerlik simülasyonu",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fxrkqnplus/football-management-simulator.git"
+  },
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24.0.0 <25.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "preinstall": "node ./scripts/check-node-version.mjs",
+    "build": "turbo run build",
+    "typecheck": "node ./scripts/check-tsconfig-types.mjs && turbo run typecheck",
+    "lint": "eslint . --cache --cache-location node_modules/.cache/eslint/",
+    "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
+    "arch:check": "node tools/arch-check/index.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "dev": "turbo run dev",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "~24.13.3",
+    "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^10.9.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.11",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.11"
+  }
+}

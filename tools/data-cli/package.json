@@ -1,0 +1,15 @@
+{
+  "name": "@fms/data-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Veri ingest, doğrulama ve üretim komut satırı aracı",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

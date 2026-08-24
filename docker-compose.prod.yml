@@ -1,0 +1,22 @@
+# Üretim bileşimi — İSKELET, Faz 50'de doldurulacak.
+#
+# Bu dosya bilerek eksik. İçeriği Faz 50'de (dağıtım) netleşecek çünkü
+# uygulama imajları Faz 1.9'da, Caddy yapılandırması ve yedekleme Faz 50'de
+# geliyor. Şimdiden doldurmak, henüz var olmayan servisler için tahmin
+# yazmak olurdu (K13).
+#
+# Hedef ortam: Oracle Cloud Ampere A1 (linux/arm64), Ubuntu 24.04 aarch64.
+# Ayrıntılar: docs/spec/10-deployment.md
+#
+# Faz 50'de eklenecekler:
+#   - web / api / worker servisleri (imajlar Faz 1.9'da üretiliyor)
+#   - caddy: handle /fms/api/* -> api, handle /fms/* -> web  (13.2)
+#   - kaynak sınırları (2 OCPU / 12 GB paylaşılıyor)
+#   - yedekleme yan servisi -> R2 (13.4)
+#   - sırlar: docker secrets veya ortam dosyası, repoya ASLA girmez
+#
+# Geliştirme bileşimi için: docker-compose.yml
+
+name: fms-prod
+
+services: {}

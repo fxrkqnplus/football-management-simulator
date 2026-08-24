@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Tarayıcı tarafı: Node tipleri YOK ("types": []), DOM var.
+  // Sunucu API'si sızarsa derleme kırılır — K1 (sunucu otoritesi) için
+  // ilk savunma hattı.
+  "compilerOptions": {
+    // rootDir/outDir YOK: bu paket tsc ile emit ETMİYOR (noEmit), paketlemeyi
+    // Vite yapıyor. rootDir tanımlıysa vite.config.ts kapsam dışında kalır ve
+    // yapılandırma dosyası tip denetiminden kaçar.
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    // Uygulama paketi: başka paket bunun .d.ts'ini tüketmez.
+    "declaration": false,
+    "declarationMap": false,
+    // Paketlemeyi Vite yapar; tsc yalnızca tip denetler.
+    "noEmit": true
+  },
+  "include": ["src/**/*", "vite.config.ts"],
+  "exclude": ["dist", "node_modules"]
+}

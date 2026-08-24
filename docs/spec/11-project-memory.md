@@ -9,13 +9,26 @@
 **Okuma — her oturumun İLK işi:**
 Faz başlarken `PROJECT_MEMORY.md`'nin **"ANLIK DURUM"** bloğu ve **son iki faz kaydı** okunur. Bu yapılmadan koda dokunulmaz.
 
-**Yazma — her fazın SON işi:**
-PR açılmadan önce kayıt yazılır. Kayıt yazılmadan faz kapanmış sayılmaz (K15).
+**Yazma — iki ayrı ritim:**
+
+| Ne | Ne zaman | Maliyet |
+|---|---|---|
+| **ANLIK DURUM bloğu** | **HER ALT GÖREV sonunda** | ~10 satır, ucuz |
+| **Tam faz kaydı** (11 başlık) | Faz sonunda, PR'dan önce | Uzun |
+| **Kütükler** (SORUN/BORÇ/SAPMA) | Kayıt açıldığı anda | Bir satır |
+
+Kayıt yazılmadan faz kapanmış sayılmaz (K15).
+
+> **Neden ANLIK DURUM alt görev başına?** (SAPMA-004)
+> Bu bloğun tek amacı oturum kurtarmadır ve kurtarmaya ihtiyaç duyulan an tam
+> olarak **faz ortasıdır**. Faz sonunda güncellenirse, on alt görevlik bir fazın
+> ortasında oturum koptuğunda yeni oturum yapılan işi göremez. Commit'ler
+> "ne yapıldı"yı taşır, ANLIK DURUM "şu anda neredeyiz"i taşır.
 
 **Değişmezlik:**
 - Dosya **append-only**'dir. Eski faz kayıtları geriye dönük **silinmez ve değiştirilmez**.
 - Bir hata sonradan fark edilirse, eski kayıt düzenlenmez; yeni kayda `> ⚠️ DÜZELTME (Faz XX): Faz YY'deki "..." ifadesi yanlıştı, doğrusu "..."` satırı eklenir.
-- Tek istisna: en üstteki **ANLIK DURUM** bloğu her fazda tamamen yeniden yazılır.
+- Tek istisna: en üstteki **ANLIK DURUM** bloğu **her alt görev sonunda** tamamen yeniden yazılır.
 
 **Sıralama:** En yeni faz kaydı **en üstte** (ANLIK DURUM'un hemen altında). Yeni oturum aşağı kaydırmadan güncel durumu görür.
 
@@ -34,7 +47,7 @@ PROJECT_MEMORY.md
 
 ## 12.3 ANLIK DURUM Bloğu
 
-Her faz sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyunca 30 saniyede konuma oturur.
+Her **alt görev** sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyunca 30 saniyede konuma oturur — fazın ortasında bile.
 
 ```markdown
 ## ⚡ ANLIK DURUM
@@ -46,10 +59,15 @@ Her faz sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyunca 30 sani
 | **Sıradaki faz** | Faz 13 — Açık Kayıt, Sunucu Modları ve Yasal Uyum |
 | **Genel ilerleme** | 12 / 50 (%24) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `a3f9c21` on `develop` |
+| **Son commit** | `docs(spec): ...` (commit BAŞLIĞI, hash değil) on `develop` |
 | **Testler** | ✅ 284 geçti, 0 başarısız, kapsam %78 (motor %89) |
 | **Açık sorun sayısı** | 2 (biri düşük öncelikli) |
 | **Teknik borç sayısı** | 3 |
+
+> **Neden hash değil başlık?** ANLIK DURUM alt görevin KENDİ commit'inin içinde
+> yazılır; o commit'in hash'i yazma anında henüz yoktur ve `--amend` ile
+> doldurulmaya çalışılırsa hash yeniden değişir. Commit başlığı kararlıdır ve
+> `git log --oneline --grep` ile hash'e bir adımda ulaşılır.
 
 **Sıradaki oturumda ilk yapılacak:**
 1. `docs/spec/08-admin-panel.md` ve `docs/spec/10-deployment.md` oku

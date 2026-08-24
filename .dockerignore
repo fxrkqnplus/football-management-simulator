@@ -1,0 +1,20 @@
+# Konteyner derlemesine girmeyecekler.
+# node_modules kasıtlı: imaj içinde kendi mimarisine göre yeniden kurulur,
+# yoksa Windows/amd64 ikili dosyaları ARM imajına sızar (K14).
+node_modules
+**/node_modules
+**/dist
+.turbo
+**/.turbo
+coverage
+**/coverage
+.git
+.github
+docs
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+data
+durum-raporu.txt

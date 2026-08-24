@@ -1,0 +1,83 @@
+# Geliştirme altyapısı — yalnızca veri katmanı.
+#
+# Uygulama servisleri (web/api/worker) burada YOK: onların imajları Faz 1.9'da
+# çok mimarili build ile geliyor. Bu dosya `pnpm dev` ile yerelde çalışan
+# uygulamanın ihtiyaç duyduğu Postgres ve Redis'i ayağa kaldırır.
+#
+# ARM64 (K14): üç imajın da `linux/arm64/v8` manifesti `docker manifest inspect`
+# ile doğrulandı (Faz 1.7). Üretim Oracle Ampere A1 üzerinde çalışacak.
+#
+# Sürüm politikası: MAJÖR sabitlenir, yama akar. PostgreSQL ve Redis majör
+# içinde kırıcı değişiklik yapmaz; güvenlik yamalarının otomatik gelmesi
+# istenir. Majör değişiklikleri docs/DEPENDENCY-WATCH.md'de izlenir.
+
+name: fms
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: fms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD tanımlı değil — .env.example dosyasını .env olarak kopyalayın}
+      POSTGRES_DB: ${POSTGRES_DB:-fms}
+      # Veri dosyalarının karşılaştırma (collation) davranışını sabitler.
+      # Sonradan değişirse indeksler sessizce bozulabilir.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      # Named volume — bind mount DEĞİL. Windows'ta bind mount hem izin
+      # sorunları çıkarır hem de WSL2 ile Windows dosya sistemi arasındaki
+      # köprü yüzünden belirgin yavaştır (docs/ADR/0004).
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` DEĞİL, bilinçli. Ölçüldü (Faz 1.7): pg_isready yalnızca
+      # "sunucu bağlantı kabul ediyor mu" sorusuna bakar; var olmayan bir
+      # veritabanına da var olmayan bir kullanıcıya da exit 0 döner. Yani
+      # veritabanı hiç oluşmamışken bile "healthy" der — beyan edilen ama
+      # çalışmayan bir kapı. `psql -c 'SELECT 1'` sunucuyu, kimlik doğrulamayı
+      # ve veritabanının varlığını birlikte doğrular.
+      test:
+        [
+          'CMD-SHELL',
+          'psql -U ${POSTGRES_USER:-fms} -d ${POSTGRES_DB:-fms} -c "SELECT 1" || exit 1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7
+    container_name: fms-redis
+    restart: unless-stopped
+    # appendonly: tur kuyruğu (BullMQ) yeniden başlatmada iş kaybetmesin.
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  adminer:
+    image: adminer:6
+    container_name: fms-adminer
+    restart: unless-stopped
+    ports:
+      - '${ADMINER_PORT:-8080}:8080'
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:

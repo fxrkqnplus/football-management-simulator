@@ -23,8 +23,15 @@ BAĞLAM (bu sırayla)
 
 ÇALIŞMA
 9.  Kapsamı alt görevlere böl, listeyi bana göster, onay al.
+    ⚠️ Onaylanan liste, İLK KODA DOKUNMADAN ÖNCE docs/ROADMAP.md'deki ilgili faz
+       bölümüne yazılır. Plan sohbette yaşamaz. Her alt görev bitince orada [x]
+       işaretlenir. Gerekçe: commit'ler "ne yapıldı"yı kurtarır, ROADMAP alt görev
+       listesi "sırada ne var"ı kurtarır — oturum kurtarma ikisini de gerektirir.
 10. Alt görevleri TEK TEK yap. Her birinden sonra DUR ve onay bekle (K11).
 11. Her alt görevde: kod + birim testi + i18n anahtarları AYNI commit'te.
+    ⚠️ Alt görev kapanış listesi: ROADMAP'te [x] · PROJECT_MEMORY ANLIK DURUM
+       güncellendi · yeni SORUN/BORÇ/SAPMA kütüğe yazıldı · commit + push ·
+       rapor docs/OUTPUT-FORMAT.md biçiminde.
 12. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
 
 FAZ KAPANIŞI
@@ -38,6 +45,7 @@ FAZ KAPANIŞI
 20. Kısa demo notu + (arayüz fazıysa) ekran görüntüsü.
 
 KURALLAR
+- Her alt görev raporu docs/OUTPUT-FORMAT.md biçiminde verilir (zorunlu).
 - PROJECT_MEMORY.md yazılmadan faz KAPANMAZ (K15).
 - Yapılmayan şey "yapıldı" yazılmaz. Sağlanmayan kriter [ ] bırakılır, gerekçesi yazılır.
 - Eski faz kayıtları geriye dönük DEĞİŞTİRİLMEZ. Düzeltme yeni kayda not olarak eklenir.

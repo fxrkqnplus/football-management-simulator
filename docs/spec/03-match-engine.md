@@ -30,9 +30,18 @@ interface MatchResult {
 
 ## 5.2 Üç Katman
 
+> **`EngineTier` ile `SimulationPolicy` ayrı şeylerdir.**
+> Bu bölümdeki `full` / `medium` / `statistical` değerleri **EngineTier**'dır:
+> maç başına, motor içi, kullanıcıya görünmez.
+> Kullanıcının kariyer oluştururken seçtiği şey **SimulationPolicy**'dir
+> (`balanced` · `full`, kayıt başına, ortam varsayılanı `DEFAULT_SIM_POLICY`).
+> `balanced` politikası maç maç EngineTier seçer: kullanıcının maçı `full`,
+> kendi ligi `medium`, diğer ülkeler `statistical`.
+> Kayıt alanının adı `saves.simulationPolicy`'dir (`simulationTier` DEĞİL).
+
 | Katman | Ne zaman | Yöntem | Hedef süre |
 |---|---|---|---|
-| `full` | Kullanıcının maçı; `simulationTier='full'` ise tüm maçlar | Tam tik döngüsü, 22 oyuncu konumu, tüm olaylar | < 250 ms |
+| `full` | Kullanıcının maçı; `simulationPolicy='full'` ise tüm maçlar | Tam tik döngüsü, 22 oyuncu konumu, tüm olaylar | < 250 ms |
 | `medium` | Kullanıcının ligindeki diğer maçlar | Basitleştirilmiş pozisyon modeli, konum takibi yok | < 20 ms |
 | `statistical` | Diğer ülkelerin ligleri (Dengeli modda) | Dixon-Coles benzeri, gol dağılımı + kart + sakatlık | < 1 ms |
 

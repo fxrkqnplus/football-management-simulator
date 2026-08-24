@@ -103,6 +103,17 @@ const SAVE_INVARIANTS = [
 | Erişilebilirlik | axe-core | Tüm ekranlar | 0 kritik ihlal |
 | Yük | k6 | API | 20 eşzamanlı kullanıcı, tur atlama |
 
+> **⚠️ Kapsam eşiklerinin geçerlilik şartı (Vitest 4).**
+> Vitest 4'te `coverage.all` kaldırıldı. `coverage.include` açıkça tanımlanmazsa yalnızca
+> çalıştırılan dosyalar rapora girer ve kapsam eşikleri anlamsızlaşır — hiç test edilmemiş bir
+> dosya hesaba katılmadığı için %85 kapısı sessizce yalan söyler. **K10'un geçerliliği bu ayara
+> bağlıdır.** Ayrıca `coverage.ignoreEmptyLines` kaldırıldı ve V8 sağlayıcısı AST tabanlı
+> yeniden eşlemeye geçti; v3'ten gelen rakamlarla birebir karşılaştırma yapılmaz.
+>
+> **`tools/` kapsam eşiğine dahil DEĞİLDİR.** `coverage.include` yalnızca
+> `*/src/**` desenini alır; geliştirme araçları (`arch-check`, `eslint-local-rules`)
+> test edilir ama ürün kodu sayılmaz ve %70/%85 eşiklerine girmez.
+
 **Fuzz testi:** Motora rastgele nitelik kombinasyonları (1-20 arası tüm uçlar dahil) verilir; `NaN`, `Infinity`, negatif skor, sonsuz döngü **asla** oluşmamalı.
 
 ## 11.5 Faz Kapanış Komutları
@@ -122,12 +133,24 @@ pnpm perf:budget            # Faz 6+
 pnpm arch:check             # katman bağımlılık ihlali
 ```
 
+**ESLint ile arch:check arasındaki iş bölümü** — hiçbir kural iki yerde denetlenmez.
+Tekrar eden kural, iki yerden birinde gevşetilince sessizce ölür.
+
+| Kural | Nerede | Neden orada |
+|---|---|---|
+| `console.log` (K8) | **ESLint** | Çekirdek kural, editörde anında geri bildirim |
+| Kaynak kodda mutlak yol (K6) | **ESLint** (`local/no-hardcoded-path`) | AST erişimi ve otomatik düzeltme ESLint'te |
+| Sabit kodlanmış Türkçe metin (K5) | **ESLint** (Faz 5) | Aynı gerekçe |
+| Katman bağımlılık yönü (§2.4) | **arch:check** | Paket sınırı bilgisi ESLint kapsamının dışında |
+| Motor saflığı (K3) | **arch:check** | Yasaklı modül + sözdizimi + modül düzeyi durum birlikte denetlenir |
+| Import yolu harf duyarlılığı | **arch:check** | Dosya sistemi erişimi ister; `.mjs`/`.js` dosyalarını TS görmez |
+| TS olmayan varlıklarda mutlak yol | **arch:check** | ESLint `.html`/`.json`/`.css` denetlemez |
+
 `pnpm arch:check` şunları denetler:
-- `packages/engine` içinde `db`, `fs`, `http`, `Date.now`, `Math.random` kullanımı → HATA
-- Katman bağımlılık yönü ihlali → HATA
-- `console.log` → HATA
-- Sabit kodlanmış Türkçe metin → HATA
-- Sabit kodlanmış mutlak yol → HATA
+- `packages/engine` içinde `@fms/db`, `node:*`/`fs`/`http` vb., `Date.now()`, `Math.random()`, `new Date()` ve modül düzeyi değiştirilebilir bağlama → HATA
+- Katman bağımlılık yönü ihlali (CLAUDE.md §2.4) → HATA
+- Göreli import yolunun diskteki dosya adıyla harf uyuşmazlığı → HATA
+- `.html`/`.json`/`.css` kaynak varlıklarında mutlak uygulama yolu → HATA
 
 ## 11.6 Performans Bütçesi
 

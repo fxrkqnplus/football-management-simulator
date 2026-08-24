@@ -36,7 +36,7 @@
 | Sunucu | Oracle Cloud Always Free A1 (ARM) | 2 OCPU / 12 GB / 200 GB / 10 TB egress | ✅ Süresiz |
 | Veritabanı | **Kendi sunucumuzda Postgres 16** | 200 GB disk içinde | ✅ Yönetilen ücretsiz Postgres'ler (Supabase 500 MB, Neon 0.5 GB) **yetersiz** |
 | Redis | Kendi sunucumuzda | — | ✅ |
-| Frontend | Cloudflare Pages | Sınırsız istek, 500 build/ay | ✅ |
+| Frontend | **Origin konteyneri (Caddy arkası)** | Oracle A1 içinde | ✅ `/fms` bir ALT YOL; aynı hostname'in alt yolunu Pages'e kırmak Workers akrobasisi gerektirir ve hiçbir şey kazandırmaz. Statik varlıklar Cloudflare önbellek kuralıyla hızlandırılır. |
 | CDN / TLS / DDoS / WAF | Cloudflare proxy | Ücretsiz plan | ✅ |
 | Bot koruması | Cloudflare Turnstile | Sınırsız | ✅ |
 | Görsel varlıklar | Cloudflare R2 | 10 GB, 1M yazma, 10M okuma/ay, **sıfır egress** | ✅ ~15.000 portre + arma ≈ 2–4 GB |
@@ -68,6 +68,19 @@
 | **Dengeli** (katmanlı) | Kullanıcının maçı 200 ms + kendi ligi 9×15 ms + diğer 5 ülke 50×1 ms | **~400 ms** | **~150–300 kullanıcı** |
 
 Fark **30 kat**. Açık kayıtla ücretsiz sunucuda Tam Detay'ı varsayılan yapmak, hafta sonu 20 kişi girdiğinde kuyruğu dakikalara çıkarır.
+
+> **İKİ AYRI KAVRAM — karıştırılmamalı (SAPMA-003 ile netleştirildi):**
+>
+> | Kavram | Kapsam | Değerler | Nerede görünür |
+> |---|---|---|---|
+> | `EngineTier` | **Maç başına**, motor içi | `full` · `medium` · `statistical` | Kod; kullanıcı görmez |
+> | `SimulationPolicy` | **Kayıt başına**, kullanıcıya açık | `balanced` · `full` | Kariyer oluşturma ekranı, `DEFAULT_SIM_POLICY` |
+>
+> Eşleme:
+> - `balanced` → kullanıcının maçı `full`, kendi ligi `medium`, diğer ülkeler `statistical`
+> - `full` → tüm maçlar `full`
+>
+> Ortam değişkeni `DEFAULT_SIM_POLICY`, kayıt alanı `saves.simulationPolicy`.
 
 **Karar:** Üç motor katmanı da kodda bulunur. **Varsayılan "Dengeli".** Kullanıcı kariyer oluştururken "Tam Detay"ı seçebilir — ama uyarı gösterilir: *"Diğer ülke ligleri de tam simüle edilir. Daha gerçekçi ama tur atlama süresi belirgin uzar."* Seçim kayda yazılır ve determinizm korunur.
 
@@ -105,7 +118,7 @@ Motor:         packages/engine (paylaşımlı TS, sunucuda çalışır)
 Veritabanı:    PostgreSQL 16 + Drizzle ORM
 Kuyruk:        BullMQ + Redis
 Realtime:      Server-Sent Events (SSE)
-Auth:          Supabase Auth (self-hosted) veya local JWT+argon2
+Auth:          @node-rs/argon2 + jose (JWT) — CLAUDE.md §2.1 kilitli
 Ses:           Howler.js
 i18n:          i18next + react-i18next
 Test:          Vitest + Playwright + engine determinizm testleri
@@ -147,7 +160,8 @@ CI:            GitHub Actions
 14. `CHANGELOG.md` güncellendi, PR açıldı: `feature/faz-XX-<slug>` → `develop`.
 15. Kısa demo notu + ekran görüntüsü.
 
-**Performans Bütçesi (ihlal = faz kapanmaz):**
+**Performans Bütçesi (ihlal = faz kapanmaz)** — *aşağıdaki liste kısaltılmıştır.
+Tam ve **otorite** liste: `docs/spec/09-quality-protocol.md` §11.6.*
 
 | Metrik | Bütçe |
 |---|---|
@@ -198,10 +212,37 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 - Dal stratejisi: `main` / `develop` / `feature/faz-XX-<slug>`
 - `CHANGELOG.md` + `docs/ADR/` (mimari karar kayıtları) klasörü
 
+**Alt görevler** (onaylanan bölüm — her biri kendi commit'iyle kapanır):
+
+- [x] **1.0** Sürüm doğrulaması — 28 paket npm registry'den teyit, `CLAUDE.md` §2.1 güncellemesi, ADR-0003, SAPMA-003, BORÇ-001/002
+- [x] **1.1** Güvenlik zemini + workspace iskeleti — `.gitignore`, `LICENSE`, `.gitattributes`, `.nvmrc`, `.npmrc`, 8 paket, Node sürüm kapısı
+- [x] **1.2** TypeScript strict + turbo derleme hattı — `tsconfig.base.json`, paket tsconfig'leri, sürüm kataloğu, tsconfig `types` kapısı
+- [x] **1.3** ESLint 10 flat config + Prettier + import sıralama *(tek kök config, projectService, eslint-config-prettier)*
+- [x] **1.4** Alt yol kilidi + env doğrulama — `base-path.ts`, `env.ts` (Zod 4), `no-hardcoded-path` ESLint kuralı *(kuralın kendi testi RuleTester ile aynı alt görevde)*
+- [x] **1.5** Vitest 4 + kapsam eşikleri — `vitest.config.ts` + `projects[]`, **`coverage.include` ZORUNLU** (bkz. `docs/spec/09` §11.4).
+      1.4'ten devreden üç iş:
+      (a) Vitest paket olarak kuruldu ama **yapılandırması yok** — config, `projects[]`, coverage eşikleri ve turbo `test` task'ı burada;
+      (b) `globals: true` ayarlanınca ESLint `RuleTester` testi Vitest altında da koşar; şimdilik ayrı komutla (`pnpm test:rules`) çalışıyor;
+      (c) `tsconfig.build.json` deseni (testleri emit dışında tutar) yalnızca `packages/shared`'da — test kazanan her pakete yayılmalı
+- [x] **1.6** `arch:check` — katman yönü, engine yasakları, `console.log`, mutlak yol.
+      **`scripts/` için DAR muafiyet:** yalnızca `process.stderr.write`/`process.stdout.write` serbest;
+      `console.log` her yerde yasak, katman kuralları `scripts/**`e aynen uygulanır. Muafiyetin
+      gerekçesi config içinde yorum olarak yazılır. (Türkçe metin kuralı Faz 5'e kadar no-op.)
+      **Ayrıca import yolu harf duyarlılığı denetimi:** her göreli import yolu diskteki gerçek
+      dosya adıyla birebir eşleşmeli. Windows duyarsız, üretim Linux/ARM64 duyarlı. TypeScript
+      `.ts` dosyalarında bunu TS1149 ile zaten yakalıyor; boşluk `.mjs`/`.js` dosyalarında
+      (ölçüm ve düzeltme: `docs/ADR/0004` §2).
+- [x] **1.7** Docker Compose (Postgres 16, Redis 7, adminer) + ARM64 — **PostgreSQL majörü Docker Hub'dan doğrulanacak, tahminle yazılmayacak**
+- [x] **1.8** `/fms` uçtan uca kanıtı — minimal web + api. **NestJS 11 / Express 5 joker rota (`/*splat`) ve `setGlobalPrefix` bilinen sorunu açıkça test edilir; CORS'ta PUT/PATCH/DELETE tanımlanır. Rolldown çıktısı "derlendi" ile geçilmez, gerçekten servis edilip `/fms` altında çalıştığı doğrulanır.**
+- [x] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**
+      **1.8'den devreden:** CI'da `.env` yok; `apps/web` derlemesi `PUBLIC_BASE_PATH` olmadan bilerek durur.
+      CI ya `.env.example`'ı `.env`e kopyalamalı ya da `PUBLIC_BASE_PATH`'i ortam değişkeni olarak vermeli.
+- [x] **1.10** Belgeler + faz kapanışı — ADR 0001/0002, `docs/DEPENDENCY-WATCH.md`, `docs/HOSTING-FALLBACK.md` iskeleti, README "Geliştirme Ortamı" bölümü + PROMPT-KITAPCIGI atfının kaldırılması, spec düzeltmeleri (Ç1/Ç2/Ç4/Ç5/Ç6), push koruması testi, `PROJECT_MEMORY.md` faz kaydı
+
 **Ana dosyalar:**
 ```
 pnpm-workspace.yaml, turbo.json, tsconfig.base.json
-.eslintrc.cjs, .prettierrc, vitest.workspace.ts
+eslint.config.js, .prettierrc, vitest.config.ts
 docker-compose.yml, .env.example
 packages/shared/src/env.ts
 .github/workflows/ci.yml
@@ -209,15 +250,15 @@ docs/ADR/0001-monorepo-secimi.md
 ```
 
 **Kabul kriterleri:**
-- [ ] `docker compose up` → Postgres ve Redis sağlıklı
-- [ ] `pnpm install && pnpm build` → tüm paketler hatasız derleniyor
-- [ ] `pnpm typecheck` → 0 hata
-- [ ] Kasıtlı bir tip hatası eklenince CI kırmızıya dönüyor (kanıtla)
-- [ ] Eksik `.env` değişkeniyle uygulama **açılmıyor** ve net hata mesajı veriyor
-- [ ] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor
-- [ ] Uygulama `/fms` alt yolunda çalışıyor; `PUBLIC_BASE_PATH` değiştirilince her yer uyuyor
-- [ ] Kodda mutlak yol yazılınca ESLint hata veriyor
-- [ ] Repo'ya sır push edilmeye çalışılınca GitHub push koruması engelliyor
+- [x] `docker compose up` → Postgres ve Redis sağlıklı *(1.7 — ikisi de `healthy`; healthcheck'lerin gerçekten düştüğü negatif testle kanıtlandı)*
+- [x] `pnpm install && pnpm build` → tüm paketler hatasız derleniyor *(1.2 — 8 paket, turbo FULL TURBO cache)*
+- [x] `pnpm typecheck` → 0 hata *(1.2 — tsconfig types kapısı dahil)*
+- [x] Kasıtlı bir tip hatası eklenince CI kırmızıya dönüyor (kanıtla) *(1.9 — koşu 32675264530: her iki mimaride `error TS2322`, imaj işi `skipped`; kanıt dalı silindi)*
+- [x] Eksik `.env` değişkeniyle uygulama **açılmıyor** ve net hata mesajı veriyor *(1.9 — konteynerde doğrulandı: çıkış kodu 1 + Türkçe "DATABASE_URL — tanımlı değil")*
+- [x] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor *(1.9 — native runner, `uname -m` → x86_64 / aarch64, ikisinde de HTTP duman testi geçti)*
+- [x] Uygulama `/fms` alt yolunda çalışıyor; `PUBLIC_BASE_PATH` değiştirilince her yer uyuyor *(1.8 — `/oyun`a çevrilip yedi katmanın da uyduğu tarayıcıda doğrulandı, `/fms/*` 404 oldu)*
+- [x] Kodda mutlak yol yazılınca ESLint hata veriyor *(1.4 — `local/no-hardcoded-path`, 23 senaryoluk kendi testi)*
+- [x] Repo'ya sır push edilmeye çalışılınca GitHub push koruması engelliyor *(1.10 — sahte AWS anahtar çiftiyle: `remote rejected ... push declined due to repository rule violations`, iki desen de yakalandı; kanıt dalı silindi)*
 
 **Bağımlılık:** Yok
 **Risk:** Turborepo cache yapılandırması yanlışsa CI yavaşlar → `turbo.json` output tanımlarını doğrula.

@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // TS 6'da types alanı varsayılan BOŞ. @types/node kurulu olsa bile burada
+    // yazılmazsa 'process', 'Buffer', 'node:*' görünmez ve hata mesajı
+    // "Cannot find name 'process'" olur — sebebi ise bu satırın eksikliğidir.
+    "types": ["node"],
+    // Uygulama paketi: başka paket bunun .d.ts'ini tüketmez.
+    "declaration": false,
+    "declarationMap": false,
+    // NestJS bağımlılık enjeksiyonu design:paramtypes metadata'sına dayanır.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    // verbatimModuleSyntax, tip-yalnızca import'ları silerek
+    // emitDecoratorMetadata'nın ürettiği metadata'yı bozar — Nest'te DI
+    // çalışma zamanında kırılır. Bu paket için kapalı, diğerlerinde açık.
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

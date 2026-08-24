@@ -1,0 +1,11 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // Vite çıktısı (Faz 1.8). Önceden bu paket yalnızca tip denetliyordu ve
+      // outputs boştu; artık gerçek paketleme yapıyor.
+      "outputs": ["dist/**"]
+    }
+  }
+}
