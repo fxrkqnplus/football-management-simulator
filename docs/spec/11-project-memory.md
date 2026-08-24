@@ -48,18 +48,57 @@ Kayıt yazılmadan faz kapanmış sayılmaz (K15).
 
 **Sıralama:** En yeni faz kaydı **en üstte** (ANLIK DURUM'un hemen altında). Yeni oturum aşağı kaydırmadan güncel durumu görür.
 
+**Ölçüm sonucu alanları tahminle doldurulmaz** (Faz 2.0b'de eklendi).
+CI koşu numarası, kapsam yüzdesi, süre, imaj boyutu, test sayısı — bunların
+hepsi **ölçülmüş** değerlerdir. Ölçüm yapılmadan alan **boş bırakılır** veya
+`ölçülmedi` yazılır; makul bir değer uydurulmaz.
+
+Gerekçe ampirik: 2.0b'de ANLIK DURUM'a CI koşu numarası, koşu **daha
+başlamadan** yazıldı ve numara gerçek çıkmadı. Bu, §12.3'teki "hash değil
+başlık" gerekçesinin aynısıdır — commit başlığı **seçilebilir** bir şeydir,
+koşu numarası **ölçülen** bir şey. Eksik bir alan okuyanı ölçmeye gönderir;
+yanlış bir alan okuyanı yanlış yere gönderir ve yanlış olduğu anlaşılmaz.
+
 **Dürüstlük kuralı:** Yapılmayan şey "yapıldı" diye yazılmaz. Atlanan kabul kriteri açıkça `[ ]` bırakılır ve gerekçesi yazılır. Bu dosyanın değeri doğruluğundan gelir.
 
 ## 12.2 Dosya Yapısı
 
 ```
 PROJECT_MEMORY.md
-├── ⚡ ANLIK DURUM              ← her faz tamamen yeniden yazılır
+├── ⚡ ANLIK DURUM              ← her ALT GÖREV tamamen yeniden yazılır
 ├── 🔴 AÇIK SORUNLAR KÜTÜĞÜ     ← kümülatif, çözülünce kapatılır
 ├── 🟡 TEKNİK BORÇ KÜTÜĞÜ       ← kümülatif
 ├── 🔵 SPESİFİKASYON SAPMALARI  ← kümülatif, asla silinmez
+├── 🧪 FAZ [XX] ÇALIŞMA GÜNLÜĞÜ ← faz boyunca dolar, faz sonunda BOŞALIR
 └── 📋 FAZ KAYITLARI            ← append-only, en yeni üstte
 ```
+
+### 🧪 Çalışma günlüğü — kalıcı yapı, geçici içerik
+
+**Bu bölüm silinmez, boşaltılır.** (Faz 2.0b'de açıldı, 2.1'de kurallaştı.)
+
+**Neden var:** Faz protokolü *"karşılaştığın her hatayı ANINDA not al — faz
+kaydına gireceksin"* diyor ama notun duracağı bir yer tanımlamıyordu. ANLIK
+DURUM her alt görevde **tamamen yeniden yazıldığı** için oraya düşülen not bir
+sonraki alt görevde siliniyor. Sonuç: faz kaydının §5 hata tablosu, faz sonunda
+**geriye dönük hatırlanarak** yazılıyor — yani en değerli ayrıntı (kök neden,
+hangi kapının yakaladığı, hangi varsayımın çürüdüğü) tam da kaybolan şey oluyor.
+
+**Yaşam döngüsü:**
+
+| Ne zaman | Ne yapılır |
+|---|---|
+| Faz açılışında | Başlık `🧪 FAZ [XX] ÇALIŞMA GÜNLÜĞÜ` olarak güncellenir, tablo boşaltılır |
+| Faz boyunca | Her hata **oluştuğu anda** satır olarak eklenir (alt görev · belirti · kök neden · çözüm · tekrar önleme) |
+| Faz kapanışında | Satırlar faz kaydının **§5** tablosuna işlenir, tablo boşaltılır, **başlık kalır** |
+
+Başlığın kalması bilinçli: aksi halde her faz aynı ihtiyacı yeniden keşfeder ve
+bölümü yeniden icat eder.
+
+**Ne yazılır:** ölçümle çürütülen varsayımlar, sessiz kalan kapılar, kendi
+çıkardığın regresyonlar. **Ne yazılmaz:** yazım hatası düzeltmeleri, tek
+seferlik lint uyarıları — günlük hata *sınıflarının* kaydıdır, her tuş
+darbesinin değil.
 
 ## 12.3 ANLIK DURUM Bloğu
 

@@ -312,10 +312,23 @@ docs/ADR/0001-monorepo-secimi.md
       vitest proje `include`'ları, ESLint muafiyeti, yedi `tsconfig.build.json`) ve
       TypeScript'in glob dilinin süslü parantez desteklemediği ölçümle bulundu (**SAPMA-009**).
       **Kapsam sınırı:** yalnızca ortam kuruldu. `ErrorBoundary` yazılmadı — o 2.6.
-- [ ] **2.1** Tipli hata sınıfları — `DomainError`, `ValidationError`, `EngineError`, `DataProviderError`,
-      `NotFoundError`, `ForbiddenError`. Her biri `code` + `httpStatus` + `context` + Türkçe **eyleme
-      dönüştürülebilir** mesaj (K1.3). **Saf, Node'suz** — motor da kullanacak (K3), bu yüzden `errors.ts`
-      kökte kalır. `base-path.ts`'teki `TypeError` borcu burada kapanır.
+- [x] **2.1** Tipli hata sınıfları — `DomainError`, `ValidationError`, `EngineError`, `DataProviderError`,
+      `NotFoundError`, `ForbiddenError` + soyut taban `AppError`. **Saf, Node'suz** — motor da kullanıyor (K3),
+      bu yüzden `errors.ts` kökte kalır. `base-path.ts`'teki `TypeError` borcu kapandı.
+      **Alan şeması:** `kind` + `code` + `context` + `message` + `cause`.
+      **SAPMA-010 — `httpStatus` sınıfa KONULMADI.** Planda vardı; HTTP bir taşıma kaygısı ve motor HTTP
+      bilmiyor, aynı hata kuyruğa/SSE/CLI'a da gidebiliyor. Eşleme 2.4'teki filter'a taşındı ve sürüklenme
+      riski tip seviyesinde kapatılıyor: `Record<ErrorKind, number>` eksik bırakılırsa **derleme kırılır**.
+      **Kullanıcı metni sınıfta üretilmiyor:** sözleşme `code` + `context`. `code` zaten i18n anahtarı
+      biçiminde (`alan.olay`), böylece Faz 5 bir eşleme tablosu yazmaya iner, fırlatma yerlerini gezmeye değil.
+      `message` geliştirici içindir (log/Sentry), çevrilmez.
+      **`context` dar tipli** (JSON-güvenli ilkeller + sığ dizi, iç içe nesne YOK) — sır sızdırma yüzeyini
+      daraltır; anahtar adına göre redaksiyon ikinci hat olarak 2.2'de logger ile birlikte gelir.
+      **Motor kanıtı:** `packages/engine/src/errors-from-engine.test.ts` — sınıfların motorun kısıtları
+      altında (`types: []`, `lib: ES2024`) gerçekten çalıştığını gösterir.
+      **Yan bulgu:** `arch:check` 12 katman bağına izin veriyor ama `package.json`'da yalnızca 2'si tanımlıydı;
+      `packages/engine → @fms/shared` hiç çözümlenemiyordu. Motorunki bağlandı, kalan boşluk için kural 2.2'ye.
+      **Glob taraması** (uzantı körlüğü sınıfı): altıncı örnek `arch:check`'te bulundu ve düzeltildi.
 - [ ] **2.2** Logger mimarisi — **Karar 1:** kökte `Logger` **arayüzü** (izomorfik), pino uygulaması
       `@fms/shared/server` **alt yolunda**. Gerekçe: `sideEffects: false` bir paketleyici optimizasyonudur;
       alt yol **yapısal** sınırdır, modül çözümlemesi seviyesinde çalışır. Üç kat savunma:
@@ -328,6 +341,18 @@ docs/ADR/0001-monorepo-secimi.md
       **Karar 5:** ESLint'te `apps/**` + `packages/**` için `process.stdout/stderr.write` YASAK;
       `scripts/**` + `tools/**` serbest. `arch:check` bu kuralı **tekrarlamaz** (`spec/09` §11.5).
       Ürün kodundaki iki yazım (`packages/shared/src/env.ts`, `apps/api/src/main.ts`) logger'a taşınır.
+      **2.1'den devreden iki iş:**
+      (a) **`arch:check`'e "bildirilmiş bağımlılık" kuralı.** 2.1'de ölçüldü: `arch:check` 12 katman bağına
+          izin veriyor ama `package.json`'larda yalnızca **2'si** tanımlıydı. `packages/engine → @fms/shared`
+          "izinli" görünüyordu ama pnpm'in sıkı düzeninde **hiç çözümlenemiyordu** — yani gate bir yanlış
+          NEGATİF veriyordu (2.0'daki alt yol yanlış pozitifinin aynadaki hâli). Kural: bir dosya `@fms/X`
+          import ediyorsa, o paketin `package.json`'ında `@fms/X` **bildirilmiş olmalı**. Böylece
+          spekülatif bildirim gerekmez; boşluk ilk gerçek import'ta yakalanır.
+      (b) **Motor için dar giriş noktası değerlendirmesi.** 2.1'de statik olarak ölçüldü: `errors.js`
+          hiçbir şey import etmiyor ✅, ama `@fms/shared` **barrel'ı** `env.js` üzerinden **Zod'u motora
+          çekiyor**. K3 ihlali değil (yan etki yok) ama Faz 1 hata #11'in aynı sınıfı — orada tarayıcı
+          yönündeydi, burada motor yönünde. `@fms/shared/server` alt yolu kurulurken motorun da dar bir
+          girişten (örn. `@fms/shared/errors`) beslenip beslenmeyeceğine karar verilir.
 - [ ] **2.3** `correlationId` zinciri — uuid v7 · `AsyncLocalStorage` · NestJS middleware ·
       `X-Correlation-Id` gidiş-dönüş · tarayıcı üretimi · **taşınabilir zarf** (`serializeLogContext` /
       `deserializeLogContext` + Zod).

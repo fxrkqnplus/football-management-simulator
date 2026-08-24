@@ -9,6 +9,7 @@ import {
   normalizeBasePath,
   resetBasePathForTests,
 } from './base-path.js';
+import { ValidationError } from './errors.js';
 
 describe('normalizeBasePath', () => {
   it('farklı yazımları tek biçime indirger', () => {
@@ -88,6 +89,49 @@ describe('joinBasePath — yanlış kullanım sessizce geçmez', () => {
   it('hata mesajı doğru kullanımı gösterir', () => {
     expect(() => joinBasePath('/fms', 'api/health')).toThrow(/basePath\('\/api\/health'\)/);
     expect(() => joinBasePath('/fms', '/fms/api')).toThrow(/basePath\('\/api'\)/);
+  });
+
+  // ── Aşağıdaki üç test Faz 2.1'de eklendi ──────────────────────────────
+  // Sebebi bir BULGU: `TypeError` → `ValidationError` değişimi yapıldığında
+  // yukarıdaki testlerin hiçbiri kırılmadı. Çünkü hepsi yalnızca MESAJI
+  // kontrol ediyordu; hata TİPİ sözleşmenin parçası olmasına rağmen hiç
+  // sınanmamıştı. Bir sınıfın `TypeError`a geri dönmesi ya da düz `Error`
+  // fırlatması bu suitten sessizce geçerdi.
+  //
+  // Tip, çağıran taraf için mesajdan daha önemli: exception filter (2.4)
+  // `instanceof ValidationError` ile karar verecek, mesaja bakmayacak.
+
+  it('fırlatılan hata ValidationError — mesaj değil, TİP sınanıyor', () => {
+    expect(() => joinBasePath('/fms', 'api/health')).toThrow(ValidationError);
+    expect(() => joinBasePath('/fms', '//api')).toThrow(ValidationError);
+    expect(() => joinBasePath('/fms', '/fms/api')).toThrow(ValidationError);
+  });
+
+  it('her fırlatmanın kendi kararlı `code` değeri var', () => {
+    const codeOf = (base: string, path: string): string => {
+      try {
+        joinBasePath(base, path);
+      } catch (error: unknown) {
+        if (error instanceof ValidationError) return error.code;
+        throw error;
+      }
+      throw new Error('fırlatması bekleniyordu');
+    };
+
+    expect(codeOf('/fms', 'api/health')).toBe('basePath.mustStartWithSlash');
+    expect(codeOf('/fms', '//api')).toBe('basePath.doubleSlash');
+    expect(codeOf('/fms', '/fms/api')).toBe('basePath.duplicatePrefix');
+  });
+
+  it('context ayrıntıyı YAPISAL taşır — mesajdan ayıklamak gerekmiyor', () => {
+    try {
+      joinBasePath('/fms', '/fms/api');
+      throw new Error('fırlatması bekleniyordu');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(ValidationError);
+      const { context } = error as ValidationError;
+      expect(context).toEqual({ path: '/fms/api', base: '/fms', suggestion: '/api' });
+    }
   });
 
   it('geçerli girdide birleştirir', () => {

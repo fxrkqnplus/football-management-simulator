@@ -21,47 +21,49 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.0b bitti, 2.1 bekliyor** |
-| **Son tamamlanan** | ✅ **2.0b** DOM test ortamı (`jsdom` + React Testing Library) · SORUN-001 kapandı |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.1 bitti, 2.2 bekliyor** |
+| **Son tamamlanan** | ✅ **2.1** Tipli hata sınıfları (`errors.ts`) · `base-path.ts` `TypeError` borcu kapandı |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 2/11 alt görev (2.0, 2.0b) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 3/11 alt görev (2.0, 2.0b, 2.1) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(memory): 2.0b CI koşu numarasını gerçek değerle düzelt` (2.0b'nin işi `test(web): DOM test ortamı kur…` commit'inde) |
+| **Son commit** | `feat(shared): tipli hata sınıfları ve base-path ValidationError borcu` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | ✅ koşu `32786296752` — **dört işin dördü de yeşil** (kalite amd64 + arm64, imaj amd64 + arm64). ARM64 kapsam rakamları yerelle **birebir aynı**: 87,06 / 86,84 / 87,5 / 87,15 · 86 test / 9 dosya. `jsdom` ARM64'te sorunsuz (K14 ölçümle doğrulandı). |
+| **CI** | 2.1 koşusu **ölçülmedi** — commit push edildikten sonra bakılacak. (2.0b koşusu `32786296752` dört işte de yeşildi.) |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil |
-| **test** | ✅ **86 test / 9 dosya** (76 → 86: `App` +6, `main` +2, motor ortam sözleşmesi +2) |
-| **kapsam** | ✅ satır **%87,15** · ifade %87,06 · dal %86,84 · fonksiyon **%87,5** — eşik %70, **dördü de üstünde** |
-| **Araç zinciri** | pnpm 11.23.0 · **jsdom 30.0.1** + `@testing-library/react` 16.3.2 |
-| **Açık sorun sayısı** | **0** — SORUN-001 kapandı |
+| **test** | ✅ **118 test / 11 dosya** (86 → 118: `errors` +21, `base-path` +3, motor hata kullanımı +3, `it.each` çoğaltmaları) |
+| **kapsam** | ✅ satır **%89,06** · ifade %88,88 · dal %88,09 · fonksiyon **%90,9** — eşik %70 |
+| **Araç zinciri** | pnpm 11.23.0 · jsdom 30.0.1 · `@testing-library/react` 16.3.2 |
+| **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
-**2.0b'de kurulan ve 2.6/2.8'in üzerine oturacağı altyapı:**
-Vitest ortamı **proje başına** ayrılıyor: `web` ve `ui` → `jsdom`, geri kalan
-her şey → `node`. Ayrım tesadüfi değil, K3'ün gereği (motor tarayıcı varsaymaz)
-ve `packages/engine/src/no-dom.test.ts` ile **kalıcı olarak sınanıyor** — biri
-motoru DOM ortamına taşırsa o test kırılır.
-Negatif testle kanıtlandı: `web` projesi geçici olarak `node`'a alındığında
-8/8 test `ReferenceError: document is not defined` ile kırıldı.
-`globals` KAPALI olduğu için RTL'in otomatik temizliği devreye girmiyor;
-`apps/web/vitest.setup.ts` `cleanup()`i açıkça bağlıyor. **2.6'da `ErrorBoundary`
-testi yazarken bu dosya zaten hazır.**
+**2.1'de kurulan sözleşme — 2.2/2.4/2.6 bunun üstüne biniyor:**
+`AppError` (soyut taban) + altı somut sınıf. Alanlar: `kind` · `code` ·
+`context` · `message` · `cause`.
+- **`httpStatus` YOK** (SAPMA-010). Eşleme 2.4'teki filter'da olacak ve
+  `Record<ErrorKind, number>` sayesinde eksik bırakılırsa **derleme kırılacak**.
+- **Kullanıcı metni sınıfta üretilmiyor.** Sözleşme `code` + `context`. `code`
+  zaten i18n anahtarı biçiminde (`alan.olay`) → Faz 5 bir tablo yazacak,
+  fırlatma yerlerini gezmeyecek. `message` **geliştirici içindir**.
+- **`context` dar tipli:** JSON-güvenli ilkeller + sığ dizi. İç içe nesne YOK.
+  Anahtar adına göre redaksiyon **2.2'de logger ile birlikte** gelecek —
+  iki savunma hattının iş bölümü orada tek yerde yazılacak.
+- `toJSON()` var: düz `JSON.stringify(new Error('x'))` **`{}`** üretir
+  (`message` numaralandırılamaz). `stack` bilerek dışarıda.
 
-**⚠️ 2.1'e girerken bilinmesi gereken — uzantı körlüğü beş yerde çıktı:**
-`coverage.include` · `coverage.exclude` · `vitest.config.ts` proje `include`'ları ·
-ESLint `no-hardcoded-path` muafiyeti · yedi `tsconfig.build.json`. Hepsi
-düzeltildi. **Yeni bir desen yazarken "bugün hangi uzantılar var" değil "bu kural
-hangi dosyalar için geçerli" sorusu sorulur.**
-Ve **iki glob lehçesi var** (SAPMA-009): Vitest/ESLint/Prettier süslü parantezi
-(`{ts,tsx}`) tanır, **tsconfig TANIMAZ** — orada uzantılar tek tek yazılır.
+**⚠️ 2.2'ye devreden ÜÇ iş (ROADMAP 2.2 maddesinde yazılı):**
+1. `arch:check` **alt yol farkındalığı** (2.0'da ölçülen yanlış pozitif).
+2. `arch:check` **"bildirilmiş bağımlılık"** kuralı — 2.1'de ölçüldü: gate 12
+   katman bağına izin veriyor, `package.json`'da yalnızca **2'si** bildirilmişti.
+   `packages/engine → @fms/shared` "izinli" görünüp **çözümlenemiyordu**. Yanlış
+   POZİTİF ile yanlış NEGATİF aynı gate'in iki yüzü.
+3. Motor için **dar giriş** değerlendirmesi — `@fms/shared` barrel'ı `env.js`
+   üzerinden **Zod'u motora çekiyor** (statik olarak ölçüldü). K3 ihlali değil
+   ama Faz 1 hata #11'in aynı sınıfı.
 
 **Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → Faz 2 alt görev listesi, madde **2.1** (tipli hata sınıfları)
+1. `docs/ROADMAP.md` → madde **2.2** (logger mimarisi) — Karar 1 ve Karar 5
 2. Kapılar: `pnpm build` → `typecheck` → `lint` → `test:coverage` → `arch:check` → `format:check`
-   (artık **hepsi** yeşil olmalı — kırmızı varsa regresyondur, beklenen değil)
-3. `docs/SPEC-COVERAGE-GAPS.md` — 2.0'da açılan dosya, G-01…G-07
-4. `PROJECT_MEMORY.md` → **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ** bölümü: hataları oraya
-   anında yaz, 2.9'da faz kaydının §5'ine işlenecek
+3. Hataları **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ**'ne anında yaz (13 satır birikti)
 
 **⚠️ FAZ 2'DE MUTLAKA KONTROL EDİLECEK — 1.8'den taşınan risk:**
 `@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu; Zod ve env
@@ -194,6 +196,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-010 | `karar` | 2 | Yol haritası 2.1'de hata sınıflarının `httpStatus` alanı taşımasını istiyordu; alan **konulmadı**. Kullanıcıya gösterilecek Türkçe mesaj da sınıfta üretilmiyor — sözleşme `code` + `context`. | **`httpStatus`:** HTTP bir taşıma katmanı kaygısı. `packages/engine` bu sınıfları kullanıyor ve motor HTTP bilmiyor; aynı hata kuyruğa, SSE'ye veya CLI'a da gidebilir, oralarda durum kodunun anlamı yok. Eşleme 2.4'teki exception filter'a taşındı. "Ayrı tablo unutulur, sürüklenir" itirazı tip seviyesinde kapatıldı: filter `Record<ErrorKind, number>` tutacak, yani yeni bir `ErrorKind` eklenip eşlemeye yazılmazsa **derleme kırılır**. **Mesaj:** K1.3 (eyleme dönüştürülebilir Türkçe) ile K5 (arayüzde sabit Türkçe yasak) i18n gelmeden ancak `code` + `context` üzerinden uzlaşıyor. `code` zaten i18n anahtarı biçiminde (`alan.olay`), böylece Faz 5 bir **eşleme tablosu** yazmaya iner; yüzlerce fırlatma yerini gezip dizgi sökmeye değil (`spec/11` §12.6'daki "3 faz kayıp" uyarısı tam olarak bu maliyeti anlatıyor). `message` geliştirici içindir, çevrilmez. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.1 ve 2.4, `packages/shared/src/errors.ts` (gerekçe dosya başında) |
 | SAPMA-009 | `düzeltme` | 2 | Faz 2.0'da `docs/spec/09` §11.4'e yazılan *"desen `{ts,tsx,mts,cts}` biçiminde yazılır"* tavsiyesi **araç bağımlıdır ve tsconfig için YANLIŞTIR**. TypeScript'in `include`/`exclude` glob dili süslü parantez genişletmesini desteklemez. | Ölçüm: yedi `tsconfig.build.json`'ın `exclude` deseni `"src/**/*.test.{ts,tsx,mts,cts}"` yapıldı. Hiçbir araç şikâyet etmedi, `typecheck` ve `lint` yeşil kaldı, ama desen **hiçbir dosyayla eşleşmediği** için `pnpm build` sonrası yedi paketin testleri de `dist/`e emit edildi (`apps/api/dist/health.controller.test.js`, `packages/shared/dist/base-path.test.d.ts` …). Uzantılar tek tek yazılınca `dist/` temizlendi. Vitest/ESLint/Prettier süslü parantezi tanır, tsconfig tanımaz — **aynı repoda iki glob lehçesi var.** Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") bunu yakaladı; `typecheck`/`lint`/`test` üçü de göremezdi. | ✅ `docs/spec/09-quality-protocol.md` §11.4 (yeni alt bölüm + doğrulama yöntemi), `packages/ui/tsconfig.build.json` (ölçüm yorumda) |
 | SAPMA-008 | `düzeltme` | 2 | `docs/spec/` bir şey isteyip `docs/ROADMAP.md`'nin hiçbir faza atamadığı **altı madde** tarama ile bulundu: `perf:budget` kapısı (G-01), Playwright kurulumu (G-02), `testcontainers` (G-03), `k6` (G-04), görsel regresyon (G-05), Sentry kotası izleme (G-06). | Bu sınıftan boşluk daha önce **iki kez** tesadüfen yakalanmıştı: Faz 1'de `arch:check` (spec her faz kapanışında çalıştırılmasını istiyordu ama kimse kurmuyordu, Ç3), Faz 2.0'da Sentry kota uyarısı. İki tesadüf desendir. Tek tek yakalamak yerine `spec/09` §11.4/§11.5 ve `spec/10` §13.5 satır satır ROADMAP'te arandı. En sert bulgu G-02: `pnpm test:e2e` spec'te "Faz 17+" derken Playwright kurulumu ROADMAP'te ilk kez **Faz 50**'de geçiyordu — 33 faz gecikme. | ✅ `docs/SPEC-COVERAGE-GAPS.md` [YENİ], `docs/ROADMAP.md` Faz 3/6/17/47/49/50 |
 | SAPMA-007 | `düzeltme` | 2 | `docs/spec/09` §11.4'ün *"`coverage.include` açıkça tanımlanmazsa eşikler anlamsızlaşır"* uyarısı **eksikti**: `include` yazılmış olsa bile **uzantı listesi** dar kalırsa eşik yine sessizce yalan söylüyor. | Ölçüm: desen `*.ts` iken `coverage-summary.json` 13 dosya sayıyordu, diskte 15 vardı — `apps/web/src/App.tsx` ve `main.tsx` rapora hiç girmiyordu. Desen `*.{ts,tsx,mts,cts}` yapılınca ikisi de girdi ve global kapsam **%75,55 → %62,38** düştü (satır). Yani kapı düzeltilmeden önce 13 puanlık bir yalan taşıyordu ve bu Faz 6'da yüzlerce bileşenle çığ olurdu. Tuzağın iki katmanı var: `include`'un varlığı (Faz 1'de çözüldü) ve kapsamı (burada çözüldü). | ✅ `docs/spec/09-quality-protocol.md` §11.4, `vitest.config.ts` (ölçüm yorumda) |
@@ -208,14 +211,17 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 ## 🧪 FAZ 2 — ÇALIŞMA GÜNLÜĞÜ
 
-> **Geçici bölüm.** Faz süresince karşılaşılan hatalar buraya **anında** yazılır;
-> 2.9'da faz kaydının §5 tablosuna işlenir ve bu bölüm silinir.
+> **Kalıcı yapı, geçici içerik.** Kurallar: `docs/spec/11-project-memory.md` §12.2.
+> Faz süresince karşılaşılan hatalar buraya **anında** yazılır; 2.9'da faz
+> kaydının §5 tablosuna işlenir, tablo **boşaltılır ama başlık kalır**.
 >
 > **Neden var:** protokol "karşılaştığın her hatayı ANINDA not al — faz kaydına
 > gireceksin" diyor ama hafıza sisteminde bunun için bir yer yoktu. ANLIK DURUM
 > her alt görevde tamamen yeniden yazıldığı için oraya not düşmek işe yaramıyor;
 > not bir sonraki alt görevde siliniyor. Faz 1'in on beş satırlık hata tablosu
 > muhtemelen sondan geriye hatırlanarak yazıldı.
+>
+> **En yeni satır en üstte.**
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
@@ -227,6 +233,10 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | 6 | 2.0b | Lint 17 yanlış pozitif: `no-hardcoded-path` `.test.tsx`'te tetikleniyor | ESLint muafiyet listesi `**/*.test.ts` ve `**/*.test.mjs` diyor, `.tsx` demiyor — SAPMA-007'nin **beşinci** örneği | Liste `.tsx`/`.mts`/`.cts` ile tamamlandı | Muafiyet bloğuna gerekçeli uyarı yorumu |
 | 7 | 2.0b | **Kendi çıkardığım regresyon:** yedi paketin testleri `dist/`e sızdı | `tsconfig.build.json` `exclude` desenini `{ts,tsx,mts,cts}` yaptım; TypeScript glob dili **süslü parantezi desteklemiyor**, desen hiçbir şeyle eşleşmiyor. `typecheck`, `lint`, `test` üçü de sessiz kaldı | Uzantılar tek tek yazıldı | SAPMA-009, `spec/09` §11.4'e "iki glob lehçesi" bölümü + `find dist -name '*.test.*'` doğrulaması. **Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") ikinci kez kurtardı** |
 | 8 | 2.0b | Motor ortam testinde `navigator` kontrolü yanlış olacaktı | Node 21'den beri `navigator` **Node'da da global** (Node 24.19.0'da `typeof navigator === 'object'`) — DOM göstergesi değil | Kontrol yalnızca `document` ve `window`'a indirildi | Testin içine gerekçe yorumu; yazmadan önce ölçüldü |
+| 13 | 2.1 | **`arch:check` yanlış NEGATİF veriyordu:** `packages/engine`'e `@fms/shared` importu yazıldı, arch:check "temiz" dedi, ama test `Cannot find package '@fms/shared'` ile kırıldı | `arch:check` 12 katman bağına izin veriyor; `package.json`'larda yalnızca **2'si** bildirilmişti (`apps/api`, `apps/web`). pnpm'in sıkı `node_modules` düzeninde bildirilmeyen bağımlılık **görünmez**. Yani "izinli" ile "çözümlenebilir" iki ayrı şeydi ve hiçbir kapı ikisini karşılaştırmıyordu | `packages/engine/package.json`'a `@fms/shared: workspace:*` eklendi | **Kural 2.2'ye:** arch:check "bir dosya `@fms/X` import ediyorsa o paketin `package.json`'ında bildirilmiş olmalı" denetimi eklenecek. Spekülatif bildirim gerekmez; boşluk ilk gerçek import'ta yakalanır. Bu, 2.0'daki alt yol **yanlış pozitifinin** aynadaki hâli |
+| 12 | 2.1 | **Mevcut testler hata TİPİNİ hiç kontrol etmiyormuş:** `base-path.ts`'te `TypeError` → `ValidationError` değişimi yapıldı, 53 testin **hiçbiri** kırılmadı | Testlerin hepsi yalnızca mesaj deseni (`toThrow(/regex/)`) sınıyordu. Hata tipi sözleşmenin parçası — exception filter (2.4) `instanceof` ile karar verecek, mesaja bakmayacak — ama hiç sınanmamıştı | Üç yeni test: tip (`toThrow(ValidationError)`), kararlı `code` değerleri, yapısal `context` | Ders: `toThrow(/mesaj/)` bir hatayı **tanımlamaz**. Yeni bir hata fırlatan her fonksiyon için tip + `code` de sınanır |
+| 11 | 2.1 | Statik ölçüm: `@fms/shared` barrel'ı motora **Zod'u çekiyor** | `dist/index.js` → `env.js` → `import { z } from 'zod'`. `errors.js` kendisi hiçbir şey import etmiyor ✅, ama barrel üzerinden gelen her import env modülünü de yüklüyor | Bugün eylem yok — K3 ihlali değil (yan etki yok, I/O yok) ve motorda henüz ürün kodu yok | **2.2'ye taşındı:** Faz 1 hata #11'in aynı sınıfı (orada tarayıcı yönünde, burada motor yönünde). `@fms/shared/server` alt yolu kurulurken motor için dar giriş değerlendirilecek |
+| 10 | 2.1 | `packages/shared/src/index.ts` lint hatası: `simple-import-sort/exports` | Yeni `errors.js` dışa aktarımlarını dosyanın ortasına elle ekledim; sıralama kuralı `env.js`'ten önce olmasını istiyordu | `pnpm lint:fix` | Yeni bir dışa aktarım bloğu eklerken sıralamayı elle tahmin etme, `lint:fix` çalıştır |
 | 9 | 2.0b | **Uydurulmuş kanıt:** ANLIK DURUM'a CI koşu numarası olarak `32784767832` yazdım — koşu **henüz başlamamıştı**, numara gerçek değildi (gerçeği `32786296752`) | Kaydı sonucu beklemeden doldurma alışkanlığı. Commit mesajından farklı olarak koşu numarası **tahmin edilebilir bir şey değil**; yazıldığı anda ya biliniyordur ya bilinmiyordur | Gerçek numarayla düzeltildi, ARM64 kapsam rakamları da loglardan alınıp yazıldı | **Kural: ölçüm sonucu alanları boş bırakılır, tahminle doldurulmaz.** `spec/11` §12.3'teki "hash değil başlık" gerekçesinin aynısı — bilinmeyen bir kimliği yazmak, eksik bırakmaktan kötüdür çünkü ikincisi eksik, birincisi **yanlış** |
 
 ---

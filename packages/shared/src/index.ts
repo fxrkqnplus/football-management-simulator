@@ -23,3 +23,22 @@ export {
   loadEnv,
   parseEnv,
 } from './env.js';
+export type {
+  AppErrorOptions,
+  ErrorContext,
+  ErrorContextValue,
+  ErrorKind,
+  SerializedAppError,
+  SerializedCause,
+} from './errors.js';
+export {
+  AppError,
+  DataProviderError,
+  DomainError,
+  EngineError,
+  ERROR_KINDS,
+  ForbiddenError,
+  isAppError,
+  NotFoundError,
+  ValidationError,
+} from './errors.js';

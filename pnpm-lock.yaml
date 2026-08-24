@@ -144,6 +144,10 @@ importers:
         version: 6.0.3
 
   packages/engine:
+    dependencies:
+      '@fms/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: 'catalog:'

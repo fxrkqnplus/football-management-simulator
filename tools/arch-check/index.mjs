@@ -213,11 +213,25 @@ export function checkImportCasing(fromDir, spec) {
     }
 
     // Son segment: NodeNext'te '.js' yazılır, diskte '.ts' durur.
+    //
+    // ⚠️ UZANTI EŞLEMESİ TAM TUTULUR (Faz 2.1 glob taraması).
+    // İlk yazımda yalnızca `.js → .ts|.tsx` vardı; `.mjs → .mts` ve
+    // `.cjs → .cts` eşlemeleri yoktu. Sonuç: `./x.mjs` diye yazılıp diskte
+    // `X.mts` duran bir import, harf denetiminden **sessizce** geçerdi.
+    // Bugün repoda `.mts`/`.cts` dosyası yok — yani bu bir hata düzeltmesi
+    // değil, bir boşluğun kapatılması. Boşluk bırakmamanın sebebi ADR-0004 §2:
+    // harf duyarlılığı bu projede en pahalı hata sınıfı ve yerelde asla
+    // tekrar üretilemiyor.
     const candidates = [segment];
     if (segment.endsWith('.js')) {
-      candidates.push(`${segment.slice(0, -3)}.ts`, `${segment.slice(0, -3)}.tsx`);
+      const stem = segment.slice(0, -3);
+      candidates.push(`${stem}.ts`, `${stem}.tsx`);
+    } else if (segment.endsWith('.mjs')) {
+      candidates.push(`${segment.slice(0, -4)}.mts`);
+    } else if (segment.endsWith('.cjs')) {
+      candidates.push(`${segment.slice(0, -4)}.cts`);
     } else {
-      candidates.push(`${segment}.ts`, `${segment}.tsx`);
+      candidates.push(`${segment}.ts`, `${segment}.tsx`, `${segment}.mts`, `${segment}.cts`);
     }
 
     for (const candidate of candidates) {
@@ -294,7 +308,13 @@ export function runArchCheck(root) {
         continue;
       }
 
-      if (!['.ts', '.tsx', '.mts', '.mjs', '.js'].includes(ext)) continue;
+      // ⚠️ TARANAN UZANTILAR — LİSTE TAM TUTULUR (Faz 2.1 glob taraması).
+      // `.cts` eksikti: bir `.cts` dosyası arch:check'ten TAMAMEN kaçardı —
+      // ne katman yönü, ne motor saflığı, ne harf duyarlılığı denetlenirdi.
+      // Sessiz bir kaçış deliği, çünkü "arch:check temiz" çıktısı dosyanın hiç
+      // bakılmadığını söylemiyor. ESLint (`**/*.cts`), tsconfig ve vitest
+      // desenleri `.cts`yi zaten kapsıyordu; tek istisna burasıydı.
+      if (!['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'].includes(ext)) continue;
       if (rel.includes('/dist/')) continue;
 
       const text = readFileSync(abs, 'utf8');

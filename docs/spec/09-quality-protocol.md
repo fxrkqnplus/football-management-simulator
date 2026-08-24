@@ -148,6 +148,30 @@ const SAVE_INVARIANTS = [
 > bulunursa desen eşleşmiyor demektir. Bu, Faz 1 hata #7'nin ("test öncesi `pnpm build`,
 > bayat dist yeşil yalanı üretir") ikinci kez işe yaradığı yerdir.
 >
+> ### Uzantı listesi taşıyan yerlerin envanteri (Faz 2.1 taraması)
+>
+> Aynı körlük Faz 2.0/2.0b/2.1'de **altı ayrı yerde** çıktı. Yeni bir uzantı
+> repoya girdiğinde (`.jsx`? `.vue`?) aşağıdaki listenin **tamamı** gözden
+> geçirilir. Liste tarandı ve 2.1 itibarıyla tutarlı.
+>
+> | # | Yer | Ne için | Glob lehçesi |
+> |---|---|---|---|
+> | 1 | `vitest.config.ts` → `coverage.include` | Kapsam paydası | süslü parantez ✅ |
+> | 2 | `vitest.config.ts` → `coverage.exclude` | Test dosyalarını paydadan çıkarma | süslü parantez ✅ |
+> | 3 | `vitest.config.ts` → `projects[].test.include` | Test keşfi | süslü parantez ✅ |
+> | 4 | `eslint.config.js` → tip-farkında blok `files` | Hangi dosyalar lint'lenir | ayrı girdiler |
+> | 5 | `eslint.config.js` → `no-hardcoded-path` muafiyeti | Test dosyaları muaf | ayrı girdiler |
+> | 6 | 7 × `tsconfig.build.json` → `exclude` | Testler `dist`'e girmesin | **parantez YOK** |
+> | 7 | `tools/arch-check/index.mjs` → taranan uzantılar | Hangi dosyalar denetlenir | düz dizi |
+> | 8 | `tools/arch-check/index.mjs` → `checkImportCasing` adayları | `.js→.ts`, `.mjs→.mts`, `.cjs→.cts` | düz dizi |
+>
+> **Ölçülmüş ders (2.1):** 7. satırdaki listede `.cts` eksikti ve sonuç sessizdi —
+> ihlal içeren bir `.cts` dosyası konulduğunda `arch:check` **"temiz"** dedi
+> (negatif testle kanıtlandı: eski listeyle `✓ temiz`, yeni listeyle
+> `✖ 1 ihlal`). Bir denetleyicinin "temiz" çıktısı, dosyaya **bakıldığını**
+> söylemez. Uzantı listesi olan her denetleyici için soru şudur:
+> *"bu kural hangi dosyalar için geçerli?"* — *"bugün hangi uzantılar var?"* değil.
+>
 > **`tools/` kapsam eşiğine dahil DEĞİLDİR.** `coverage.include` yalnızca
 > `*/src/**` desenini alır; geliştirme araçları (`arch-check`, `eslint-local-rules`)
 > test edilir ama ürün kodu sayılmaz ve %70/%85 eşiklerine girmez.
