@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-25 |
 | **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 4/12 alt görev (2.0, 2.0b, 2.1, 2.2a) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(shared): sunucu alt yolu sınırı ve üç arch:check kuralı` |
+| **Son commit** | `docs(memory): 2.2a CI sonucunu işle` (2.2a'nın işi `feat(shared): sunucu alt yolu sınırı…` commit'inde) |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | 2.2a koşusu **ölçülmedi** — push sonrası bakılacak. (2.1 koşusu `32788099672` dört işte de yeşildi.) |
+| **CI** | ✅ koşu `32789830210` — **dört işin dördü de yeşil**. ARM64 rakamları yerelle birebir aynı: 88,88 / 88,09 / 90,9 / 89,06 · 131 test. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle doğrulandı) |
 | **test** | ✅ **131 test / 11 dosya** (118 → 131: `arch-check` +13) |
 | **kapsam** | ✅ satır **%89,06** · ifade %88,88 · dal %88,09 · fonksiyon **%90,9** — eşik %70 |
