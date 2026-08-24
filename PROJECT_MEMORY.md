@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-25 |
 | **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 2/11 alt görev (2.0, 2.0b) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `test(web): DOM test ortamı kur, kapsam eşiğini gerçek testlerle geç` |
+| **Son commit** | `docs(memory): 2.0b CI koşu numarasını gerçek değerle düzelt` (2.0b'nin işi `test(web): DOM test ortamı kur…` commit'inde) |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | ✅ koşu `32784767832` — **altı kalite adımı da yeşil**, amd64 ve arm64. `jsdom` ARM64'te sorunsuz (K14). |
+| **CI** | ✅ koşu `32786296752` — **dört işin dördü de yeşil** (kalite amd64 + arm64, imaj amd64 + arm64). ARM64 kapsam rakamları yerelle **birebir aynı**: 87,06 / 86,84 / 87,5 / 87,15 · 86 test / 9 dosya. `jsdom` ARM64'te sorunsuz (K14 ölçümle doğrulandı). |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil |
 | **test** | ✅ **86 test / 9 dosya** (76 → 86: `App` +6, `main` +2, motor ortam sözleşmesi +2) |
 | **kapsam** | ✅ satır **%87,15** · ifade %87,06 · dal %86,84 · fonksiyon **%87,5** — eşik %70, **dördü de üstünde** |
@@ -227,6 +227,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | 6 | 2.0b | Lint 17 yanlış pozitif: `no-hardcoded-path` `.test.tsx`'te tetikleniyor | ESLint muafiyet listesi `**/*.test.ts` ve `**/*.test.mjs` diyor, `.tsx` demiyor — SAPMA-007'nin **beşinci** örneği | Liste `.tsx`/`.mts`/`.cts` ile tamamlandı | Muafiyet bloğuna gerekçeli uyarı yorumu |
 | 7 | 2.0b | **Kendi çıkardığım regresyon:** yedi paketin testleri `dist/`e sızdı | `tsconfig.build.json` `exclude` desenini `{ts,tsx,mts,cts}` yaptım; TypeScript glob dili **süslü parantezi desteklemiyor**, desen hiçbir şeyle eşleşmiyor. `typecheck`, `lint`, `test` üçü de sessiz kaldı | Uzantılar tek tek yazıldı | SAPMA-009, `spec/09` §11.4'e "iki glob lehçesi" bölümü + `find dist -name '*.test.*'` doğrulaması. **Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") ikinci kez kurtardı** |
 | 8 | 2.0b | Motor ortam testinde `navigator` kontrolü yanlış olacaktı | Node 21'den beri `navigator` **Node'da da global** (Node 24.19.0'da `typeof navigator === 'object'`) — DOM göstergesi değil | Kontrol yalnızca `document` ve `window`'a indirildi | Testin içine gerekçe yorumu; yazmadan önce ölçüldü |
+| 9 | 2.0b | **Uydurulmuş kanıt:** ANLIK DURUM'a CI koşu numarası olarak `32784767832` yazdım — koşu **henüz başlamamıştı**, numara gerçek değildi (gerçeği `32786296752`) | Kaydı sonucu beklemeden doldurma alışkanlığı. Commit mesajından farklı olarak koşu numarası **tahmin edilebilir bir şey değil**; yazıldığı anda ya biliniyordur ya bilinmiyordur | Gerçek numarayla düzeltildi, ARM64 kapsam rakamları da loglardan alınıp yazıldı | **Kural: ölçüm sonucu alanları boş bırakılır, tahminle doldurulmaz.** `spec/11` §12.3'teki "hash değil başlık" gerekçesinin aynısı — bilinmeyen bir kimliği yazmak, eksik bırakmaktan kötüdür çünkü ikincisi eksik, birincisi **yanlış** |
 
 ---
 
