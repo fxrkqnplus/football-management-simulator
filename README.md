@@ -8,18 +8,62 @@ Football Manager 26 referans alınmıştır.
 
 ---
 
-## 🚀 Claude Code ile Başlarken
+## 🧑‍💻 Geliştirme Ortamı
 
-Bu repo şu an **yalnızca belgelerden** oluşuyor. Kod Faz 1'de başlıyor.
+| Araç | Sürüm | Not |
+|---|---|---|
+| Node.js | **24.19.0** | Tek kaynak `.nvmrc`; yanlış sürümde `pnpm install` durur |
+| pnpm | **11.22.0** | corepack üzerinden, `packageManager` alanından okunur |
+| Docker | Desktop + WSL2 | Postgres/Redis ve çok mimarili imajlar için |
+| Kabuk | PowerShell 7 (pwsh) | Windows PowerShell 5.1 `&&` desteklemiyor |
 
-**İlk oturum için:** `docs/PROMPT-KITAPCIGI.md` içindeki **Ateşleme Promptu**'nu kopyalayıp
-Claude Code'a yapıştırın. O oturumda kod yazılmaz — belgeler okunur, anlaşıldığı doğrulanır
-ve Faz 1 planı sunulur.
+Üretim **Linux/ARM64** (Oracle Ampere A1); geliştirme Windows/x64.
+Ayrışmalar ve karşı önlemler: `docs/ADR/0004-gelistirme-ortami.md`.
 
-**Sonraki fazlar için:** Aynı dosyadaki **Faz Başlatma Promptu**.
-**Oturum koparsa:** **Oturum Kurtarma Promptu**.
+### Sıfırdan kurulum
 
-`CLAUDE.md` her oturumda otomatik yüklenir — anayasa, teknoloji yığını ve terim sözlüğü orada.
+```bash
+# 1. Node 24 (nvm-windows veya fnm)
+nvm install 24.19.0
+nvm use 24.19.0
+
+# 2. pnpm (corepack ile, global kurulum gerekmez)
+corepack enable
+
+# 3. Bağımlılıklar
+pnpm install
+
+# 4. Ortam değişkenleri — .env ASLA commit edilmez
+cp .env.example .env
+# JWT_SECRET'ı doldurun:  openssl rand -base64 48
+
+# 5. Veri katmanı
+docker compose up -d          # postgres + redis + adminer
+
+# 6. Kalite kapıları
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+pnpm arch:check
+```
+
+### Uygulamayı çalıştırma
+
+```bash
+node --env-file=.env apps/api/dist/main.js      # API  → http://localhost:3001/fms/api/health
+pnpm --filter @fms/web exec vite preview        # Web  → http://localhost:3000/fms/
+```
+
+### Bilinmesi gerekenler
+
+- Uygulama **`/fms` alt yolunda** çalışır. Kodda mutlak yol yazılmaz;
+  `basePath()` kullanılır (ESLint zorlar). Ayrıntı: `docs/ADR/0002`.
+- `.env` içine **`NODE_ENV` yazılmaz** — Vite onu üretim kararına uygular ve
+  React'in geliştirme sürümü üretim paketine girer. Kapı: `scripts/check-env-file.mjs`.
+- Her oturum `CLAUDE.md` (anayasa) + `PROJECT_MEMORY.md` (ANLIK DURUM) okuyarak başlar.
+
+> **Not:** İlk oturum ve faz başlatma promptları repo dışında tutulur.
 
 ---
 
@@ -34,7 +78,10 @@ docs/
 ├── ROADMAP.md                50 faz + 14 fazlık v2 kasası
 ├── SESSION-TEMPLATE.md       Oturum akışı + faz→spec eşlemesi
 ├── V2-BACKLOG.md             Kapsam dışı fikirler (v1'de YAPILMAZ)
-├── PROMPT-KITAPCIGI.md       Ateşleme / faz / kurtarma promptları
+├── OUTPUT-FORMAT.md          Alt görev rapor formatı (zorunlu)
+├── DEPENDENCY-WATCH.md       Sürüm takip listesi — her faz başında okunur
+├── HOSTING-FALLBACK.md       Yedek barındırma planı (İSKELET)
+├── ADR/                      Mimari karar kayıtları (0001-0004)
 ├── MASTER-SPEC.md            Tüm spesifikasyonun tek dosyalık arşivi
 └── spec/
     ├── 01-database.md        ~45 tablo, Drizzle şeması, Master/Delta mimarisi

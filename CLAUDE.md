@@ -366,7 +366,7 @@ SERVER_MODE=private              # private | public | maintenance (varsayılan p
 
 # Simülasyon
 WORKER_CONCURRENCY=1
-DEFAULT_SIM_TIER=balanced        # balanced | full
+DEFAULT_SIM_POLICY=balanced      # balanced | full  (SimulationPolicy — kayıt başına)
 TURN_LOCK_TTL_SECONDS=300
 
 # Gözlem

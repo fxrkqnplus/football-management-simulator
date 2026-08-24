@@ -36,7 +36,7 @@
 | Sunucu | Oracle Cloud Always Free A1 (ARM) | 2 OCPU / 12 GB / 200 GB / 10 TB egress | ✅ Süresiz |
 | Veritabanı | **Kendi sunucumuzda Postgres 16** | 200 GB disk içinde | ✅ Yönetilen ücretsiz Postgres'ler (Supabase 500 MB, Neon 0.5 GB) **yetersiz** |
 | Redis | Kendi sunucumuzda | — | ✅ |
-| Frontend | Cloudflare Pages | Sınırsız istek, 500 build/ay | ✅ |
+| Frontend | **Origin konteyneri (Caddy arkası)** | Oracle A1 içinde | ✅ `/fms` bir ALT YOL; aynı hostname'in alt yolunu Pages'e kırmak Workers akrobasisi gerektirir ve hiçbir şey kazandırmaz. Statik varlıklar Cloudflare önbellek kuralıyla hızlandırılır. |
 | CDN / TLS / DDoS / WAF | Cloudflare proxy | Ücretsiz plan | ✅ |
 | Bot koruması | Cloudflare Turnstile | Sınırsız | ✅ |
 | Görsel varlıklar | Cloudflare R2 | 10 GB, 1M yazma, 10M okuma/ay, **sıfır egress** | ✅ ~15.000 portre + arma ≈ 2–4 GB |
@@ -68,6 +68,19 @@
 | **Dengeli** (katmanlı) | Kullanıcının maçı 200 ms + kendi ligi 9×15 ms + diğer 5 ülke 50×1 ms | **~400 ms** | **~150–300 kullanıcı** |
 
 Fark **30 kat**. Açık kayıtla ücretsiz sunucuda Tam Detay'ı varsayılan yapmak, hafta sonu 20 kişi girdiğinde kuyruğu dakikalara çıkarır.
+
+> **İKİ AYRI KAVRAM — karıştırılmamalı (SAPMA-003 ile netleştirildi):**
+>
+> | Kavram | Kapsam | Değerler | Nerede görünür |
+> |---|---|---|---|
+> | `EngineTier` | **Maç başına**, motor içi | `full` · `medium` · `statistical` | Kod; kullanıcı görmez |
+> | `SimulationPolicy` | **Kayıt başına**, kullanıcıya açık | `balanced` · `full` | Kariyer oluşturma ekranı, `DEFAULT_SIM_POLICY` |
+>
+> Eşleme:
+> - `balanced` → kullanıcının maçı `full`, kendi ligi `medium`, diğer ülkeler `statistical`
+> - `full` → tüm maçlar `full`
+>
+> Ortam değişkeni `DEFAULT_SIM_POLICY`, kayıt alanı `saves.simulationPolicy`.
 
 **Karar:** Üç motor katmanı da kodda bulunur. **Varsayılan "Dengeli".** Kullanıcı kariyer oluştururken "Tam Detay"ı seçebilir — ama uyarı gösterilir: *"Diğer ülke ligleri de tam simüle edilir. Daha gerçekçi ama tur atlama süresi belirgin uzar."* Seçim kayda yazılır ve determinizm korunur.
 
@@ -105,7 +118,7 @@ Motor:         packages/engine (paylaşımlı TS, sunucuda çalışır)
 Veritabanı:    PostgreSQL 16 + Drizzle ORM
 Kuyruk:        BullMQ + Redis
 Realtime:      Server-Sent Events (SSE)
-Auth:          Supabase Auth (self-hosted) veya local JWT+argon2
+Auth:          @node-rs/argon2 + jose (JWT) — CLAUDE.md §2.1 kilitli
 Ses:           Howler.js
 i18n:          i18next + react-i18next
 Test:          Vitest + Playwright + engine determinizm testleri
@@ -147,7 +160,8 @@ CI:            GitHub Actions
 14. `CHANGELOG.md` güncellendi, PR açıldı: `feature/faz-XX-<slug>` → `develop`.
 15. Kısa demo notu + ekran görüntüsü.
 
-**Performans Bütçesi (ihlal = faz kapanmaz):**
+**Performans Bütçesi (ihlal = faz kapanmaz)** — *aşağıdaki liste kısaltılmıştır.
+Tam ve **otorite** liste: `docs/spec/09-quality-protocol.md` §11.6.*
 
 | Metrik | Bütçe |
 |---|---|
@@ -223,7 +237,7 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 - [x] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**
       **1.8'den devreden:** CI'da `.env` yok; `apps/web` derlemesi `PUBLIC_BASE_PATH` olmadan bilerek durur.
       CI ya `.env.example`'ı `.env`e kopyalamalı ya da `PUBLIC_BASE_PATH`'i ortam değişkeni olarak vermeli.
-- [ ] **1.10** Belgeler + faz kapanışı — ADR 0001/0002, `docs/DEPENDENCY-WATCH.md`, `docs/HOSTING-FALLBACK.md` iskeleti, README "Geliştirme Ortamı" bölümü + PROMPT-KITAPCIGI atfının kaldırılması, spec düzeltmeleri (Ç1/Ç2/Ç4/Ç5/Ç6), push koruması testi, `PROJECT_MEMORY.md` faz kaydı
+- [x] **1.10** Belgeler + faz kapanışı — ADR 0001/0002, `docs/DEPENDENCY-WATCH.md`, `docs/HOSTING-FALLBACK.md` iskeleti, README "Geliştirme Ortamı" bölümü + PROMPT-KITAPCIGI atfının kaldırılması, spec düzeltmeleri (Ç1/Ç2/Ç4/Ç5/Ç6), push koruması testi, `PROJECT_MEMORY.md` faz kaydı
 
 **Ana dosyalar:**
 ```
@@ -244,7 +258,7 @@ docs/ADR/0001-monorepo-secimi.md
 - [x] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor *(1.9 — native runner, `uname -m` → x86_64 / aarch64, ikisinde de HTTP duman testi geçti)*
 - [x] Uygulama `/fms` alt yolunda çalışıyor; `PUBLIC_BASE_PATH` değiştirilince her yer uyuyor *(1.8 — `/oyun`a çevrilip yedi katmanın da uyduğu tarayıcıda doğrulandı, `/fms/*` 404 oldu)*
 - [x] Kodda mutlak yol yazılınca ESLint hata veriyor *(1.4 — `local/no-hardcoded-path`, 23 senaryoluk kendi testi)*
-- [ ] Repo'ya sır push edilmeye çalışılınca GitHub push koruması engelliyor
+- [x] Repo'ya sır push edilmeye çalışılınca GitHub push koruması engelliyor *(1.10 — sahte AWS anahtar çiftiyle: `remote rejected ... push declined due to repository rule violations`, iki desen de yakalandı; kanıt dalı silindi)*
 
 **Bağımlılık:** Yok
 **Risk:** Turborepo cache yapılandırması yanlışsa CI yavaşlar → `turbo.json` output tanımlarını doğrula.

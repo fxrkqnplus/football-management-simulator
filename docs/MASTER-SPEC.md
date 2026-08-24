@@ -1,3 +1,12 @@
+> ⚠️ **BU DOSYA DONMUŞ ARŞİVDİR — OTORİTE DEĞİLDİR.**
+>
+> Bölme öncesi (Faz 0) hâlini korur ve **güncellenmez**. Sonraki fazlarda
+> alınan kararlar burada YOKTUR; örneğin `DEFAULT_SIM_TIER` burada hâlâ eski
+> adıyla geçer (doğrusu `DEFAULT_SIM_POLICY`, bkz. SAPMA-003).
+>
+> Güncel ve bağlayıcı belgeler: `CLAUDE.md`, `docs/ROADMAP.md`, `docs/spec/*`,
+> `docs/ADR/*`, `PROJECT_MEMORY.md`. Çelişki halinde **onlar geçerlidir**.
+
 # FOOTBALL MANAGEMENT SIMULATOR — ANA GELİŞTİRME PROMPTU
 ## Claude Code için Tam Teknik Spesifikasyon | Sürüm 1.0
 
