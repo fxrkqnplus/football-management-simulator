@@ -1,0 +1,6 @@
+interface:
+  display_name: "Football Management Simulator"
+  short_description: "Repo-specific patterns and workflows for football-management-simulator"
+  default_prompt: "Use the football-management-simulator repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
