@@ -21,41 +21,47 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.0 bitti, 2.1 bekliyor** |
-| **Son tamamlanan** | ✅ **2.0** Faz açılışı (kapsam kapısı · kayıt düzeltmeleri · bağımlılıklar · spec taraması) |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.0b bitti, 2.1 bekliyor** |
+| **Son tamamlanan** | ✅ **2.0b** DOM test ortamı (`jsdom` + React Testing Library) · SORUN-001 kapandı |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 1/10 alt görev |
-| **Bloke eden var mı?** | **EVET — SORUN-001 karar bekliyor** (kapsam eşiği; ayrıntı aşağıda) |
-| **Son commit** | `docs(memory): ANLIK DURUM son commit alanını kendi commit'iyle hizala` (2.0'ın işi `chore(faz-2): kapsam kapısını onar…` commit'inde) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 2/11 alt görev (2.0, 2.0b) |
+| **Bloke eden var mı?** | Hayır |
+| **Son commit** | `test(web): DOM test ortamı kur, kapsam eşiğini gerçek testlerle geç` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | 🔴 koşu `32784385467` — **yalnızca** "Testler ve kapsam eşikleri" adımı kırıldı, amd64 ve arm64'te **birebir aynı** rakamlarla (satır %69,72 · fonksiyon %66,66). Diğer altı adım (typecheck, lint, format, build, arch:check) iki mimaride de ✅. Beklenen sonuç — SORUN-001. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (pnpm 11.23.0 altında) |
-| **test** | ✅ **76 test / 6 dosya** (70 → 76: `health.controller` +5, `app.module` +1) |
-| **kapsam** | 🔴 satır **%69,72** · ifade %70,68 · dal %73,68 · fonksiyon **%66,66** — **eşik %70, iki metrik altında** |
-| **Araç zinciri** | pnpm **11.23.0** (11.22.0'dan yükseltildi, kilit değişmedi) |
-| **Açık sorun sayısı** | **1** — SORUN-001 (Yüksek) |
+| **CI** | ✅ koşu `32784767832` — **altı kalite adımı da yeşil**, amd64 ve arm64. `jsdom` ARM64'te sorunsuz (K14). |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil |
+| **test** | ✅ **86 test / 9 dosya** (76 → 86: `App` +6, `main` +2, motor ortam sözleşmesi +2) |
+| **kapsam** | ✅ satır **%87,15** · ifade %87,06 · dal %86,84 · fonksiyon **%87,5** — eşik %70, **dördü de üstünde** |
+| **Araç zinciri** | pnpm 11.23.0 · **jsdom 30.0.1** + `@testing-library/react` 16.3.2 |
+| **Açık sorun sayısı** | **0** — SORUN-001 kapandı |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
-**⛔ ÖNCE BUNU OKU — SORUN-001, 2.1'e geçmeden karara bağlanmalı:**
-`coverage.include` uzantı listesi `.tsx` görmüyordu (SAPMA-007). Düzeltilince
-`App.tsx` ve `main.tsx` rapora girdi ve kapsam **%75,55 → %62,38**'e düştü.
-2.0'da eklenen iki test dosyası açığı **%69,72**'ye kadar kapattı; kalan boşluk
-**tam olarak 1 satır ve 1 fonksiyon**. Kalan kapsanmamış dosyaların hepsi
-önyükleme/DOM dosyası: `apps/api/src/main.ts` (sunucu açar), `apps/web/src/App.tsx`
-ve `main.tsx` (tarayıcı DOM'u ister). **Yani eşiği geçmek bir DOM test ortamı
-kararı gerektiriyor** (`jsdom`/`happy-dom` + React test kütüphanesi) — bu bir
-bağımlılık kararıdır ve kullanıcıya aittir. Eşik **düşürülmedi**, dosya
-**dışlanmadı**; ikisi de yasak.
-İlgili not: Faz 2 zaten 2.6'da `ErrorBoundary` ve 2.8'de `DebugPanel` getiriyor;
-ikisi de bileşen testi ister. Yani DOM ortamı Faz 2'nin **kaçınılmaz** bir
-ihtiyacı — soru "gerekli mi" değil, "2.0'da mı 2.6'da mı".
+**2.0b'de kurulan ve 2.6/2.8'in üzerine oturacağı altyapı:**
+Vitest ortamı **proje başına** ayrılıyor: `web` ve `ui` → `jsdom`, geri kalan
+her şey → `node`. Ayrım tesadüfi değil, K3'ün gereği (motor tarayıcı varsaymaz)
+ve `packages/engine/src/no-dom.test.ts` ile **kalıcı olarak sınanıyor** — biri
+motoru DOM ortamına taşırsa o test kırılır.
+Negatif testle kanıtlandı: `web` projesi geçici olarak `node`'a alındığında
+8/8 test `ReferenceError: document is not defined` ile kırıldı.
+`globals` KAPALI olduğu için RTL'in otomatik temizliği devreye girmiyor;
+`apps/web/vitest.setup.ts` `cleanup()`i açıkça bağlıyor. **2.6'da `ErrorBoundary`
+testi yazarken bu dosya zaten hazır.**
+
+**⚠️ 2.1'e girerken bilinmesi gereken — uzantı körlüğü beş yerde çıktı:**
+`coverage.include` · `coverage.exclude` · `vitest.config.ts` proje `include`'ları ·
+ESLint `no-hardcoded-path` muafiyeti · yedi `tsconfig.build.json`. Hepsi
+düzeltildi. **Yeni bir desen yazarken "bugün hangi uzantılar var" değil "bu kural
+hangi dosyalar için geçerli" sorusu sorulur.**
+Ve **iki glob lehçesi var** (SAPMA-009): Vitest/ESLint/Prettier süslü parantezi
+(`{ts,tsx}`) tanır, **tsconfig TANIMAZ** — orada uzantılar tek tek yazılır.
 
 **Sıradaki oturumda ilk yapılacak:**
-1. SORUN-001 kararını al (yukarıdaki blok)
-2. `docs/ROADMAP.md` → Faz 2 alt görev listesi, madde **2.1** (tipli hata sınıfları)
-3. Kapılar: `pnpm build` → `typecheck` → `lint` → `test` → `arch:check` → `format:check`
-   (`test:coverage` SORUN-001 çözülene kadar kırmızı — beklenen)
-4. `docs/SPEC-COVERAGE-GAPS.md` — 2.0'da açılan yeni dosya, G-01…G-07
+1. `docs/ROADMAP.md` → Faz 2 alt görev listesi, madde **2.1** (tipli hata sınıfları)
+2. Kapılar: `pnpm build` → `typecheck` → `lint` → `test:coverage` → `arch:check` → `format:check`
+   (artık **hepsi** yeşil olmalı — kırmızı varsa regresyondur, beklenen değil)
+3. `docs/SPEC-COVERAGE-GAPS.md` — 2.0'da açılan dosya, G-01…G-07
+4. `PROJECT_MEMORY.md` → **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ** bölümü: hataları oraya
+   anında yaz, 2.9'da faz kaydının §5'ine işlenecek
 
 **⚠️ FAZ 2'DE MUTLAKA KONTROL EDİLECEK — 1.8'den taşınan risk:**
 `@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu; Zod ve env
@@ -154,7 +160,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Faz | Açıklama | Öncelik | Durum | Çözüldüğü faz |
 |---|---|---|---|---|---|
-| SORUN-001 | 2 | **Kapsam K10 eşiğinin altında.** `coverage.include` uzantı listesi düzeltilince (SAPMA-007) gerçek durum ortaya çıktı: satır **%69,72** · fonksiyon **%66,66** (eşik %70). İfade %70,68 ✅ ve dal %73,68 ✅ geçiyor. Yani `pnpm test:coverage` **kırmızı**. Bu yeni bir regresyon değil — 1.8'den beri var olan bir ihlal, rapor onu göremediği için görünmüyordu. Kalan açık **1 satır ve 1 fonksiyon**. | Yüksek | 🔴 Açık — **karar bekliyor** | — |
+| SORUN-001 | 2 | **Kapsam K10 eşiğinin altında.** `coverage.include` uzantı listesi düzeltilince (SAPMA-007) gerçek durum ortaya çıktı: satır **%69,72** · fonksiyon **%66,66** (eşik %70). İfade %70,68 ✅ ve dal %73,68 ✅ geçiyor. Yani `pnpm test:coverage` **kırmızı**. Bu yeni bir regresyon değil — 1.8'den beri var olan bir ihlal, rapor onu göremediği için görünmüyordu. Kalan açık **1 satır ve 1 fonksiyon**. | Yüksek | ✅ **Kapalı** — 2.0b'de DOM test ortamı (`jsdom` + RTL) kuruldu, `App.tsx` ve `main.tsx` test edildi. Sonuç: satır **%87,15** · ifade %87,06 · dal %86,84 · fonksiyon **%87,5**. **Eşik değiştirilmedi, hiçbir dosya dışlanmadı.** | **2 (2.0b)** |
 
 ---
 
@@ -188,6 +194,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-009 | `düzeltme` | 2 | Faz 2.0'da `docs/spec/09` §11.4'e yazılan *"desen `{ts,tsx,mts,cts}` biçiminde yazılır"* tavsiyesi **araç bağımlıdır ve tsconfig için YANLIŞTIR**. TypeScript'in `include`/`exclude` glob dili süslü parantez genişletmesini desteklemez. | Ölçüm: yedi `tsconfig.build.json`'ın `exclude` deseni `"src/**/*.test.{ts,tsx,mts,cts}"` yapıldı. Hiçbir araç şikâyet etmedi, `typecheck` ve `lint` yeşil kaldı, ama desen **hiçbir dosyayla eşleşmediği** için `pnpm build` sonrası yedi paketin testleri de `dist/`e emit edildi (`apps/api/dist/health.controller.test.js`, `packages/shared/dist/base-path.test.d.ts` …). Uzantılar tek tek yazılınca `dist/` temizlendi. Vitest/ESLint/Prettier süslü parantezi tanır, tsconfig tanımaz — **aynı repoda iki glob lehçesi var.** Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") bunu yakaladı; `typecheck`/`lint`/`test` üçü de göremezdi. | ✅ `docs/spec/09-quality-protocol.md` §11.4 (yeni alt bölüm + doğrulama yöntemi), `packages/ui/tsconfig.build.json` (ölçüm yorumda) |
 | SAPMA-008 | `düzeltme` | 2 | `docs/spec/` bir şey isteyip `docs/ROADMAP.md`'nin hiçbir faza atamadığı **altı madde** tarama ile bulundu: `perf:budget` kapısı (G-01), Playwright kurulumu (G-02), `testcontainers` (G-03), `k6` (G-04), görsel regresyon (G-05), Sentry kotası izleme (G-06). | Bu sınıftan boşluk daha önce **iki kez** tesadüfen yakalanmıştı: Faz 1'de `arch:check` (spec her faz kapanışında çalıştırılmasını istiyordu ama kimse kurmuyordu, Ç3), Faz 2.0'da Sentry kota uyarısı. İki tesadüf desendir. Tek tek yakalamak yerine `spec/09` §11.4/§11.5 ve `spec/10` §13.5 satır satır ROADMAP'te arandı. En sert bulgu G-02: `pnpm test:e2e` spec'te "Faz 17+" derken Playwright kurulumu ROADMAP'te ilk kez **Faz 50**'de geçiyordu — 33 faz gecikme. | ✅ `docs/SPEC-COVERAGE-GAPS.md` [YENİ], `docs/ROADMAP.md` Faz 3/6/17/47/49/50 |
 | SAPMA-007 | `düzeltme` | 2 | `docs/spec/09` §11.4'ün *"`coverage.include` açıkça tanımlanmazsa eşikler anlamsızlaşır"* uyarısı **eksikti**: `include` yazılmış olsa bile **uzantı listesi** dar kalırsa eşik yine sessizce yalan söylüyor. | Ölçüm: desen `*.ts` iken `coverage-summary.json` 13 dosya sayıyordu, diskte 15 vardı — `apps/web/src/App.tsx` ve `main.tsx` rapora hiç girmiyordu. Desen `*.{ts,tsx,mts,cts}` yapılınca ikisi de girdi ve global kapsam **%75,55 → %62,38** düştü (satır). Yani kapı düzeltilmeden önce 13 puanlık bir yalan taşıyordu ve bu Faz 6'da yüzlerce bileşenle çığ olurdu. Tuzağın iki katmanı var: `include`'un varlığı (Faz 1'de çözüldü) ve kapsamı (burada çözüldü). | ✅ `docs/spec/09-quality-protocol.md` §11.4, `vitest.config.ts` (ölçüm yorumda) |
 | SAPMA-006 | `düzeltme` | 1 | *"Express 5 joker rota sözdizimi katılaştı; `/*` geçersiz"* varsayımı **kısmen yanlış** çıktı: NestJS 11'de eski sözdizimi uygulamayı çökertmiyor. | Ölçüm: `@Get('echo/*')` ile uygulama **başarıyla açıldı**. `LegacyRouteConverter` devreye girip `WARN Unsupported route path ... Attempting to auto-convert to "{*path}"` basıyor ve rotayı otomatik çeviriyor. Tuzak "patlayan" değil "sessizce dönüştürülen" cinsten — log okunmazsa fark edilmez ve dönüştürülmüş desen niyetten sapabilir. Doğru sözdizimi (`*splat`) elle yazılır, otomatik dönüştürücüye güvenilmez. | ✅ `apps/api/src/health.controller.ts` (ölçüm yorumda), `docs/ROADMAP.md` Faz 1 madde 1.8 |
@@ -196,6 +203,30 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | SAPMA-003 | `karar` | 1 | Teknoloji yığını sürümleri (`CLAUDE.md` §2.1) 2024 bilgisiyle kilitlenmişti; 2026-08-23'te npm registry doğrulamasıyla bugüne çekildi. TypeScript bilinçli olarak en yeni majöre (7.0.2) **çıkarılmadı**, `~6.0.3` ile pinlendi. `ioredis`/`bullmq` taze majörleri alınmadı (BORÇ-001, BORÇ-002). | TS 7.0 programatik derleyici API'si olmadan yayınlandı — kanıt: `typescript-eslint` peer aralığı `>=4.8.4 <6.1.0` ve `nest build`'in `createProgram()` çağrısı. `^6.0.3` yazılırsa pnpm 6.1.0'a çıkıp peer aralığının dışına taşar, bu yüzden `~`. TS 7.1 (programatik API) sonrası yeniden değerlendirilecek. | ✅ `CLAUDE.md` §2.1, `docs/ADR/0003-typescript-surum-kilidi.md`, `docs/spec/09-quality-protocol.md` §11.4 |
 | SAPMA-002 | `karar` | Spec yazımı | Veri modeli "prosedürel birincil" → "gerçek birincil" (`DATA_MODE=full` varsayılan). KVKK/GDPR zorunludan koşullu hale geldi (`SERVER_MODE=public` ise). | Proje herkese açık yayınlanmayacak, kişisel kurulum. Sunucu Özel modda açılır, yalnızca izin listesi oynar. Gerçek veri estetik kalite için gerekli. | ✅ `CLAUDE.md` K9, `docs/spec/12-data-packs.md`, ROADMAP Faz 8/9/13 |
 | SAPMA-001 | `karar` | Spec yazımı | Gizli nitelik sayısı 8 → 10 (`adaptability`, `temperament` eklendi) | Faz 34'teki yabancı lig uyum süreci ve Faz 44'teki diyalog tepki sistemi bu ikisi olmadan kurulamıyordu | ✅ `docs/spec/02-attributes.md` Bölüm 4.1 |
+
+---
+
+## 🧪 FAZ 2 — ÇALIŞMA GÜNLÜĞÜ
+
+> **Geçici bölüm.** Faz süresince karşılaşılan hatalar buraya **anında** yazılır;
+> 2.9'da faz kaydının §5 tablosuna işlenir ve bu bölüm silinir.
+>
+> **Neden var:** protokol "karşılaştığın her hatayı ANINDA not al — faz kaydına
+> gireceksin" diyor ama hafıza sisteminde bunun için bir yer yoktu. ANLIK DURUM
+> her alt görevde tamamen yeniden yazıldığı için oraya not düşmek işe yaramıyor;
+> not bir sonraki alt görevde siliniyor. Faz 1'in on beş satırlık hata tablosu
+> muhtemelen sondan geriye hatırlanarak yazıldı.
+
+| # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
+|---|---|---|---|---|---|
+| 1 | 2.0 | Kapsam raporu 13 dosya sayıyor, diskte 15 var | `coverage.include` deseni yalnızca `*.ts`; `.tsx` hiç görülmüyor | Desen `*.{ts,tsx,mts,cts}` | SAPMA-007, `spec/09` §11.4 + dosya sayısı doğrulama yöntemi |
+| 2 | 2.0 | ANLIK DURUM "PR #1 açık" diyor, PR merge edilmiş | SAPMA-004 "her alt görev sonunda" diyor ama faz **kapanış** commit'leri alt görev sayılmıyor | `spec/11` §12.1'e "ANLIK DURUM'u yazan commit fazın SON commit'i olmalı" | Kural yazıldı |
+| 3 | 2.0 | **Kendi yazdığım kurala düştüm:** 2. maddedeki bayatlık kuralını ekleyen commit'in kendisi "Son commit" alanını bir öncekini gösterir hâlde bıraktı — art arda iki commit boyunca | Alan blokla aynı commit'te yazılıyor; değeri commit mesajıyla **birlikte** kararlaştırılmalı, ama bu kendiliğinden anlaşılmıyor | `c3f7692` ile hizalandı | `spec/11` §12.3'e ayrı bir kural: *"Son commit alanı BULUNDUĞU commit'i adlandırır"*. **Ders: kural yazmak kurala uymaya yetmiyor** — kolay ihlal edilebilirliği ampirik olarak kanıtlandı |
+| 4 | 2.0b | `main.test.tsx`: `#root` boş kalıyor, `innerHTML.length` 0 | jsdom'un varsayılan adresi `/`; `<BrowserRouter basename="/fms">` eşleşmediği için **hiçbir şey render etmiyor** (konsolda "does not start with the basename" uyarısı) | Test önce `window.history.pushState` ile alt yola geçiyor; hedef `deriveBasePathConfig()`ten türetiliyor (K6) | Ders: jsdom'un varsayılanı uygulamanın gerçek dağıtım adresini taklit etmiyor — alt yolda çalışan her DOM testi için geçerli |
+| 5 | 2.0b | Aynı test hâlâ boş DOM görüyor | `await import(...)` yalnızca **modülün** yüklenmesini bekler; React 19'da `createRoot().render()` senkron değil, iş planlar | `waitFor` ile render'ın akması beklendi | Yorum olarak dosyaya yazıldı |
+| 6 | 2.0b | Lint 17 yanlış pozitif: `no-hardcoded-path` `.test.tsx`'te tetikleniyor | ESLint muafiyet listesi `**/*.test.ts` ve `**/*.test.mjs` diyor, `.tsx` demiyor — SAPMA-007'nin **beşinci** örneği | Liste `.tsx`/`.mts`/`.cts` ile tamamlandı | Muafiyet bloğuna gerekçeli uyarı yorumu |
+| 7 | 2.0b | **Kendi çıkardığım regresyon:** yedi paketin testleri `dist/`e sızdı | `tsconfig.build.json` `exclude` desenini `{ts,tsx,mts,cts}` yaptım; TypeScript glob dili **süslü parantezi desteklemiyor**, desen hiçbir şeyle eşleşmiyor. `typecheck`, `lint`, `test` üçü de sessiz kaldı | Uzantılar tek tek yazıldı | SAPMA-009, `spec/09` §11.4'e "iki glob lehçesi" bölümü + `find dist -name '*.test.*'` doğrulaması. **Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") ikinci kez kurtardı** |
+| 8 | 2.0b | Motor ortam testinde `navigator` kontrolü yanlış olacaktı | Node 21'den beri `navigator` **Node'da da global** (Node 24.19.0'da `typeof navigator === 'object'`) — DOM göstergesi değil | Kontrol yalnızca `document` ve `window`'a indirildi | Testin içine gerekçe yorumu; yazmadan önce ölçüldü |
 
 ---
 

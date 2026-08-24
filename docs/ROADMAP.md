@@ -298,6 +298,20 @@ docs/ADR/0001-monorepo-secimi.md
       rakamları faz kapanışında yeniden ölçülür.
       **Karar 8:** Sentry kota uyarısı Faz 2'de YAPILMAZ; Faz 47 (panel uyarısı) ve Faz 50 (admin e-postası)
       kapsamlarına madde eklenir.
+- [x] **2.0b** DOM test ortamı — *(2.0'ın SORUN-001 bulgusu üzerine eklendi; plan dışıydı)*
+      `jsdom@30` (kök) + `@testing-library/react@16` (`apps/web`). **`happy-dom` DEĞİL** —
+      asıl tüketici Faz 6 (Radix/shadcn, odak yönetimi) ve orada uyumluluk hızdan önce gelir;
+      gerekçe ve geri dönüş maliyeti `docs/DEPENDENCY-WATCH.md`'de.
+      **Ortam proje başına ayrılır:** `web` + `ui` → `jsdom`, geri kalan her şey → `node`.
+      Motoru DOM'a sokmak K3 saflığını bulandırır; ayrım `packages/engine/src/no-dom.test.ts`
+      ile kalıcı sınanır. **Negatif test:** `web` geçici olarak `node`'a alındığında 8/8 test
+      `ReferenceError: document is not defined` ile kırıldı.
+      **Sonuç:** SORUN-001 kapandı — kapsam satır **%87,15** · fonksiyon **%87,5**.
+      Eşik değiştirilmedi, hiçbir dosya dışlanmadı.
+      **Yan bulgu:** aynı uzantı körlüğü beş yerde birden çıktı (kapsam `include`/`exclude`,
+      vitest proje `include`'ları, ESLint muafiyeti, yedi `tsconfig.build.json`) ve
+      TypeScript'in glob dilinin süslü parantez desteklemediği ölçümle bulundu (**SAPMA-009**).
+      **Kapsam sınırı:** yalnızca ortam kuruldu. `ErrorBoundary` yazılmadı — o 2.6.
 - [ ] **2.1** Tipli hata sınıfları — `DomainError`, `ValidationError`, `EngineError`, `DataProviderError`,
       `NotFoundError`, `ForbiddenError`. Her biri `code` + `httpStatus` + `context` + Türkçe **eyleme
       dönüştürülebilir** mesaj (K1.3). **Saf, Node'suz** — motor da kullanacak (K3), bu yüzden `errors.ts`

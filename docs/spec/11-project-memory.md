@@ -85,6 +85,20 @@ Her **alt görev** sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyu
 > doldurulmaya çalışılırsa hash yeniden değişir. Commit başlığı kararlıdır ve
 > `git log --oneline --grep` ile hash'e bir adımda ulaşılır.
 
+> **"Son commit" alanı, BULUNDUĞU commit'i adlandırır** — bir öncekini değil.
+> (Faz 2.0b'de eklendi.)
+>
+> Bu, yukarıdaki "neden başlık" kuralının doğrudan sonucu ama kendiliğinden
+> anlaşılmıyor: alan blokla **aynı** commit'te yazıldığı için değeri, yazılmakta
+> olan commit'in mesajıyla **birlikte** kararlaştırılır. Önce commit mesajı
+> seçilir, sonra alana o başlık yazılır.
+>
+> Kuralın buraya yazılma sebebi ampirik: Faz 2.0'da bu bölüme "ANLIK DURUM'u
+> yazan commit fazın SON commit'i olmalı" kuralını **ekleyen oturum**, aynı gün
+> art arda iki commit'te alanı bir öncekini gösterir hâlde bıraktı. Yani kural
+> yazmak, kurala uymaya yetmiyor — kolay ihlal edilebilir olduğu için ayrıca
+> yazılıyor. Alan bir öncekini gösteriyorsa blok en az bir commit bayattır.
+
 **Sıradaki oturumda ilk yapılacak:**
 1. `docs/spec/08-admin-panel.md` ve `docs/spec/10-deployment.md` oku
 2. `pnpm typecheck && pnpm lint && pnpm test` çalıştır, temiz mi doğrula

@@ -1,6 +1,29 @@
 {
   // Derleme yapılandırması: test dosyaları dist'e girmez.
+  //
+  // ⚠️ UZANTI LİSTESİ (Faz 2.0b). Desen önce yalnızca `src/**/*.test.ts` idi.
+  // Bu paket Faz 6'da `.tsx` bileşenleri ve `.test.tsx` testleri kazanacak;
+  // eski desenle o testler `dist/`e EMIT EDİLİRDİ ve paket, tüketicilerine
+  // kendi testlerini dağıtırdı. Aynı körlük 2.0/2.0b'de beş ayrı yerde çıktı
+  // (SAPMA-007 sınıfı), bu yüzden yedi paketin hepsinde birden düzeltildi —
+  // tutarsızlık bırakmak "neden ui farklı" sorusunu ileriye erteler.
+  //
+  // ⚠️⚠️ UZANTILAR TEK TEK YAZILIR — `{ts,tsx}` YAZILMAZ (SAPMA-009, 2.0b).
+  // TypeScript'in include/exclude glob dili SÜSLÜ PARANTEZ GENİŞLETMESİNİ
+  // DESTEKLEMEZ; yalnızca `*`, `?` ve `**/` tanır. `{ts,tsx,mts,cts}` yazıldı,
+  // hiçbir araç şikâyet etmedi, ve desen HİÇBİR ŞEYLE eşleşmediği için yedi
+  // paketin testleri birden `dist/`e sızdı. `pnpm build` ile yakalandı — Faz 1
+  // hata #7'nin kuralı ("test öncesi build") bunu ikinci kez kurtardı.
+  // Vitest, ESLint ve Prettier süslü parantezi TANIR; tsconfig TANIMAZ. Aynı
+  // repoda iki glob lehçesi var, karıştırma.
   // Tip denetimi (tsconfig.json) testleri KAPSAR — yalnızca emit dışında tutulur.
   "extends": "./tsconfig.json",
-  "exclude": ["dist", "node_modules", "src/**/*.test.ts"]
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.test.mts",
+    "src/**/*.test.cts"
+  ]
 }

@@ -18,6 +18,8 @@
     // Paketlemeyi Vite yapar; tsc yalnızca tip denetler.
     "noEmit": true
   },
-  "include": ["src/**/*", "vite.config.ts"],
+  // vitest.setup.ts src/ dışındadır (test altyapısı, ürün kodu değil) ama tip
+  // denetiminden kaçmamalı — vite.config.ts ile aynı gerekçe.
+  "include": ["src/**/*", "vite.config.ts", "vitest.setup.ts"],
   "exclude": ["dist", "node_modules"]
 }

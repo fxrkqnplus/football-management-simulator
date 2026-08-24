@@ -12,6 +12,14 @@ import { defineConfig } from 'vitest/config';
  * bir dosya hesaba hiç girmez ve %85 eşiği sessizce yalan söyler — kapsam
  * raporu "her şey yolunda" derken kodun yarısı test edilmemiş olabilir.
  * K10'un geçerliliği doğrudan bu ayara bağlıdır (docs/spec/09 §11.4).
+ *
+ * ⚠️ ORTAM AYRIMI (Faz 2.0b).
+ * Yalnızca `web` ve `ui` DOM ortamında koşar. `engine`, `api`, `worker`,
+ * `shared`, `db`, `data-cli` **node** ortamında kalır ve bu bilinçlidir:
+ * motoru DOM'a sokmak K3 saflığını bulandırır (motor tarayıcı varsaymamalı)
+ * ve her test dosyası için gereksiz bir jsdom örneği kurulur.
+ * Ayrım `packages/engine/src/no-dom.test.ts` ile kalıcı olarak sınanır —
+ * biri motoru DOM ortamına taşırsa o test kırılır.
  */
 export default defineConfig({
   test: {
@@ -28,7 +36,7 @@ export default defineConfig({
           name: 'shared',
           root: './packages/shared',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -36,7 +44,7 @@ export default defineConfig({
           name: 'engine',
           root: './packages/engine',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -44,15 +52,19 @@ export default defineConfig({
           name: 'db',
           root: './packages/db',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
         test: {
           name: 'ui',
           root: './packages/ui',
-          environment: 'node',
-          include: ['src/**/*.test.ts'],
+          // DOM — tasarım sistemi paketi. Faz 2.0b'de henüz testi YOK; ortam
+          // burada şimdiden bildirildi çünkü Faz 6'da yüzlerce bileşen testi
+          // buraya gelecek ve o gün "neden web'de var ui'da yok" sorusu
+          // sorulmasın. Testsiz bir proje ortamı bedava.
+          environment: 'jsdom',
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -60,7 +72,7 @@ export default defineConfig({
           name: 'api',
           root: './apps/api',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -68,15 +80,23 @@ export default defineConfig({
           name: 'worker',
           root: './apps/worker',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
         test: {
           name: 'web',
           root: './apps/web',
-          environment: 'node',
-          include: ['src/**/*.test.ts'],
+          // DOM — React bileşenleri. jsdom seçildi, happy-dom değil: gerekçe
+          // ve geri dönüş maliyeti docs/DEPENDENCY-WATCH.md'de.
+          environment: 'jsdom',
+          include: ['src/**/*.test.{ts,tsx}'],
+          // `globals` KAPALI olduğu için React Testing Library'nin kendi
+          // otomatik temizliği DEVREYE GİRMEZ — RTL onu global bir afterEach
+          // kaydederek yapar. Temizlik yapılmazsa bir testin DOM'u diğerine
+          // sızar ve `getByTestId` "found multiple elements" der. Bu yüzden
+          // cleanup açıkça bu setup dosyasında çağrılır.
+          setupFiles: ['./vitest.setup.ts'],
         },
       },
       {
@@ -84,7 +104,7 @@ export default defineConfig({
           name: 'data-cli',
           root: './tools/data-cli',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {

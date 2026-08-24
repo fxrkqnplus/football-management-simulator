@@ -119,7 +119,19 @@ export default tseslint.config(
       // dosyası eslint-disable ile dolardı ve kural güvenilirliğini yitirirdi.
       // DİKKAT: yalnızca *.test.* muaf. Uçtan uca testler (*.spec.ts, Faz 17+)
       // gerçek istek atar ve basePath() kullanmak ZORUNDADIR — muaf değildir.
+      //
+      // ⚠️ UZANTI LİSTESİ TAM TUTULUR (SAPMA-007 sınıfı, Faz 2.0b'de eklendi).
+      // İlk yazımda yalnızca `.ts` ve `.mjs` vardı. Faz 2.0b'de ilk `.test.tsx`
+      // dosyası yazıldığında kural 17 yanlış pozitif verdi — muafiyet niyeti
+      // doğruydu, deseni eksikti. Aynı körlük 2.0'da `coverage.include`'da,
+      // burada, `vitest.config.ts` proje `include`'larında ve yedi
+      // `tsconfig.build.json`'da birden çıktı: bir uzantı listesi yazarken
+      // "bugün hangi uzantılar var" değil "bu kural hangi dosyalar için
+      // geçerli" sorusu sorulur.
       '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.test.mts',
+      '**/*.test.cts',
       '**/*.test.mjs',
     ],
     rules: {

@@ -124,6 +124,30 @@ const SAVE_INVARIANTS = [
 > eşleştiği dosya sayısıyla karşılaştırılır. Eşit değilse desen eksiktir. Bu kontrol
 > `coverage/coverage-summary.json` anahtarları sayılarak yapılır.
 >
+> ### ⚠️ Aynı repoda İKİ glob lehçesi var (SAPMA-009, Faz 2.0b)
+>
+> Yukarıdaki `{ts,tsx,mts,cts}` yazımı **Vitest, ESLint ve Prettier için doğrudur**;
+> **TypeScript için DEĞİLDİR.** `tsconfig.json` `include`/`exclude` glob dili yalnızca
+> `*`, `?` ve `**/` tanır — **süslü parantez genişletmesi yoktur.**
+>
+> Bu tuzağın maliyeti sessizliğidir: `tsconfig.build.json`'a
+> `"src/**/*.test.{ts,tsx}"` yazıldığında hiçbir araç şikâyet etmez, desen
+> **hiçbir dosyayla eşleşmez**, ve testler `dist/`e emit edilir. Ölçüldü (2.0b):
+> yedi paketin `tsconfig.build.json`'ı bu şekilde değiştirildiğinde yedisinin de
+> testleri `dist/`e sızdı; `pnpm build` sonrası `find */dist -name '*.test.*'` ile
+> yakalandı.
+>
+> **Kural:** `tsconfig` dosyalarında uzantılar **tek tek** yazılır:
+> ```json
+> "exclude": ["dist", "node_modules",
+>             "src/**/*.test.ts", "src/**/*.test.tsx",
+>             "src/**/*.test.mts", "src/**/*.test.cts"]
+> ```
+>
+> **Doğrulama yöntemi:** `pnpm build` sonrası `dist/` içinde `*.test.*` aranır;
+> bulunursa desen eşleşmiyor demektir. Bu, Faz 1 hata #7'nin ("test öncesi `pnpm build`,
+> bayat dist yeşil yalanı üretir") ikinci kez işe yaradığı yerdir.
+>
 > **`tools/` kapsam eşiğine dahil DEĞİLDİR.** `coverage.include` yalnızca
 > `*/src/**` desenini alır; geliştirme araçları (`arch-check`, `eslint-local-rules`)
 > test edilir ama ürün kodu sayılmaz ve %70/%85 eşiklerine girmez.

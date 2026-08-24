@@ -28,6 +28,8 @@
 | `redis` (Docker) | 7 | **Faz 16** | 8 mevcut (8.8.2). `ioredis`/`bullmq` majör kararlarıyla (BORÇ-001, BORÇ-002) aynı fazda birlikte değerlendirilir. |
 | `typescript` | ~6.0.3 | **TS 7.1 çıkınca** | ADR-0003. 7.0'da programatik derleyici API'si yok → `typescript-eslint` ve `nest build` çalışmıyor. 7.1 çıkınca üç maddelik kontrol listesi işletilir. |
 | `@sentry/*` 10.71.0 | — | **Faz 2.5** | 2.0'da **alınmadı**: 2026-08-24 yayınlandı, karar anında **1 günlük**. 2.5'te yaşı yeniden bakılır. |
+| `jsdom` | 30.0.1 | **Faz 6** | 2.0b'de kuruldu. `happy-dom` yerine bilinçli seçildi; **Faz 6'da (Radix/shadcn, odak yönetimi) yeniden değerlendirilir**. Karar ve geri dönüş maliyeti aşağıda. |
+| `@testing-library/react` | 16.3.2 | **Faz 6** | 2.0b'de kuruldu. Faz 6 yüzlerce bileşen testi getiriyor; o fazda `@testing-library/user-event` ihtiyacı da doğacak. |
 
 ---
 
@@ -89,6 +91,71 @@ satırı olarak yukarıya eklendi; 2.5'te yaşına yeniden bakılır.
 `sendDefaultPii` kapalı (KVKK açısından istenen varsayılan), `beforeSend` ile
 beklenen `ValidationError`/`DomainError` gönderilmez. Kaynak haritası yükleme
 adımı Faz 50'ye ertelendi (Karar 7).
+
+### DOM test ortamı — Faz 2.0b, 2026-08-25 · **`jsdom` SEÇİLDİ** (`happy-dom` değil)
+
+Kurulan: `jsdom@30.0.1` (kök devDependency, `vitest`'in yanında) ·
+`@testing-library/react@16.3.2` + `@testing-library/dom@10.4.1` (`apps/web`).
+
+> ⚠️ Bu karar, aynı oturumda benim verdiğim **önceki öneriyi tersine çeviriyor**.
+> 2.0 raporunda "önerim `happy-dom`" yazmıştım; gerekçe hız ve hafiflikti.
+> Analiz aşamasında bakınca asıl kısıt hız değil **uyumluluk** çıktı.
+
+**Neden `jsdom`:**
+
+1. **Asıl tüketici Faz 6.** Bu ortamın en ağır kullanıcısı tasarım sistemi olacak:
+   shadcn/ui → Radix, yani odak yönetimi, `hasPointerCapture`, `scrollIntoView`,
+   `ResizeObserver`, `DOMRect`. İki ortam da bunların bir kısmı için doldurma
+   (polyfill) ister; farkı, `jsdom`'un boşlukları **belgeli ve bilinen çözümü olan**
+   boşluklar olması. `happy-dom`'un farkları daha az haritalanmış ve "bu benim
+   bileşenim mi, ortam mı?" sorusuna çıkıyor — bu proje BORÇ-001/002'yi tam olarak
+   o soruyu doğurmamak için açtı.
+2. **RTL `jsdom`'a karşı geliştiriliyor.** Test kütüphanesi ile ortamın aynı
+   varsayımları paylaşması, hata ayıklarken tek değişkeni azaltıyor.
+3. **Hız burada bağlayıcı kısıt değil.** Bugün 86 test var, Faz 50'de birkaç bin
+   olacak. `jsdom`'un yavaşlığı saniyelerle ölçülür; uyumsuzluk saatlerle.
+4. Node uyumu doğrulandı: `engines: node ^22.22.2 || ^24.15.0 || >=26.0.0` —
+   **Node 24.19.0 aralıkta** ✅. (`happy-dom`: `>=20.0.0`.)
+
+**Geri dönüş maliyeti — bugün ucuz, sonra pahalı:**
+
+Bugün `happy-dom`'a geçmek `vitest.config.ts`'te **proje başına bir satır** ve bir
+bağımlılık takası. Testlerin kendisi ortamdan bağımsız (hepsi RTL üzerinden), yani
+dokunulmaz. Maliyet Faz 6'dan sonra artar: o gün testler ortama özgü doldurmalara
+dayanmaya başlar ve takas o doldurmaların yeniden yazılmasını ister.
+
+Asimetri kararı belirledi: **hız için sonradan `happy-dom`'a geçmek kolay** (canı
+sıkılan bir gün yapılır), **uyumluluk için sonradan `jsdom`'a geçmek** ise tam da
+Faz 6'nın ortasında, bir bileşen çalışmazken yapılmak zorunda kalınır. Zor yönü
+şimdi seçmek ucuz.
+
+**ARM64 (K14) — iddia değil, ölçüm:**
+
+| Kontrol | Sonuç |
+|---|---|
+| `canvas` (jsdom'un **opsiyonel** native peer'ı) kuruldu mu | **Hayır** ✅ — `peerDependenciesMeta.canvas.optional: true`, `strict-peer-dependencies=true` altında da sorun çıkarmadı |
+| Yeni gelen 56 paketin içinde `.node` ikilisi | **Yok** ✅ (depodaki tek `.node` dosyaları Faz 1'den kalma `@rolldown/binding-*` ve `lightningcss-*`, platforma göre çözülen optionalDependencies) |
+| `binding.gyp` / node-gyp izi | **Yok** ✅ |
+| `install`/`postinstall` betiği | **Yok** ✅ — yalnızca dört `prepare` betiği var (`jsdom`, `undici`, `whatwg-url`×2) ve `prepare` registry'den kurulan bağımlılıklar için **çalışmaz** |
+| CI arm64 | ✅ yeşil — aşağıdaki koşu |
+
+`jsdom@30` HTTP için `undici@8` kullanıyor (`ws` değil), yani `bufferutil` /
+`utf-8-validate` opsiyonel native ikilileri hiç gündeme gelmiyor.
+
+**Peer doğrulaması** (`strict-peer-dependencies=true` kurulum anında ısırır):
+
+| Peer | İstenen | Bizde | Sonuç |
+|---|---|---|---|
+| `react` | `^18 \|\| ^19` | `^19.2.8` | ✅ |
+| `react-dom` | `^18 \|\| ^19` | `^19.2.8` | ✅ |
+| `@types/react` | `^18 \|\| ^19` (opsiyonel) | `^19.2.18` | ✅ |
+| `@types/react-dom` | `^18 \|\| ^19` (opsiyonel) | `^19.2.4` | ✅ |
+| `@testing-library/dom` | `^10.0.0` (**zorunlu**) | `10.4.1` — açıkça kuruldu | ✅ |
+
+`@testing-library/jest-dom` ve `user-event` **bilerek kurulmadı**: bugün ihtiyaç
+yok (RTL sorguları bulamayınca zaten fırlatıyor) ve her ek paket `types` dizisine
+bağlanma yükü getiriyor. Faz 6'da etkileşim testleri gelince `user-event` yeniden
+değerlendirilir.
 
 ### `nestjs-pino` 4.6.1 — Faz 2.0, 2026-08-25 · **PEER'LARI DOĞRULANDI** (kurulum 2.2'de)
 
