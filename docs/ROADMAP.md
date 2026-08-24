@@ -220,7 +220,7 @@ Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
       (ölçüm ve düzeltme: `docs/ADR/0004` §2).
 - [x] **1.7** Docker Compose (Postgres 16, Redis 7, adminer) + ARM64 — **PostgreSQL majörü Docker Hub'dan doğrulanacak, tahminle yazılmayacak**
 - [x] **1.8** `/fms` uçtan uca kanıtı — minimal web + api. **NestJS 11 / Express 5 joker rota (`/*splat`) ve `setGlobalPrefix` bilinen sorunu açıkça test edilir; CORS'ta PUT/PATCH/DELETE tanımlanır. Rolldown çıktısı "derlendi" ile geçilmez, gerçekten servis edilip `/fms` altında çalıştığı doğrulanır.**
-- [ ] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**
+- [x] **1.9** GitHub Actions CI — lint→typecheck→test→build, buildx amd64+arm64 (native ARM runner). **Node sürümü `pnpm install`'dan ÖNCE kontrol edilir (`actions/setup-node` + `.nvmrc`); yerel `preinstall` kapısı ikinci savunma hattıdır.**
       **1.8'den devreden:** CI'da `.env` yok; `apps/web` derlemesi `PUBLIC_BASE_PATH` olmadan bilerek durur.
       CI ya `.env.example`'ı `.env`e kopyalamalı ya da `PUBLIC_BASE_PATH`'i ortam değişkeni olarak vermeli.
 - [ ] **1.10** Belgeler + faz kapanışı — ADR 0001/0002, `docs/DEPENDENCY-WATCH.md`, `docs/HOSTING-FALLBACK.md` iskeleti, README "Geliştirme Ortamı" bölümü + PROMPT-KITAPCIGI atfının kaldırılması, spec düzeltmeleri (Ç1/Ç2/Ç4/Ç5/Ç6), push koruması testi, `PROJECT_MEMORY.md` faz kaydı
@@ -239,9 +239,9 @@ docs/ADR/0001-monorepo-secimi.md
 - [x] `docker compose up` → Postgres ve Redis sağlıklı *(1.7 — ikisi de `healthy`; healthcheck'lerin gerçekten düştüğü negatif testle kanıtlandı)*
 - [x] `pnpm install && pnpm build` → tüm paketler hatasız derleniyor *(1.2 — 8 paket, turbo FULL TURBO cache)*
 - [x] `pnpm typecheck` → 0 hata *(1.2 — tsconfig types kapısı dahil)*
-- [ ] Kasıtlı bir tip hatası eklenince CI kırmızıya dönüyor (kanıtla)
-- [ ] Eksik `.env` değişkeniyle uygulama **açılmıyor** ve net hata mesajı veriyor
-- [ ] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor
+- [x] Kasıtlı bir tip hatası eklenince CI kırmızıya dönüyor (kanıtla) *(1.9 — koşu 32675264530: her iki mimaride `error TS2322`, imaj işi `skipped`; kanıt dalı silindi)*
+- [x] Eksik `.env` değişkeniyle uygulama **açılmıyor** ve net hata mesajı veriyor *(1.9 — konteynerde doğrulandı: çıkış kodu 1 + Türkçe "DATABASE_URL — tanımlı değil")*
+- [x] `docker buildx` hem amd64 hem arm64 imajı üretiyor, ikisi de çalışıyor *(1.9 — native runner, `uname -m` → x86_64 / aarch64, ikisinde de HTTP duman testi geçti)*
 - [x] Uygulama `/fms` alt yolunda çalışıyor; `PUBLIC_BASE_PATH` değiştirilince her yer uyuyor *(1.8 — `/oyun`a çevrilip yedi katmanın da uyduğu tarayıcıda doğrulandı, `/fms/*` 404 oldu)*
 - [x] Kodda mutlak yol yazılınca ESLint hata veriyor *(1.4 — `local/no-hardcoded-path`, 23 senaryoluk kendi testi)*
 - [ ] Repo'ya sır push edilmeye çalışılınca GitHub push koruması engelliyor

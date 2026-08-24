@@ -21,53 +21,68 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 1 — 1.9 sırada** |
-| **Son tamamlanan** | Faz 1, alt görev **1.8** — `/fms` uçtan uca kanıtı |
+| **Aktif faz / alt görev** | **Faz 1 — 1.10 sırada (faz kapanışı)** |
+| **Son tamamlanan** | Faz 1, alt görev **1.9** — GitHub Actions CI |
 | **Tamamlanma tarihi** | 2026-08-24 |
-| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **8/10** alt görevi bitti |
+| **Genel ilerleme** | Faz 0/50 kapandı · Faz 1'in **9/10** alt görevi bitti |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(app): /fms alt yolu uçtan uca — minimal API ve web` — `feature/faz-01-monorepo`, push edildi |
+| **Son commit** | `ci(actions): kalite kapıları ve çok mimarili imaj derlemesi` + `fix(arch): resolveLayer'ı platformdan bağımsız hale getir` |
 | **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` (üçü de origin'de) |
-| **typecheck** | ✅ 8/8 paket |
-| **lint** | ✅ 0 hata |
-| **build** | ✅ 8/8 paket (web artık Vite ile gerçek paketleme yapıyor) |
+| **CI** | ✅ **yeşil** — koşu 32675147102, dört iş de başarılı |
+| **CI süresi** | kalite amd64 38 sn · arm64 **31 sn** · imaj amd64 46 sn · arm64 33 sn |
+| **typecheck / lint / format** | ✅ (yerel + CI, iki mimaride) |
 | **test** | ✅ 70 test / 4 dosya |
 | **kapsam** | ✅ eşiklerin üzerinde |
 | **arch:check** | ✅ 0 ihlal |
-| **docker compose** | ✅ postgres + redis **healthy** |
-| **uygulama** | ✅ `/fms/` 200 · `/fms/api/health` 200 · çerez `Path=/fms` · konsol temiz |
-| **web paketi** | 228 kB (gzip 73 kB) — üretim React'i |
+| **imajlar** | ✅ api 361 MB (non-root) · web 89 MB — amd64 + **arm64 native**, ikisi de HTTP duman testinden geçti |
+| **docker compose** | ✅ postgres + redis healthy |
 | **Açık sorun sayısı** | 0 |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
-**Sıradaki oturumda ilk yapılacak:**
-1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.9**
-2. Kapılar: `install` → `typecheck` → `lint` → `test` → `build` → `arch:check`
-3. **1.8'den devreden:** CI'da `.env` yok. `apps/web` derlemesi `PUBLIC_BASE_PATH` olmadan **bilerek duruyor** — CI ya `.env.example`'ı kopyalamalı ya da değişkeni ortamdan vermeli.
-4. Node sürümü `pnpm install`'dan ÖNCE kontrol edilmeli (`actions/setup-node` + `.nvmrc`)
-5. `docker buildx` amd64 + arm64 — native ARM runner (`ubuntu-24.04-arm`), QEMU'ya düşme
-6. Kasıtlı tip hatasıyla CI'ın kırmızıya döndüğü **kanıtlanmalı**
+**Sıradaki oturumda ilk yapılacak — 1.10 FAZ KAPANIŞI:**
+1. `docs/ROADMAP.md` → Faz 1 alt görev listesi, madde **1.10**
+2. Kapılar + `gh run list` ile CI'ın hâlâ yeşil olduğunu doğrula
+3. Eksik belgeler: `docs/ADR/0001-monorepo-secimi.md`, `docs/ADR/0002-alt-yol-dagitimi.md`,
+   `docs/HOSTING-FALLBACK.md` (İSKELET, Faz 50'de doğrulanacak)
+4. `README.md`: "Geliştirme Ortamı" bölümü + `docs/PROMPT-KITAPCIGI.md` atfının kaldırılması
+5. Spec düzeltmeleri: **Ç2** (ROADMAP 0.1b "Frontend → Cloudflare Pages" satırı silinip
+   "origin container (Caddy arkası)" yazılacak) · **Ç4** (ROADMAP 0.1c ve `docs/spec/03` §5.2'ye
+   EngineTier ↔ SimulationPolicy ayrımı) · ROADMAP 0.2'den "Supabase Auth ... veya" ifadesinin
+   silinmesi · ROADMAP 0.4 performans tablosuna "tam liste: spec/09 §11.6" notu
+6. **Push koruması testi** — sahte anahtarla (Code Security ayarları açık)
+7. `CHANGELOG.md` güncelle · `PROJECT_MEMORY.md` **tam faz kaydı** (11 başlık) · PR aç
 
-**Uygulamayı yerelde çalıştırma:**
-```
-docker compose up -d
-node --env-file=.env apps/api/dist/main.js      # API  → :3001
-pnpm --filter @fms/web exec vite preview        # Web  → :3000/fms/
-```
+**Faz kaydına girecek ölçümler (kaybolmasın):**
+- lint: soğuk 3,0 sn / sıcak 1,7 sn (8 paket, iskelet durumda)
+- arch:check: ~54 ms · CI toplam: ~1 dk 27 sn
+- web paketi: 228 kB (gzip 73 kB) · imajlar: api 361 MB, web 89 MB
+- Kapsam: satır %92,7 · ifade %91,8 · dal %82,7 · fonksiyon %85,7
+
+**Karşılaşılan hatalar (faz kaydı "5. bölüm" için):**
+1. `engine-strict` kök `engines` alanını zorlamıyor → `preinstall` kapısı (1.1)
+2. TS 6 `types: []` tuzağı → `scripts/check-tsconfig-types.mjs` (1.2)
+3. `coverage.include` olmadan eşikler yalan söylüyor; `**/src/index.ts` dışlaması kendi tuzağımdı (1.5)
+4. `arch:check`'te `node:` öneki `node:/` diye aranıyordu — hiç eşleşmiyordu (1.6)
+5. `pg_isready` var olmayan veritabanına "healthy" diyor → `psql -c 'SELECT 1'` (1.7)
+6. Bayat `dist` ile test → yeşil yalanı; test öncesi `pnpm build` şart (1.7)
+7. `new URL(...).pathname` Windows'ta `/C:/fms/` → Vite `base` sessizce `/` (1.8)
+8. `.env` içindeki `NODE_ENV` üretim paketine React dev sürümünü sokuyordu, %47 şişme (1.8)
+9. `@fms/shared` barrel'ı Zod + env şemasını tarayıcıya taşıyordu → `sideEffects: false` (1.8)
+10. NODE_ENV kapısını önce `vite.config.ts`'e yazdım; Vite değeri kendisi ayarladığı için temiz depoda da hata verdi — kapı yanlış şeyi ölçüyordu (1.8)
+11. `resolveLayer` `split(sep)` kullanıyordu; Linux'ta ters bölü çevrilmiyordu — **CI yakaladı** (1.9)
 
 **Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
 - TypeScript `~6.0.3`, `^` **yasak** → `docs/ADR/0003`
-- Node 24.19.0 tek hat; kapı `scripts/check-node-version.mjs`
+- Node 24.19.0 tek hat; CI'da kapı `install`'dan ÖNCE, yerelde `preinstall` ikinci hat
 - Windows geliştirme ↔ Linux/ARM64 üretim → `docs/ADR/0004` (§2 ölçümle düzeltildi, SAPMA-005)
 - Alt yol tek kaynağı: `packages/shared/src/base-path.ts` — `/oyun` testiyle doğrulandı
-- **`.env` içinde `NODE_ENV` TUTULMAZ** — Vite onu üretim kararına uygular, React dev sürümü pakete girer (ölçüldü: 429 kB → 228 kB). Kapı: `scripts/check-env-file.mjs`
-- **`packages/shared` `sideEffects: false`** — olmazsa `env.ts` + Zod tarayıcı paketine giriyor
-- `vite.config.ts`'te `envDir` göreli (`'../..'`) — `import.meta.url` Windows'ta `/C:/fms/` üretiyor ve `base` sessizce `/` oluyor
-- **`coverage.include` silinmez** — silinirse kapsam eşikleri sessizce yalan söyler
-- **ESLint ↔ arch:check iş bölümü** (`docs/spec/09` §11.5): hiçbir kural iki yerde denetlenmez
-- **Postgres healthcheck'i `pg_isready` DEĞİL** — o var olmayan veritabanına da "healthy" der
-- **Express 5 joker rota:** eski sözdizimi çökmez, sessizce dönüştürülür (SAPMA-006) — `*splat` elle yazılır
-- `lint`, `test` ve `arch:check` turbo'dan geçmez; `build` ve `typecheck` paket başına
+- **`.env` içinde `NODE_ENV` TUTULMAZ** — kapı `scripts/check-env-file.mjs`
+- **`packages/shared` `sideEffects: false`** — olmazsa sunucu kodu tarayıcı paketine girer
+- **`coverage.include` silinmez** · **ESLint ↔ arch:check iş bölümü** (`spec/09` §11.5)
+- **Postgres healthcheck'i `pg_isready` DEĞİL** · **Express 5 joker rota sessizce dönüştürülür** (SAPMA-006)
+- CI'da `PUBLIC_BASE_PATH` workflow `env:` bloğundan gelir, `.env.example` kopyalanmaz
+- `pnpm deploy --legacy` yalnızca imaj derlemesinde; `.npmrc`'ye injection açılmaz
+- `lint`, `test`, `arch:check` turbo'dan geçmez; `build` ve `typecheck` paket başına
 - Sürüm takibi: `docs/DEPENDENCY-WATCH.md` · Rapor formatı: `docs/OUTPUT-FORMAT.md`
 
 **Bilinen kayıt düzeltmeleri:**
