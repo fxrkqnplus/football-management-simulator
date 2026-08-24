@@ -1,0 +1,239 @@
+---
+name: football-management-simulator-conventions
+description: Development conventions and patterns for football-management-simulator. TypeScript project with conventional commits.
+---
+
+# Football Management Simulator Conventions
+
+> Generated from [fxrkqnplus/football-management-simulator](https://github.com/fxrkqnplus/football-management-simulator) on 2026-08-24
+
+## Overview
+
+This skill teaches Claude the development patterns and conventions used in football-management-simulator.
+
+## Tech Stack
+
+- **Primary Language**: TypeScript
+- **Architecture**: hybrid module organization
+- **Test Location**: mixed
+- **Test Framework**: vitest
+
+## When to Use This Skill
+
+Activate this skill when:
+- Making changes to this repository
+- Adding new features following established patterns
+- Writing tests that match project conventions
+- Creating commits with proper message format
+
+## Commit Conventions
+
+Follow these commit message conventions based on 19 analyzed commits.
+
+### Commit Style: Conventional Commits
+
+### Prefixes Used
+
+- `docs`
+- `chore`
+- `feat`
+- `test`
+- `ci`
+- `fix`
+
+### Message Guidelines
+
+- Average message length: ~64 characters
+- Keep first line concise and descriptive
+- Use imperative mood ("Add feature" not "Added feature")
+
+
+*Commit message example*
+
+```text
+docs(spec): sürüm kilidini registry doğrulamasıyla güncelle
+```
+
+*Commit message example*
+
+```text
+chore(repo): workspace iskeleti, gitignore, lisans ve node sürüm kapısı
+```
+
+*Commit message example*
+
+```text
+feat(build): TypeScript strict yapılandırması ve turbo derleme hattı
+```
+
+*Commit message example*
+
+```text
+test(quality): Vitest 4 yapılandırması ve gerçekten ısıran kapsam eşikleri
+```
+
+*Commit message example*
+
+```text
+ci(actions): kalite kapıları ve çok mimarili imaj derlemesi
+```
+
+*Commit message example*
+
+```text
+docs(process): commit alt görev başına, PR faz başına kuralını ekle
+```
+
+*Commit message example*
+
+```text
+docs(roadmap): Faz 1 alt görev listesini kalıcı hale getir
+```
+
+*Commit message example*
+
+```text
+docs(env): Windows geliştirme ortamını ADR'ye bağla, plan kalıcılığını kurallaştır
+```
+
+## Architecture
+
+### Project Structure: Turborepo
+
+This project uses **hybrid** module organization.
+
+### Configuration Files
+
+- `.github/workflows/ci.yml`
+- `.prettierrc`
+- `apps/api/Dockerfile`
+- `apps/api/package.json`
+- `apps/api/tsconfig.json`
+- `apps/web/Dockerfile`
+- `apps/web/package.json`
+- `apps/web/tsconfig.json`
+- `apps/web/vite.config.ts`
+- `apps/worker/package.json`
+- `apps/worker/tsconfig.json`
+- `docker-compose.yml`
+- `eslint.config.js`
+- `package.json`
+- `packages/db/package.json`
+- `packages/db/tsconfig.json`
+- `packages/engine/package.json`
+- `packages/engine/tsconfig.json`
+- `packages/shared/package.json`
+- `packages/shared/tsconfig.json`
+- `packages/ui/package.json`
+- `packages/ui/tsconfig.json`
+- `tools/data-cli/package.json`
+- `tools/data-cli/tsconfig.json`
+- `vitest.config.ts`
+
+### Guidelines
+
+- This project uses a hybrid organization
+- Follow existing patterns when adding new code
+
+## Code Style
+
+### Language: TypeScript
+
+### Naming Conventions
+
+| Element | Convention |
+|---------|------------|
+| Files | camelCase |
+| Functions | camelCase |
+| Classes | PascalCase |
+| Constants | SCREAMING_SNAKE_CASE |
+
+### Import Style: Relative Imports
+
+### Export Style: Named Exports
+
+
+*Preferred import style*
+
+```typescript
+// Use relative imports
+import { Button } from '../components/Button'
+import { useAuth } from './hooks/useAuth'
+```
+
+*Preferred export style*
+
+```typescript
+// Use named exports
+export function calculateTotal() { ... }
+export const TAX_RATE = 0.1
+export interface Order { ... }
+```
+
+## Testing
+
+### Test Framework: vitest
+
+### File Pattern: `*.test.ts`
+
+### Test Types
+
+- **Unit tests**: Test individual functions and components in isolation
+- **Integration tests**: Test interactions between multiple components/services
+
+### Coverage
+
+This project has coverage reporting configured. Aim for 80%+ coverage.
+
+
+*Test file structure*
+
+```typescript
+import { describe, it, expect } from 'vitest'
+
+describe('MyFunction', () => {
+  it('should return expected result', () => {
+    const result = myFunction(input)
+    expect(result).toBe(expected)
+  })
+})
+```
+
+## Error Handling
+
+### Error Handling Style: Try-Catch Blocks
+
+
+*Standard error handling pattern*
+
+```typescript
+try {
+  const result = await riskyOperation()
+  return result
+} catch (error) {
+  console.error('Operation failed:', error)
+  throw new Error('User-friendly message')
+}
+```
+
+## Best Practices
+
+Based on analysis of the codebase, follow these practices:
+
+### Do
+
+- Use conventional commit format (feat:, fix:, etc.)
+- Write tests using vitest
+- Follow *.test.ts naming pattern
+- Use camelCase for file names
+- Prefer named exports
+
+### Don't
+
+- Don't write vague commit messages
+- Don't skip tests for new features
+- Don't deviate from established patterns without discussion
+
+---
+
+*This skill was auto-generated by [ECC Tools](https://ecc.tools). Review and customize as needed for your team.*
