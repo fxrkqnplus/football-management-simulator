@@ -113,10 +113,24 @@ export default defineConfig({
       reportsDirectory: './coverage',
 
       // ── ZORUNLU ── Test edilmemiş dosyalar da rapora girsin.
-      include: ['packages/*/src/**/*.ts', 'apps/*/src/**/*.ts', 'tools/*/src/**/*.ts'],
+      //
+      // ⚠️ UZANTI LİSTESİ EKSİK BIRAKILMAZ (Faz 2.0 düzeltmesi).
+      // İlk yazımda desen yalnızca `*.ts` idi. `apps/web/src/App.tsx` ve
+      // `main.tsx` kapsam raporuna HİÇ girmiyordu: rapor 13 dosya sayarken
+      // diskte 15 vardı. Faz 1'de bu iki dosya, Faz 6'da yüzlerce bileşen
+      // demek — yani `coverage.include` yazılmış olmasına rağmen eşik gene
+      // sessizce yalan söyleyecekti. Kapsam kapısının kör noktası dosyanın
+      // olmaması değil, UZANTININ desende olmamasıydı.
+      // Negatif test (2.0): `.tsx` eklendiğinde test edilmemiş iki dosya
+      // rapora girdi ve yüzde düştü — desen gerçekten ısırıyor.
+      include: [
+        'packages/*/src/**/*.{ts,tsx,mts,cts}',
+        'apps/*/src/**/*.{ts,tsx,mts,cts}',
+        'tools/*/src/**/*.{ts,tsx,mts,cts}',
+      ],
 
       exclude: [
-        '**/*.test.ts',
+        '**/*.test.{ts,tsx,mts,cts}',
         '**/*.d.ts',
         '**/dist/**',
         '**/node_modules/**',

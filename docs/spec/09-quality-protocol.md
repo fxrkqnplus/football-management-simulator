@@ -110,6 +110,20 @@ const SAVE_INVARIANTS = [
 > bağlıdır.** Ayrıca `coverage.ignoreEmptyLines` kaldırıldı ve V8 sağlayıcısı AST tabanlı
 > yeniden eşlemeye geçti; v3'ten gelen rakamlarla birebir karşılaştırma yapılmaz.
 >
+> **`include` yazmak yetmez — UZANTI LİSTESİ de tam olmalı (SAPMA-007, Faz 2.0).**
+> Faz 1'de `include` doğru şekilde tanımlandı ama deseni yalnızca `*.ts` idi. Sonuç:
+> `apps/web/src/App.tsx` ve `main.tsx` rapora **hiç girmedi** — rapor 13 dosya sayarken
+> diskte 15 vardı ve eşik yine sessizce yalan söylüyordu. Yani bu tuzağın iki katmanı var:
+> `include`'un **varlığı** ve `include`'un **kapsamı**. İkincisi daha sinsi, çünkü
+> yapılandırma dosyasına bakan biri "include yazılmış, tamam" der.
+> Desen `*/src/**/*.{ts,tsx,mts,cts}` biçiminde yazılır; `exclude` tarafındaki test deseni
+> de aynı uzantı kümesini almalıdır (`**/*.test.{ts,tsx,mts,cts}`), yoksa `.test.tsx`
+> dosyaları kendi kapsamlarını şişirir.
+>
+> **Doğrulama yöntemi:** kapsam raporundaki dosya sayısı, `include` deseninin diskte
+> eşleştiği dosya sayısıyla karşılaştırılır. Eşit değilse desen eksiktir. Bu kontrol
+> `coverage/coverage-summary.json` anahtarları sayılarak yapılır.
+>
 > **`tools/` kapsam eşiğine dahil DEĞİLDİR.** `coverage.include` yalnızca
 > `*/src/**` desenini alır; geliştirme araçları (`arch-check`, `eslint-local-rules`)
 > test edilir ama ürün kodu sayılmaz ve %70/%85 eşiklerine girmez.

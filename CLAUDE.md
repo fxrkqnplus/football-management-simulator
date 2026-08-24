@@ -188,7 +188,7 @@ Her PR açıklaması: faz numarası, kapsam özeti, kabul kriteri kontrol listes
 // Bir sürümü değiştirmeden önce docs/DEPENDENCY-WATCH.md'yi oku.
 {
   "runtime":    "Node.js 24 LTS (Krypton, 24.19.0)",
-  "packageManager": "pnpm@11",
+  "packageManager": "pnpm@11.23.0",
   "monorepo":   "Turborepo 2.10",
   "language":   "TypeScript 6.0.3 — '~' ile PİNLİ, '^' YASAK (aşağıdaki nota bak)",
 

@@ -282,7 +282,12 @@ docs/ADR/0001-monorepo-secimi.md
 
 **Alt görevler** (onaylanan bölüm — her biri kendi commit'iyle kapanır):
 
-- [ ] **2.0** Faz açılışı — kapsam kapısı onarımı · bayat kayıt düzeltmeleri · bağımlılık kararları · spec boşluk taraması.
+- [x] **2.0** Faz açılışı — kapsam kapısı onarımı · bayat kayıt düzeltmeleri · bağımlılık kararları · spec boşluk taraması.
+      **Sonuç:** yedi işin yedisi yapıldı. Kapsam kapısı artık doğru ölçüyor **ama kırmızı** —
+      `.tsx` eklenince gerçek durum ortaya çıktı ve K10 eşiğinin altında kaldık (**SORUN-001**,
+      satır %69,72 · fonksiyon %66,66). Eşik düşürülmedi, dosya dışlanmadı; kalan boşluk
+      1 satır + 1 fonksiyon ve kapanması **DOM test ortamı kararı** gerektiriyor.
+      Yeni kayıtlar: SORUN-001 · SAPMA-007 (kapsam uzantısı) · SAPMA-008 (spec boşlukları).
       Yedi iş: (a) ANLIK DURUM tazeleme + iki kayıt düzeltmesi (blok "PR #1 açık" derken PR merge edilmiş;
       Faz 1 kaydı başlıkta 19, §3'te 18 commit diyor); (b) `vitest.config.ts` `coverage.include` yalnızca
       `*.ts` görüyor — `.tsx`/`.mts`/`.cts` eklenir, **negatif testle** kanıtlanır; (c) kapsam yeniden ölçümü
@@ -406,9 +411,14 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 - İndeksler: `clubs(competition_id)`, `competitions(country_id)`, arama için `pg_trgm` GIN indeksi
 - Seed betiği iskeleti (`tools/data-cli/seed.ts`)
 - ER diyagramı → `docs/schema/world.md` (mermaid)
+- **Entegrasyon test katmanı: Vitest + `testcontainers`** *(G-03, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.4 "Gerçek Postgres ile uçtan uca modül" satırını tanımlıyor ama
+  `testcontainers` ROADMAP'in hiçbir yerinde geçmiyordu. İlk migration burada yazıldığı
+  için kurulum buraya düşüyor: "`up`/`down` çalışıyor" iddiası ancak gerçek bir Postgres
+  örneğine karşı doğrulanabilir. **ARM64 uyumu kurulumda doğrulanır (K14).**
 
 **Kabul kriterleri:**
-- [ ] Migration ileri ve geri çalışıyor (`up` / `down`)
+- [ ] Migration ileri ve geri çalışıyor (`up` / `down`) — *gerçek Postgres'e karşı, `testcontainers` ile (G-03)*
 - [ ] 6 ülke + 6 lig + 5 UEFA/yerel kupa örnek verisiyle seed başarılı
 - [ ] Tüm yabancı anahtarlar ve `ON DELETE` davranışları tanımlı
 - [ ] `EXPLAIN ANALYZE` ile temel sorgular < 20 ms
@@ -488,9 +498,16 @@ docs/glossary.md
 - **DataTable motoru:** TanStack Table + sanallaştırma (TanStack Virtual), sütun seçimi, sıralama, filtre, kaydedilebilir görünüm, mobilde kart moduna dönüşüm
 - Erişilebilirlik: renk körlüğü modu (3 tip), font boyutu ayarı (%90–130), tam klavye navigasyonu, WCAG AA kontrast
 - **Storybook** kurulumu — her bileşen için hikaye
+- **`pnpm perf:budget` — performans bütçesi ölçüm kapısı** *(G-01, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.5 bu komutu "Faz 6'dan sonra" her faz kapanışında koşulacak diye
+  listeliyor ve §0.4 "ihlal = faz kapanmaz" diyor, ama hiçbir faz onu **kurmuyordu** —
+  `arch:check` ile birebir aynı boşluk (Faz 1 Ç3). Burada ilk ölçülebilir ekran doğduğu
+  için kurulumu buraya düşüyor. Faz 6'da ölçülebilen alt küme: DataTable render, ekran
+  geçişi, üretim paketi boyutu. Kalan metrikler ilgili fazlarda eklenir; Faz 49 genişletir.
 
 **Kabul kriterleri:**
 - [ ] Storybook'ta 30+ bileşen, her biri koyu/açık temada çalışıyor
+- [ ] `pnpm perf:budget` çalışıyor ve **bütçe aşımında kırıyor** (negatif testle kanıtlanır) *(G-01)*
 - [ ] DataTable 10.000 satırda 55+ fps kaydırma
 - [ ] DataTable 375px genişlikte kart moduna geçiyor
 - [ ] Renk körlüğü modunda nitelik renkleri ayırt edilebiliyor
@@ -958,9 +975,17 @@ docs/glossary.md
 - Bildirim sistemi (toast + rozet)
 - Ekran geçiş animasyonları (ölçülü, "hareketi azalt" ayarına saygılı)
 - Yükleme durumları (skeleton)
+- **Playwright kurulumu + `pnpm test:e2e` ilk akışı** *(G-02, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.5 `pnpm test:e2e`'yi "Faz 17'den sonra" her faz kapanışında koşulacak
+  diye listeliyor, ama ROADMAP'te Playwright yalnızca yığın listesinde ve **Faz 50**'nin tam
+  senaryo paketinde geçiyordu — yani kurulum 33 faz geç kalıyordu. Oyunun ilk gezilebilir
+  hale geldiği faz burası, kurulum buraya düşüyor. Kapsam: Playwright yapılandırması
+  (masaüstü + 375px mobil projeleri), CI adımı, ve **tek** kritik akış (giriş → ana kabuk →
+  bölüm gezinme). Tam senaryo paketi Faz 50'de kalır.
 
 **Kabul kriterleri:**
 - [ ] 12 bölüm arasında gezinme masaüstü ve mobilde sorunsuz
+- [ ] `pnpm test:e2e` çalışıyor; ilk kritik akış hem masaüstü hem 375px projesinde yeşil, CI'da koşuyor *(G-02)*
 - [ ] Inbox 500 mesajda akıcı, filtre < 100 ms
 - [ ] Arama "besiktas" yazınca "Beşiktaş" buluyor, sonuç < 150 ms
 - [ ] Tüm klavye kısayolları çalışıyor
@@ -2034,8 +2059,13 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - Disk kullanımı (200 GB sınırına göre yüzde), veritabanı boyutu, tablo bazlı döküm
 - R2 kullanımı (10 GB sınırına göre), aylık işlem sayacı
 - Resend e-posta kotası (3.000/ay sınırına göre)
+- **Sentry olay kotası (5.000 olay/ay sınırına göre)** *(G-06, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/10` §13.5 sınır tablosunda Sentry satırı var (uyarı eşiği 4.000) ama bu telemetri
+  listesinde yoktu — yani "%80 eşiğinde uyarı" kabul kriteri Sentry'yi hiç kapsamadan da
+  işaretlenebilirdi. Faz 2 Karar 4 kotayı **korumaya** yönelik (`tracesSampleRate: 0`,
+  `beforeSend` filtresi); bu satır kotayı **izler**. İkisi ayrı iş.
 - CPU / RAM / kuyruk metrikleri, son 24 saat grafiği
-- **Ücretsiz kademe uyarı eşikleri:** herhangi bir sınırın %80'ine gelince panelde ve e-postayla uyarı
+- **Ücretsiz kademe uyarı eşikleri:** `spec/10` §13.5'teki **altı** sınırın herhangi biri %80'ine gelince panelde ve e-postayla uyarı
 
 **Moderasyon ve Denetim**
 - Şikâyet kuyruğu (uygunsuz isim bildirimleri)
@@ -2065,7 +2095,7 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] Kayıt dışa aktar / geri yükle tam döngü çalışıyor
 - [ ] Mod anahtarı panelden değiştirilince anında etkili oluyor
 - [ ] "Mevcut IP'mi ekle" doğru IP'yi (`CF-Connecting-IP`) ekliyor
-- [ ] Telemetri gerçek değerleri gösteriyor; %80 eşiğinde uyarı tetikleniyor
+- [ ] Telemetri gerçek değerleri gösteriyor; `spec/10` §13.5'teki **altı** sınırın (Sentry dahil) her biri için %80 eşiğinde uyarı tetikleniyor *(G-06)*
 - [ ] Admin eylemleri audit log'da görünüyor
 - [ ] Panel mobilde kullanılabilir
 
@@ -2145,9 +2175,17 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   - "Hareketi azalt" ayarı tüm animasyonları etkiler
 - **Bellek denetimi:** 2 saatlik oyun oturumunda sızıntı testi
 - **Ses denetimi:** mobil autoplay kısıtı, sessiz mod, arka plan davranışı
+- **Görsel regresyon testi (Playwright snapshot)** *(G-05, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.4 "Görsel / Playwright / Ekranlar / Anlık görüntü karşılaştırma
+  (mobil + masaüstü)" katmanını tanımlıyor ama ROADMAP'te karşılığı **hiç yoktu**. Bu faz
+  her ekranı tek tek elden geçirdiği için taban görüntülerin alınacağı doğru yer burası.
+  Faz 17'de kurulan Playwright altyapısına (G-02) bağımlı.
+- **`pnpm perf:budget` genişletmesi** — Faz 6'da kurulan kapıya (G-01) bu fazda ölçülebilir
+  hale gelen metrikler eklenir: LCP, 2D oynatıcı fps, bellek, Lighthouse.
 
 **Kabul kriterleri:**
 - [ ] Her ekran 360px'de yatay taşma olmadan kullanılabilir
+- [ ] Görsel regresyon paketi masaüstü + mobilde taban görüntülerle çalışıyor; kasıtlı bir düzen bozulması yakalanıyor *(G-05)*
 - [ ] PWA yüklenebiliyor ve offline kabuk açılıyor
 - [ ] Lighthouse: Performance ≥ 90, Accessibility ≥ 95
 - [ ] axe-core: 0 kritik ihlal
@@ -2175,8 +2213,17 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   - Sakatlık/kart/gol oranları hâlâ hedef aralıkta
 - **Denge ayar turu:** yukarıdaki testlerden çıkan sapmaların düzeltilmesi
 - **Uçtan uca test paketi (Playwright):** kayıt → menajer oluştur → kulüp seç → transfer yap → maç oyna → sezon bitir → yeni sezon — tam senaryo otomatik
-- **Yük testi:** eşzamanlı 5 kayıt, 100 tur atlama
+- **Yük testi (`k6`):** eşzamanlı 5 kayıt, 100 tur atlama *(G-04, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.4 yük katmanını "`k6` / API / 20 eşzamanlı kullanıcı, tur atlama" diye
+  tanımlıyor ama `k6` ROADMAP'in hiçbir yerinde geçmiyordu — aşağıdaki "20 kullanıcı
+  eşzamanlı" kabul kriterinin ölçüm aracı yoktu. Araç burada kurulur; senaryo spec'teki
+  **20 eşzamanlı kullanıcı** hedefini de kapsar.
 - **Hata denetimi:** Sentry'de biriken tüm hataların temizlenmesi
+- **Sentry kaynak haritası yükleme** — Faz 2'den devreden borç (Karar 7): Faz 2 yalnızca
+  `sourcemap: true` + `release` adlandırması yaptı; CI yükleme adımı buraya bırakıldı.
+- **Ücretsiz kademe uyarı zinciri — admin e-postası** *(G-06)*: `docs/spec/10` §13.5'teki
+  altı sınırın **tamamı** (Sentry dahil) eşiğe gelince admin e-postası gider. Panel uyarısı
+  Faz 47'de kurulur; e-posta kanalı burada bağlanır.
 - **Güvenlik denetimi:** bağımlılık taraması (`pnpm audit`), OWASP kontrol listesi, SQL enjeksiyon testi, XSS testi, auth bypass testi
 - **Veri denetimi:** tüm görsel varlıkların bütünlüğü, eksik varlık raporu
 - **i18n denetimi:** 0 eksik anahtar, 0 sabit kodlanmış metin
@@ -2230,8 +2277,10 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] Sunucu sağlamlaştırma tamamlanmış (SSH anahtar-only, ufw, fail2ban, iptables kalıcı)
 - [ ] Günlük yedek R2'ye gidiyor
 - [ ] **Geri yükleme tatbikatı yapılmış** — sıfır sunucudan tam geri yükleme başarılı, süresi belgelenmiş
-- [ ] Dengeli modda 20 kullanıcı eşzamanlı oynarken sistem stabil (CPU < %80, kuyruk < 20 sn)
+- [ ] Dengeli modda 20 kullanıcı eşzamanlı oynarken sistem stabil (CPU < %80, kuyruk < 20 sn) — *`k6` senaryosuyla ölçülür (G-04)*
 - [ ] Aylık maliyet **$0** — tüm servisler ücretsiz kademede, hiçbir sınır aşılmıyor
+- [ ] `spec/10` §13.5'teki **altı** sınırın hepsi (Sentry dahil) izleniyor; eşiğe gelince admin e-postası gidiyor *(G-06)*
+- [ ] Sentry kaynak haritaları yükleniyor; üretimde bir hatanın yığın izi **okunabilir satır numarası** gösteriyor *(Faz 2 Karar 7 borcu)*
 - [ ] `DATA_MODE=full` ile gerçek armalar, portreler, formalar, logolar görünüyor
 - [ ] (Public modda) Yasal sayfalar yayında, "hesabımı sil" ve "verilerimi indir" çalışıyor
 - [ ] Özel modda izin listesi dışındaki hesap oyunu başlatamıyor

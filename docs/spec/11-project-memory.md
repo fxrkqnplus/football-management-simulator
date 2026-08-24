@@ -25,6 +25,22 @@ Kayıt yazılmadan faz kapanmış sayılmaz (K15).
 > ortasında oturum koptuğunda yeni oturum yapılan işi göremez. Commit'ler
 > "ne yapıldı"yı taşır, ANLIK DURUM "şu anda neredeyiz"i taşır.
 
+> **EK KURAL (SAPMA-004'e, Faz 2.0'da eklendi): ANLIK DURUM'u yazan commit,
+> fazın SON commit'i olmalıdır.**
+>
+> Kuralın ilk hâli "her alt görev sonunda" diyordu ve delik tam da buradaydı:
+> **faz kapanış commit'leri alt görev sayılmıyor.** Faz 1'de ölçüldü — blok
+> `docs(memory): Faz 1 kaydı ve kapanış` commit'inde yazıldı, ardından iki commit
+> daha geldi (`docs(memory): faz kaydına PR #1 numarasını işle` ve PR birleştirme).
+> Sonuç: yeni oturum bloğu okuduğunda "PR #1 açık" yazıyordu, oysa PR **merge
+> edilmişti**. Blok tam da tasarlandığı işte — devir teslimde — yanlış bilgi verdi.
+>
+> Pratikte: faz kapanışında ROADMAP, CHANGELOG ve faz kaydı önce yazılır; ANLIK
+> DURUM **en sonda**, PR'ı açan/kapatan hamleyi de bilerek güncellenir. PR
+> numarası yazma anında bilinmiyorsa alan `PR açılacak` bırakılır — sonradan
+> "PR #N açık" yazıp orada unutmaktan iyidir, çünkü ikincisi **yanlış**, birincisi
+> yalnızca **eksik**.
+
 **Değişmezlik:**
 - Dosya **append-only**'dir. Eski faz kayıtları geriye dönük **silinmez ve değiştirilmez**.
 - Bir hata sonradan fark edilirse, eski kayıt düzenlenmez; yeni kayda `> ⚠️ DÜZELTME (Faz XX): Faz YY'deki "..." ifadesi yanlıştı, doğrusu "..."` satırı eklenir.
@@ -164,6 +180,14 @@ Sapma yoksa: "Sapma yok."
 | Snapshot sıkıştırma | < 300 ms | 4.200 ms | ❌ → SORUN-004 |
 
 Bu fazda ölçülecek performans metriği yoksa: "Bu fazda performans bütçesi yok."
+
+⚠️ **§7 rakamları faz kapanışında YENİDEN ölçülür — ara ölçümlerden kopyalanmaz.**
+Faz ortasında alınan bir ölçüm, kendisinden sonra gelen alt görevlerin etkisini
+göremez. Faz 1'de kapsam rakamı böyle bayatladı: kayda giren yüzdeler 1.8'de
+`apps/api/src/*` eklenmeden önce ölçülmüştü ve gerçek durumdan **17 puan**
+sapıyordu (kayıt: satır %92,7 · fonksiyon %85,7 — aynı ağaçta yeniden ölçüm:
+satır %75,5 · fonksiyon %73,7). Bayat bir performans rakamı, hiç rakam
+olmamasından daha kötüdür: sonraki faz onu karşılaştırma tabanı sanır.
 
 #### 8. Kabul Kriterleri Doğrulaması
 ROADMAP'teki kabul kriterleri tek tek:

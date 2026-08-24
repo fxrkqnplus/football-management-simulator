@@ -21,45 +21,62 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — henüz başlanmadı** |
-| **Son tamamlanan** | ✅ **FAZ 1 — Monorepo, Araç Zinciri ve Kalite Kapıları** (10/10 alt görev) |
-| **Tamamlanma tarihi** | 2026-08-24 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** |
-| **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(memory): Faz 1 kaydı ve kapanış` — `feature/faz-01-monorepo` |
-| **Dallar** | `main` → `develop` → `feature/faz-01-monorepo` · **PR #1 açık → develop** |
-| **CI** | ✅ yeşil — amd64 + arm64, ~1 dk 27 sn |
-| **typecheck / lint / format** | ✅ |
-| **test** | ✅ 70 test / 4 dosya |
-| **kapsam** | ✅ satır %92,7 · ifade %91,8 · dal %82,7 · fonksiyon %85,7 |
-| **arch:check** | ✅ 0 ihlal (~54 ms) |
-| **docker compose** | ✅ postgres + redis healthy |
-| **uygulama** | ✅ `/fms/` 200 · `/fms/api/health` 200 |
-| **Açık sorun sayısı** | 0 |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.0 bitti, 2.1 bekliyor** |
+| **Son tamamlanan** | ✅ **2.0** Faz açılışı (kapsam kapısı · kayıt düzeltmeleri · bağımlılıklar · spec taraması) |
+| **Tarih** | 2026-08-25 |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 1/10 alt görev |
+| **Bloke eden var mı?** | **EVET — SORUN-001 karar bekliyor** (kapsam eşiği; ayrıntı aşağıda) |
+| **Son commit** | `chore(faz-2): kapsam kapısını onar, bağımlılık kararlarını ve spec boşluklarını kaydet` |
+| **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
+| **CI** | ⚠️ bu dalda henüz koşmadı — `test:coverage` adımı SORUN-001 yüzünden kırmızı dönecek |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (pnpm 11.23.0 altında) |
+| **test** | ✅ **76 test / 6 dosya** (70 → 76: `health.controller` +5, `app.module` +1) |
+| **kapsam** | 🔴 satır **%69,72** · ifade %70,68 · dal %73,68 · fonksiyon **%66,66** — **eşik %70, iki metrik altında** |
+| **Araç zinciri** | pnpm **11.23.0** (11.22.0'dan yükseltildi, kilit değişmedi) |
+| **Açık sorun sayısı** | **1** — SORUN-001 (Yüksek) |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
-**Sıradaki oturumda ilk yapılacak — FAZ 2:**
-1. Bu bloğu ve **Faz 1 kaydını** oku (özellikle §11 devir teslim)
-2. `docs/ROADMAP.md` → Faz 2 bölümü
-3. `docs/DEPENDENCY-WATCH.md` → **Faz 2'ye bağlı üç satır var:** `pnpm` 11.23.0,
-   `pino` 10, `@sentry/*` 10 (üçü de majör atlama, notlar okunmadı)
-4. `docs/spec/09-quality-protocol.md` §11.1 (gözlemlenebilirlik zinciri) ve §11.2 (`debugTrace`)
-5. `CLAUDE.md` K7 (her hesaplama gerekçe üretir) ve K8 (`console.log` yasak)
-6. Kapılar: `pnpm install` → `typecheck` → `lint` → `test` → `build` → `arch:check`
-7. Faz 2 kapsamını özetle, alt görevlere böl, **listeyi ROADMAP'e yaz** (K11), onay al
+**⛔ ÖNCE BUNU OKU — SORUN-001, 2.1'e geçmeden karara bağlanmalı:**
+`coverage.include` uzantı listesi `.tsx` görmüyordu (SAPMA-007). Düzeltilince
+`App.tsx` ve `main.tsx` rapora girdi ve kapsam **%75,55 → %62,38**'e düştü.
+2.0'da eklenen iki test dosyası açığı **%69,72**'ye kadar kapattı; kalan boşluk
+**tam olarak 1 satır ve 1 fonksiyon**. Kalan kapsanmamış dosyaların hepsi
+önyükleme/DOM dosyası: `apps/api/src/main.ts` (sunucu açar), `apps/web/src/App.tsx`
+ve `main.tsx` (tarayıcı DOM'u ister). **Yani eşiği geçmek bir DOM test ortamı
+kararı gerektiriyor** (`jsdom`/`happy-dom` + React test kütüphanesi) — bu bir
+bağımlılık kararıdır ve kullanıcıya aittir. Eşik **düşürülmedi**, dosya
+**dışlanmadı**; ikisi de yasak.
+İlgili not: Faz 2 zaten 2.6'da `ErrorBoundary` ve 2.8'de `DebugPanel` getiriyor;
+ikisi de bileşen testi ister. Yani DOM ortamı Faz 2'nin **kaçınılmaz** bir
+ihtiyacı — soru "gerekli mi" değil, "2.0'da mı 2.6'da mı".
+
+**Sıradaki oturumda ilk yapılacak:**
+1. SORUN-001 kararını al (yukarıdaki blok)
+2. `docs/ROADMAP.md` → Faz 2 alt görev listesi, madde **2.1** (tipli hata sınıfları)
+3. Kapılar: `pnpm build` → `typecheck` → `lint` → `test` → `arch:check` → `format:check`
+   (`test:coverage` SORUN-001 çözülene kadar kırmızı — beklenen)
+4. `docs/SPEC-COVERAGE-GAPS.md` — 2.0'da açılan yeni dosya, G-01…G-07
 
 **⚠️ FAZ 2'DE MUTLAKA KONTROL EDİLECEK — 1.8'den taşınan risk:**
 `@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu; Zod ve env
 şeması istemciye sızmıştı. `sideEffects: false` ile çözüldü. **Faz 2'de `logger`
 (pino, Node-only) aynı pakete giriyor — sorun daha büyük ölçekte tekrar edebilir.**
-Faz 2 sonunda `apps/web/dist/assets/*.js` içinde pino veya Node modülü var mı bak;
-gerekirse `@fms/shared/server` alt yol dışa aktarımına geç.
+Karar 1 gereği `@fms/shared/server` alt yoluna geçiliyor (2.2); kanıt 2.9'da
+`apps/web/dist/assets/*.js` içinde pino/Node modülü aranarak alınacak.
 
-Ayrıca Faz 2'de kapatılacak dört TODO:
-- `packages/shared/src/env.ts` — iki `process.stderr.write` → `logger.warn`
-- `packages/shared/src/base-path.ts` — `TypeError` → `ValidationError` (`errors.ts`)
-- `apps/web` `types: []` korunmalı: logger eklenince tarayıcı Node tipi görmemeli
-- `arch:check` `console.log`'u **tekrarlamayacak** (iş bölümü `spec/09` §11.5)
+Faz 2'de kapatılacak dört TODO (2.0'da hiçbiri kapanmadı, hepsi 2.1/2.2'de):
+- `packages/shared/src/env.ts` — `process.stderr.write` → `logger.warn` *(2.2)*
+- `packages/shared/src/base-path.ts` — `TypeError` → `ValidationError` *(2.1)*
+- `apps/web` `types: []` korunmalı: logger eklenince tarayıcı Node tipi görmemeli *(2.2)*
+- `arch:check` `console.log`'u **tekrarlamayacak** (iş bölümü `spec/09` §11.5) *(2.2)*
+
+**2.0'da ölçülen ve 2.2'nin bağlı olduğu bulgu:**
+`isImportAllowed('apps/api', '@fms/shared/server')` → **`false`**. `arch:check`
+tam eşleşme yapıyor, yani alt yol importu **sahte katman ihlali** üretiyor.
+2.2'de logger alt yola taşınmadan önce bu düzeltilmeli. Dikkat: aynı hata
+`apps/web → @fms/shared/server`'ı da bloke ediyor ve bu **tesadüfen** istediğimiz
+sonuç — düzeltme yapılınca o kısıt **açık bir kural olarak geri konmalı**, yoksa
+sessizce kaybolur.
 
 **Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
 - TypeScript `~6.0.3`, `^` **yasak** → `docs/ADR/0003`
@@ -67,7 +84,8 @@ Ayrıca Faz 2'de kapatılacak dört TODO:
 - Alt yol tek kaynağı ve ölçülen tuzaklar → `docs/ADR/0002`
 - Windows ↔ Linux/ARM64 ayrışması → `docs/ADR/0004`
 - **`.env` içinde `NODE_ENV` TUTULMAZ** → `scripts/check-env-file.mjs`
-- **`coverage.include` silinmez** — silinirse kapsam eşikleri sessizce yalan söyler
+- **`coverage.include` silinmez — ve uzantı listesi daraltılmaz** (SAPMA-007): ikisi de
+  eşikleri sessizce yalana çevirir. Yeni bir uzantı gelirse (`.jsx`?) desene eklenir.
 - **`packages/shared` `sideEffects: false`** kalmalı
 - **Postgres healthcheck'i `pg_isready` DEĞİL** (`psql -c 'SELECT 1'`)
 - **Express 5 joker rota** sessizce dönüştürülür → `*splat` elle yazılır (SAPMA-006)
@@ -95,6 +113,38 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 > ⚠️ **DÜZELTME (Faz 1.8):** Express 5 joker rota varsayımı kısmen yanlıştı —
 > ayrıntı SAPMA-006.
 
+> ⚠️ **DÜZELTME (Faz 2.0) — Faz 1 kaydı, commit sayısı çelişkisi.**
+> Faz 1 kaydının başlığı *"`cb5adcd..1015854` (19 commit)"*, §3'ü ise
+> *"86 dosya, +4732 / -77 satır, 18 commit"* diyor. İkisi de kendi ölçüm anında
+> doğruydu, **birlikte tutarsız**:
+> - `git rev-list --count cb5adcd..99499c9` → **18** · `git diff --shortstat cb5adcd 99499c9`
+>   → **86 dosya, +4732 / −77**. §3 bu aralığı ölçmüş, yani faz kaydını yazan
+>   commit'in bir öncesini — kendi commit'ini ölçemezdi.
+> - `git rev-list --count cb5adcd..1015854` → **19** · diffstat **94 dosya, +5329 / −102**.
+>
+> **Fazın gerçek toplamı:** `cb5adcd..41d8543` → **20 commit, 94 dosya, +5329 / −102**
+> (`41d8543` = PR numarasını işleyen commit; `a474c86` = birleştirme).
+> Kayıt append-only olduğu için düzeltilmedi. Bu, `spec/11` §12.5'e Faz 2.0'da
+> eklenen *"§7 rakamları faz kapanışında yeniden ölçülür"* kuralının doğduğu yer.
+
+> ⚠️ **DÜZELTME (Faz 2.0) — Faz 1 kaydı §6/§7, kapsam rakamları.**
+> Kayıt kapsamı *"satır %92,7 · ifade %91,8 · dal %82,7 · fonksiyon %85,7"* diye
+> yazıyor ve `✅` işaretliyor. **Aynı ağaçta yeniden ölçüldü** (Faz 2.0, hiçbir kod
+> değişmeden): satır **%75,55** · ifade **%76,28** · dal **%86,15** · fonksiyon
+> **%73,68**. Kayıttaki rakamlar 1.8'de `apps/api/src/*` eklenmeden önceki ölçümden
+> kopyalanmış; o dosyalar %0 kapsamla rapora girince tablo değişti ama kayıt
+> güncellenmedi. `.tsx` uzantısı da desende olmadığı için (SAPMA-007) gerçek durum
+> bundan da düşüktü → SORUN-001.
+
+> ⚠️ **DÜZELTME (Faz 2.0) — ANLIK DURUM bayatlığı.**
+> Bloğun Faz 1 kapanışındaki hâli *"PR #1 açık → develop"* diyordu; PR
+> **2026-08-24T00:36:21Z'de merge edilmişti** (`gh pr view 1` → `MERGED`,
+> birleştirme commit'i `a474c86`). Ayrıca "Son commit" alanı `1015854`'ü
+> gösteriyordu, oysa ondan sonra iki commit daha gelmişti. Sebep SAPMA-004'ün
+> kendisindeki delik: kural "her **alt görev** sonunda" diyor ve faz **kapanış**
+> commit'leri alt görev sayılmıyor. Kural `spec/11` §12.1'de "ANLIK DURUM'u yazan
+> commit fazın SON commit'i olmalı" ek maddesiyle kapatıldı.
+
 > ℹ️ `docs/MASTER-SPEC.md` **donmuş arşivdir, otorite değildir.** Bölme öncesi
 > hâlini korur; sonraki faz kararları orada yoktur.
 
@@ -104,7 +154,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Faz | Açıklama | Öncelik | Durum | Çözüldüğü faz |
 |---|---|---|---|---|---|
-| — | — | _Henüz açık sorun yok_ | — | — | — |
+| SORUN-001 | 2 | **Kapsam K10 eşiğinin altında.** `coverage.include` uzantı listesi düzeltilince (SAPMA-007) gerçek durum ortaya çıktı: satır **%69,72** · fonksiyon **%66,66** (eşik %70). İfade %70,68 ✅ ve dal %73,68 ✅ geçiyor. Yani `pnpm test:coverage` **kırmızı**. Bu yeni bir regresyon değil — 1.8'den beri var olan bir ihlal, rapor onu göremediği için görünmüyordu. Kalan açık **1 satır ve 1 fonksiyon**. | Yüksek | 🔴 Açık — **karar bekliyor** | — |
 
 ---
 
@@ -120,15 +170,32 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 ## 🔵 SPESİFİKASYON SAPMALARI
 
 > Spesifikasyondan veya yol haritasından sapılan her nokta. **Asla silinmez.**
+>
+> **`Tür` sütunu (Faz 2.0'da eklendi).** Kütükte iki farklı şey birikiyordu ve
+> aynı sütunlarla yazılınca ayırt edilemiyorlardı:
+>
+> - **`karar`** — spesifikasyon bir şey söylüyordu, biz bilinçli olarak başka bir
+>   şey yaptık. Tartışılabilir; koşullar değişirse geri alınabilir.
+> - **`düzeltme`** — spesifikasyonun bir **iddiası ölçümle çürütüldü**. Tartışma
+>   konusu değil; spec yanlıştı ve düzeltildi. Geri alınmaz.
+>
+> Ayrım pratikte işe yarıyor: bir `karar` satırı yeniden değerlendirilebilir,
+> bir `düzeltme` satırı yeniden değerlendirilemez — yalnızca yeni bir ölçümle
+> çürütülebilir. SAPMA-005 ve SAPMA-006 aslında hep bu ikinci sınıftaydı.
+>
+> Bu tablo **kütüktür, faz kaydı değildir** — append-only kısıtı faz kayıtlarına
+> aittir. Sütun geriye dönük dolduruldu.
 
-| ID | Faz | Sapma | Gerekçe | Spec güncellendi mi |
-|---|---|---|---|---|
-| SAPMA-006 | 1 | *"Express 5 joker rota sözdizimi katılaştı; `/*` geçersiz"* varsayımı **kısmen yanlış** çıktı: NestJS 11'de eski sözdizimi uygulamayı çökertmiyor. | Ölçüm: `@Get('echo/*')` ile uygulama **başarıyla açıldı**. `LegacyRouteConverter` devreye girip `WARN Unsupported route path ... Attempting to auto-convert to "{*path}"` basıyor ve rotayı otomatik çeviriyor. Tuzak "patlayan" değil "sessizce dönüştürülen" cinsten — log okunmazsa fark edilmez ve dönüştürülmüş desen niyetten sapabilir. Doğru sözdizimi (`*splat`) elle yazılır, otomatik dönüştürücüye güvenilmez. | ✅ `apps/api/src/health.controller.ts` (ölçüm yorumda), `docs/ROADMAP.md` Faz 1 madde 1.8 |
-| SAPMA-005 | 1 | `docs/ADR/0004` §2'deki *"`forceConsistentCasingInFileNames` tek ve tutarlı ama yanlış harfli bir yazımı yakalamaz"* iddiası **ölçümle çürütüldü**. Gerçek boşluk yalnızca `.mjs`/`.js` dosyalarında. | `packages/shared/src/CasingProbe.ts` oluşturulup `./casingprobe.js` diye import edildi: `tsc` **TS1149** ile yakaladı (`include: ["src/**/*"]` gerçek dosyayı zaten programa aldığı için yanlış import ikinci bir yazım üretiyor). Aynı deney `.mjs` ile tekrarlandı: `typecheck` göremedi, Node çalıştırdı, yalnızca `arch:check` yakaladı. `arch:check` kuralı birincil değil **tamamlayıcı** savunma olarak konumlandırıldı. | ✅ `docs/ADR/0004` §2 (ölçüm tablosu + üç hatlı model), `docs/ROADMAP.md` Faz 1 madde 1.6 |
-| SAPMA-004 | 1 | `PROJECT_MEMORY.md` ANLIK DURUM bloğunun güncelleme sıklığı **faz başınadan alt görev başına** çekildi. Tam faz kaydı (11 başlık) ve kütükler değişmedi. | Bloğun tek amacı oturum kurtarma; kurtarmaya ihtiyaç duyulan an tam olarak faz ortası. On alt görevlik bir fazda blok yalnızca sonda yazılırsa, faz ortasında kopan oturum yapılan işi göremez — nitekim 1.4 sonunda dosya kendi içinde çelişiyordu (blok "Faz 0, 0 teknik borç" derken kütükte iki BORÇ kayıtlıydı). | ✅ `docs/spec/11-project-memory.md` §12.1/§12.3, `CLAUDE.md` K15, `docs/SESSION-TEMPLATE.md`, `docs/OUTPUT-FORMAT.md` |
-| SAPMA-003 | 1 | Teknoloji yığını sürümleri (`CLAUDE.md` §2.1) 2024 bilgisiyle kilitlenmişti; 2026-08-23'te npm registry doğrulamasıyla bugüne çekildi. TypeScript bilinçli olarak en yeni majöre (7.0.2) **çıkarılmadı**, `~6.0.3` ile pinlendi. `ioredis`/`bullmq` taze majörleri alınmadı (BORÇ-001, BORÇ-002). | TS 7.0 programatik derleyici API'si olmadan yayınlandı — kanıt: `typescript-eslint` peer aralığı `>=4.8.4 <6.1.0` ve `nest build`'in `createProgram()` çağrısı. `^6.0.3` yazılırsa pnpm 6.1.0'a çıkıp peer aralığının dışına taşar, bu yüzden `~`. TS 7.1 (programatik API) sonrası yeniden değerlendirilecek. | ✅ `CLAUDE.md` §2.1, `docs/ADR/0003-typescript-surum-kilidi.md`, `docs/spec/09-quality-protocol.md` §11.4 |
-| SAPMA-002 | Spec yazımı | Veri modeli "prosedürel birincil" → "gerçek birincil" (`DATA_MODE=full` varsayılan). KVKK/GDPR zorunludan koşullu hale geldi (`SERVER_MODE=public` ise). | Proje herkese açık yayınlanmayacak, kişisel kurulum. Sunucu Özel modda açılır, yalnızca izin listesi oynar. Gerçek veri estetik kalite için gerekli. | ✅ `CLAUDE.md` K9, `docs/spec/12-data-packs.md`, ROADMAP Faz 8/9/13 |
-| SAPMA-001 | Spec yazımı | Gizli nitelik sayısı 8 → 10 (`adaptability`, `temperament` eklendi) | Faz 34'teki yabancı lig uyum süreci ve Faz 44'teki diyalog tepki sistemi bu ikisi olmadan kurulamıyordu | ✅ `docs/spec/02-attributes.md` Bölüm 4.1 |
+| ID | Tür | Faz | Sapma | Gerekçe | Spec güncellendi mi |
+|---|---|---|---|---|---|
+| SAPMA-008 | `düzeltme` | 2 | `docs/spec/` bir şey isteyip `docs/ROADMAP.md`'nin hiçbir faza atamadığı **altı madde** tarama ile bulundu: `perf:budget` kapısı (G-01), Playwright kurulumu (G-02), `testcontainers` (G-03), `k6` (G-04), görsel regresyon (G-05), Sentry kotası izleme (G-06). | Bu sınıftan boşluk daha önce **iki kez** tesadüfen yakalanmıştı: Faz 1'de `arch:check` (spec her faz kapanışında çalıştırılmasını istiyordu ama kimse kurmuyordu, Ç3), Faz 2.0'da Sentry kota uyarısı. İki tesadüf desendir. Tek tek yakalamak yerine `spec/09` §11.4/§11.5 ve `spec/10` §13.5 satır satır ROADMAP'te arandı. En sert bulgu G-02: `pnpm test:e2e` spec'te "Faz 17+" derken Playwright kurulumu ROADMAP'te ilk kez **Faz 50**'de geçiyordu — 33 faz gecikme. | ✅ `docs/SPEC-COVERAGE-GAPS.md` [YENİ], `docs/ROADMAP.md` Faz 3/6/17/47/49/50 |
+| SAPMA-007 | `düzeltme` | 2 | `docs/spec/09` §11.4'ün *"`coverage.include` açıkça tanımlanmazsa eşikler anlamsızlaşır"* uyarısı **eksikti**: `include` yazılmış olsa bile **uzantı listesi** dar kalırsa eşik yine sessizce yalan söylüyor. | Ölçüm: desen `*.ts` iken `coverage-summary.json` 13 dosya sayıyordu, diskte 15 vardı — `apps/web/src/App.tsx` ve `main.tsx` rapora hiç girmiyordu. Desen `*.{ts,tsx,mts,cts}` yapılınca ikisi de girdi ve global kapsam **%75,55 → %62,38** düştü (satır). Yani kapı düzeltilmeden önce 13 puanlık bir yalan taşıyordu ve bu Faz 6'da yüzlerce bileşenle çığ olurdu. Tuzağın iki katmanı var: `include`'un varlığı (Faz 1'de çözüldü) ve kapsamı (burada çözüldü). | ✅ `docs/spec/09-quality-protocol.md` §11.4, `vitest.config.ts` (ölçüm yorumda) |
+| SAPMA-006 | `düzeltme` | 1 | *"Express 5 joker rota sözdizimi katılaştı; `/*` geçersiz"* varsayımı **kısmen yanlış** çıktı: NestJS 11'de eski sözdizimi uygulamayı çökertmiyor. | Ölçüm: `@Get('echo/*')` ile uygulama **başarıyla açıldı**. `LegacyRouteConverter` devreye girip `WARN Unsupported route path ... Attempting to auto-convert to "{*path}"` basıyor ve rotayı otomatik çeviriyor. Tuzak "patlayan" değil "sessizce dönüştürülen" cinsten — log okunmazsa fark edilmez ve dönüştürülmüş desen niyetten sapabilir. Doğru sözdizimi (`*splat`) elle yazılır, otomatik dönüştürücüye güvenilmez. | ✅ `apps/api/src/health.controller.ts` (ölçüm yorumda), `docs/ROADMAP.md` Faz 1 madde 1.8 |
+| SAPMA-005 | `düzeltme` | 1 | `docs/ADR/0004` §2'deki *"`forceConsistentCasingInFileNames` tek ve tutarlı ama yanlış harfli bir yazımı yakalamaz"* iddiası **ölçümle çürütüldü**. Gerçek boşluk yalnızca `.mjs`/`.js` dosyalarında. | `packages/shared/src/CasingProbe.ts` oluşturulup `./casingprobe.js` diye import edildi: `tsc` **TS1149** ile yakaladı (`include: ["src/**/*"]` gerçek dosyayı zaten programa aldığı için yanlış import ikinci bir yazım üretiyor). Aynı deney `.mjs` ile tekrarlandı: `typecheck` göremedi, Node çalıştırdı, yalnızca `arch:check` yakaladı. `arch:check` kuralı birincil değil **tamamlayıcı** savunma olarak konumlandırıldı. | ✅ `docs/ADR/0004` §2 (ölçüm tablosu + üç hatlı model), `docs/ROADMAP.md` Faz 1 madde 1.6 |
+| SAPMA-004 | `karar` | 1 | `PROJECT_MEMORY.md` ANLIK DURUM bloğunun güncelleme sıklığı **faz başınadan alt görev başına** çekildi. Tam faz kaydı (11 başlık) ve kütükler değişmedi. | Bloğun tek amacı oturum kurtarma; kurtarmaya ihtiyaç duyulan an tam olarak faz ortası. On alt görevlik bir fazda blok yalnızca sonda yazılırsa, faz ortasında kopan oturum yapılan işi göremez — nitekim 1.4 sonunda dosya kendi içinde çelişiyordu (blok "Faz 0, 0 teknik borç" derken kütükte iki BORÇ kayıtlıydı). | ✅ `docs/spec/11-project-memory.md` §12.1/§12.3, `CLAUDE.md` K15, `docs/SESSION-TEMPLATE.md`, `docs/OUTPUT-FORMAT.md` |
+| SAPMA-003 | `karar` | 1 | Teknoloji yığını sürümleri (`CLAUDE.md` §2.1) 2024 bilgisiyle kilitlenmişti; 2026-08-23'te npm registry doğrulamasıyla bugüne çekildi. TypeScript bilinçli olarak en yeni majöre (7.0.2) **çıkarılmadı**, `~6.0.3` ile pinlendi. `ioredis`/`bullmq` taze majörleri alınmadı (BORÇ-001, BORÇ-002). | TS 7.0 programatik derleyici API'si olmadan yayınlandı — kanıt: `typescript-eslint` peer aralığı `>=4.8.4 <6.1.0` ve `nest build`'in `createProgram()` çağrısı. `^6.0.3` yazılırsa pnpm 6.1.0'a çıkıp peer aralığının dışına taşar, bu yüzden `~`. TS 7.1 (programatik API) sonrası yeniden değerlendirilecek. | ✅ `CLAUDE.md` §2.1, `docs/ADR/0003-typescript-surum-kilidi.md`, `docs/spec/09-quality-protocol.md` §11.4 |
+| SAPMA-002 | `karar` | Spec yazımı | Veri modeli "prosedürel birincil" → "gerçek birincil" (`DATA_MODE=full` varsayılan). KVKK/GDPR zorunludan koşullu hale geldi (`SERVER_MODE=public` ise). | Proje herkese açık yayınlanmayacak, kişisel kurulum. Sunucu Özel modda açılır, yalnızca izin listesi oynar. Gerçek veri estetik kalite için gerekli. | ✅ `CLAUDE.md` K9, `docs/spec/12-data-packs.md`, ROADMAP Faz 8/9/13 |
+| SAPMA-001 | `karar` | Spec yazımı | Gizli nitelik sayısı 8 → 10 (`adaptability`, `temperament` eklendi) | Faz 34'teki yabancı lig uyum süreci ve Faz 44'teki diyalog tepki sistemi bu ikisi olmadan kurulamıyordu | ✅ `docs/spec/02-attributes.md` Bölüm 4.1 |
 
 ---
 
