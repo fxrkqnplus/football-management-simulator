@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-25 |
 | **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 3/11 alt görev (2.0, 2.0b, 2.1) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(shared): tipli hata sınıfları ve base-path ValidationError borcu` |
+| **Son commit** | `docs(memory): 2.1 CI sonucunu işle` (2.1'in işi `feat(shared): tipli hata sınıfları…` commit'inde) |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | 2.1 koşusu **ölçülmedi** — commit push edildikten sonra bakılacak. (2.0b koşusu `32786296752` dört işte de yeşildi.) |
+| **CI** | ✅ koşu `32788099672` — **dört işin dördü de yeşil**. ARM64 rakamları yerelle birebir aynı: 88,88 / 88,09 / 90,9 / 89,06 · 118 test / 11 dosya. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil |
 | **test** | ✅ **118 test / 11 dosya** (86 → 118: `errors` +21, `base-path` +3, motor hata kullanımı +3, `it.each` çoğaltmaları) |
 | **kapsam** | ✅ satır **%89,06** · ifade %88,88 · dal %88,09 · fonksiyon **%90,9** — eşik %70 |
