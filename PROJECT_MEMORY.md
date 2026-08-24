@@ -28,7 +28,7 @@
 | **Bloke eden var mı?** | **EVET — SORUN-001 karar bekliyor** (kapsam eşiği; ayrıntı aşağıda) |
 | **Son commit** | `chore(faz-2): kapsam kapısını onar, bağımlılık kararlarını ve spec boşluklarını kaydet` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | ⚠️ bu dalda henüz koşmadı — `test:coverage` adımı SORUN-001 yüzünden kırmızı dönecek |
+| **CI** | 🔴 koşu `32784385467` — **yalnızca** "Testler ve kapsam eşikleri" adımı kırıldı, amd64 ve arm64'te **birebir aynı** rakamlarla (satır %69,72 · fonksiyon %66,66). Diğer altı adım (typecheck, lint, format, build, arch:check) iki mimaride de ✅. Beklenen sonuç — SORUN-001. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (pnpm 11.23.0 altında) |
 | **test** | ✅ **76 test / 6 dosya** (70 → 76: `health.controller` +5, `app.module` +1) |
 | **kapsam** | 🔴 satır **%69,72** · ifade %70,68 · dal %73,68 · fonksiyon **%66,66** — **eşik %70, iki metrik altında** |
