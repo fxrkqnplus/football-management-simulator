@@ -24,20 +24,60 @@
 | **Aktif faz / alt görev** | **Faz 2 — alt görev 2.6 bitti, SIRADA 2.7** |
 | **Son tamamlanan** | ✅ **2.6** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen · `correlationId` · dev/prod yığın izi |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 12/15 alt görev (…2.5a, 2.5b, 2.6) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 12/15 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b, 2.3c, 2.4, 2.5a, 2.5b, 2.6) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(web): üç katmanlı ErrorBoundary hiyerarşisi ve çökme raporlaması` |
+| **Son commit** | `docs: bağlam ölçümü kuralı, bağlama bağlı sınıflandırma dersi ve 2.7 devir teslimi` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ✅ 2.5b koşusu `32895052144` yeşil. ⏳ 2.6 koşusu henüz işlenmedi. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
-| **test** | ✅ **438 test / 31 dosya** (2.6: +24 test, +2 dosya) |
+| **CI** | ✅ 2.6 koşusu `70f9225` için **henüz işlenmedi** — push edildi, sonuç yeni oturumda ANLIK DURUM'a yazılacak. Son yeşil koşu: `32895052144` (2.5b). |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle, `rm -rf .turbo/cache` sonrası) |
+| **test** | ✅ **438 test / 31 dosya** |
 | **kapsam** | ✅ satır **%93,59** · ifade %93,63 · dal %88,12 · fonksiyon **%95** — eşik %70 |
-| **Web paketi** | **320.641 bayt** (ham) — 2.6'da 319.091'den **+1.550 (%0,49)** |
-| **API imajı** | **423 MB** (`docker images`) — 2.5a ölçümü. ⚠️ `inspect .Size` FARKLI şey ölçüyor. |
-| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 · @sentry/node + @sentry/react 10.70.0 |
+| **Web paketi** | **320.641 bayt** (ham) — 2.6'da 319.091'den +1.550 (%0,49) |
+| **API imajı** | **423 MB** (`docker images` ölçüsü, 2.5a). ⚠️ `docker image inspect .Size` FARKLI bir şey ölçüyor (86 MB), karıştırma. |
+| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 · @sentry/node + @sentry/react **10.70.0** |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · **BORÇ-003** + BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
-| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.6 yeni SAPMA açmadı; **Karar 18/19/20** ROADMAP 2.6'ya yazıldı |
+| **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
+| **SAPMA sayısı** | **15** (SAPMA-001…015) |
+| **Faz 2 kabul kriterleri** | **1 ✅** (2.5b) · **2 ✅** (2.3c) · **3 ⬜** (2.8) · **4 ⬜** (2.7) · **5 ⬜** (2.7) |
+| **Sentry kotası** | **3 / 5.000 olay** bu ay kullanıldı (aşağıda dökümü) |
+
+---
+
+### 🔑 BU OTURUMDA ÖĞRENİLEN AMA HİÇBİR DOSYADA YAZILI OLMAYAN ŞEYLER
+
+> Soru bilerek soruluyor: sohbette kalan her ölçüm kayba gider.
+
+**① SENTRY KOTASI — bu ay 3 gerçek olay gönderildi.** Kota **5.000/ay**
+(`spec/10` §13.5), yani **%0,06** kullanıldı. Döküm:
+| # | Nereden | Kanıt |
+|---|---|---|
+| 1 | Sunucu, `EngineError` (2.5b doğrulaması) | `event_id 6995813e6c244248bfed1e438697b156`, ingest **200** |
+| 2 | Tarayıcı, API kapalıyken 502 → `DataProviderError` (2.5b) | tek zarf, ingest **200** |
+| 3 | Tarayıcı, `ErrorBoundary` çökmesi (2.6) | tek zarf, ingest **200** |
+`.env`'de **GERÇEK DSN var** — yerel her çalıştırma gerçek olay gönderebilir.
+Denemede DSN'i geçici boşalt veya yerel yakalama sunucusuna yönlendir.
+
+**② `/context` MODELE OTOMATİK GELMİYOR.** Yerel slash komutu; çıktısı ancak
+kullanıcı çalıştırınca ulaşıyor. Yoksa yüzde **yazılmaz** (günlük #49,
+`docs/OUTPUT-FORMAT.md`).
+
+**③ `MSYS_NO_PATHCONV=1`** — Git Bash `-e PUBLIC_BASE_PATH=/fms` argümanını
+`C:/Program Files/Git/fms`'e çeviriyor ve hata **rota/Sentry hatası gibi**
+görünüyor (günlük #40).
+
+**④ Vitest `define` ≠ Vite `define`.** `vitest.config.ts` web projesine
+ayrıca verilmesi gerekiyor; `vite.config.ts`'e eklenen her yeni derleme
+zamanı sabiti orayı da ilgilendiriyor (günlük #47).
+
+**⑤ Docker Desktop kapalı başlıyor.** Konteyner işi olan alt görevlerde
+`Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"` ile
+açılıp hazır olması beklenmeli (~30 sn).
+
+**⑥ Sentry entegrasyon adları platforma göre DEĞİŞİYOR** — Node
+`ProcessSession`, tarayıcı `BrowserSession`. Yeni bir entegrasyon
+kaldırılacaksa **ölçülerek** bulunur, kopyalanmaz.
+
+---
 
 > ✅ **2.6 GERÇEK TARAYICIDA UÇTAN UCA KANITLANDI.**
 > API'ye `status` alanını **nesne** döndüren sahte sunucu kondu, React render sırasında
@@ -49,8 +89,6 @@
 > ⚠️ **KALAN DOLAYLI KANIT (2.5b'den devam):** tarayıcı zarfının **içindeki** etiket hâlâ
 > doğrudan gözlenmedi (gövde ikili; kısıtlayıcı aynı parmak izli ikinci denemeyi bilinçli
 > engelliyor). Birim testleri + sunucudaki aynı etiket şekli destekliyor.
->
-> **Faz 2 kabul kriterleri:** **1 ✅** · **2 ✅** · 3 ⬜ (2.8) · 4 ⬜ (2.7) · 5 ⬜ (2.7).
 
 > ✅ **FAZ 2'NİN 2. KABUL KRİTERİ KAPANDI (2.3c).**
 > Dört halka gerçek tarayıcı + derlenmiş API ile kanıtlandı: tarayıcı
@@ -115,54 +153,68 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.7
 
-**2.7 kapsamı (ROADMAP):** `debugTrace` + `assertInvariant` + `measure` (K7).
-**İlk ikisi SAF — motor kullanacak.** Faz 2'nin **4. ve 5. kabul kriteri**
-burada kapanıyor.
+**İlk iş:** 2.6 CI koşusunun (`70f9225`) sonucunu kontrol edip bu bloğa işle.
 
-**2.7'ye girerken bilinmesi gerekenler:**
+**2.7 kapsamı:** `debugTrace` + `assertInvariant` + `measure` (K7).
+**Faz 2'nin 4. VE 5. kabul kriteri burada kapanıyor.**
 
-- ⚠️ **`debugTrace` ve `assertInvariant` `packages/shared` KÖKÜNDE ve SAF
-  olmalı** — motor onları kullanacak (K3). Hiçbir Node API'si, `Date.now()`,
-  `Math.random()`, modül düzeyi değiştirilebilir durum yok. `arch:check`
-  motorun `@fms/shared`'dan **belirli adları** almasını zaten denetliyor
-  (`engine-forbidden-import`).
-- ⚠️ **Karar 6 — `measure` motora YASAK.** `perf.ts` kökte kalıyor (izomorfik,
-  `performance.now()`), ama `arch:check`'in `ENGINE_FORBIDDEN_SHARED_EXPORTS`
-  listesine **`measure` eklenecek**: motor kendini ölçmez, ölçüm motoru
-  DIŞARIDAN sarmalar. Liste bugün yalnızca `createCorrelationId` içeriyor.
-  **Kanaryayı da güncelle** — `spec/09` §11.5: kural sayısı ile kanarya
-  kapsamı eşit olmalı, yoksa kural sessizce körelir.
-- ⚠️ **`assertInvariant` dev/prod ayrımı `NODE_ENV` KOKLAMAZ** (Faz 1 hata
-  #10). 2.6'da aynı problem `__FMS_DEV__` ile çözüldü ama o **tarayıcıya**
-  özgü (Vite `define`). Motor ve sunucu için ayrı bir açık bayrak gerekiyor —
-  kararını gerekçesiyle ver. ROADMAP doğrulaması net: **İKİ AYRI DERLEME
-  alınır ve ikisi de ÇALIŞTIRILIR.**
-- **`measure` bütçe aşımında ne yapacak?** 5. kriter: "1 ms bütçe / 50 ms
-  fonksiyon → uyarı; 500 ms bütçe → sessiz". Uyarı `logger.warn` ile
-  gidecekse `measure` logger'a bağımlı olur ve **saf kalmaz** — bağımlılık
-  yönünü baştan kararlaştır (2.3c'deki `contextProvider` deseni bir örnek:
-  modül logger'ı bilmez, bir fonksiyon çağırır).
-- **`debugTrace` şekli `spec/09` §11.2'de yazılı** — `{module, input, steps[],
-  output, summary, seed?}`. Uydurma, oradan al.
-- **Paket:** taban **320.641 ham bayt**. `debugTrace`/`assertInvariant` saf ve
-  küçük; artış beklenmedik ölçüde büyükse sebebini bul.
+**1. Üretilecek/değişecek dosyalar (ROADMAP "Ana dosyalar"dan):**
+- `packages/shared/src/debug-trace.ts` [YENİ] + testi — **SAF**, motor kullanacak
+- `packages/shared/src/assert.ts` [YENİ] + testi — **SAF**, motor kullanacak
+- `packages/shared/src/perf.ts` [YENİ] + testi — izomorfik ama **motora YASAK**
+- `packages/shared/src/index.ts` — üç modülün dışa aktarımı
+- `tools/arch-check/index.mjs` — `ENGINE_FORBIDDEN_SHARED_EXPORTS`'a **`measure`**
+- `tools/arch-check/arch-check.test.mjs` — **kanarya fixture'ı da güncellenir**
+
+**2. `debugTrace` şekli UYDURULMAZ** — `spec/09` §11.2'de yazılı:
+`{ module, input, steps[{name,value,reason?}], output, summary, seed? }`.
+`summary` **Türkçe, insan okunabilir tek cümle**.
+
+**3. ⚠️ Karar 6 — `measure` motora yasak, KANARYA DA GÜNCELLENİR.**
+`arch:check`'in `ENGINE_FORBIDDEN_SHARED_EXPORTS` listesi bugün yalnızca
+`createCorrelationId` içeriyor; `measure` eklenecek. `spec/09` §11.5 kuralı
+gereği **kural sayısı ile kanarya kapsamı eşit olmalı** — fixture'a
+`measure` importu eden bir motor dosyası konur, yoksa kural sessizce körelir.
+Kapsam değişirse ANLIK DURUM'daki **`arch:check` kapsamı bloğu** da güncellenir
+(bugün: 7 kural · 7 uzantı · 9 katman / 13 bağ).
+
+**4. ⚠️ Kriter 4 — İKİ AYRI DERLEME, İKİSİ DE ÇALIŞTIRILIR.**
+*"`assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor."*
+ROADMAP doğrulaması net ve **sahtelenerek kanıtlanamaz** (2.6'nın dersi,
+günlük #48): bayrak derlemeye gömülüyse testte değerini değiştirmek yalnızca
+testi yeşile boyar. İki derleme alınır, ikisi de koşulur, davranış farkı
+**çıktıdan** okunur.
+**`NODE_ENV` KOKLANMAZ** (Faz 1 hata #10). 2.6'da tarayıcı için `__FMS_DEV__`
+Vite `mode`'undan türetildi — ama o **tarayıcıya özgü**. Motor ve sunucu için
+ayrı bir açık bayrak gerekiyor; **kararı gerekçesiyle ver.**
+
+**5. Kriter 5 — sayısal senaryo ROADMAP'te yazılı:**
+*1 ms bütçe / 50 ms fonksiyon → **uyarı basılır**; 500 ms bütçe → **sessiz**.*
+İkisi de test edilir.
+
+**6. ⚠️ `measure` SAF KALAMAZ ise bağımlılık yönünü baştan kararlaştır.**
+Uyarı `logger.warn` ile gidecekse `measure` logger'a bağımlı olur. 2.3c'de
+aynı problem çözüldü ve deseni hazır: **modül logger'ı bilmez, bir fonksiyon
+çağırır** (`contextProvider: getLogContext`). Bağımlılığı çağıran taraf kurar.
+
+**7. Paket:** taban **320.641 ham bayt**. Üçü de saf ve küçük; artış
+beklenmedik ölçüde büyükse sebebini bul. Kontrol deneyi (2.3b deseni):
+import kullanılmazsa paket değişmemeli.
 
 **Kapılar (bu sırayla):**
 `rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
 → `arch:check` → `format:check`
 
 **Çalışan sistemi ayağa kaldırma — İKİ KOMUT DA KRİTİK:**
-API `--import` olmadan açılırsa Sentry sessizce kurulmaz (2.5a).
+API `--import` olmadan açılırsa Sentry **sessizce** kurulmaz (2.5a); tek
+belirti açılış logundaki `"sentry": false`.
 `vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli (Faz 1 #8).
 
-⚠️ **`.env`'de GERÇEK SENTRY DSN VAR.** Yerel çalıştırma gerçek olay gönderir
-ve **5.000 olay/ay** kotası yanar. Denemede DSN'i geçici boşalt ya da yerel
-yakalama sunucusuna yönlendir (`sentry-envelope.http.test.ts` deseni).
-Kısıtlayıcı (5 dk, Karar 16) bir miktar koruyor ama **döngüye sokma**.
+⚠️ **`.env`'de GERÇEK SENTRY DSN VAR** — kota durumu yukarıda (3/5.000).
+Denemede DSN'i geçici boşalt veya yerel yakalama sunucusuna yönlendir
+(`apps/api/src/sentry-envelope.http.test.ts` deseni hazır).
 
-**Windows'ta Docker'a argüman geçerken** `MSYS_NO_PATHCONV=1` (günlük #40).
-
-**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **48 satır**.
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **49 satır**.
 
 **📦 PAKET TABANI: 320.641 ham bayt (2.6).** 2.6 artışı yalnızca **+1.550 (%0,49)**. Geçmiş: 229.320 (2.2a) → 232.413 (2.3b,
 `api.ts` + tarayıcı logger'ı) → **319.091** (2.5b, `@sentry/react` **+86.678 / %37,3**).
@@ -437,6 +489,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 49 | 2.6 | **UYDURULMUŞ ÖLÇÜM — günlük #9'un birebir tekrarı.** 2.5b ve 2.6 raporlarına bağlam yüzdesi olarak "%42" ve "%46" yazdım; gerçek değer **%81**di (810,4k / 1M) | `/context` bir **yerel slash komutu**: çıktısı kullanıcının terminaline gidiyor ve modele ancak kullanıcı onu çalıştırdığında ulaşıyor. O turlarda okuyacak bir satır **yoktu** — yani yanlış satırı almadım, rakamı **uydurdum**. `Messages` alt kalemi bile tek başına %75,6'ydı | `docs/OUTPUT-FORMAT.md`'ye kural: yüzde `/context` TOPLAM oranından alınır, alt kalemden veya tahminden **asla**; çıktı yoksa **"ölçülemedi" yazılır** | **Ders: bir kuralın yazılı olması, YENİ BİR ALANDA hatırlanacağı anlamına gelmiyor.** `spec/11` §12.3 ("ölçüm sonucu alanları tahminle doldurulmaz") günlük #9'dan beri yazılıydı ve ihlal edildi — çünkü kural "faz kaydı alanları" bağlamında öğrenilmişti, "rapor alanları" bağlamında değil. Kural bu yüzden **ihlal edildiği yerin yanına** ikinci kez yazıldı. Fark kritikti: %46 sanıp devam etseydik oturum ortasında bağlam duvarına toslardık |
 | 48 | 2.6 | **Üretimdeki davranış testte sahtelenemedi** — `__FMS_DEV__` false yapılıp "yığın izi yok" iddiası test edilemedi | Değer Vite `define` ile **derlemeye gömülü**, çalışma zamanı değişkeni değil. `vi.stubGlobal` ile `false` yapmak üretimi taklit etmez; yalnızca testi yeşile boyardı | Test dosyasına gerekçe yazıldı ve **gerçek kanıt üretim paketinde dize taramasıyla** alındı: `error-stack` 0 · `pre-wrap` 0 · `error.stack` 0 | **Ders: derleme zamanı sabitlerinin iddiaları çalışma zamanı testiyle kapatılamaz.** Sahtelemek burada "çalışıyormuş gibi yapan test" üretirdi. Aynı sınıf 2.8'de de gelecek (Karar 3: küçültme sonrası panel yokluğu grep'le kanıtlanamaz) |
 | 47 | 2.6 | `App.test.tsx` ve `main.test.tsx` **dolaylı olarak** kırıldı: `ReferenceError: __FMS_DEV__ is not defined` | 2.6'dan sonra `ErrorBoundary` ağacın içinde, yani `<App/>` render eden her test onu da render ediyor ve o da derleme zamanı sabiti okuyor | `vitest.config.ts` web projesine `define: { __FMS_DEV__: 'true' }` — tek yerde, her test dosyası için | **Ders: `define` ile gömülen her yeni sabit, testlerin sahtelemesi gereken yeni bir sözleşmedir** ve bileşen ağacına giren her yeni düğüm o sözleşmeyi **uzaktaki** testlere de bulaştırır. Günlük #42'nin bir üst seviyesi |
 | 46 | 2.6 | **2.5b'nin modelleme dersi ikinci kez ısırdı:** bir bileşen `DomainError` fırlatırsa `beforeSend` onu "kullanıcı hatası" sayıp düşürecekti | Sınıflandırma **API sözleşmesinden akan işlenmiş** hatalar için yazılmıştı; kaçıp arayüzü yıkan bir hata bambaşka bir şey ama aynı tipi taşıyor | **Karar 18:** `ErrorBoundary` yakaladığını `crash` etiketiyle veriyor, `shouldReport` kullanıcı-hatası elemesinden ÖNCE ona bakıyor. Kontrol testi de yazıldı: etiket olmadan aynı hata düşüyor | **Ders: aynı tip, farklı bağlamda farklı anlam taşıyabilir.** 2.5b'de "sınıflandırma onu tüketen kural yazılana kadar yanlış olduğunu belli etmez" demiştik; burada sınıflandırma doğruydu ama **kapsamı** eksikti — kural ikinci bir bağlamda kullanılınca görüldü |

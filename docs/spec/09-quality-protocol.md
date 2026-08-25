@@ -218,6 +218,36 @@ Tekrar eden kural, iki yerden birinde gevşetilince sessizce ölür.
 - Bir dosya `@fms/X` import ediyorsa o paketin `package.json`'ında **bildirilmiş** olmalı → HATA
 - Kısıtlı alt yol (`@fms/shared/server`) yasak katmanda kullanılıyorsa → HATA
 
+### ⚠️ BİR HATA SINIFLANDIRMASI BAĞLAMDAN BAĞIMSIZ DEĞİLDİR
+
+**KURAL.** Aynı hata tipi, **kaynağına göre** farklı işlem görebilir.
+Sınıflandırmayı tüketen her kural, tipi sormakla yetinmemeli, **bağlamı da**
+sormalıdır. "Bu tip şu listede mi?" yeterli bir soru değildir; doğrusu
+"bu tip, **bu bağlamda**, şu listede mi?"
+
+**İki ölçüm, iki faz, aynı sınıf:**
+
+| Faz | Belirti | Kök neden |
+|---|---|---|
+| **2.5b** | `beforeSend` **her 500'ü sessizce düşürüyordu** | `api.ts` başarısız HTTP yanıtlarının hepsini `DomainError` yapıyordu; `DomainError` "kullanıcı hatası" listesinde. Sunucu çökse Sentry'de hiçbir şey görünmezdi. |
+| **2.6** | Arayüzü yıkan bir `DomainError` de düşecekti | Sınıflandırma **API sözleşmesinden akan işlenmiş** hatalar için yazılmıştı. Kaçıp render'ı çökerten bir hata bambaşka bir şeydir ama **aynı tipi taşır**. |
+
+İki düzeltme de aynı biçimde: 2.5b'de **tip düzeltildi** (5xx →
+`DataProviderError`), 2.6'da **bağlam eklendi** (`crash` etiketi elemeyi aşar).
+
+**Neden bu sınıf hata sessizdir:** sınıflandırma yazıldığı anda doğrudur ve
+onu tüketen bir kural yokken **yanlış olduğunu belli etmez**. Hata ancak
+ikinci bir tüketici ortaya çıkınca görünür — ve o ana kadar geçen sürede
+sınıflandırmaya güvenen her şey sessizce yanlış davranır.
+
+**Pratik sonuç — bir sınıflandırmayı tüketen kural yazarken sorulacak iki soru:**
+1. *Bu kural, tipin geldiği **bütün** yolları düşünerek mi yazıldı?*
+2. *Bir yol yanlış tarafa düşerse **hangi test kırılır?*** Cevap "hiçbiri"yse
+   kural değil, temenni yazılmıştır.
+
+İkinci soru için kontrol testi zorunludur: 2.6'da `crash` etiketinin gerçekten
+fark yarattığı, **etiketsiz aynı hatanın düştüğü** ayrıca sınanarak kanıtlandı.
+
 ### ⚠️ BİR KURALIN BİRİM TESTİ, KABLOLAMASININ TEST EDİLDİĞİ ANLAMINA GELMEZ
 
 **KURAL.** Bir kuralın saf fonksiyonunu doğrulayan birim testi, o kuralın
