@@ -1,6 +1,7 @@
 import { basePathConfig } from '@fms/shared';
 import { useEffect, useState } from 'react';
 
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { apiRequest } from './lib/api.js';
 
 /**
@@ -19,7 +20,26 @@ interface HealthResponse {
   readonly cookiePath: string;
 }
 
+/**
+ * Üç katmanlı sınır hiyerarşisinin ORTA ve İÇ katmanları — 2.6.
+ *
+ * `main.tsx` **kök** sınırı kuruyor. Burada:
+ *   • **ekran** sınırı — bir ekran çökerse kabuk ayakta kalsın
+ *   • **bileşen** sınırı — tek bir hücre çökerse ekranın geri kalanı dursun
+ *
+ * ⚠️ ARADAKİ HER ŞEY KAYITSIZ ALANDIR ve bu bilinçli: sınır koymadığımız bir
+ * yerde patlayan hata **bir üst sınıra tırmanır**. Testler bunu ayrıca
+ * doğruluyor — hiyerarşinin değeri tam olarak bu tırmanmada.
+ */
 export function App(): React.ReactElement {
+  return (
+    <ErrorBoundary name="ekran" title="Bu ekran yüklenemedi">
+      <BasePathProbeScreen />
+    </ErrorBoundary>
+  );
+}
+
+function BasePathProbeScreen(): React.ReactElement {
   const config = basePathConfig();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +94,13 @@ export function App(): React.ReactElement {
           </tr>
           <tr>
             <td>API durumu</td>
-            <td data-testid="api-status">{error ?? health?.status ?? 'bekleniyor'}</td>
+            <td>
+              {/* BİLEŞEN sınırı — hiyerarşinin en içi. Bu hücre çökerse
+                  tablonun geri kalanı ayakta kalır; ekran sınırına tırmanmaz. */}
+              <ErrorBoundary name="bilesen" title="Bu alan gösterilemedi">
+                <span data-testid="api-status">{error ?? health?.status ?? 'bekleniyor'}</span>
+              </ErrorBoundary>
+            </td>
           </tr>
           <tr>
             <td>çerez</td>

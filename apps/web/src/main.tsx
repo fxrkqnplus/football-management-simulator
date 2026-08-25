@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 
 import { App } from './App.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { setupBrowserSentryFromBuild } from './lib/sentry.js';
 
 /**
@@ -29,8 +30,12 @@ if (container === null) {
 createRoot(container).render(
   <StrictMode>
     {/* basename tek kaynaktan; elle '/fms' yazılmaz (K6). */}
-    <BrowserRouter basename={basePathConfig().routerBasename}>
-      <App />
-    </BrowserRouter>
+    {/* KÖK sınır — buraya kadar tırmanan hiçbir şey beyaz ekrana dönüşmesin.
+        Üç katmanın en dışı; alttakiler yakalayamazsa son durak burası. */}
+    <ErrorBoundary name="kok" title="Uygulama beklenmedik bir hatayla karşılaştı">
+      <BrowserRouter basename={basePathConfig().routerBasename}>
+        <App />
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 );

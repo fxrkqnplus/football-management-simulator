@@ -650,9 +650,54 @@ docs/ADR/0001-monorepo-secimi.md
       **Paket:** taban **232.413 ham bayt**; `@sentry/react` ilk kez import edilince büyüyecek.
       Soğuk derlemeyle ölçülüp artış gerekçelendirilir. Kontrol deneyi (2.3b deseni): import
       yazılıp **kullanılmazsa** paket değişmemeli.
-- [ ] **2.6** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen + "Hata bildir" (`correlationId` ile).
+- [x] **2.6** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen + "Hata bildir" (`correlationId` ile).
+      **Sonuç:** yapıldı. Paket **319.091 → 320.641 ham bayt (+1.550, %0,49)** — sınır küçük,
+      beklendiği gibi.
+      **GERÇEK TARAYICIDA UÇTAN UCA KANITLANDI.** API'ye `status` alanını **nesne** döndüren
+      sahte bir sunucu kondu; React render sırasında patladı ve:
+      ① **bileşen** sınırı yakaladı ("Bu alan gösterilemedi") · ② tablonun **geri kalanı
+      ayakta kaldı** (base, çerez, correlationId satırları render edilmeye devam etti) —
+      hiyerarşinin bütün değeri bu · ③ ekrandaki **hata kodu**
+      `01a03aa5-6f0b-78bc-ad9d-4b827b88acab`, son isteğin `correlationId`'siyle **birebir
+      aynı** (Karar 19 çalışıyor) · ④ **tek** zarf gerçek Sentry'ye gitti, **HTTP 200** ·
+      ⑤ ekranda yığın izi **yok**.
+      **Karar 20 ÜRETİM PAKETİNDE ÖLÇÜLDÜ:** `error-stack` **0** · `whiteSpace:"pre-wrap"`
+      **0** · `error.stack` **0** eşleşme. Dev dalı derlemede tamamen elendi. Sınırın diğer
+      parçaları yerinde (`error-boundary-` 1, `Tekrar dene` 1, `react-render` 1, `crash` 3).
+      ⚠️ Bu, **sahtelenerek kanıtlanamayacak** bir iddiaydı: `__FMS_DEV__` derlemeye gömülü,
+      testte `false` yapmak yalnızca testi yeşile boyardı. Gerçek kanıt dize taraması.
+      **Kendi sınıfımız yazıldı, `@sentry/react`'inki kullanılmadı** — üç şart onun
+      sözleşmesinin dışında: `crash` etiketi (Karar 18), `correlationId` gösterimi (Karar 19),
+      yığın izinin dev/prod ayrımı (Karar 20). Sarmalasaydık iki katman `componentDidCatch`
+      çalıştırır ve hangisinin ne raporladığı belirsizleşirdi.
+      **`vitest.config.ts` web projesine `define` eklendi:** 2.6'dan sonra sınır ağacın
+      içinde, yani `App.test.tsx`/`main.test.tsx` dahil `ErrorBoundary` render eden HER test
+      `__FMS_DEV__` olmadan `ReferenceError` ile kırılıyordu.
+      **⚠️ KALAN DOLAYLI KANIT (2.5b'den devam):** tarayıcı zarfının **içindeki** etiket hâlâ
+      doğrudan gözlenmedi — gövde ikili ve kısıtlayıcı (Karar 16) aynı parmak izli ikinci
+      denemeyi bilinçli olarak engelliyor. Etiketin varlığı birim testleriyle ve sunucuda
+      **aynı etiket şeklinin** gerçek Sentry olayından okunmasıyla destekleniyor.
       **Negatif test:** kayıtsız bir `ErrorBoundary`'nin hatası köke tırmanıyor mu.
       Metinler Türkçe sabit; i18n Faz 5'te → **BORÇ-003**.
+      **Karar 18 — ÇÖKME, "kullanıcı hatası" elemesini AŞAR.** 2.5b'nin dersi burada tekrar
+      ediyor: bir bileşen `DomainError` fırlatırsa `isUserFaultError` onu kullanıcı hatası
+      sayıp Sentry'den **düşürürdü**. Oysa arayüzü yıkan bir `DomainError` tam olarak bir
+      hatadır — bileşen onu işlemeliydi. Sınıflandırma **API sözleşmesinden akan işlenmiş**
+      hatalar için geçerli, kaçıp render'ı çökertenler için değil. Boundary yakaladığını
+      `crash` etiketiyle veriyor; `shouldReport` kullanıcı-hatası elemesinden **önce** ona
+      bakıyor. Tarayıcıya özgü asimetri (`denyUrls` gibi), sunucuda karşılığı yok.
+      **Karar 19 — "Hata bildir" SON İSTEK kimliğini taşır.** Render hatasının HTTP isteği
+      yok. Çıplak yeni kimlik üretmek zinciri koparırdı: çökme çoğu zaman başarısız bir
+      istekten SONRA gelir ve asıl değer ikisini bağlamakta. `api.ts` her istekte son kimliği
+      kaydeder; çökme anında varsa o kullanılır, hiç istek olmadıysa taze üretilir —
+      **hiçbir durumda kimliksiz kalınmaz**.
+      **Karar 20 — dev/prod ayrımı `__FMS_DEV__`, Vite `mode`'undan.** `NODE_ENV`
+      **koklanmıyor**: değer derleme zamanında Vite'ın açık `mode` girdisinden türetilip
+      `define` ile gömülüyor. Faz 1 hata #9'un tuzağı çalışma zamanında
+      `process.env.NODE_ENV` okumaktı; bu onun tersi. Yığın izi **yalnızca** dev'de ekranda.
+      **Ölçülecek:** (a) üç katman ayrı ayrı yakalıyor mu · (b) kayıtsız hata köke tırmanıyor
+      mu · (c) fallback'in kendisi patlarsa ne oluyor · (d) üretim derlemesinde yığın izi
+      ekranda YOK · (e) çökme Sentry'ye gerçekten gidiyor mu.
 - [ ] **2.7** `debugTrace` + `assertInvariant` + `measure` (K7). İlk ikisi **saf** — motor kullanacak.
       **Karar 6:** `perf.ts` kökte kalır (izomorfik, `performance.now()`), ama `arch:check`'e
       "motor `perf.js` import edemez" kuralı eklenir — motor K3 gereği kendini ölçemez; ölçüm motoru

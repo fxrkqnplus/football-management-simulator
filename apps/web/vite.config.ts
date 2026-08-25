@@ -69,6 +69,18 @@ export default defineConfig(({ mode }) => {
       __FMS_SENTRY_DSN__: JSON.stringify(env['SENTRY_DSN'] ?? ''),
       __FMS_SENTRY_RELEASE__: JSON.stringify(env['SENTRY_RELEASE'] ?? ''),
       __FMS_SERVER_MODE__: JSON.stringify(env['SERVER_MODE'] ?? 'private'),
+      /**
+       * Geliştirme mi? — Karar 20 (2.6). Yığın izinin ekranda gösterilip
+       * gösterilmeyeceğini bu belirliyor.
+       *
+       * ⚠️ `NODE_ENV` KOKLANMIYOR. Değer Vite'ın **açık `mode` girdisinden**
+       * geliyor (`vite build` varsayılanı `production`, `vite dev` ise
+       * `development`) ve derleme zamanında pakete gömülüyor. Faz 1 hata
+       * #9'un tuzağı bunun TERSİYDİ: çalışma zamanında `process.env.NODE_ENV`
+       * okunuyordu ve Vite onu derleme sırasında kendisi değiştirdiği için
+       * kapı yanlış şeyi ölçüyordu.
+       */
+      __FMS_DEV__: JSON.stringify(mode !== 'production'),
     },
     build: {
       /**

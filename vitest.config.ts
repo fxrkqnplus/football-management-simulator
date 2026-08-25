@@ -84,6 +84,29 @@ export default defineConfig({
         },
       },
       {
+        /**
+         * ⚠️ `define` — derleme zamanı sabitleri testlerde de gerekli.
+         *
+         * `vite.config.ts` bunları üretim paketine gömüyor; Vitest o
+         * yapılandırmayı kullanmadığı için burada ayrıca verilmesi gerekiyor.
+         * Aksi hâlde `ErrorBoundary` render edilen HER test
+         * `ReferenceError: __FMS_DEV__ is not defined` ile kırılır — ve bu
+         * `App.test.tsx`/`main.test.tsx` dahil, çünkü 2.6'dan sonra sınır
+         * ağacın içinde.
+         *
+         * `true` seçildi: testler geliştirme davranışını (yığın izi görünür)
+         * sınıyor. **Üretimdeki YOKLUĞU burada sahtelenerek kanıtlanamaz** —
+         * değer derlemeye gömülü olduğu için sahtelemek yalnızca testi yeşile
+         * boyardı. Gerçek kanıt üretim paketinde dize taramasıyla alınıyor
+         * (2.6 duman testi).
+         *
+         * Yalnızca `__FMS_DEV__` burada: diğer sabitleri
+         * (`__FMS_BASE_PATH__`, `__FMS_SENTRY_*`) ilgili testler `vi.stubGlobal`
+         * ile **senaryo başına** veriyor, çünkü değerleri testten teste değişiyor.
+         */
+        define: {
+          __FMS_DEV__: 'true',
+        },
         test: {
           name: 'web',
           root: './apps/web',

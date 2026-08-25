@@ -21,35 +21,36 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.5 (a+b) bitti, SIRADA 2.6** |
-| **Son tamamlanan** | ✅ **2.5b** Sentry web tarafı — `@sentry/react` · gürültü filtreleri · paket ölçümü |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.6 bitti, SIRADA 2.7** |
+| **Son tamamlanan** | ✅ **2.6** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen · `correlationId` · dev/prod yığın izi |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 11/15 alt görev (…2.4, 2.5a, 2.5b) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 12/15 alt görev (…2.5a, 2.5b, 2.6) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(web,shared): tarayıcı Sentry kurulumu, ortak telemetri politikası ve olay kısıtlaması` |
+| **Son commit** | `feat(web): üç katmanlı ErrorBoundary hiyerarşisi ve çökme raporlaması` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ✅ 2.5a koşusu `32891495802` yeşil. ⏳ 2.5b koşusu henüz işlenmedi. |
+| **CI** | ✅ 2.5b koşusu `32895052144` yeşil. ⏳ 2.6 koşusu henüz işlenmedi. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
-| **test** | ✅ **414 test / 29 dosya** (2.5b: +37 test, +2 dosya) |
-| **kapsam** | ✅ satır **%93,28** · ifade %93,33 · dal %89,01 · fonksiyon **%94,64** — eşik %70 |
-| **Web paketi** | **319.091 bayt** (ham) — 2.5b'de 232.413'ten **+86.678 (%37,3)**. Kontrol deneyi: import kullanılmazken 232.754, yani artışın tamamı gerçek kullanıma ait. |
-| **API imajı** | **423 MB** (`docker images`) — 2.5a'da ölçüldü. ⚠️ `docker image inspect .Size` FARKLI bir şey ölçüyor, karıştırma. |
-| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 · **@sentry/node + @sentry/react 10.70.0** |
+| **test** | ✅ **438 test / 31 dosya** (2.6: +24 test, +2 dosya) |
+| **kapsam** | ✅ satır **%93,59** · ifade %93,63 · dal %88,12 · fonksiyon **%95** — eşik %70 |
+| **Web paketi** | **320.641 bayt** (ham) — 2.6'da 319.091'den **+1.550 (%0,49)** |
+| **API imajı** | **423 MB** (`docker images`) — 2.5a ölçümü. ⚠️ `inspect .Size` FARKLI şey ölçüyor. |
+| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 · @sentry/node + @sentry/react 10.70.0 |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **5** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
-| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.5b yeni SAPMA açmadı; **Karar 15/16/17** ROADMAP 2.5b'ye yazıldı |
+| **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · **BORÇ-003** + BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
+| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.6 yeni SAPMA açmadı; **Karar 18/19/20** ROADMAP 2.6'ya yazıldı |
 
-> ✅ **FAZ 2'NİN 1. KABUL KRİTERİ KAPANDI (2.5b).**
-> İki yol da koşuldu. (a) yerel yakalama sunucusu — zarfın etiketleri ham gövdede assert
-> edildi, `beforeSend` kontrol deneyiyle doğrulandı. (b) **gerçek Sentry'ye iki olay**:
-> sunucu (`event_id 6995813e…`, ingest **HTTP 200**, etiketler olaydan doğrudan okundu) ve
-> tarayıcı (gerçek tarayıcı, kimlik `01a03a8f-24c1-…`, **tek** zarf, ingest **HTTP 200**).
-> ⚠️ Doğrudan gözlenmeyen tek şey: tarayıcı zarfının **içindeki** etiket (gövde ikili,
-> ikinci olay yakmamak için zorlanmadı). Birim testleri + sunucudaki aynı etiket şekli
-> dolaylı kanıt. Sentry arayüzünde gözle bakmak bir tıklık iş.
+> ✅ **2.6 GERÇEK TARAYICIDA UÇTAN UCA KANITLANDI.**
+> API'ye `status` alanını **nesne** döndüren sahte sunucu kondu, React render sırasında
+> patladı: **bileşen** sınırı yakaladı · **tablonun geri kalanı ayakta kaldı** ·
+> ekrandaki hata kodu `01a03aa5-6f0b-…` son isteğin `correlationId`'siyle **birebir aynı** ·
+> **tek** zarf gerçek Sentry'ye gitti (**HTTP 200**) · ekranda yığın izi **yok**.
+> Üretim paketinde `error-stack`/`pre-wrap`/`error.stack` → **0** eşleşme.
+>
+> ⚠️ **KALAN DOLAYLI KANIT (2.5b'den devam):** tarayıcı zarfının **içindeki** etiket hâlâ
+> doğrudan gözlenmedi (gövde ikili; kısıtlayıcı aynı parmak izli ikinci denemeyi bilinçli
+> engelliyor). Birim testleri + sunucudaki aynı etiket şekli destekliyor.
 >
 > **Faz 2 kabul kriterleri:** **1 ✅** · **2 ✅** · 3 ⬜ (2.8) · 4 ⬜ (2.7) · 5 ⬜ (2.7).
-> Beşte ikisi kapandı.
 
 > ✅ **FAZ 2'NİN 2. KABUL KRİTERİ KAPANDI (2.3c).**
 > Dört halka gerçek tarayıcı + derlenmiş API ile kanıtlandı: tarayıcı
@@ -112,36 +113,39 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ---
 
-### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.6
+### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.7
 
-**2.6 kapsamı (ROADMAP):** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen +
-"Hata bildir" (`correlationId` ile). **Negatif test:** kayıtsız bir
-`ErrorBoundary`'nin hatası köke tırmanıyor mu. Metinler Türkçe sabit →
-**BORÇ-003** (2.6'da açılacak; BORÇ-005 ile aynı sınıf).
+**2.7 kapsamı (ROADMAP):** `debugTrace` + `assertInvariant` + `measure` (K7).
+**İlk ikisi SAF — motor kullanacak.** Faz 2'nin **4. ve 5. kabul kriteri**
+burada kapanıyor.
 
-**2.6'ya girerken bilinmesi gerekenler — 2.5b'den devir:**
+**2.7'ye girerken bilinmesi gerekenler:**
 
-- ⚠️ **`captureException` ÇAĞRISI EKLERKEN İKİNCİ FİLTRE KURMA.** Neyin
-  gönderilmeyeceğine **tek** karar noktası karar veriyor: `shouldReport`
-  (`lib/sentry.ts`). `ErrorBoundary` yakaladığını **koşulsuz** vermeli.
-- **Etiket şekli sabit:** `{ correlationId, errorKind, errorCode }`. Sunucu
-  filtresi (2.4) ve `api.ts` (2.5b) aynısını kullanıyor; Sentry'de tek arama
-  iki tarafı da getiriyor. `ErrorBoundary` de aynısını kullanmalı.
-- **"Hata bildir" düğmesi hangi `correlationId`'yi gönderecek?** Bir render
-  hatasının kendi isteği yok. `apiRequest` sonucu zaten `correlationId`
-  döndürüyor (`ApiRequestResult`); ekran onu tutup boundary'ye vermeli.
-  Aksi hâlde düğme kimliksiz bir rapor üretir ve zincir tam da en gerekli
-  anda kopar.
-- ⚠️ **KISITLAYICI RENDER DÖNGÜSÜNDE DEVREYE GİRECEK** (Karar 16). Bir
-  `ErrorBoundary` testi aynı hatayı arka arkaya fırlatırsa ikincisi **düşer**
-  ve bu **doğru davranıştır**. Testlerde her senaryo farklı hata mesajı
-  kullanmalı (günlük #43 — aynı tuzağa iki dosyada düşüldü).
-- **`@sentry/react` `ErrorBoundary` bileşeni HAZIR geliyor.** Kendi
-  sınıfımızı yazmadan önce onun yeterli olup olmadığına bakılmalı; K12
-  gereği gereksiz kod yazılmaz. Ama üç seviyeli hiyerarşi (kök/ekran/bileşen)
-  ve Türkçe yedek arayüz bizim işimiz.
-- **Paket yine büyüyecek.** Taban artık **319.091 ham bayt**. Soğuk derleme +
-  **kontrol deneyi** (import kullanılmazsa paket değişmemeli).
+- ⚠️ **`debugTrace` ve `assertInvariant` `packages/shared` KÖKÜNDE ve SAF
+  olmalı** — motor onları kullanacak (K3). Hiçbir Node API'si, `Date.now()`,
+  `Math.random()`, modül düzeyi değiştirilebilir durum yok. `arch:check`
+  motorun `@fms/shared`'dan **belirli adları** almasını zaten denetliyor
+  (`engine-forbidden-import`).
+- ⚠️ **Karar 6 — `measure` motora YASAK.** `perf.ts` kökte kalıyor (izomorfik,
+  `performance.now()`), ama `arch:check`'in `ENGINE_FORBIDDEN_SHARED_EXPORTS`
+  listesine **`measure` eklenecek**: motor kendini ölçmez, ölçüm motoru
+  DIŞARIDAN sarmalar. Liste bugün yalnızca `createCorrelationId` içeriyor.
+  **Kanaryayı da güncelle** — `spec/09` §11.5: kural sayısı ile kanarya
+  kapsamı eşit olmalı, yoksa kural sessizce körelir.
+- ⚠️ **`assertInvariant` dev/prod ayrımı `NODE_ENV` KOKLAMAZ** (Faz 1 hata
+  #10). 2.6'da aynı problem `__FMS_DEV__` ile çözüldü ama o **tarayıcıya**
+  özgü (Vite `define`). Motor ve sunucu için ayrı bir açık bayrak gerekiyor —
+  kararını gerekçesiyle ver. ROADMAP doğrulaması net: **İKİ AYRI DERLEME
+  alınır ve ikisi de ÇALIŞTIRILIR.**
+- **`measure` bütçe aşımında ne yapacak?** 5. kriter: "1 ms bütçe / 50 ms
+  fonksiyon → uyarı; 500 ms bütçe → sessiz". Uyarı `logger.warn` ile
+  gidecekse `measure` logger'a bağımlı olur ve **saf kalmaz** — bağımlılık
+  yönünü baştan kararlaştır (2.3c'deki `contextProvider` deseni bir örnek:
+  modül logger'ı bilmez, bir fonksiyon çağırır).
+- **`debugTrace` şekli `spec/09` §11.2'de yazılı** — `{module, input, steps[],
+  output, summary, seed?}`. Uydurma, oradan al.
+- **Paket:** taban **320.641 ham bayt**. `debugTrace`/`assertInvariant` saf ve
+  küçük; artış beklenmedik ölçüde büyükse sebebini bul.
 
 **Kapılar (bu sırayla):**
 `rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
@@ -149,21 +153,18 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 **Çalışan sistemi ayağa kaldırma — İKİ KOMUT DA KRİTİK:**
 API `--import` olmadan açılırsa Sentry sessizce kurulmaz (2.5a).
-`vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli olduğu için
-`PUBLIC_BASE_PATH` okunamaz (Faz 1 hata #8). Aşağıdaki bloğa bak.
+`vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli (Faz 1 #8).
 
-⚠️ **`.env`'de GERÇEK SENTRY DSN VAR.** Yerel çalıştırmalarda gerçek olay
-gönderilir ve **5.000 olay/ay** kotası yanar. Deneme yaparken DSN'i geçici
-olarak boşalt ya da yerel yakalama sunucusuna yönlendir
-(`sentry-envelope.http.test.ts` deseni). Kısıtlayıcı (5 dk) bir miktar
-koruyor ama **döngüye sokma**.
+⚠️ **`.env`'de GERÇEK SENTRY DSN VAR.** Yerel çalıştırma gerçek olay gönderir
+ve **5.000 olay/ay** kotası yanar. Denemede DSN'i geçici boşalt ya da yerel
+yakalama sunucusuna yönlendir (`sentry-envelope.http.test.ts` deseni).
+Kısıtlayıcı (5 dk, Karar 16) bir miktar koruyor ama **döngüye sokma**.
 
-**Windows'ta Docker'a argüman geçerken** `MSYS_NO_PATHCONV=1` gerekiyor
-(günlük #40).
+**Windows'ta Docker'a argüman geçerken** `MSYS_NO_PATHCONV=1` (günlük #40).
 
-**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **45 satır**.
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **48 satır**.
 
-**📦 PAKET TABANI: 319.091 ham bayt (2.5b).** Geçmiş: 229.320 (2.2a) → 232.413 (2.3b,
+**📦 PAKET TABANI: 320.641 ham bayt (2.6).** 2.6 artışı yalnızca **+1.550 (%0,49)**. Geçmiş: 229.320 (2.2a) → 232.413 (2.3b,
 `api.ts` + tarayıcı logger'ı) → **319.091** (2.5b, `@sentry/react` **+86.678 / %37,3**).
 Her artış kontrol deneyiyle doğrulandı: import kullanılmazken paket tabanda kalıyor.
 
@@ -374,6 +375,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 |---|---|---|---|---|
 | BORÇ-001 | 1 | `ioredis` 5.11.1'de tutuldu; 6.0.0 alınmadı | 6.0.0 kurulum anında 3 haftalıktı. Faz 16 (tur motoru) projenin en riskli fazı — orada "bu kütüphane regresyonu mu, benim idempotency mantığım mı?" sorusuyla uğraşmanın maliyeti günlerle ölçülür; ertelemenin maliyeti bir minor bump. | **16** — faz açılışında changelog okunup karar verilecek |
 | BORÇ-006 | 2 | **Sentry kaynak haritası CI YÜKLEME adımı yapılmadı** (Karar 7). Faz 2'de yalnızca `release` adlandırması kuruldu (`SENTRY_RELEASE` env alanı, 2.5a) ve tarayıcı tarafında `sourcemap: true` gelecek (2.5b). Yüklenmiş kaynak haritası olmadan Sentry'deki yığın izleri **küçültülmüş** kalır. | Yükleme adımı CI'a Sentry auth token'ı, organizasyon/proje adı ve `sentry-cli` bağımlılığı getiriyor — üçü de ortada bir Sentry projesi **olmadan** yazılamaz ve bugün proje yok (`SENTRY_DSN` boş). Ayrıca yükleme, her derlemede dışarıya varlık gönderen bir CI adımıdır; dağıtım hattı Faz 50'de bütünsel ele alınıyor. Adlandırma bugün kurulduğu için yükleme sonradan **tek bir CI adımı** olarak eklenebilir; geriye dönük iş yok. | **50** — dağıtım hattı kurulurken |
+| BORÇ-003 | 2 | **`ErrorBoundary` yedek arayüzündeki Türkçe metinler koda gömülü** (`apps/web/src/components/ErrorBoundary.tsx`: başlıklar, "Bu bölüm yüklenemedi…", "Tekrar dene", bildirim durumu). K5 arayüzde sabit Türkçe metni yasaklıyor. | i18n Faz 5'te geliyor; **BORÇ-005 ile aynı sınıf** (o sunucu hata gövdesi, bu tarayıcı yedek arayüzü). Sınırın çalışması için metin şart: i18n'i beklemek, Faz 5'e kadar çöken her ekranın **boş** kalması demekti. Metinler `TODO(Faz 5)` yorumlarıyla işaretlendi ve tek bileşende toplandı — Faz 5 işi bir dosyada `t()` çağrılarına çevirmeye iner. `title` zaten **prop**, yani çağrı yerleri hazır. | **5** — i18n kurulurken |
 | BORÇ-005 | 2 | **Hata gövdesindeki Türkçe metinler koda gömülü** (`MESSAGE_BY_KIND`, `apps/api/src/common/filters/global-exception.filter.ts`). K5 arayüzde sabit Türkçe metni yasaklıyor. | i18n Faz 5'te geliyor; 2.6'nın BORÇ-003'üyle **aynı sınıf** borç. Metin `AppError.message`'tan alınamıyor çünkü o alan bilinçli olarak **geliştirici mesajı** (`errors.ts`: *"loga ve Sentry'ye gider, çevrilmez, kullanıcıya gösterilmesi hedeflenmez"*) — doğrudan gövdeye konsaydı iç ayrıntı sızardı. Tablo bir **yedek**: sözleşmenin aslı `code` + `context` ve ikisi de gövdede dönüyor, yani Faz 5 işi `t('errors:' + code, context)` yazmaya iner, fırlatma yerlerini gezmeye değil. Metinler bilerek **genel** tutuldu ki hataya özgü cümle `code` üzerinden gelsin. | **5** — i18n kurulurken tablo silinir, istemci `code`+`context`ten üretir |
 | BORÇ-004 | 2 | **BullMQ'ya özgü `correlationId` kablolaması yapılmadı.** Taşınabilir zarf (`serializeLogContext`/`deserializeLogContext`) 2.3b'de kuruldu ve **gerçek bir süreç sınırında** test edildi (`spawnSync` + argv), ama `job.data.correlationId` alanına yazan/okuyan kuyruk tarafı yok. | `spec/09` §11.1 zincirinde *"Kuyruğa iş atılırsa `job.data.correlationId` taşınır → Worker aynı id ile loglar"* adımı var; ama **kuyruk henüz yok** — BullMQ Faz 16'da (tur motoru) kuruluyor. Bugün yazılacak kablolama, bağlanacağı üretici/tüketici olmadığı için ancak sahte bir kuyrukla test edilebilirdi ve o test **hiçbir şey kanıtlamazdı**: sahte kuyruk aynı süreçte kalır, ALS zaten oradan taşır (2.3b Karar 2). Zarfın kendisi — kırılabilecek asıl parça — bugün gerçek süreç sınırında sınandı; geriye kalan yalnızca BullMQ'nun kendi alanına bağlama işi. | **16** — kuyruk kurulurken üretici ve tüketici tarafına birlikte bağlanacak |
 | BORÇ-002 | 1 | `bullmq` 5.81.3'te tutuldu; 6.2.0 alınmadı | Aynı gerekçe (BORÇ-001). Ek olarak bullmq 6 `ioredis`'i peer'a taşıdı ve `pg`/`redis` peer'ları ekledi — kuyruk yapılandırmasını değiştiren bir mimari değişiklik, Faz 16'da bilinçli ele alınmalı. | **16** — faz açılışında changelog okunup karar verilecek |
@@ -435,6 +437,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 48 | 2.6 | **Üretimdeki davranış testte sahtelenemedi** — `__FMS_DEV__` false yapılıp "yığın izi yok" iddiası test edilemedi | Değer Vite `define` ile **derlemeye gömülü**, çalışma zamanı değişkeni değil. `vi.stubGlobal` ile `false` yapmak üretimi taklit etmez; yalnızca testi yeşile boyardı | Test dosyasına gerekçe yazıldı ve **gerçek kanıt üretim paketinde dize taramasıyla** alındı: `error-stack` 0 · `pre-wrap` 0 · `error.stack` 0 | **Ders: derleme zamanı sabitlerinin iddiaları çalışma zamanı testiyle kapatılamaz.** Sahtelemek burada "çalışıyormuş gibi yapan test" üretirdi. Aynı sınıf 2.8'de de gelecek (Karar 3: küçültme sonrası panel yokluğu grep'le kanıtlanamaz) |
+| 47 | 2.6 | `App.test.tsx` ve `main.test.tsx` **dolaylı olarak** kırıldı: `ReferenceError: __FMS_DEV__ is not defined` | 2.6'dan sonra `ErrorBoundary` ağacın içinde, yani `<App/>` render eden her test onu da render ediyor ve o da derleme zamanı sabiti okuyor | `vitest.config.ts` web projesine `define: { __FMS_DEV__: 'true' }` — tek yerde, her test dosyası için | **Ders: `define` ile gömülen her yeni sabit, testlerin sahtelemesi gereken yeni bir sözleşmedir** ve bileşen ağacına giren her yeni düğüm o sözleşmeyi **uzaktaki** testlere de bulaştırır. Günlük #42'nin bir üst seviyesi |
+| 46 | 2.6 | **2.5b'nin modelleme dersi ikinci kez ısırdı:** bir bileşen `DomainError` fırlatırsa `beforeSend` onu "kullanıcı hatası" sayıp düşürecekti | Sınıflandırma **API sözleşmesinden akan işlenmiş** hatalar için yazılmıştı; kaçıp arayüzü yıkan bir hata bambaşka bir şey ama aynı tipi taşıyor | **Karar 18:** `ErrorBoundary` yakaladığını `crash` etiketiyle veriyor, `shouldReport` kullanıcı-hatası elemesinden ÖNCE ona bakıyor. Kontrol testi de yazıldı: etiket olmadan aynı hata düşüyor | **Ders: aynı tip, farklı bağlamda farklı anlam taşıyabilir.** 2.5b'de "sınıflandırma onu tüketen kural yazılana kadar yanlış olduğunu belli etmez" demiştik; burada sınıflandırma doğruydu ama **kapsamı** eksikti — kural ikinci bir bağlamda kullanılınca görüldü |
 | 45 | 2.5b | **Gizlilik boşluğu ÖLÇÜMLE bulundu:** `sendDefaultPii: false`, "hiçbir şey toplama" demek değilmiş | Lint `no-deprecated` uyarısı kazıma yaptırdı. Ölçüldü: `sendDefaultPii: false` ile seçeneği **hiç vermemek birebir aynı** ve ikisi de `cookies`/`httpHeaders`/`urlQueryParams` topluyor — yalnızca IP'yle ilgili birkaç anahtar eleniyor. Çerez Faz 13'ten itibaren oturum jetonu taşıyacak | **Karar 17:** açık `dataCollection` politikası, `@fms/shared/telemetry-policy.ts`, iki tarafta da `false`. Testler `getDataCollectionOptions()` ile **etkin** değeri doğruluyor | **Ders: bir gizlilik ayarının ADI, ne yaptığını söylemez.** ROADMAP "KVKK açısından istenen varsayılan" diyordu ve ayar o niyeti karşılamıyordu. Ayrıca: **kullanımdan kaldırma uyarısı bir davranış değişikliği habercisidir** — v11'de seçenek silinseydi varsayılanlar sessizce yürürlüğe girerdi |
 | 44 | 2.5b | **`api.ts` her HTTP hatasını `DomainError` yapıyordu** — ve `DomainError` "kullanıcı hatası" listesinde | Filtreleme kuralı yazılırken görüldü: bu modellemeyle **her 500 sessizce Sentry'den düşerdi**. 2.3b'de yazılırken filtre yoktu, dolayısıyla yanlışlık zararsız görünüyordu | 5xx ve ağ hatası → `DataProviderError` (yukarı akış arızası), 4xx → `DomainError` | **Ders: bir sınıflandırma, onu TÜKETEN kural yazılana kadar yanlış olduğunu belli etmez.** Hata izleme filtresi, hata taksonomisinin ilk gerçek tüketicisiydi ve modelleme hatasını anında görünür kıldı |
 | 43 | 2.5b | Kısıtlayıcı eklenince **iki ayrı test dosyasında** testler kırıldı ("zarf gitmedi") | Aynı `type:value` parmak izini birden fazla test kullanıyordu; kısıtlayıcı ikincisini **doğru şekilde** düşürüyordu. Kod değil, testler yanlıştı | Her test benzersiz mesaj kullanıyor; iki dosyaya da gerekçeli uyarı yorumu kondu | **Kuralı test için gevşetmek elendi:** o zaman üretim yapılandırmasından sapardık ve testlerin tüm değeri "üretimle aynı" olması. Günlük #20'nin aynı dersi — kırmızı test "kod yanlış" demek değil |

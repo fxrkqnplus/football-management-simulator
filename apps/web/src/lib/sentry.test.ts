@@ -10,6 +10,7 @@ import { close, getClient, isInitialized } from '@sentry/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  CRASH_TAG,
   DENY_URLS,
   fingerprintOf,
   IGNORE_ERRORS,
@@ -59,6 +60,11 @@ function reports(error: unknown): boolean {
   return shouldReport(eventFor('mesaj'), hintFor(error), freshTime());
 }
 
+/** Çökme olayı — `ErrorBoundary`'nin ürettiği etiketle. */
+function crashEventFor(message: string): ErrorEvent {
+  return { ...eventFor(message), tags: { [CRASH_TAG]: 'react-render' } };
+}
+
 describe('shouldReport — sunucuyla AYNI kural', () => {
   it('ValidationError ve DomainError GÖNDERİLMEZ (kullanıcı hatası)', () => {
     expect(reports(new ValidationError({ code: 'a.b', message: 'm' }))).toBe(false);
@@ -85,6 +91,32 @@ describe('shouldReport — sunucuyla AYNI kural', () => {
     expect(shouldReport(event, hint, t0)).toBe(true);
     expect(shouldReport(event, hint, t0 + 1_000)).toBe(false);
     expect(shouldReport(event, hint, t0 + DEFAULT_THROTTLE_WINDOW_MS)).toBe(true);
+  });
+});
+
+// ── KARAR 18: ÇÖKME, KULLANICI-HATASI ELEMESİNİ AŞAR ────────────────────
+describe('shouldReport — çökme istisnası (Karar 18)', () => {
+  it('crash etiketli DomainError GÖNDERİLİYOR — eleme aşılıyor', () => {
+    // ⚠️ Bu satır olmasa arayüzü yıkan her `DomainError` Sentry'den sessizce
+    // düşerdi. 2.5b'de `api.ts`'te aynı sınıf hata bulunmuştu.
+    const hint = hintFor(new DomainError({ code: 'a.b', message: 'm' }));
+    expect(shouldReport(crashEventFor('çökme'), hint, freshTime())).toBe(true);
+  });
+
+  it('KONTROL: etiket OLMADAN aynı hata DÜŞÜYOR', () => {
+    // Yukarıdaki testin doğru sebeple geçtiğinin kanıtı — etiket gerçekten
+    // fark yaratıyor, `DomainError` kendiliğinden geçmiyor.
+    const hint = hintFor(new DomainError({ code: 'a.b', message: 'm' }));
+    expect(shouldReport(eventFor('çökme değil'), hint, freshTime())).toBe(false);
+  });
+
+  it('çökmeler de KISITLAMAYA tabi — render döngüsü kotayı yakamaz', () => {
+    const event = crashEventFor('döngüde çöken bileşen');
+    const hint = hintFor(new Error('render'));
+    const t0 = freshTime();
+
+    expect(shouldReport(event, hint, t0)).toBe(true);
+    expect(shouldReport(event, hint, t0 + 1_000)).toBe(false);
   });
 });
 

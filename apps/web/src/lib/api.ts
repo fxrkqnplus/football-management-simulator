@@ -11,6 +11,7 @@ import {
 } from '@fms/shared';
 import { captureException } from '@sentry/react';
 
+import { rememberCorrelationId } from './correlation-context.js';
 import { createBrowserLogger } from './logger.js';
 
 /**
@@ -120,6 +121,10 @@ export async function apiRequest<T>(
   init: RequestInit = {},
 ): Promise<ApiRequestResult<T>> {
   const correlationId = createCorrelationId();
+  // Karar 19 — bir render hatası olursa "Hata bildir" bu kimliği taşıyacak.
+  // Çökme çoğu zaman başarısız bir isteğin ARDINDAN gelir; ikisini bağlayan
+  // tek şey bu satır.
+  rememberCorrelationId(correlationId);
   const url = apiPath(path);
   const method = init.method ?? 'GET';
 

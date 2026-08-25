@@ -75,6 +75,26 @@ export const IGNORE_ERRORS: readonly (string | RegExp)[] = [
  */
 const throttle = createEventThrottle();
 
+/**
+ * Çökme etiketi — Karar 18 (2.6).
+ *
+ * `ErrorBoundary` yakaladığı her hatayı bu etiketle veriyor ve `shouldReport`
+ * kullanıcı-hatası elemesinden **önce** ona bakıyor.
+ *
+ * ⚠️ NEDEN GEREKLİ: bir bileşen `DomainError` fırlatırsa `isUserFaultError`
+ * onu "kullanıcı hatası" sayıp Sentry'den **düşürürdü**. Oysa arayüzü yıkan
+ * bir `DomainError` tam olarak bir hatadır — bileşen onu işlemeliydi.
+ * Sınıflandırma **API sözleşmesinden akan işlenmiş** hatalar için geçerli,
+ * kaçıp render'ı çökertenler için değil.
+ *
+ * 2.5b'nin dersinin tekrarı: bir sınıflandırma, onu tüketen kural yazılana
+ * kadar yanlış olduğunu belli etmiyor.
+ *
+ * Sunucuda karşılığı YOK ve olmamalı — orada "render çökmesi" diye bir şey
+ * yok. `denyUrls` gibi bilinçli bir asimetri.
+ */
+export const CRASH_TAG = 'crash';
+
 /** Bir olayın parmak izi — hata tipi + mesajı (sunucudakiyle aynı kural). */
 export function fingerprintOf(event: ErrorEvent): string {
   const first = event.exception?.values?.[0];
@@ -92,7 +112,13 @@ export function fingerprintOf(event: ErrorEvent): string {
  * (`spec/09` §11.5).
  */
 export function shouldReport(event: ErrorEvent, hint: EventHint | undefined, now: number): boolean {
-  if (isUserFaultError(hint?.originalException)) return false;
+  // ⚠️ SIRA ANLAMLI: çökme kontrolü kullanıcı-hatası elemesinden ÖNCE.
+  // Karar 18 — arayüzü yıkan bir hata, türü ne olursa olsun raporlanır.
+  const isCrash = event.tags?.[CRASH_TAG] !== undefined;
+  if (!isCrash && isUserFaultError(hint?.originalException)) return false;
+
+  // Kısıtlama çökmelere de uygulanıyor: bir render döngüsü aynı çökmeyi
+  // saniyede yüzlerce kez üretebilir ve kotayı dakikalar içinde yakar.
   return throttle.shouldAllow(fingerprintOf(event), now);
 }
 
