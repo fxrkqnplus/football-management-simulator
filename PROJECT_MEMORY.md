@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-25 |
 | **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 5/12 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(shared): pino logger, redaksiyon ve K8 yazma yasağı` |
+| **Son commit** | `docs(memory): 2.2b CI sonucunu işle` (2.2b işi `feat(shared): pino logger…` commit'inde) |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | 2.2b koşusu **ölçülmedi** — push sonrası bakılacak. (2.2a koşusu `32789830210` dört işte de yeşildi.) |
+| **CI** | ✅ koşu `32852050653` — **dört işin dördü de yeşil**. ARM64 rakamları yerelle birebir aynı: 91,3 / 89,18 / 95,45 / 91,37 · 229 test. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
 | **test** | ✅ **229 test / 14 dosya** (131 → 229) |
 | **kapsam** | ✅ satır **%91,37** · ifade %91,3 · dal %89,18 · fonksiyon **%95,45** — eşik %70 |
