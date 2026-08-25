@@ -514,9 +514,40 @@ docs/ADR/0001-monorepo-secimi.md
       **Negatif testler:** (a) log satırında `correlationId` var mı · (b) yanıt başlığındaki id ile
       log satırındaki id **aynı** mı · (c) hata durumunda (404, 500) da satır çıkıyor mu.
       **Paket:** sunucu tarafı — tarayıcı paketi **değişmemeli**, taban **232.413 ham bayt**.
-- [ ] **2.4** NestJS global exception filter — hata sınıfı → HTTP durumu + Türkçe gövde + `correlationId`.
+- [x] **2.4** NestJS global exception filter — hata sınıfı → HTTP durumu + Türkçe gövde + `correlationId`.
       Bilinmeyen hata → 500, ayrıntı **yalnızca** logda. **Negatif test:** `Error` olmayan fırlatma
       (`throw 'metin'`) da yakalanmalı.
+      **Sonuç:** yapıldı. Tarayıcı paketi **değişmedi** (232.413 bayt, hash aynı — sunucu tarafı).
+      **SAPMA-010 ÖLÇÜMLE DOĞRULANDI.** `httpStatus`ın hata sınıflarından çıkarılmasının tek
+      gerekçesi "ayrı tablo unutulmaz, çünkü derleme kırılır" idi. Sınandı: `ERROR_KINDS`'a sahte
+      bir `suspended` eklendi → **`TS2741`**, hem `STATUS_BY_KIND` hem `MESSAGE_BY_KIND` için.
+      Kapı gerçekten ötüyor. Çalışma zamanı ikinci hattı da yazıldı (tablo `Partial` yapılırsa test kırılır).
+      **Eşleme:** `validation` 400 (şekil) · `domain` **409** (durum çakışması — 422 elendi, `validation`
+      ile bulanıklaşırdı) · `notFound` 404 · `forbidden` 403 · `engine` 500 · `dataProvider` **502**
+      (yukarı akış; istemcinin yeniden denemesi anlamlı, 500'den ayrılması bu yüzden değerli).
+      **Karar 13 — çift loglama YOK, İŞ BÖLÜMÜ VAR.** İki satır farklı sorulara cevap veriyor ve
+      **farklı `code`** taşıyor: `http.request` (middleware, 2.3c) = **ne oldu** (metot·yol·durum·süre,
+      her istekte tam bir tane) · `http.exception` (filter) = **neden** (kind·code·redakte context·
+      yığın izi). Kodların ayrı olması sayımı kurtarıyor: *"kaç istek düştü?"* → `http.request` +
+      `status>=500`, tek satır sayılır. Gerçek HTTP'de doğrulandı: tek 404 için iki satır, aynı
+      `correlationId`, farklı `code`. **Yığın izi yalnızca 5xx'te** — 4xx beklenen durum, orada
+      yığın izi hem gürültü hem dosya yolu sızıntısı.
+      **Gövde sözleşmesi:** bilinen `AppError` → `{status, code, message, context, correlationId}`;
+      bilinmeyen → `{status:500, code:'error.unexpected', message, correlationId}` — **context yok,
+      yığın izi yok, iç mesaj yok.** `context`in bilinen hatalarda gövdede olması bilinçli: 2.1'in
+      sözleşmesi `code`+`context` ve Faz 5 istemcide `t('errors:'+code, context)` yapacak; gövdede
+      dönmezse o cümle kurulamaz. Gövdeye giden context de **redaksiyondan geçiyor**.
+      **K5 borcu — BORÇ-005:** `AppError.message` geliştirici mesajıdır (`errors.ts`: *"çevrilmez,
+      kullanıcıya gösterilmesi hedeflenmez"*), dolayısıyla gövdedeki Türkçe metin ondan gelemez.
+      `ErrorKind` başına genel Türkçe yedek tablosu koda gömüldü → Faz 5'te `t()` ile değişecek.
+      **Kablolama ayrıca kanıtlandı** (`spec/09` §11.5 kuralı): birim testleri filtrenin `catch()`ini
+      doğrudan çağırıyor ve `APP_FILTER` kaydı silinse bile **hepsi yeşil kalırdı**. Bu yüzden ayrı
+      bir **gerçek HTTP** testi var (gerçek Nest, gerçek port, gövde tel üzerinden). Mutasyon:
+      `APP_FILTER` kaldırıldı → **6 entegrasyon testi kırıldı**, birim testlerin hepsi geçti.
+      **Bilinen sınır:** 5xx yolu üretim kablolamasıyla duman testi yapılamadı — üretim yüzeyine
+      kasıtlı fırlatan rota **eklenmedi** (her istekte 500 üreten kalıcı uç nokta saldırı yüzeyi
+      olurdu). 5xx gerçek HTTP üzerinden **test modülüyle** kanıtlandı; üretim kablolaması 404 ile
+      duman testi edildi (`{"status":404,"code":"http.404","correlationId":"…"}`).
 - [ ] **2.5** Sentry — API + web · `correlationId` etiketi · örnekleme ve filtreleme disiplini.
       **Karar 4:** üretimde `tracesSampleRate: 0` (1–5 kullanıcı için performans izleme kotaya değmez;
       `measure()` zaten var), `sampleRate: 1.0` (hataların hepsi). `beforeSend`: beklenen

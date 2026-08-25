@@ -5,7 +5,9 @@ import {
   Module,
   type NestModule,
 } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
 import { CorrelationMiddleware } from './common/middleware/correlation.middleware.js';
 import { RequestLogMiddleware } from './common/middleware/request-log.middleware.js';
 import { LOGGER } from './common/tokens.js';
@@ -34,6 +36,11 @@ export class AppModule implements NestModule {
         { provide: LOGGER, useValue: logger },
         CorrelationMiddleware,
         RequestLogMiddleware,
+        // Global filtre SAĞLAYICI olarak kaydediliyor (`app.useGlobalFilters`
+        // ile DEĞİL): yalnızca bu yol DI'ya erişir ve filtre `LOGGER`a ihtiyaç
+        // duyuyor. `main.ts`'te elle kurulsaydı logger'ı oraya taşımak
+        // gerekirdi ve `forRoot(logger)` deseninin amacı bozulurdu.
+        { provide: APP_FILTER, useClass: GlobalExceptionFilter },
       ],
     };
   }

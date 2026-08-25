@@ -21,22 +21,22 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3c bitti, SIRADA 2.4** |
-| **Son tamamlanan** | ✅ **2.3c** istek loglaması — zincirin dördüncü halkası (G-08 kapandı) |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.4 bitti, SIRADA 2.5** |
+| **Son tamamlanan** | ✅ **2.4** global exception filter — hata sınıfı → HTTP durumu + Türkçe gövde + `correlationId` |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 8/14 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b, 2.3c) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 9/14 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b, 2.3c, 2.4) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(api): istek başına log satırı — zincirin dördüncü halkası` |
+| **Son commit** | `feat(api): global hata filtresi — tipli hata → HTTP durumu ve Türkçe gövde` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ✅ 2.3b koşusu `32862778557` — dört işin dördü yeşil, ARM64/amd64 rakamları yerelle **birebir** aynı (308 test, %93,5, paket hash'i `index-Bbvu0kTr.js` özdeş). ⏳ 2.3c koşusu henüz işlenmedi. |
+| **CI** | ✅ 2.3c koşusu `32864898347` yeşil. ⏳ 2.4 koşusu henüz işlenmedi. (2.3b `32862778557`: ARM64/amd64 rakamları yerelle **birebir** aynıydı.) |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle, `rm -rf .turbo/cache` sonrası) |
-| **test** | ✅ **326 test / 23 dosya** (2.3c: +18 test, +1 dosya) |
-| **kapsam** | ✅ satır **%93,85** · ifade %93,85 · dal %90,74 · fonksiyon **%95,45** — eşik %70 |
-| **Web paketi** | **232.413 bayt** (ham) — 2.3c sunucu tarafı, paket **değişmedi** (içerik hash'i bile aynı: `index-Bbvu0kTr.js`) |
+| **test** | ✅ **358 test / 25 dosya** (2.4: +32 test, +2 dosya) |
+| **kapsam** | ✅ satır **%93,11** · ifade %93,05 · dal %88,94 · fonksiyon **%95,74** — eşik %70 |
+| **Web paketi** | **232.413 bayt** (ham) — 2.4 sunucu tarafı, paket **değişmedi** (içerik hash'i bile aynı: `index-Bbvu0kTr.js`) |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **3** — BORÇ-001, BORÇ-002, **BORÇ-004** (üçü de Faz 16) |
-| **SAPMA sayısı** | **15** (SAPMA-001…015) — **SAPMA-015** 2.3c'de geriye dönük açıldı (2.3a'nın kayıtsız Zod sapması) |
+| **Teknik borç sayısı** | **4** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · **BORÇ-005** (Faz 5, hata gövdesi Türkçe metinleri) |
+| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.4 yeni SAPMA açmadı; **SAPMA-010 ölçümle DOĞRULANDI** (sahte `ErrorKind` → `TS2741`) |
 
 > ✅ **FAZ 2'NİN 2. KABUL KRİTERİ KAPANDI (2.3c).**
 > Dört halka gerçek tarayıcı + derlenmiş API ile kanıtlandı: tarayıcı
@@ -99,43 +99,43 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ---
 
-### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.4
+### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.5
 
-**G-08 KAPANDI** — 2.3c ayrı alt görev olarak yazıldı, 2. kabul kriteri işaretlendi.
-Bekleyen karar yok.
+**2.5 kapsamı (ROADMAP):** Sentry — API + web · `correlationId` etiketi ·
+örnekleme ve filtreleme disiplini. Kararlar ROADMAP 2.5'te yazılı (Karar 4,
+Karar 7, Risk R1) — **oradan oku, burada tekrarlanmıyor.**
 
-**2.4 kapsamı (ROADMAP):** NestJS global exception filter — hata sınıfı → HTTP
-durumu + Türkçe gövde + `correlationId`. Bilinmeyen hata → 500, ayrıntı
-**yalnızca** logda. **Negatif test:** `Error` olmayan fırlatma (`throw 'metin'`)
-da yakalanmalı.
+**2.5'e girerken bilinmesi gerekenler — 2.4'ten devir:**
 
-**2.4'e girerken bilinmesi gerekenler — 2.3b'den devir:**
-
-- **`httpStatus` alanı hata sınıflarında YOK** (SAPMA-010, bilinçli). Eşleme
-  filter'da `Record<ErrorKind, number>` olarak tutulacak; yeni bir `ErrorKind`
-  eklenip eşlemeye yazılmazsa **derleme kırılır**. Tablo bu yüzden `Partial`
-  yapılmamalı.
-- **Kullanıcı mesajı sınıfta üretilmiyor** — sözleşme `code` + `context`.
-  `code` zaten i18n anahtarı biçiminde (`alan.olay`), Faz 5 bir eşleme
-  tablosuna inecek.
-- **`apps/web/src/lib/api.ts` hata gövdesini HENÜZ ayrıştırmıyor.** Bugün
-  2xx olmayan her yanıt `DomainError`a (`api.requestFailed`) sarılıyor ve
-  gövde okunmuyor. Filter tipli gövde basmaya başlayınca istemci tarafı da
-  ona göre güncellenmeli — yoksa sunucu Türkçe mesaj üretir, tarayıcı onu
-  görmez ve iki taraf sessizce ayrışır.
-- ⚠️ **ÇİFT LOGLAMA RİSKİ — 2.3c bir satır zaten yazıyor.** `RequestLogMiddleware`
-  her istek için **tek** bir `http.request` satırı basıyor (metot · yol · durum ·
-  süre · `correlationId`), 5xx'te `error` seviyesinde. 2.4'ün exception filter'ı
-  **işlemi** değil **hatayı** loglamalı: `code`, sınıf, yığın izi, bağlam. Aynı
-  bilgiyi ikinci kez basarsa log iki katına çıkar ve "kaç istek düştü?" sorusu
-  sayılamaz hale gelir. İş bölümü: middleware *ne oldu*, filter *neden*.
-  2.3c'nin 2.4'ten ayrı tutulmasının sebebi zaten buydu.
-- **DI/modül grafiği değişecek** (yeni filter, muhtemelen yeni belirteç):
+- ⚠️ **RİSK R1 EN BÜYÜK İŞ.** `apps/api` saf ESM; `import` yükseltmesi
+  Sentry `init()`ini geç bırakır. `node --import ./dist/instrument.js
+  dist/main.js` gerekiyor — yani **Dockerfile + çalıştırma komutu birlikte**
+  değişecek ve konteynerde duman testi şart. Bu, SAPMA-014'ün tam hedefi:
+  yerelde çalışan bir şey imajda kırılabilir.
+- **`beforeSend` için hazır malzeme var.** Filter artık her hatayı `kind` ile
+  sınıflandırıyor (`STATUS_BY_KIND`). Karar 4 *"beklenen
+  `ValidationError`/`DomainError` gönderilmez"* diyor — bu ayrım `kind`
+  üzerinden tek satırda yapılabilir, `instanceof` zinciri gerekmiyor.
+- **`correlationId` etiketi için iki kaynak var** ve filtre ikisini de
+  kullanıyor: ALS (`getLogContext`) ve yanıt başlığı. Sentry entegrasyonu
+  aynı yardımcıyı (`resolveCorrelationId`) kullanmalı, üçüncü bir yol açmamalı.
+- ⚠️ **ÜÇÜNCÜ LOG SATIRI AÇMA.** Bugün istek başına en fazla iki satır var ve
+  ikisinin iş bölümü yazılı: `http.request` (ne oldu) · `http.exception`
+  (neden). Sentry bir **olay** kanalıdır, log kanalı değil — aynı hatayı
+  üçüncü kez loglamak sayımı bozar.
+- **Tarayıcı paketi büyüyecek.** `@sentry/react` ilk kez import edilecek;
+  taban **232.413 ham bayt**, artış soğuk derlemeyle ölçülüp gerekçesi yazılır.
+  Ölçüm kuralları aşağıdaki ① ② maddelerinde.
+- **DI/modül grafiği değişecek** (`instrument.ts`, muhtemelen yeni sağlayıcı):
   **SAPMA-014 geçerli — build ET ve ÇALIŞTIR.** Belirteçler hiçbir şey import
-  etmeyen `apps/api/src/common/tokens.ts`'e konur, `app.module.ts`'e değil.
+  etmeyen `apps/api/src/common/tokens.ts`'e konur.
 - **Alt süreç testi `dist` tazeliğine bağlı** (2.3b Karar 10). `packages/shared`
   altında bir dosya değişirse test `tsc`yi kendisi çağırıp yeniden derliyor;
   ilk koşu ~2 sn uzun sürebilir, bu **beklenen** davranıştır.
+- **Kabul kriteri 1 burada kapanıyor** — doğrulama yöntemi ROADMAP'te yazılı
+  (önce yerel yakalama sunucusu + assert eden test, sonra gerçek projeye TEK
+  SEFER gönderim). Karar 7 gereği kaynak haritası CI yüklemesi **Faz 50'ye**
+  erteleniyor ve **ilgili kabul kriteri gerekçesiyle `[ ]` kalır**.
 
 **Kapılar (bu sırayla):**
 `rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
@@ -146,7 +146,7 @@ da yakalanmalı.
 olduğu için `PUBLIC_BASE_PATH` okunamaz ve derleme durur (Faz 1 hata #8).
 Doğrusu `apps/web` dizininden çalıştırmaktır (aşağıdaki blok).
 
-**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **35 satır**.
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **38 satır**.
 
 **📦 PAKET TABANI GÜNCELLENDİ (2.3b): 229.320 → 232.413 ham bayt.**
 Artışın **tamamı** `api.ts`in tarayıcı logger'ını **gerçekten kullanmasından**
@@ -351,6 +351,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | ID | Faz | Borç | Neden ertelendi | Ödenmesi gereken faz |
 |---|---|---|---|---|
 | BORÇ-001 | 1 | `ioredis` 5.11.1'de tutuldu; 6.0.0 alınmadı | 6.0.0 kurulum anında 3 haftalıktı. Faz 16 (tur motoru) projenin en riskli fazı — orada "bu kütüphane regresyonu mu, benim idempotency mantığım mı?" sorusuyla uğraşmanın maliyeti günlerle ölçülür; ertelemenin maliyeti bir minor bump. | **16** — faz açılışında changelog okunup karar verilecek |
+| BORÇ-005 | 2 | **Hata gövdesindeki Türkçe metinler koda gömülü** (`MESSAGE_BY_KIND`, `apps/api/src/common/filters/global-exception.filter.ts`). K5 arayüzde sabit Türkçe metni yasaklıyor. | i18n Faz 5'te geliyor; 2.6'nın BORÇ-003'üyle **aynı sınıf** borç. Metin `AppError.message`'tan alınamıyor çünkü o alan bilinçli olarak **geliştirici mesajı** (`errors.ts`: *"loga ve Sentry'ye gider, çevrilmez, kullanıcıya gösterilmesi hedeflenmez"*) — doğrudan gövdeye konsaydı iç ayrıntı sızardı. Tablo bir **yedek**: sözleşmenin aslı `code` + `context` ve ikisi de gövdede dönüyor, yani Faz 5 işi `t('errors:' + code, context)` yazmaya iner, fırlatma yerlerini gezmeye değil. Metinler bilerek **genel** tutuldu ki hataya özgü cümle `code` üzerinden gelsin. | **5** — i18n kurulurken tablo silinir, istemci `code`+`context`ten üretir |
 | BORÇ-004 | 2 | **BullMQ'ya özgü `correlationId` kablolaması yapılmadı.** Taşınabilir zarf (`serializeLogContext`/`deserializeLogContext`) 2.3b'de kuruldu ve **gerçek bir süreç sınırında** test edildi (`spawnSync` + argv), ama `job.data.correlationId` alanına yazan/okuyan kuyruk tarafı yok. | `spec/09` §11.1 zincirinde *"Kuyruğa iş atılırsa `job.data.correlationId` taşınır → Worker aynı id ile loglar"* adımı var; ama **kuyruk henüz yok** — BullMQ Faz 16'da (tur motoru) kuruluyor. Bugün yazılacak kablolama, bağlanacağı üretici/tüketici olmadığı için ancak sahte bir kuyrukla test edilebilirdi ve o test **hiçbir şey kanıtlamazdı**: sahte kuyruk aynı süreçte kalır, ALS zaten oradan taşır (2.3b Karar 2). Zarfın kendisi — kırılabilecek asıl parça — bugün gerçek süreç sınırında sınandı; geriye kalan yalnızca BullMQ'nun kendi alanına bağlama işi. | **16** — kuyruk kurulurken üretici ve tüketici tarafına birlikte bağlanacak |
 | BORÇ-002 | 1 | `bullmq` 5.81.3'te tutuldu; 6.2.0 alınmadı | Aynı gerekçe (BORÇ-001). Ek olarak bullmq 6 `ioredis`'i peer'a taşıdı ve `pg`/`redis` peer'ları ekledi — kuyruk yapılandırmasını değiştiren bir mimari değişiklik, Faz 16'da bilinçli ele alınmalı. | **16** — faz açılışında changelog okunup karar verilecek |
 
@@ -411,6 +412,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 38 | 2.4 | **Lint üç yerde haklı çıktı:** `describeUnknown`da `String(value)` ve `JSON.stringify(...) ?? String(...)` | `no-base-to-string`: bir nesne için `String({...})` → `'[object Object]'`, yani **hiçbir bilgi taşımayan** teşhis satırı. `no-unnecessary-condition`: `JSON.stringify` nesne için asla `undefined` dönmüyor, `??` ölü daldı | Kural **bastırılmadı**; dallar `typeof` ile tek tek ayrıldı (`null`/`undefined` nesne dalından ÖNCE — `typeof null === 'object'`), döngüsel referans için durumu **adlandıran** metin dönülüyor | **Ders: `eslint-disable` yazmadan önce kuralın haklı olup olmadığı sorulur.** Burada uyarı gerçek bir teşhis kaybını gösteriyordu — bastırılsaydı üretimde `[object Object]` loglanırdı ve `throw {…}` vakalarında hiçbir bilgi kalmazdı |
+| 37 | 2.4 | Filtreyi yazarken DI belirteci import'unu **dosyanın ortasına** koydum | Belirtecin `tokens.ts`'ten geldiğini açıklayan uzun yorumu import'la birlikte yazınca blok gövdeye kaydı; lint (`simple-import-sort`) yakaladı | Import başa taşındı, gerekçe kısa satır yorumu olarak yanında kaldı | Küçük ama tekrar eden desen: **açıklama uzunsa import'u değil, açıklamayı taşı.** SAPMA-014'ün kuralı (belirteçler bağımlılıksız modülde) korundu |
+| 36 | 2.4 | **Kablolama açığı — 2.3b'nin dersinin aynısı, bu sefer ÖNCEDEN yakalandı.** Birim testleri filtrenin `catch()`ini doğrudan çağırıyordu; `APP_FILTER` kaydı silinse **hepsi yeşil kalırdı** | Saf fonksiyonun/metodun testi, o şeyin **kablolandığını** kanıtlamaz (`spec/09` §11.5, 2.3b'de yazılan kural) | Ayrı bir **gerçek HTTP** testi yazıldı: gerçek Nest uygulaması, gerçek port, gövde tel üzerinden okunuyor. Mutasyon: `APP_FILTER` kaldırıldı → **6 entegrasyon testi kırıldı**, birim testlerin hepsi geçti | **Kural işe yaradı.** 2.3b'de kural ödenmiş bir bedelden doğmuştu; burada aynı sınıf açık, kural sayesinde **yazılırken** görüldü. Yazılmış bir dersin ilk gerçek getirisi |
 | 35 | 2.3c | **Sapma yapılmış ama kütüğe yazılmamış** (2.3a'da): ROADMAP *"Zod ile doğrulanır"* diyor, kod `isAcceptableCorrelationId` regex koruyucusu kullanıyor | Karar doğruydu (tek dizgenin biçim kontrolü; Zod'lu sürüm izomorfik kök girişe `zod` çekerdi) ama kayıt adımı atlanmış — sapma **kod incelenirken** yapıldığı için "kütüğe yaz" refleksi tetiklenmemiş | Geriye dönük **SAPMA-015** açıldı, ROADMAP satırı gerekçeyle düzeltildi | **Ders: bir sapmanın DOĞRU olması, onu kayıttan muaf tutmaz.** Kayıtsız doğru karar, sonraki oturumda "burada hata mı var?" diye zaman yaktırır. `spec/11` §12.4 zaten "tespit edildiği anda kayda geçer" diyor — eksik olan, *"planla kod ayrıştığında bu bir sapmadır"* farkındalığıydı |
 | 34 | 2.3c | Ölçülen sınır: `GET /api/health` (global ön ek **dışı**) 404 dönüyor ama **loglanmıyor** | `forRoutes('*splat')` deseni `setGlobalPrefix` kapsamına giriyor; ön ek dışı istekler middleware'e hiç uğramıyor | Eylem yok — üretimde `/fms/api/*` dışı API'ye ulaşmıyor ve CI bu sınırı zaten iddia ediyor | **Yazıldı** (middleware başlığı + ROADMAP). Ders: bir kapının sessiz kaldığı yer, **yazılmadıysa yok sayılır** — bu fazın tekrar tekrar öğrendiği şey |
 | 33 | 2.3c | **Varsayım ölçümle ikiye bölündü:** `res.on('finish')` dinleyicisi ALS bağlamını görüyor mu? | Cevap dinleyicinin nerede **kaydedildiğine** değil, olayın nereden **emit edildiğine** bağlı. Sentetik `EventEmitter` + bağlam dışı `setTimeout` → `getStore()` **undefined**. Gerçek `node:http`, `res.end()` bağlam içinde → bağlam **korunuyor** | Bağlam istek **başlarken senkron** yakalanıyor, `finish` anında **açıkça** loglanıyor — ortama güvenilmiyor | **Ders: "gerçek ortamda çalışıyor" ile "çalışması garanti" ayrı şeyler.** Bugünkü akışta korunuyor ama sebebi middleware'in kontrolünde değil; yanıt bağlam dışından sonlanırsa satır **kimliksiz** çıkardı ve **kopukluğun belirtisi olmazdı**. Teste kontrol deneyi kondu: aynı anda ortam bağlamının gerçekten boş olduğu ayrıca doğrulanıyor, yoksa test doğru sebeple geçtiğini kanıtlamazdı (günlük #16) |
