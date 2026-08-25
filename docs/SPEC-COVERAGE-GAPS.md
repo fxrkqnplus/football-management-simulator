@@ -38,6 +38,18 @@ kapsamıyla karşılaştırıldı.
 
 ---
 
+## Tarama 2 — Faz 2.3b (2026-08-25)
+
+Yöntem: tarama değil, **ölçüm**. Faz 2'nin 2. kabul kriteri (*"Aynı `correlationId`
+ile frontend ve backend logları eşleşiyor"*) gerçek tarayıcı + derlenmiş API ile
+uçtan uca denendi ve zincirin bir halkası **yok** çıktı.
+
+| # | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+|---|---|---|---|---|
+| G-08 | `spec/09` §11.1 zinciri — *"API middleware AsyncLocalStorage'a koyar → **Tüm loglar otomatik taşır**"*, ve Faz 2'nin 2. kabul kriterinin doğrulaması: *"tarayıcıda tıkla → `X-Correlation-Id` → **sunucu logu**"* | **İstek başına bir sunucu log satırı** (erişim logu). Mekanizma var ve çalışıyor — ama **mutlu yolda hiçbir şey loglamıyor**, yani eşleşecek bir "sunucu logu" üretilmiyor. Ölçüm (2.3b, gerçek tarayıcı): tarayıcı `01a03965-5248-…` üretti, iki `console` satırında logladı, `X-Correlation-Id` ile gönderdi, sunucu **aynı kimliği yanıt başlığında geri verdi** (ekranda "zincir kapandı: evet"), ama `grep` ile sunucu logunda o kimlik **0 kez** bulundu. Karşıt kanıt: başlık **geçersiz** gönderilince middleware `correlation.invalidHeader` uyarısını basıyor ve satır kimliği taşıyor — yani ALS→logger kablolaması sağlam, eksik olan tek şey mutlu yolda **loglayan bir şeyin olmaması**. ROADMAP'in tamamında "istek logu / erişim logu" geçmiyor; 2.4 (exception filter) yalnızca **hata** yolunu logluyor. | **Faz 2** — en doğal yeri 2.4 (istek boru hattına zaten dokunuyor) veya 2.3'e ek bir madde | ⏳ ROADMAP'e işlenmedi — **kullanıcı kararı bekliyor** (K11: 2.3b kapsamına tek taraflı eklenmedi). Karar verilene kadar Faz 2'nin **2. kabul kriteri `[ ]` kalıyor** |
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.

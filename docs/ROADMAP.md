@@ -437,9 +437,30 @@ docs/ADR/0001-monorepo-secimi.md
       **Negatif testler:** (a) başlıksız istek → sunucu üretir · (b) geçersiz başlık → yeni üretilir,
       uyarı basılır · (c) **eşzamanlılık** — iki paralel istek, ALS bağlamları karışmıyor (seri test
       bunu yakalamaz) · (d) motora uuid importu → `arch:check` kırar.
-- [ ] **2.3b** `correlationId` — süreç ve tarayıcı sınırı
+- [x] **2.3b** `correlationId` — süreç ve tarayıcı sınırı
+      **Sonuç:** dört işin dördü yapıldı. Zarf **bölündü** (Karar 9, aşağıda), alt süreç testi
+      gerçek `spawnSync` sınırında koşuyor, tarayıcı zinciri gerçek tarayıcıda kanıtlandı,
+      paket **229.320 → 232.413 ham bayt (+3.093, %1,35)**. `zod`/`pino`/`async_hooks` → **0**.
+      **Kapanmayan tek şey:** 2. kabul kriteri — sunucu mutlu yolda hiç log satırı basmıyor,
+      eşleşecek "backend logu" yok → **G-08**, kullanıcı kararı bekliyor. Kriter `[ ]` kaldı.
       **Kapsam:** taşınabilir zarf (`serializeLogContext` / `deserializeLogContext` + Zod) ·
       **gerçek alt süreç** testi · tarayıcı tarafı üretimi (`apps/web/src/lib/api.ts`) · paket ölçümü.
+      **Karar 9 — ZARF BÖLÜNDÜ: üretici kökte, çözücü `server/`de.** Plan zarfın tamamını
+      kök girişe koyuyordu; ölçüm çelişki gösterdi. Üretmek bağımlılık istemiyor (izomorfik
+      kalabilir), **çözmek bir dış girdi ayrıştırıyor** ve CLAUDE.md §1.3 gereği Zod istiyor —
+      ama `zod` kök barrel'a giremez: 2.1'de ölçüldü ki barrel üzerinden gelen her import Zod'u
+      **motora** da çekiyordu (2.2a'da `server/` alt yoluna taşınarak düzeltilmişti). Zarfın
+      tamamı köke konsaydı o düzeltme geri alınırdı. Bölünmenin bedeli **ayrışma riski**; üç
+      bağla kapatıldı: ① sürüm sabiti yalnızca kökte tanımlı, şema onu `z.literal()` içine
+      oradan alıyor · ② şema çıktısının kanonik tipe atanabilirliği **tip düzeyinde iddia
+      ediliyor** (`Assert<... extends ... ? true : false>`) — iki ayrı kayma denendi, ikisi de
+      `TS2344` verdi · ③ gidiş-dönüş testi iki yarıyı birlikte koşturuyor.
+      **Karar 10 — alt süreç testi `dist`i kendisi tazeliyor.** Çocuk düz `node` ile başlıyor,
+      Vitest'in çözümleyicisi orada yok; Node 24 tip soyması `.js` belirtecini `.ts`ye
+      **çevirmiyor** (ölçüldü), yani kaynak ağacı çalıştırılamıyor. CI `test`i `build`den önce
+      koştuğu için "önce derle" hatası CI'da hep kırmızı olurdu. Test `src` ↔ `dist` mtime
+      karşılaştırıp gerekirse `tsc`yi doğrudan çağırıyor — bayat `dist` yeşil yalanı da böylece
+      kapanıyor (kanıt: sürüm sabiti 1→2 yapıldı, test kendiliğinden yeniden derleyip geçti).
       **Karar 2:** sahte kuyruk KULLANILMAZ — aynı süreçte ALS zaten sızar, test "geçer" ve hiçbir şey
       kanıtlanmaz. Zincir **gerçek süreç sınırı** üzerinden test edilir: alt süreç başlatılır, zarf argümanla
       geçilir, çocuk kendi ALS'ini zarftan kurar, `correlationId` eşleşmesi doğrulanır. BullMQ'ya özgü
@@ -509,6 +530,16 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 **Kabul kriterleri:**
 - [ ] Kasıtlı bir hata fırlat → Sentry'de `correlationId` ile görünüyor — *doğrulama: önce yerel yakalama sunucusuna DSN + zarfın etiketi taşıdığını assert eden test, sonra gerçek projeye TEK SEFER gönderim + ekran görüntüsü*
 - [ ] Aynı `correlationId` ile frontend ve backend logları eşleşiyor — *doğrulama: tarayıcıda tıkla → `X-Correlation-Id` → sunucu logu. **Negatif:** başlıksız istek → sunucu kendi üretir. **Eşzamanlılık:** iki paralel istek → ALS bağlamları karışmıyor*
+      **2.3b sonrası durum — üç halkanın ikisi kanıtlı, biri YOK:**
+      ✅ Tarayıcı kimliği üretiyor, **logluyor** ve `X-Correlation-Id` ile gönderiyor
+      (2.3b, gerçek tarayıcı: `01a03965-5248-…` iki `console` satırında + istek başlığında).
+      ✅ Sunucu kabul ediyor, ALS'e koyuyor ve **aynı kimliği yanıt başlığında geri veriyor**
+      (ekranda "zincir kapandı: evet"). Negatif ve eşzamanlılık testleri 2.3a'da yeşil.
+      ❌ **Sunucu mutlu yolda hiçbir şey LOGLAMIYOR** — eşleşecek bir "backend log satırı"
+      üretilmiyor. `grep` ile tarayıcının kimliği sunucu logunda **0** kez bulundu.
+      Mekanizma sağlam (geçersiz başlık gönderilince middleware'in `warn` satırı kimliği
+      taşıyor); eksik olan tek şey **istek başına log satırı** → **G-08**.
+      Kriter, o eklenene kadar `[ ]` kalır (dürüstlük kuralı, `spec/11` §12.1).
 - [ ] Debug paneli açılıyor ve canlı log akışı gösteriyor — *doğrulama: `Ctrl+Shift+D` + üretim paketinde YOKLUĞUNUN kanıtı (dize nöbetçisi, Karar 3)*
 - [ ] `assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor — *doğrulama: İKİ AYRI DERLEME alınır ve ikisi de çalıştırılır; `NODE_ENV` koklanmaz*
 - [ ] Performans sarmalayıcısı bütçe aşımında uyarı basıyor — *doğrulama: 1 ms bütçe / 50 ms fonksiyon → uyarı; 500 ms bütçe → sessiz*

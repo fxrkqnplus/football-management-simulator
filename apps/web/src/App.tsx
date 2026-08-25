@@ -1,5 +1,7 @@
-import { apiPath, basePathConfig } from '@fms/shared';
+import { basePathConfig } from '@fms/shared';
 import { useEffect, useState } from 'react';
+
+import { apiRequest } from './lib/api.js';
 
 /**
  * Alt yol kanıt ekranı — Faz 1.8.
@@ -22,19 +24,19 @@ export function App(): React.ReactElement {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cookie, setCookie] = useState<string>('');
+  const [correlationId, setCorrelationId] = useState<string>('');
+  const [chainClosed, setChainClosed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const url = apiPath('/health');
-    fetch(url, { credentials: 'include' })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`API ${String(response.status)} döndü: ${url}`);
-        }
-        return (await response.json()) as HealthResponse;
-      })
-      .then((data) => {
-        setHealth(data);
+    // Çıplak `fetch` DEĞİL: zincir `apiRequest` üzerinden kuruluyor (2.3b).
+    // Gönderilen ve sunucunun geri verdiği kimlik ekranda gösteriliyor ki
+    // 2. kabul kriteri (tarayıcı ↔ sunucu log eşleşmesi) gözle kanıtlanabilsin.
+    apiRequest<HealthResponse>('/health')
+      .then((result) => {
+        setHealth(result.data);
         setCookie(document.cookie);
+        setCorrelationId(result.correlationId);
+        setChainClosed(result.serverCorrelationId === result.correlationId);
       })
       .catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : String(cause));
@@ -77,6 +79,18 @@ export function App(): React.ReactElement {
           <tr>
             <td>çerez</td>
             <td data-testid="cookie">{cookie === '' ? 'yok' : cookie}</td>
+          </tr>
+          <tr>
+            <td>correlationId</td>
+            <td data-testid="correlation-id">
+              {correlationId === '' ? 'bekleniyor' : correlationId}
+            </td>
+          </tr>
+          <tr>
+            <td>zincir kapandı mı</td>
+            <td data-testid="chain-closed">
+              {chainClosed === null ? 'bekleniyor' : chainClosed ? 'evet' : 'HAYIR'}
+            </td>
           </tr>
         </tbody>
       </table>

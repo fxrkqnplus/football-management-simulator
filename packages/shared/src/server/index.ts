@@ -40,5 +40,6 @@ export {
   loadEnv,
   parseEnv,
 } from './env.js';
+export { deserializeLogContext, logContextEnvelopeSchema } from './log-context.js';
 export type { ServerLoggerOptions } from './logger.js';
 export { createServerLogger } from './logger.js';

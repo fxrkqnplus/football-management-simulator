@@ -55,6 +55,12 @@ export {
   NotFoundError,
   ValidationError,
 } from './errors.js';
+export type { LogContextEnvelope, LogContextEnvelopeValue } from './log-context.js';
+export {
+  LOG_CONTEXT_ENVELOPE_VERSION,
+  serializeLogContext,
+  toLogContextEnvelope,
+} from './log-context.js';
 export type { LogContext, LogFormat, Logger, LogLevel, LogMethod, LogValue } from './logger.js';
 export { createNoopLogger, LOG_FORMATS, LOG_LEVELS, normalizeLogArgs } from './logger.js';
 export { isSensitiveKey, redactContext, REDACTED, SENSITIVE_KEY_PATTERNS } from './redact.js';

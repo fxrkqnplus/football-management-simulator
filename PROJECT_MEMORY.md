@@ -21,22 +21,33 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3a bitti, SIRADA 2.3b** |
-| **Son tamamlanan** | ✅ **2.3a** `correlationId` sunucu içi zinciri (uuid v7 · ALS · middleware · gidiş-dönüş) · ardından **hafıza boşluğu kapatma** (`arch:check` kapsam bloğu + kanarya deliği) — alt görev değil, bakım commit'i |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3b bitti, SIRADA 2.4** |
+| **Son tamamlanan** | ✅ **2.3b** taşınabilir zarf (bölünmüş) · gerçek alt süreç testi · tarayıcı üretimi (`api.ts`) · paket ölçümü |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 6/13 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a) |
-| **Bloke eden var mı?** | Hayır |
-| **Son commit** | `test(arch): import-casing kanaryası + arch:check kapsamını hafızaya yaz` |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 7/13 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b) |
+| **Bloke eden var mı?** | Hayır — ama **bir karar bekliyor**: G-08 (istek başına sunucu logu). Bkz. aşağıdaki uyarı. |
+| **Son commit** | `feat(shared,web): taşınabilir log zarfı, alt süreç sınırı ve tarayıcı correlationId üretimi` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ✅ koşu `32854771148` — dört işin dördü de yeşil. ARM64 rakamları yerelle birebir aynı. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
-| **test** | ✅ **271 test / 18 dosya** (2.3b-öncesinde düzeltildi: kayıt "17 dosya" diyordu, `d35175d` anında da **18**'di — test sayısı doğruydu, dosya sayısı yanlıştı) |
-| **kapsam** | ✅ satır **%92,53** · ifade %92,51 · dal %89,7 · fonksiyon **%95** — eşik %70 |
-| **Web paketi** | **229.320 bayt** (ham) — 2.2a'dan beri değişmedi |
+| **CI** | ⏳ 2.3b koşusu **henüz işlenmedi** — push edildi, sonuç bir sonraki oturumda ANLIK DURUM'a yazılacak. Önceki yeşil koşu: `32854771148`. |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle, `rm -rf .turbo/cache` sonrası) |
+| **test** | ✅ **308 test / 22 dosya** (2.3b: +37 test, +4 dosya) |
+| **kapsam** | ✅ satır **%93,50** · ifade %93,47 · dal %90,38 · fonksiyon **%95,18** — eşik %70 |
+| **Web paketi** | **232.413 bayt** (ham) — taban 229.320'den **+3.093 (%1,35)**. Sebep ölçüldü, aşağıda. |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **2** — BORÇ-001, BORÇ-002 (ikisi de Faz 16) |
-| **SAPMA sayısı** | 14 (SAPMA-001…014) |
+| **Teknik borç sayısı** | **3** — BORÇ-001, BORÇ-002, **BORÇ-004** (üçü de Faz 16) |
+| **SAPMA sayısı** | 14 (SAPMA-001…014) — 2.3b yeni SAPMA açmadı; iki karar ROADMAP 2.3b'ye yazıldı (Karar 9, Karar 10) |
+
+> ⚠️ **2.3b BİR KARAR BIRAKTI — 2.4'e girmeden çözülmeli.**
+> Faz 2'nin **2. kabul kriteri** (`frontend ve backend logları eşleşiyor`) `[ ]` kaldı.
+> Sebep tahmin değil ölçüm: gerçek tarayıcıda kimlik üretildi, `console`a loglandı,
+> `X-Correlation-Id` ile gönderildi, sunucu **aynı kimliği yanıt başlığında geri verdi**
+> (ekranda "zincir kapandı: evet") — ama `grep` ile o kimlik sunucu logunda **0** kez
+> bulundu, çünkü **sunucu mutlu yolda hiçbir şey loglamıyor.** ALS→logger kablolaması
+> sağlam (geçersiz başlıkta middleware'in `warn` satırı kimliği taşıyor).
+> Eksik olan tek şey **istek başına bir log satırı** → **G-08** (`docs/SPEC-COVERAGE-GAPS.md`).
+> ROADMAP'in hiçbir alt görevi bunu üretmiyor. 2.3b kapsamına tek taraflı **eklenmedi** (K11/K12).
+> **Karar:** 2.4'e madde olarak mı girsin, yoksa ayrı bir 2.3c mi açılsın?
 
 ---
 
@@ -89,50 +100,63 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ---
 
-### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.3b
+### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.4
 
-**Kapsam:** taşınabilir zarf · gerçek alt süreç testi · tarayıcı üretimi · paket ölçümü.
+**ÖNCE KARAR (yukarıdaki uyarı):** G-08 nereye gidiyor? 2.4'e madde mi, 2.3c mi?
+Karar verilmeden 2. kabul kriteri kapanamaz.
 
-**1. Üretilecek/değişecek dosyalar (tahmin):**
-- `packages/shared/src/log-context.ts` [YENİ] — `serializeLogContext` /
-  `deserializeLogContext` + Zod şeması. **İzomorfik** (kök giriş): zarfı hem
-  sunucu hem tarayıcı üretebilmeli.
-- `packages/shared/src/log-context.test.ts` [YENİ]
-- `apps/web/src/lib/api.ts` [YENİ] — `fetch` sarmalayıcısı; kimlik üretir,
-  `X-Correlation-Id` başlığına koyar, tarayıcı logger'ını **ilk kez** kullanır.
-- `apps/web/src/lib/api.test.ts` [YENİ]
-- Alt süreç testi için küçük bir çocuk betiği (konumu 2.3b'de kararlaştırılır).
+**2.4 kapsamı (ROADMAP):** NestJS global exception filter — hata sınıfı → HTTP
+durumu + Türkçe gövde + `correlationId`. Bilinmeyen hata → 500, ayrıntı
+**yalnızca** logda. **Negatif test:** `Error` olmayan fırlatma (`throw 'metin'`)
+da yakalanmalı.
 
-**2. Karar 2 — SAHTE KUYRUK KULLANILMAZ, gerekçesi:**
-Sahte kuyruk aynı süreçte kalır. `AsyncLocalStorage` zaten süreç içinde
-taşıdığı için zincir "çalışıyor" görünür — **oysa taşınan şey zarf değil,
-ALS'in kendisidir.** Test yeşil olur ve hiçbir şey kanıtlanmaz. Zarfın işe
-yaradığı ancak **gerçek bir süreç sınırında** görülür: alt süreç başlatılır,
-zarf argümanla geçilir, çocuk kendi ALS'ini **zarftan** kurar,
-`correlationId` eşleşmesi doğrulanır.
-BullMQ'ya özgü kablolama `[ ]` kalır → **BORÇ-004**, Faz 16'da açılacak.
+**2.4'e girerken bilinmesi gerekenler — 2.3b'den devir:**
 
-**3. Zorunlu negatif testler:**
-- Zarf **bozuk JSON** ile gelirse → Zod reddeder, çocuk kendi kimliğini üretir
-- Zarf **eksik alanla** gelirse → aynı davranış
-- Zarftaki **hassas alan** → `redactContext` ile temizlenmiş mi (zarf loga da gidiyor)
-- Tarayıcı: `fetch` başlığı **gerçekten gönderiyor mu** (yanıt başlığıyla eşleşme)
-- Alt süreç: çocuğun ürettiği log satırında **ebeveynin** `correlationId`'si var mı
+- **`httpStatus` alanı hata sınıflarında YOK** (SAPMA-010, bilinçli). Eşleme
+  filter'da `Record<ErrorKind, number>` olarak tutulacak; yeni bir `ErrorKind`
+  eklenip eşlemeye yazılmazsa **derleme kırılır**. Tablo bu yüzden `Partial`
+  yapılmamalı.
+- **Kullanıcı mesajı sınıfta üretilmiyor** — sözleşme `code` + `context`.
+  `code` zaten i18n anahtarı biçiminde (`alan.olay`), Faz 5 bir eşleme
+  tablosuna inecek.
+- **`apps/web/src/lib/api.ts` hata gövdesini HENÜZ ayrıştırmıyor.** Bugün
+  2xx olmayan her yanıt `DomainError`a (`api.requestFailed`) sarılıyor ve
+  gövde okunmuyor. Filter tipli gövde basmaya başlayınca istemci tarafı da
+  ona göre güncellenmeli — yoksa sunucu Türkçe mesaj üretir, tarayıcı onu
+  görmez ve iki taraf sessizce ayrışır.
+- **DI/modül grafiği değişecek** (yeni filter, muhtemelen yeni belirteç):
+  **SAPMA-014 geçerli — build ET ve ÇALIŞTIR.** Belirteçler hiçbir şey import
+  etmeyen `apps/api/src/common/tokens.ts`'e konur, `app.module.ts`'e değil.
+- **Alt süreç testi `dist` tazeliğine bağlı** (2.3b Karar 10). `packages/shared`
+  altında bir dosya değişirse test `tsc`yi kendisi çağırıp yeniden derliyor;
+  ilk koşu ~2 sn uzun sürebilir, bu **beklenen** davranıştır.
 
-**4. Paket ölçümü — ARTIŞ BEKLENİYOR:**
-Taban **229.320 ham bayt**. Tarayıcı logger'ı 2.2b'de yazıldı ama hiçbir
-yerden import edilmediği için ağaç sarsmayla paketten çıkıyordu. `api.ts`
-onu kullanınca **büyüyecek** — bu beklenen. Ölçüm **soğuk** derlemeyle
-(`rm -rf .turbo/cache`), karşılaştırma **ham bayt** üzerinden (yukarıda ①).
-Artış makul değilse (örn. > ~5 kB) sebebi bulunur.
-
-**5. Kapılar (bu sırayla):**
+**Kapılar (bu sırayla):**
 `rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
 → `arch:check` → `format:check`
-**Ve SAPMA-014 gereği:** DI/modül grafiği değişirse derlenmiş çıktı
-**gerçekten çalıştırılır** (`spec/09` §11.5).
 
-**6. Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **25 satır**.
+**Çalışan sistemi ayağa kaldırma — ÖNİZLEME KOMUTU KRİTİK:**
+`vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli (`'../..'`)
+olduğu için `PUBLIC_BASE_PATH` okunamaz ve derleme durur (Faz 1 hata #8).
+Doğrusu `apps/web` dizininden çalıştırmaktır (aşağıdaki blok).
+
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **32 satır**.
+
+**📦 PAKET TABANI GÜNCELLENDİ (2.3b): 229.320 → 232.413 ham bayt.**
+Artışın **tamamı** `api.ts`in tarayıcı logger'ını **gerçekten kullanmasından**
+geliyor. Kontrol deneyiyle ölçüldü: `api.ts` diskte dururken `App.tsx` çıplak
+`fetch`e döndürüldü ve paket **bayt bayt 229.320** çıktı. Yani günlük #16'nın
+dersi ters yönden doğrulandı — kullanılmayan kod sıfır bayt.
+Bunun bir sonucu: 2.3b'de kök barrel'a eklenen üç dışa aktarım
+(`serializeLogContext`, `toLogContextEnvelope`, `LOG_CONTEXT_ENVELOPE_VERSION`)
+pakete **hiç girmedi** (`serializeLogContext` → 0 eşleşme).
+Sızıntı taraması: `pino` 0 · `async_hooks` 0 · `AsyncLocalStorage` 0 ·
+**`zod` 0** · `JWT_SECRET` 0 · `deserializeLogContext` 0.
+Pakete girmesi beklenenler doğrulandı: `REDACTED` 1 · `x-correlation-id` 1 ·
+`api.request` 3. ⚠️ `createBrowserLogger`/`apiRequest` **0** çıkıyor ve bu
+normal — küçültme tanımlayıcıları yeniden adlandırıyor, yalnızca **dize
+literalleri** hayatta kalıyor. (2.8 Karar 3'ün "grep ile kanıtlanamaz"
+uyarısının bugünden görünen hâli; tarama hep dize nöbetçisiyle yapılır.)
 
 **✅ 1.8'DEN TAŞINAN RİSK KAPANDI (2.2a + 2.2b).**
 `@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu ve Faz 1'de
@@ -188,6 +212,10 @@ sessizce kaybolur.
 >
 > Rakamlar 2026-08-25'te `tools/arch-check/index.mjs` üzerinden **ölçüldü**,
 > elle sayılmadı.
+>
+> ✅ **2.3b sonunda yeniden ölçüldü, kapsam DEĞİŞMEDİ:** 7 kural · 7 taranan
+> uzantı · 3 varlık uzantısı · 9 katman / 13 bağ. 2.3b yeni bir kural veya
+> uzantı eklemedi; blok ile gate ayrışmadı.
 
 **Kural sayısı: 7** (kaynak: `runArchCheck` içinde basılan `rule:` belirteçleri)
 
@@ -317,6 +345,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | ID | Faz | Borç | Neden ertelendi | Ödenmesi gereken faz |
 |---|---|---|---|---|
 | BORÇ-001 | 1 | `ioredis` 5.11.1'de tutuldu; 6.0.0 alınmadı | 6.0.0 kurulum anında 3 haftalıktı. Faz 16 (tur motoru) projenin en riskli fazı — orada "bu kütüphane regresyonu mu, benim idempotency mantığım mı?" sorusuyla uğraşmanın maliyeti günlerle ölçülür; ertelemenin maliyeti bir minor bump. | **16** — faz açılışında changelog okunup karar verilecek |
+| BORÇ-004 | 2 | **BullMQ'ya özgü `correlationId` kablolaması yapılmadı.** Taşınabilir zarf (`serializeLogContext`/`deserializeLogContext`) 2.3b'de kuruldu ve **gerçek bir süreç sınırında** test edildi (`spawnSync` + argv), ama `job.data.correlationId` alanına yazan/okuyan kuyruk tarafı yok. | `spec/09` §11.1 zincirinde *"Kuyruğa iş atılırsa `job.data.correlationId` taşınır → Worker aynı id ile loglar"* adımı var; ama **kuyruk henüz yok** — BullMQ Faz 16'da (tur motoru) kuruluyor. Bugün yazılacak kablolama, bağlanacağı üretici/tüketici olmadığı için ancak sahte bir kuyrukla test edilebilirdi ve o test **hiçbir şey kanıtlamazdı**: sahte kuyruk aynı süreçte kalır, ALS zaten oradan taşır (2.3b Karar 2). Zarfın kendisi — kırılabilecek asıl parça — bugün gerçek süreç sınırında sınandı; geriye kalan yalnızca BullMQ'nun kendi alanına bağlama işi. | **16** — kuyruk kurulurken üretici ve tüketici tarafına birlikte bağlanacak |
 | BORÇ-002 | 1 | `bullmq` 5.81.3'te tutuldu; 6.2.0 alınmadı | Aynı gerekçe (BORÇ-001). Ek olarak bullmq 6 `ioredis`'i peer'a taşıdı ve `pg`/`redis` peer'ları ekledi — kuyruk yapılandırmasını değiştiren bir mimari değişiklik, Faz 16'da bilinçli ele alınmalı. | **16** — faz açılışında changelog okunup karar verilecek |
 
 ---
@@ -375,6 +404,10 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 32 | 2.3b | **Kabul kriteri kapanmadı: zincirin son halkası hiç yokmuş.** Tarayıcı kimliği üretiyor, logluyor, gönderiyor; sunucu kabul edip yanıt başlığında geri veriyor — ama `grep` ile tarayıcının kimliği sunucu logunda **0** kez bulundu | Sunucu **mutlu yolda hiçbir şey loglamıyor.** ALS→logger kablolaması sağlam (geçersiz başlık gönderilince middleware'in `warn` satırı kimliği taşıyor — karşıt kanıtla doğrulandı), ama `health.controller` loglamıyor ve ROADMAP'in tamamında "istek logu / erişim logu" geçmiyor | Kriter `[ ]` bırakıldı, gerekçesi ROADMAP'e yazıldı; boşluk **G-08** olarak kayda geçti. 2.3b kapsamına **tek taraflı eklenmedi** (K11/K12) | **Ders: "mekanizma çalışıyor" ile "kriter sağlandı" ayrı şeyler.** Mekanizmayı sınayan birim testleri yeşildi ve kriteri sağladığımızı düşündürüyordu; yalnızca **uçtan uca, gerçek tarayıcıyla** denemek eksik halkayı gösterdi. SAPMA-008'in sınıfı: spec bir şey istiyor, hiçbir alt görev onu üretmiyor |
+| 31 | 2.3b | Tip bağı kapsam raporunu kirletti: `server/log-context.ts` fonksiyon kapsamı **%50** | Şema↔tip bağını `const f: (p) => Canonical = (p) => p` biçiminde yazmıştım; garanti doğruydu ama **asla çağrılmayan bir fonksiyon** üretiyordu | Saf tip düzeyine çevrildi (`Assert<T extends true>`), hiç JS üretmiyor | Kapsam bu projede bir kapı (K10). Ölü kodla kirletmek, sonra gelen birinin *"kapsamı düzelteyim"* diye **kapının kendisini silmesine** davetiye çıkarır. Ayrıca: tip takma adı `noUnusedLocals` yüzünden `TS6196` verdi → `export` edildi (barrel'dan yeniden aktarılmıyor) |
+| 30 | 2.3b | `App.test.tsx` 6 testle kırıldı: sahte `fetch` `headers` taşımıyor | Sahteler düz nesne (`{ok, status, json}`) dönüyordu; `apiRequest` yanıt **başlığını** okuyor. Sahte, taklit ettiği şeyin yüzeyini **eksik** taklit ediyordu | Sahteler gerçek `Response` döndürüyor ve sunucu gibi kimliği geri veriyor | **Ders: bir sahte, taklit ettiği sözleşmenin tamamını taklit etmeli.** Eksik sahte, üretimde var olmayan bir dünyada yeşil kalır. Ayrıca ağ hatası artık tipli hataya sarıldığı için bir testin beklentisi **davranış değiştiği için** güncellendi — gevşetilerek değil: ham reddetme değerinin `cause`'da korunduğu ayrı bir testle sınandı |
+| 29 | 2.3b | Plan zarfı **kök girişe + Zod ile** koyuyordu; kök barrel'ın kendi başlığı bunu yasaklıyor | Zarfın iki yarısı iki ayrı kısıta çarpıyor: üretmek bağımlılık istemiyor, **çözmek dış girdi ayrıştırıyor** ve Zod istiyor. `zod` köke girseydi 2.2a'nın düzeltmesi (barrel → motora Zod sızıntısı) geri alınırdı | Kullanıcıya soruldu (K13); **bölünmüş** seçildi: üretici kökte, çözücü `server/`de. Ayrışma riski üç bağla kapatıldı (sürüm sabiti tek kaynak · tip düzeyi iddia · gidiş-dönüş testi) | **Ölçümle doğrulandı:** paketde `zod` **0**. Ders: bir modülün "izomorfik" olup olmadığı **ne yaptığına** değil, **neye ihtiyaç duyduğuna** bakılarak belirlenir — aynı kavramın iki yarısı iki farklı katmana ait olabilir |
 | 28 | 2.3b-öncesi | ANLIK DURUM **"271 test / 17 dosya"** diyordu; ölçüm **18 dosya** verdi | `git ls-tree d35175d` ile bakıldı: o commit anında da 18'di — yani rakam bayat değil, **yazıldığı anda yanlıştı**. Test sayısı (271) doğru olduğu için satır güvenilir görünüyordu | 18 olarak düzeltildi | Günlük #25'in **aynı satırdaki ikinci vakası**: orada test sayısı, burada dosya sayısı. **Ders: bir satırdaki bir rakamın doğru olması, yanındakini doğrulamaz** — birlikte yazılan ölçümler birlikte ölçülür, biri diğerine kefil olmaz |
 | 27 | 2.3b-öncesi | **Hafıza testi bir delik buldu, delik başka bir delik açığa çıkardı.** Yeni oturum "`arch:check` kaç kural denetliyor?" sorusuna cevap veremedi — kapsam hiçbir dosyada yazılı değildi. Kapsamı çıkarmak için kaynak okununca **kanaryanın 7 kuraldan yalnızca 6'sını kapsadığı** görüldü: `import-casing` kapsam dışı | Kanarya fixture'ı kural kural elle yazılıyor; 1.6'da yazılan `import-casing` için hiç fixture konmamış. `checkImportCasing`in **beş birim testi** saf fonksiyonu doğrudan çağırdığı için bölge "test edilmiş" görünüyordu — oysa sınanan şey fonksiyondu, **kablolaması** değil. Ayrıca `index.mjs` başlığı hâlâ *"dört şey"* diyordu; ⑤⑥⑦ 2.2a/2.3a'da eklenmiş, kapsam beyanı güncellenmemişti | **Mutasyon deneyi:** `runArchCheck` içindeki `import-casing` bildirimi susturuldu → **43/43 test geçti**, `pnpm arch:check` "✓ temiz" dedi. Kanaryaya `packages/ui/src/Widget.ts` ↔ `./widget.js` fixture'ı eklendi; aynı mutasyon artık **1 başarısız** veriyor. Başlık yorumu yedi kuralı listeler hâle getirildi | Kapsam `PROJECT_MEMORY.md`'de **kalıcı blok** oldu + `spec/11` §12.3'e kural. **Ders: bir kuralın birim testi, o kuralın ÇALIŞTIĞINI kanıtlamaz — yalnızca fonksiyonun doğru olduğunu kanıtlar.** Kanarya kural listesinin TAMAMINI kapsamalı; eksik kalan kural birim testleri yeşilken körelir. Test sayısı değişmedi (43), yani boşluk "test yok" diye değil ancak **kapsam sayılarak** bulunabilirdi |
 | 1 | 2.0 | Kapsam raporu 13 dosya sayıyor, diskte 15 var | `coverage.include` deseni yalnızca `*.ts`; `.tsx` hiç görülmüyor | Desen `*.{ts,tsx,mts,cts}` | SAPMA-007, `spec/09` §11.4 + dosya sayısı doğrulama yöntemi |
