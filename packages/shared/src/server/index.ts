@@ -30,11 +30,14 @@
  * türetmesi, `Logger` **arayüzü** (uygulaması değil), `DebugTrace` — bunlar
  * kök girişte (`@fms/shared`) kalır ve motorla tarayıcı ikisi de kullanır.
  */
-export type { Env, EnvIssue } from './env.js';
+export type { Env, EnvIssue, EnvWarning } from './env.js';
 export {
   checkDatabaseUrlConsistency,
+  collectEnvWarnings,
   envSchema,
   formatEnvError,
   loadEnv,
   parseEnv,
 } from './env.js';
+export type { ServerLoggerOptions } from './logger.js';
+export { createServerLogger } from './logger.js';

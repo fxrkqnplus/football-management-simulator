@@ -1,16 +1,23 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  APP_PATH_PREFIXES,
   basePackageOf,
   checkImportCasing,
+  ENGINE_FORBIDDEN_CALLS,
+  ENGINE_FORBIDDEN_MODULE_PREFIXES,
   isDependencyDeclared,
   isForbiddenEngineModule,
   isImportAllowed,
+  LAYER_RULES,
   resolveLayer,
+  RESTRICTED_SUBPATHS,
+  runArchCheck,
+  SCANNED_EXTENSIONS,
   scanSource,
   subpathRestrictionFor,
 } from './index.mjs';
@@ -252,5 +259,154 @@ describe('checkImportCasing', () => {
 
   it('var olmayan dosyayı harf hatası saymaz', () => {
     expect(checkImportCasing(dir, './hicyok.js')).toEqual({ ok: true });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// META-TEST — gate'in KENDİSİ bozulursa (Faz 2.2b)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// NEDEN VAR: 2.2a'da ölçüldü ki alt yol sınırının TEK yapısal bekçisi
+// `arch:check`. `types: []` ve `sideEffects: false` sızıntıyı engellemiyor
+// (SAPMA-012). Tek savunma hattı olmanın bedeli, o hattın kendisinin
+// denetlenmesi gerektiğidir.
+//
+// Bu sınıftan sessiz bozulma zaten yaşandı: 2.1'de taranan uzantı listesinden
+// `.cts` eksikti ve ihlal içeren bir `.cts` dosyası konulduğunda gate
+// "✓ temiz" dedi. Kural silinse, liste boşalsa, bir tablo kazara kırpılsa
+// gate yine "temiz" derdi — çıktı, denetimin YAPILDIĞINI söylemiyor.
+//
+// İki kat kontrol:
+//   ① Sabit tablolar boşalmadı mı / kritik üyeler yerinde mi
+//   ② KANARYA: her kuralın ihlalini içeren sahte bir depo taranıyor ve her
+//      kuralın gerçekten ötüğü görülüyor. ①'in yakalayamadığı şeyi yakalar —
+//      tablo doluyken kuralın kablolaması kopmuş olabilir.
+
+describe('META: arch:check kural tabloları boşalmadı', () => {
+  it('katman tablosu sekiz paketi ve scripts katmanını tanımlar', () => {
+    const layers = Object.keys(LAYER_RULES);
+    expect(layers.length).toBeGreaterThanOrEqual(9);
+    for (const required of [
+      'apps/web',
+      'apps/api',
+      'apps/worker',
+      'packages/db',
+      'packages/engine',
+      'packages/ui',
+      'packages/shared',
+      'tools/data-cli',
+    ]) {
+      expect(layers).toContain(required);
+    }
+  });
+
+  it('motor izin listesi yalnızca @fms/shared içerir — genişlerse K3 gevşer', () => {
+    expect(LAYER_RULES['packages/engine']).toEqual(['@fms/shared']);
+  });
+
+  it('varlık yolu ön ekleri listesi boşalmadı', () => {
+    expect(APP_PATH_PREFIXES.length).toBeGreaterThanOrEqual(6);
+    expect(APP_PATH_PREFIXES).toContain('/api');
+    expect(APP_PATH_PREFIXES).toContain('/fms');
+  });
+
+  it('taranan uzantı listesi yedi uzantıyı kapsar — .cts dahil', () => {
+    // 2.1'de tam olarak .cts eksikti ve gate kör kaldı.
+    for (const ext of ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js']) {
+      expect(SCANNED_EXTENSIONS).toContain(ext);
+    }
+  });
+
+  it('motor yasaklı modül listesi çekirdek Node yüzeyini kapsar', () => {
+    expect(ENGINE_FORBIDDEN_MODULE_PREFIXES.length).toBeGreaterThanOrEqual(11);
+    for (const prefix of ['node:', 'fs', 'http', 'crypto', 'child_process']) {
+      expect(ENGINE_FORBIDDEN_MODULE_PREFIXES).toContain(prefix);
+    }
+  });
+
+  it('motor yasaklı çağrı listesi K2/K3 üçlüsünü kapsar', () => {
+    const patterns = ENGINE_FORBIDDEN_CALLS.map((c) => c.pattern);
+    expect(patterns).toEqual(
+      expect.arrayContaining(['Math.random', 'Date.now', 'performance.now']),
+    );
+  });
+
+  it('sunucu alt yolu ÜÇ katmana birden kapalı — biri düşerse sınır delinir', () => {
+    const rule = RESTRICTED_SUBPATHS['@fms/shared/server'];
+    expect(rule).toBeDefined();
+    expect(rule.forbiddenLayers).toEqual(
+      expect.arrayContaining(['apps/web', 'packages/ui', 'packages/engine']),
+    );
+  });
+});
+
+describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', () => {
+  let root;
+
+  beforeAll(() => {
+    root = mkdtempSync(join(tmpdir(), 'fms-arch-canary-'));
+
+    const write = (relPath, content) => {
+      const abs = join(root, relPath);
+      mkdirSync(dirname(abs), { recursive: true });
+      writeFileSync(abs, content, 'utf8');
+    };
+
+    // Kural 1 — katman yönü: motor veritabanını import ediyor.
+    write('packages/engine/package.json', JSON.stringify({ dependencies: { '@fms/db': '*' } }));
+    write('packages/engine/src/layer.ts', "import { x } from '@fms/db';\nexport const a = x;\n");
+
+    // Kural 2 — motor saflığı: yasaklı modül.
+    write(
+      'packages/engine/src/purity.ts',
+      "import { readFileSync } from 'node:fs';\nexport const b = readFileSync;\n",
+    );
+
+    // Kural 3 — kısıtlı alt yol: tarayıcı sunucu girişini import ediyor.
+    write('apps/web/package.json', JSON.stringify({ dependencies: { '@fms/shared': '*' } }));
+    write(
+      'apps/web/src/leak.ts',
+      "import { loadEnv } from '@fms/shared/server';\nexport const c = loadEnv;\n",
+    );
+
+    // Kural 4 — bildirilmemiş bağımlılık: paket bildirilmemiş.
+    write('apps/worker/package.json', JSON.stringify({ dependencies: {} }));
+    write(
+      'apps/worker/src/undeclared.ts',
+      "import { y } from '@fms/shared';\nexport const d = y;\n",
+    );
+
+    // Kural 5 — varlıkta mutlak yol.
+    write('apps/api/package.json', JSON.stringify({ dependencies: {} }));
+    write('apps/api/src/manifest.json', '{ "start_url": "/fms/" }\n');
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('beş kuralın hepsi ihlal bildiriyor', () => {
+    const rules = runArchCheck(root).map((v) => v.rule);
+    for (const rule of [
+      'layer-direction',
+      'engine-purity',
+      'restricted-subpath',
+      'undeclared-dependency',
+      'asset-absolute-path',
+    ]) {
+      expect(rules).toContain(rule);
+    }
+  });
+
+  it('temiz bir depoda ihlal ÜRETMİYOR — kanarya yanlış pozitif vermiyor', () => {
+    const clean = mkdtempSync(join(tmpdir(), 'fms-arch-clean-'));
+    try {
+      mkdirSync(join(clean, 'packages/shared/src'), { recursive: true });
+      writeFileSync(join(clean, 'packages/shared/package.json'), JSON.stringify({}), 'utf8');
+      writeFileSync(join(clean, 'packages/shared/src/ok.ts'), 'export const a = 1;\n', 'utf8');
+      expect(runArchCheck(clean)).toEqual([]);
+    } finally {
+      rmSync(clean, { recursive: true, force: true });
+    }
   });
 });

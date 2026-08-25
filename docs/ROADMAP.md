@@ -378,12 +378,24 @@ docs/ADR/0001-monorepo-secimi.md
       çağrılır**. Yalnızca import etmek YETMEZ — ağaç sarsma kullanılmayan importu siler, paket
       bayt bayt aynı kalır ve deney hiçbir şey kanıtlamaz (2.2a'da ölçüldü: `void loadEnv;` ile
       paket değişmedi). Beklenti: `arch:check` kırılır, paket şişer, sızıntı taramasında sırlar görünür.
-- [ ] **2.2b** Logger — **Karar 1:** kökte `Logger` **arayüzü** (izomorfik), pino uygulaması
-      `@fms/shared/server` **alt yolunda**. Gerekçe: `sideEffects: false` bir paketleyici optimizasyonudur;
-      alt yol **yapısal** sınırdır, modül çözümlemesi seviyesinde çalışır. Üç kat savunma:
-      `apps/web` `types: []` → derlenmez · `arch:check` "server alt yolu tarayıcıya girmez" kuralı · bundle grep.
-      Kökte kalan (izomorfik): `Logger` arayüzü, `LogContext`, hata sınıfları, `DebugTrace`, `assertInvariant`.
-      `server/`'da: pino, redaksiyon, ALS. `apps/web` aynı arayüzü uygulayan kendi ~30 satırlık logger'ını alır.
+- [x] **2.2b** Logger — **Karar 1 uygulandı:** kökte `Logger` **arayüzü** (izomorfik), pino uygulaması
+      `@fms/shared/server` alt yolunda. **Savunma modeli 2.2a'da düzeltildi** (SAPMA-012): `types: []`
+      ve `sideEffects: false` bu sınırı korumuyor; çalışan iki hat `arch:check` (önler) ve paket dize
+      taraması (doğrular).
+      Kökte kalan (izomorfik): `Logger` arayüzü, `LogContext`, `normalizeLogArgs`, hata sınıfları,
+      **redaksiyon**. `server/`'da: pino sarmalayıcısı ve `env`. `apps/web` aynı arayüzü `console`
+      üzerinde uygulayan kendi logger'ını aldı.
+      **Redaksiyon KÖKTE, `server/`'da değil** — plandan sapma, gerekçesi: iki logger da onu kullanmak
+      zorunda; `server/`'a konsaydı tarayıcı kendi kopyasını yazardı ve iki kopya ayrışırdı
+      (`spec/09` §11.5 disiplini). pino'nun kendi `redact` seçeneği **tam yol** sözdizimi istediği için
+      alt dize kuralımızı ifade edemiyor — redaksiyon pino'ya verilmeden önce uygulanıyor.
+      **Uyarı sırası sorunu (SAPMA-013):** `env.ts`'teki `process.stderr.write` doğrudan `logger.warn`a
+      çevrilemedi çünkü **logger'ın kendisi env'den doğuyor**. Doğrulayıcı saf kaldı ve teşhis **döndürür**
+      (`collectEnvWarnings`); çağıran taraf logger'ı kurduktan sonra basar.
+      **Ölçümler:** paket **229.320 bayt — 2.2a tabanıyla bayt bayt aynı**; `pino`/`async_hooks`/
+      `thread-stream`/`zod` → **0**. Gerçek çalıştırmada iki biçim de doğrulandı (JSON + `pretty`).
+      **`arch:check` meta-testi** eklendi (kanarya deposu + tablo bütünlüğü) — tek savunma hattı
+      olmanın bedeli.
       **Ön koşul:** 2.2a'nın üç `arch:check` kuralı ve `exports` haritası.
       **Karar 5:** ESLint'te `apps/**` + `packages/**` için `process.stdout/stderr.write` YASAK;
       `scripts/**` + `tools/**` serbest. `arch:check` bu kuralı **tekrarlamaz** (`spec/09` §11.5).

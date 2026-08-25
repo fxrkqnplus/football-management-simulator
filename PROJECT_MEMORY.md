@@ -21,65 +21,73 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.2a bitti, 2.2b bekliyor** |
-| **Son tamamlanan** | ✅ **2.2a** Alt yol sınırı (`@fms/shared/server`) · üç yeni `arch:check` kuralı |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.2b bitti (2.2 tamamlandı), 2.3 bekliyor** |
+| **Son tamamlanan** | ✅ **2.2b** Logger mimarisi (pino · redaksiyon · tarayıcı logger'ı · K8 yazma yasağı) |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 4/12 alt görev (2.0, 2.0b, 2.1, 2.2a) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 5/12 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(memory): 2.2a CI sonucunu işle` (2.2a'nın işi `feat(shared): sunucu alt yolu sınırı…` commit'inde) |
+| **Son commit** | `feat(shared): pino logger, redaksiyon ve K8 yazma yasağı` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | ✅ koşu `32789830210` — **dört işin dördü de yeşil**. ARM64 rakamları yerelle birebir aynı: 88,88 / 88,09 / 90,9 / 89,06 · 131 test. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle doğrulandı) |
-| **test** | ✅ **131 test / 11 dosya** (118 → 131: `arch-check` +13) |
-| **kapsam** | ✅ satır **%89,06** · ifade %88,88 · dal %88,09 · fonksiyon **%90,9** — eşik %70 |
-| **Web paketi** | **229.320 bayt**, tek varlık · `zod`/`pino`/`async_hooks`/sırlar → **0** |
+| **CI** | 2.2b koşusu **ölçülmedi** — push sonrası bakılacak. (2.2a koşusu `32789830210` dört işte de yeşildi.) |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
+| **test** | ✅ **229 test / 14 dosya** (131 → 229) |
+| **kapsam** | ✅ satır **%91,37** · ifade %91,3 · dal %89,18 · fonksiyon **%95,45** — eşik %70 |
+| **Web paketi** | **229.320 bayt** — 2.2a tabanıyla **bayt bayt aynı** · `pino`/`async_hooks`/`thread-stream`/`zod` → **0** |
+| **Araç zinciri** | pnpm 11.23.0 · jsdom 30.0.1 · **pino 10.3.1** + **pino-pretty 13.1.3** |
 | **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
 
-**⛔ 2.2b'ye girerken BİLİNMESİ ŞART — kontrol deneyi üç varsayımı çürüttü:**
-`App.tsx`'e kasıtlı `@fms/shared/server` importu konup **gerçekten çağrıldı**:
-- `typecheck` **GEÇTİ** — `types: []` Node *globallerini* yasaklar; `loadEnv(): Env`
-  imzasında Node tipi olmadığı için `.d.ts` tarayıcı tsconfig'iyle derleniyor.
-- `vite build` **BAŞARILI** — paket **229.320 → 299.370 bayt** (+%30), içinde
-  `zod` 318, `DATABASE_URL` 7, `POSTGRES_PASSWORD` 3, `JWT_SECRET` 2 eşleşme.
-  **`sideEffects: false` AÇIKKEN** (ağaç sarsma yalnızca *kullanılmayan* kodu siler).
-- **Yalnızca `arch:check` yakaladı.**
+**2.2b'de kurulan ve 2.3/2.4/2.6'nın üstüne bineceği yapı:**
+- `Logger` arayüzü **kökte** (izomorfik): altı seviye, `child(bindings)`, iki çağrı
+  biçimi (`info('x')` ve `info({ctx}, 'x')`). `child()` 2.3'te `correlationId`
+  zincirinin taşıyıcısı olacak.
+- **pino uygulaması** `@fms/shared/server`'da · **tarayıcı uygulaması**
+  `apps/web/src/lib/logger.ts`'te — K8'in tek meşru `console` istisnası, dosya
+  bazında ve gerekçeli.
+- **Redaksiyon KÖKTE**, `server/`'da değil (SAPMA-013): harf duyarsız, **alt dize**
+  eşleşmesi. İki logger da **aynı** kuralı kullanıyor. `auth`/`key`/`private` listeye
+  **bilerek alınmadı** — `authorId`, `keyPass`, `privateProfile` kurtuldu; testler
+  iki yönü de sınıyor (yakalananlar + yakalanmayanlar + kabul edilen yanlış pozitifler).
+- **`LOG_FORMAT` açık bayrağı** — `NODE_ENV` koklanmıyor (Faz 1 hata #10 dersi).
+- **`collectEnvWarnings`**: doğrulayıcı uyarıyı basmaz, **döndürür** — logger'ın
+  kendisi env'den doğduğu için sıra tersine çevrildi.
+- **`arch:check` meta-testi**: kanarya deposu (beş kuralın hepsi ötüyor mu) + tablo
+  bütünlüğü. 2.2a'da `arch:check` tek savunma hattı çıktı; bu onun bedeli.
 
-Yani dört değil **iki** çalışan hat var: `arch:check` **önler**, paket dize
-taraması **doğrular**. Ölçüm tablosu `spec/09` §11.5b'de (SAPMA-012).
+**⚠️ 2.3'e girerken bilinmesi gereken üç şey:**
+1. **Tarayıcı logger'ı henüz hiçbir yerden import edilmiyor**, bu yüzden ağaç
+   sarsmayla paketten çıkıyor. Bugünkü "paket bayt bayt aynı" sonucu **pino'nun
+   sızmadığını** kanıtlıyor, tarayıcı logger'ının ucuz olduğunu **kanıtlamıyor**.
+   2.3'te `apps/web/src/lib/api.ts` onu kullanınca paket büyüyecek — beklenen.
+2. `LogContext` dar tipli: JSON-güvenli ilkeller + sığ dizi + `Error`.
+   `correlationId`, `saveId`, `turnId` bu tipe zaten uyuyor.
+3. Redaksiyon **anahtar adına** bakar, değere değil — bilinen sınır, testte yazılı.
 
-**⛔ İKİNCİ ŞART — `dist/` garantili temiz olmadan hiçbir tarama kanıt değildir:**
-Turbo `dist/**`'ı önbelleğe alıyor ve önbellek isabetinde **silinmiş çıktıyı geri
-yüklüyor**. Kontrol deneyinin kirli paketi temiz paketin yanında kaldı ve tarama
-yanlış cevap verdi (SAPMA-011). `scripts/clean-dist.mjs` sekiz `build` betiğine
-de bağlandı. **`dist` üzerinde ölçüm yapmadan önce soğuk derleme yap.**
+**Sıradaki oturumda ilk yapılacak — 2.3:**
+1. `docs/ROADMAP.md` → madde **2.3** (`correlationId` zinciri: uuid v7 · `AsyncLocalStorage` ·
+   NestJS middleware · taşınabilir zarf)
+2. Kapılar (build önce, **soğuk**): `build` → `typecheck` → `lint` → `test:coverage` →
+   `arch:check` → `format:check`
+3. Hataları **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ**'ne anında yaz (21 satır birikti)
+4. Paket tabanı: **229.320 bayt** — 2.3'te büyümesi beklenir, sebebi kaydedilir
 
-**2.2a'da kurulan sınır:**
-`packages/shared` `exports`: `.` (izomorfik) + `./server` (Node-only).
-`env.ts` → `src/server/env.ts`. Kök barrel artık **hiçbir üçüncü taraf paket
-çekmiyor** → 2.1'in Zod bulgusu kapandı.
-Üç yeni `arch:check` kuralı, üçü de negatif testle kanıtlandı:
-`layer-direction` (alt yol farkındalığı) · `restricted-subpath` (web/ui/engine
-sunucu girişini göremez) · `undeclared-dependency` (import varsa bildirim de olmalı).
+**✅ 1.8'DEN TAŞINAN RİSK KAPANDI (2.2a + 2.2b).**
+`@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu ve Faz 1'de
+`sideEffects: false` ile "çözülmüştü". 2.2a'da o çözümün **yetersiz olduğu ölçümle
+kanıtlandı** (SAPMA-012): sızıntı deneyinde `sideEffects: false` açıkken paket
+229.320 → 299.370 bayta çıktı ve içinde `JWT_SECRET` göründü. Gerçek çözüm
+`@fms/shared/server` alt yolu + `arch:check` `restricted-subpath` kuralı oldu.
+Kanıt 2.2b'de yenilendi: pino kuruluyken paket **bayt bayt aynı**, sızıntı **0**.
 
-**Sıradaki oturumda ilk yapılacak — 2.2b:**
-1. `docs/ROADMAP.md` → madde **2.2b** (pino · redaksiyon · ESLint yasağı)
-2. Kapılar (build önce, **soğuk**): `build` → `typecheck` → `lint` → `test:coverage` → `arch:check` → `format:check`
-3. Hataları **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ**'ne anında yaz (18 satır birikti)
-4. Paket tabanı: **229.320 bayt** — 2.2b sonunda karşılaştır, `pino` → 0 bekleniyor
-
-**⚠️ FAZ 2'DE MUTLAKA KONTROL EDİLECEK — 1.8'den taşınan risk:**
-`@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu; Zod ve env
-şeması istemciye sızmıştı. `sideEffects: false` ile çözüldü. **Faz 2'de `logger`
-(pino, Node-only) aynı pakete giriyor — sorun daha büyük ölçekte tekrar edebilir.**
-Karar 1 gereği `@fms/shared/server` alt yoluna geçiliyor (2.2); kanıt 2.9'da
-`apps/web/dist/assets/*.js` içinde pino/Node modülü aranarak alınacak.
-
-Faz 2'de kapatılacak dört TODO (2.0'da hiçbiri kapanmadı, hepsi 2.1/2.2'de):
-- `packages/shared/src/env.ts` — `process.stderr.write` → `logger.warn` *(2.2)*
-- `packages/shared/src/base-path.ts` — `TypeError` → `ValidationError` *(2.1)*
-- `apps/web` `types: []` korunmalı: logger eklenince tarayıcı Node tipi görmemeli *(2.2)*
-- `arch:check` `console.log`'u **tekrarlamayacak** (iş bölümü `spec/09` §11.5) *(2.2)*
+**Faz 2'de kapatılacak dört TODO — DÖRDÜ DE KAPANDI:**
+- ✅ `env.ts` `process.stderr.write` → **2.2b**: doğrudan `logger.warn` olmadı;
+  logger env'den doğduğu için doğrulayıcı teşhis **döndürüyor** (SAPMA-013).
+- ✅ `base-path.ts` `TypeError` → `ValidationError` — **2.1**
+- ✅ `apps/web` `types: []` korundu — ama 2.2a'da ölçüldü ki bu **alt yol
+  sınırının savunması değil**; Node globallerini engelliyor, sunucu modülü
+  importunu değil.
+- ✅ `arch:check` `console.log`'u tekrarlamıyor — **2.2b**: `process.*.write`
+  yasağı da ESLint'te, `arch:check`'te değil (`spec/09` §11.5 iş bölümü).
 
 **2.0'da ölçülen ve 2.2'nin bağlı olduğu bulgu:**
 `isImportAllowed('apps/api', '@fms/shared/server')` → **`false`**. `arch:check`
@@ -199,6 +207,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-013 | `karar` | 2 | Faz 2 planı redaksiyonu `@fms/shared/server` altına koyuyordu; **kökte kaldı**. Ayrıca `env.ts`'teki `process.stderr.write` doğrudan `logger.warn`a çevrilmedi — doğrulayıcı artık uyarıyı **döndürüyor** (`collectEnvWarnings`), basmıyor. | **Redaksiyon:** iki logger uygulaması da (pino ve tarayıcı) onu kullanmak zorunda. `server/`'a konsaydı tarayıcı kendi kopyasını yazardı ve iki kopya kaçınılmaz olarak ayrışırdı — `spec/09` §11.5'in "hiçbir kural iki yerde denetlenmez" disiplini. Ek gerekçe: pino'nun kendi `redact` seçeneği **tam yol** sözdizimi istiyor (`req.headers.authorization`), bizim kuralımız anahtar adında **alt dize** araması; pino'nun sözdizimi bunu ifade edemiyor. **Uyarı sırası:** `logger`'ın kendisi env'den doğuyor (`LOG_LEVEL`, `LOG_FORMAT`), yani `parseEnv` çalışırken logger henüz **yok**. K8'i sağlamanın tek yolu sırayı tersine çevirmekti: doğrulayıcı saf kalır ve teşhis döner, çağıran taraf logger'ı kurduktan sonra basar. Yan fayda: uyarı mantığı artık çıktı yakalamadan, düz assert ile test edilebiliyor. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.2b, `packages/shared/src/redact.ts` ve `server/env.ts` (gerekçe dosyalarda) |
 | SAPMA-012 | `düzeltme` | 2 | Faz 2 planındaki *"üç kat savunma: `apps/web` `types: []` → **derlenmez** · `arch:check` · bundle grep"* iddiası **ölçümle çürütüldü**. `types: []` alt yol sınırını korumuyor; `sideEffects: false` de sızıntıyı engellemiyor. | Kontrol deneyi (2.2a): `App.tsx`'e `@fms/shared/server` importu konup **gerçekten çağrıldı**. `typecheck` **GEÇTİ** — çünkü `types: []` Node *globallerini* yasaklar, oysa `loadEnv(): Env` imzasında Node tipi yok ve üretilen `.d.ts` tarayıcı tsconfig'iyle sorunsuz derleniyor. `vite build` **BAŞARILI**; paket **229.320 → 299.370 bayt** (+%30); tarayıcı paketinde `zod` **318**, `DATABASE_URL` **7**, `POSTGRES_PASSWORD` **3**, `JWT_SECRET` **2** eşleşme — `sideEffects: false` AÇIKKEN (ağaç sarsma yalnızca *kullanılmayan* kodu siler). **Yalnızca `arch:check` yakaladı.** Yani gerçekte dört değil **iki** çalışan hat var: `arch:check` önler, paket taraması doğrular. Karar 1'in gerekçesi ("`sideEffects: false` bir paketleyici optimizasyonudur, yapısal sınır değildir") rakamla doğrulanmış oldu. Ek ölçüm: import'u yazıp **kullanmayınca** paket bayt bayt aynı kaldı — kullanılmayan kontrol deneyi yanlış güven üretiyor. | ✅ `docs/spec/09-quality-protocol.md` §11.5b (yeni bölüm + ölçüm tablosu), `docs/ROADMAP.md` Faz 2 madde 2.2a |
 | SAPMA-011 | `düzeltme` | 2 | Turborepo `build` görevinin çıktısını (`dist/**`) önbelleğe alıyor ve önbellek isabetinde **silinmiş çıktıyı geri yüklüyor**. Bir kaynak dosya taşındığında `dist/` içinde öksüz modül kalıyor; `tsc` çıktıyı üzerine yazar ama silmez. | İki ölçüm. **(a)** `packages/shared/src/env.ts` → `src/server/env.ts` taşındı; `rm -rf dist && pnpm build` sonrası `dist/env.js` **yine oradaydı**. Aynı ağaçta `tsc` doğrudan çalıştırılınca dist temiz çıktı — üreten derleyici değil, `>>> FULL TURBO` önbellek isabetiydi. **(b)** Daha kötüsü: 2.2a kontrol deneyinin kirli paketi (`index-DV5Sgexl.js`, 299 kB, içinde `JWT_SECRET`) import geri alındıktan sonra temiz paketin (`index-rtVlQQVC.js`, 229 kB) **yanında** kaldı; turbo önbellekten temizi geri yükledi ama kirliyi silmedi. Sızıntı taraması ikisini birden okuyup hâlâ `JWT_SECRET` buldu — **kanıtın kendisi bozuldu.** `apps/web` ilk başta muaf tutulmuştu ("Vite `outDir`'i zaten boşaltıyor"); doğru ama önbellek isabetinde **Vite hiç çalışmıyor**. Faz 1 hata #7'nin ("bayat dist yeşil yalanı üretir") önbellek kaynaklı akrabası. | ✅ `scripts/clean-dist.mjs` [YENİ] sekiz paketin `build` betiğine bağlandı, `docs/spec/09` §11.5b uyarısı |
 | SAPMA-010 | `karar` | 2 | Yol haritası 2.1'de hata sınıflarının `httpStatus` alanı taşımasını istiyordu; alan **konulmadı**. Kullanıcıya gösterilecek Türkçe mesaj da sınıfta üretilmiyor — sözleşme `code` + `context`. | **`httpStatus`:** HTTP bir taşıma katmanı kaygısı. `packages/engine` bu sınıfları kullanıyor ve motor HTTP bilmiyor; aynı hata kuyruğa, SSE'ye veya CLI'a da gidebilir, oralarda durum kodunun anlamı yok. Eşleme 2.4'teki exception filter'a taşındı. "Ayrı tablo unutulur, sürüklenir" itirazı tip seviyesinde kapatıldı: filter `Record<ErrorKind, number>` tutacak, yani yeni bir `ErrorKind` eklenip eşlemeye yazılmazsa **derleme kırılır**. **Mesaj:** K1.3 (eyleme dönüştürülebilir Türkçe) ile K5 (arayüzde sabit Türkçe yasak) i18n gelmeden ancak `code` + `context` üzerinden uzlaşıyor. `code` zaten i18n anahtarı biçiminde (`alan.olay`), böylece Faz 5 bir **eşleme tablosu** yazmaya iner; yüzlerce fırlatma yerini gezip dizgi sökmeye değil (`spec/11` §12.6'daki "3 faz kayıp" uyarısı tam olarak bu maliyeti anlatıyor). `message` geliştirici içindir, çevrilmez. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.1 ve 2.4, `packages/shared/src/errors.ts` (gerekçe dosya başında) |
@@ -238,6 +247,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | 6 | 2.0b | Lint 17 yanlış pozitif: `no-hardcoded-path` `.test.tsx`'te tetikleniyor | ESLint muafiyet listesi `**/*.test.ts` ve `**/*.test.mjs` diyor, `.tsx` demiyor — SAPMA-007'nin **beşinci** örneği | Liste `.tsx`/`.mts`/`.cts` ile tamamlandı | Muafiyet bloğuna gerekçeli uyarı yorumu |
 | 7 | 2.0b | **Kendi çıkardığım regresyon:** yedi paketin testleri `dist/`e sızdı | `tsconfig.build.json` `exclude` desenini `{ts,tsx,mts,cts}` yaptım; TypeScript glob dili **süslü parantezi desteklemiyor**, desen hiçbir şeyle eşleşmiyor. `typecheck`, `lint`, `test` üçü de sessiz kaldı | Uzantılar tek tek yazıldı | SAPMA-009, `spec/09` §11.4'e "iki glob lehçesi" bölümü + `find dist -name '*.test.*'` doğrulaması. **Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") ikinci kez kurtardı** |
 | 8 | 2.0b | Motor ortam testinde `navigator` kontrolü yanlış olacaktı | Node 21'den beri `navigator` **Node'da da global** (Node 24.19.0'da `typeof navigator === 'object'`) — DOM göstergesi değil | Kontrol yalnızca `document` ve `window`'a indirildi | Testin içine gerekçe yorumu; yazmadan önce ölçüldü |
+| 21 | 2.2b | Yeni kodda 8 lint hatası: import/export sıralaması ve `no-unsafe-call` | Sıralama `lint:fix` işi. `no-unsafe-call` gerçekti: `'toJSON' in value && typeof value.toJSON === 'function'` daraltması `Function` üretiyor ve düz `Function` çağırmak güvensiz | Tip koruyucusu (`value is SelfSerializingError`) yazıldı; `toJSON()` artık tipli | Daraltma ile tip koruyucusu ayrı şeyler; `in` + `typeof` bir imza vermez |
+| 20 | 2.2b | Kendi testim yanlıştı: `collectEnvWarnings` uyarı üretmedi | Test `MINIMAL` fixture'ını kullanıyordu ama o zaten `ACTIVE_PACK: 'tr-2026'` taşıyor — yani senaryo hiç kurulmamıştı | Ayrı `NO_PACK` fixture'ı | **Kod değil testin kendisi kırıktı.** Kırmızı bir test "kod yanlış" demek değil; önce hangisinin yanlış olduğu sorulur (Faz 1 hata #10'un aynı dersi) |
+| 19 | 2.2b | Paket ölçümünde `REDACTED` → 0 çıktı | Tarayıcı logger'ı yazıldı ve test edildi ama **henüz hiçbir yerden import edilmiyor**; ağaç sarsma onu paketten çıkarıyor | Eylem yok — beklenen durum | **Kayda geçirildi ki 2.3/2.6'da paket büyüdüğünde şaşırılmasın.** Bugünkü "paket değişmedi" sonucu pino'nun sızmadığını kanıtlıyor, tarayıcı logger'ının ucuz olduğunu **kanıtlamıyor** |
 | 17 | 2.2a | **Kanıt bozulması:** kontrol deneyi geri alındıktan sonra sızıntı taraması hâlâ `JWT_SECRET` buluyordu | `dist/assets/` içinde İKİ paket birden vardı: kirli `index-DV5Sgexl.js` (299 kB) ve temiz `index-rtVlQQVC.js` (229 kB). Turbo önbellekten temizi geri yükledi, kirliyi silmedi. `apps/web`'i clean-dist'ten muaf tutmuştum ("Vite `outDir`'i boşaltıyor") — doğru ama **önbellek isabetinde Vite hiç çalışmıyor** | `apps/web` de `clean-dist.mjs` kullanıyor | SAPMA-011. **Ders: bir tarama, taranan dizinin garantili temiz olduğu kadar geçerlidir.** Negatif sonuç ("sızıntı yok") kadar pozitif sonuç da ("sızıntı var") yanlış olabilir |
 | 16 | 2.2a | **Kontrol deneyi ilk denemede hiçbir şey kanıtlamadı:** kasıtlı `@fms/shared/server` importu konuldu, paket **bayt bayt aynı** kaldı | `void loadEnv;` yazmıştım — kullanılmayan import. `sideEffects: false` + ağaç sarsma onu tamamen sildi | Deney `loadEnv()` gerçekten **çağrılarak** tekrarlandı; paket 229.320 → 299.370 bayt | **Ders: bir sızıntı deneyi, sızdırılan şeyi KULLANMALI.** Kullanılmayan import "sızıntı yok" der ve yanlış güven üretir. `spec/09` §11.5b'ye uyarı yazıldı |
 | 15 | 2.2a | **Üç savunma hattı iddiası çürüdü:** kasıtlı sunucu importunda `typecheck` **geçti**, `vite build` **başarılı** oldu | `types: []` Node *globallerini* yasaklar; `loadEnv(): Env` imzasında Node tipi yok, üretilen `.d.ts` tarayıcı tsconfig'iyle sorunsuz derleniyor. `sideEffects: false` ise yalnızca kullanılmayan kodu siler | Sınırın tek yapısal bekçisi `arch:check` kısıtlı alt yol kuralı; paket taraması doğrulayıcı ikinci hat | SAPMA-012. `spec/09` §11.5b'ye ölçüm tablosu. **Karar 1 rakamla doğrulandı:** `sideEffects: false` gerçekten bir paketleyici optimizasyonuymuş |

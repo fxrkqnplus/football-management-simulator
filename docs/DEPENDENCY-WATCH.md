@@ -15,7 +15,8 @@
 | Paket | Kilitli sürüm | Ele alınacak faz | Sebep |
 |---|---|---|---|
 | `pnpm` | **11.23.0** | ~~Faz 2~~ ✅ **2.0'da bump edildi** | 11.22.0 → 11.23.0. Sonuç aşağıda. |
-| `pino` | 10.3.1 | ~~Faz 2~~ ✅ **2.0'da ele alındı, karar korundu** | Kurulum 2.2'de. Sonuç aşağıda. |
+| `pino` | 10.3.1 | ~~Faz 2~~ ✅ **2.0'da karar, 2.2b'de KURULDU** | Sonuç aşağıda. |
+| `pino-pretty` | 13.1.3 | **Faz 49** | 2.2b'de `packages/shared` devDependency olarak kuruldu. Yalnızca `LOG_FORMAT=pretty` ile devreye girer. Faz 49'da (mobil cila/performans) üretim imajında gereksiz ağırlık olup olmadığı gözden geçirilir. |
 | `@sentry/node`, `@sentry/react` | 10.70.0 | ~~Faz 2~~ ✅ **2.0'da ele alındı, sürüm sabitlendi** | Kurulum 2.5'te. Sonuç aşağıda. |
 | `drizzle-orm` / `drizzle-kit` | 0.45.2 / 0.31.10 | **Faz 3** | 1.0 hattı hâlâ RC (`1.0.0-rc.5`). Faz 3'te GA olduysa değerlendirilir. |
 | `resend` | 6.22.0 | **Faz 13** | Majör atlama, notlar okunmadı. İlk kullanım e-posta doğrulama. |
@@ -68,6 +69,22 @@ shims" düzeltmesini içeriyor ve geliştirme makinesi Windows + pwsh 7.
 > olduğumuz için pratik risk yok, ama iddia "okundu ve doğrulandı" değil
 > "okundu, çürütecek kanıt bulunamadı" seviyesindedir. `pino` 2.2'de gerçekten
 > kurulup çalıştırıldığında bu satır kapanır.
+>
+> ✅ **KAPANDI (Faz 2.2b, 2026-08-25).** `pino@10.3.1` ve `pino-pretty@13.1.3`
+> kuruldu ve **gerçekten çalıştırıldı** — `apps/api` iki biçimde de doğrulandı:
+>
+> ```
+> JSON:   {"level":30,...,"name":"api","port":3001,"apiPrefix":"/fms/api","msg":"API hazır"}
+> pretty: [16:07:34.064] INFO (api/28364): API hazır
+>             port: 3001
+> ```
+>
+> Node 24.19.0'da hiçbir uyumsuzluk çıkmadı. Peer çakışması yok
+> (`strict-peer-dependencies=true` altında kurulum temiz).
+> **Tarayıcı paketine sızmadı:** soğuk derleme sonrası `pino`, `async_hooks`,
+> `thread-stream` → **0 eşleşme**, paket boyutu 2.2a tabanıyla **bayt bayt aynı**
+> (229.320). pino'nun `browser` alanı bu yüzden hiç devreye girmedi — tarayıcı
+> tarafı kendi `console` uygulamasını kullanıyor.
 
 ### `@sentry/node`, `@sentry/react` — Faz 2.0, 2026-08-25 · **10.70.0'a SABİTLENDİ** (kurulum 2.5'te)
 

@@ -85,7 +85,7 @@ export function basePackageOf(spec) {
 }
 
 /** K3 — motorun göremeyeceği modüller. */
-const ENGINE_FORBIDDEN_MODULE_PREFIXES = [
+export const ENGINE_FORBIDDEN_MODULE_PREFIXES = [
   'node:',
   'fs',
   'path',
@@ -100,7 +100,7 @@ const ENGINE_FORBIDDEN_MODULE_PREFIXES = [
 ];
 
 /** K3 — motorun kullanamayacağı sözdizimi. */
-const ENGINE_FORBIDDEN_CALLS = [
+export const ENGINE_FORBIDDEN_CALLS = [
   { pattern: 'Math.random', reason: 'K2 — determinizm. Yerine SeededRng kullan.' },
   { pattern: 'Date.now', reason: 'K3 — motor saftır. Zamanı parametre olarak al.' },
   {
@@ -110,9 +110,19 @@ const ENGINE_FORBIDDEN_CALLS = [
 ];
 
 /** TS olmayan kaynak varlıklarda aranacak mutlak uygulama yolu ön ekleri. */
-const APP_PATH_PREFIXES = ['/api', '/assets', '/login', '/logout', '/register', '/fms'];
+export const APP_PATH_PREFIXES = ['/api', '/assets', '/login', '/logout', '/register', '/fms'];
 
-const ASSET_EXTENSIONS = ['.html', '.json', '.css'];
+export const ASSET_EXTENSIONS = ['.html', '.json', '.css'];
+
+/**
+ * arch:check'in BAKTIĞI uzantılar.
+ *
+ * Sabit olarak dışa aktarılıyor çünkü meta-test onu doğruluyor: 2.1'de bu
+ * listeden `.cts` eksikti ve bir `.cts` dosyası denetimden TAMAMEN kaçıyordu —
+ * gate "temiz" diyordu. Bir denetleyicinin çıktısı, dosyaya BAKILDIĞINI
+ * söylemez; liste daralırsa kapı sessizce kör olur.
+ */
+export const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Saf yardımcılar (test edilebilir)
@@ -407,7 +417,7 @@ export function runArchCheck(root) {
       // Sessiz bir kaçış deliği, çünkü "arch:check temiz" çıktısı dosyanın hiç
       // bakılmadığını söylemiyor. ESLint (`**/*.cts`), tsconfig ve vitest
       // desenleri `.cts`yi zaten kapsıyordu; tek istisna burasıydı.
-      if (!['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'].includes(ext)) continue;
+      if (!SCANNED_EXTENSIONS.includes(ext)) continue;
       if (rel.includes('/dist/')) continue;
 
       const text = readFileSync(abs, 'utf8');

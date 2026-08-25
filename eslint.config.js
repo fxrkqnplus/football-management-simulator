@@ -154,6 +154,40 @@ export default tseslint.config(
     },
   },
 
+  // ─── 7b. K8'in ikinci yarısı — doğrudan akış yazımı (Faz 2.2b) ─────────
+  // `no-console` K8'i yalnızca YARIM uyguluyordu: `console.log` yasaktı ama
+  // `process.stdout.write` serbestti ve ürün kodu logger'ı bu kapıdan
+  // atlayabiliyordu. 2.0'da ölçüldü — `apps/api/src/main.ts` ve
+  // `packages/shared/src/env.ts` tam olarak bunu yapıyordu.
+  //
+  // KAPSAM BİLİNÇLİ OLARAK DAR: yalnızca `apps/**` ve `packages/**` (ürün kodu).
+  // `scripts/**` ve `tools/**` serbest kalıyor — onlar logger'dan ÖNCE çalışan
+  // önyükleme kapıları ve `arch:check` gibi CLI araçları; bir logger'a bağlanmaları
+  // hem dairesel hem anlamsız olurdu. Bu, dizin bazlı bir kaçış deliği değil:
+  // o dizinlerden hiçbiri üretimde çalışmıyor.
+  //
+  // Logger UYGULAMALARI da bu yasağın dışında değil — pino kendi yazımını
+  // kütüphane içinde yapıyor, tarayıcı logger'ı ise `console`'u tek satırlık
+  // gerekçeli bir `eslint-disable` ile açıyor. İstisna dosya bazında ve görünür.
+  //
+  // `arch:check` bu kuralı TEKRARLAMAZ (`docs/spec/09` §11.5 iş bölümü).
+  {
+    files: ['apps/**/*.{ts,tsx,mts,cts}', 'packages/**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.object.name='process'][callee.object.property.name=/^(stdout|stderr)$/][callee.property.name='write']",
+          message:
+            "K8: ürün kodunda process.stdout/stderr.write yasak — logger'ı atlıyor. " +
+            "Sunucuda createServerLogger('@fms/shared/server'), tarayıcıda " +
+            'createBrowserLogger kullan. Önyükleme betikleri (scripts/, tools/) muaftır.',
+        },
+      ],
+    },
+  },
+
   // ─── 8. apps/api — NestJS istisnaları ──────────────────────────────────
   {
     files: ['apps/api/**/*.ts'],

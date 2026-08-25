@@ -48,3 +48,6 @@ export {
   NotFoundError,
   ValidationError,
 } from './errors.js';
+export type { LogContext, LogFormat, Logger, LogLevel, LogMethod, LogValue } from './logger.js';
+export { createNoopLogger, LOG_FORMATS, LOG_LEVELS, normalizeLogArgs } from './logger.js';
+export { isSensitiveKey, redactContext, REDACTED, SENSITIVE_KEY_PATTERNS } from './redact.js';

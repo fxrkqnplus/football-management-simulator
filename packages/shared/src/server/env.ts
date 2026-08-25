@@ -43,6 +43,10 @@ const ENV_DOCS: Record<string, { what: string; example?: string }> = {
   },
   TURN_LOCK_TTL_SECONDS: { what: 'Tur kilidinin azami ömrü (saniye).', example: '300' },
   LOG_LEVEL: { what: 'Log eşiği.', example: 'info' },
+  LOG_FORMAT: {
+    what: 'Log çıktı biçimi. json = üretim (makine okur), pretty = geliştirme (renkli, pino-pretty gerekir).',
+    example: 'json',
+  },
   DATA_MODE: {
     what: 'Veri kaynağı kipi. full = gerçek armalar/portreler/isimler, clean = tümüyle prosedürel.',
     example: 'full',
@@ -113,6 +117,8 @@ export const envSchema = z.object({
   // Gözlem
   SENTRY_DSN: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  // NODE_ENV KOKLANMAZ (Faz 1 hata #10): biçim açık bayrakla gelir.
+  LOG_FORMAT: z.enum(['json', 'pretty']).default('json'),
 
   // Veri
   DATA_MODE: z.enum(['full', 'clean']).default('full'),
@@ -230,17 +236,45 @@ export function parseEnv(source: Readonly<Record<string, string | undefined>>): 
     throw new Error(mismatch);
   }
 
+  return result.data;
+}
+
+/** Doğrulamayı geçen ama dikkat çekmesi gereken bir yapılandırma durumu. */
+export interface EnvWarning {
+  readonly code: string;
+  readonly message: string;
+  readonly context: Readonly<Record<string, string>>;
+}
+
+/**
+ * Ölümcül olmayan yapılandırma uyarılarını **döner** — yazmaz.
+ *
+ * ⚠️ NEDEN AYRI BİR FONKSİYON (Faz 2.2b).
+ * Önceden bu uyarı `parseEnv` içinden doğrudan `process.stderr.write` ile
+ * basılıyordu. K8 (`logger` dışında yazma yok) bunu yasakladı, ama uyarıyı
+ * doğrudan `logger.warn`a çevirmek mümkün değildi: **logger'ın kendisi env'den
+ * doğuyor** (`LOG_LEVEL`, `LOG_FORMAT`). `parseEnv` çalışırken logger henüz yok.
+ *
+ * Çözüm sıralamayı tersine çevirmek: doğrulayıcı **saf kalır ve teşhis döner**,
+ * çağıran taraf logger'ı kurduktan sonra onları basar. Yan fayda: uyarı mantığı
+ * artık çıktı yakalamadan, düz assert ile test edilebiliyor.
+ */
+export function collectEnvWarnings(env: Env): readonly EnvWarning[] {
+  const warnings: EnvWarning[] = [];
+
   // Ç6: DATA_MODE=full iken ACTIVE_PACK boş olabilir — sağlayıcı zinciri bir alt
   // basamağa düşer. Geçerli ama sessiz kalmamalı.
-  // TODO(Faz 2): process.stderr yerine logger.warn kullan.
-  if (result.data.DATA_MODE === 'full' && (result.data.ACTIVE_PACK ?? '') === '') {
-    process.stderr.write(
-      '  ⚠ DATA_MODE=full ama ACTIVE_PACK boş. Yerel veri paketi yüklenmeyecek;\n' +
-        '    sağlayıcı zinciri API/Wikidata/prosedürel basamaklarına düşecek.\n',
-    );
+  if (env.DATA_MODE === 'full' && (env.ACTIVE_PACK ?? '') === '') {
+    warnings.push({
+      code: 'env.activePackMissing',
+      message:
+        'DATA_MODE=full ama ACTIVE_PACK boş. Yerel veri paketi yüklenmeyecek; ' +
+        'sağlayıcı zinciri API/Wikidata/prosedürel basamaklarına düşecek.',
+      context: { dataMode: env.DATA_MODE },
+    });
   }
 
-  return result.data;
+  return warnings;
 }
 
 /** `process.env` üzerinden doğrular. */

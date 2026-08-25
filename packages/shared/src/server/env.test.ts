@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseEnv } from './env.js';
+import { collectEnvWarnings, parseEnv } from './env.js';
 
 /** Doğrulamayı geçen en küçük ortam. */
 const MINIMAL = {
@@ -138,5 +138,62 @@ describe('checkDatabaseUrlConsistency — compose ↔ uygulama (1.7)', () => {
     expect(env.POSTGRES_PORT).toBe(5432);
     expect(env.REDIS_PORT).toBe(6379);
     expect(env.ADMINER_PORT).toBe(8080);
+  });
+});
+
+describe('collectEnvWarnings — uyarı BASILMAZ, DÖNDÜRÜLÜR', () => {
+  // Faz 2.2b: bu uyarı eskiden `parseEnv` içinden doğrudan
+  // `process.stderr.write` ile basılıyordu. K8 onu yasakladı ama doğrudan
+  // `logger.warn`a çevirmek imkânsızdı — logger'ın kendisi env'den doğuyor
+  // (LOG_LEVEL, LOG_FORMAT), yani `parseEnv` çalışırken henüz yok.
+  // Sıralama tersine çevrildi: doğrulayıcı teşhis döner, çağıran basar.
+  // Yan fayda: artık çıktı yakalamadan, düz assert ile test edilebiliyor.
+
+  // MINIMAL bilerek ACTIVE_PACK taşıyor (asıl senaryo o); uyarı testleri onu
+  // çıkarmak zorunda. İlk yazımda unutuldu ve test 'uyarı yok' diye kırıldı —
+  // kod değil testin kendisi yanlıştı.
+  const NO_PACK = {
+    DATABASE_URL: MINIMAL.DATABASE_URL,
+    REDIS_URL: MINIMAL.REDIS_URL,
+    JWT_SECRET: MINIMAL.JWT_SECRET,
+  } as const;
+
+  it('DATA_MODE=full ve ACTIVE_PACK boşken uyarır', () => {
+    const warnings = collectEnvWarnings(parseEnv({ ...NO_PACK, DATA_MODE: 'full' }));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.code).toBe('env.activePackMissing');
+    expect(warnings[0]?.message).toContain('ACTIVE_PACK');
+    expect(warnings[0]?.context).toEqual({ dataMode: 'full' });
+  });
+
+  it('ACTIVE_PACK doluysa uyarmaz', () => {
+    const warnings = collectEnvWarnings(
+      parseEnv({ ...MINIMAL, DATA_MODE: 'full', ACTIVE_PACK: 'tr-2026' }),
+    );
+    expect(warnings).toEqual([]);
+  });
+
+  it('DATA_MODE=clean iken paket beklenmiyor, uyarmaz', () => {
+    const warnings = collectEnvWarnings(parseEnv({ ...NO_PACK, DATA_MODE: 'clean' }));
+    expect(warnings).toEqual([]);
+  });
+
+  it('uyarı kodu i18n anahtarı biçiminde — hata sınıflarıyla aynı sözleşme', () => {
+    const warnings = collectEnvWarnings(parseEnv({ ...NO_PACK, DATA_MODE: 'full' }));
+    expect(warnings[0]?.code).toMatch(/^[a-z]+\.[a-zA-Z]+$/);
+  });
+});
+
+describe('LOG_FORMAT — NODE_ENV koklanmaz, açık bayrak', () => {
+  it('varsayılan json', () => {
+    expect(parseEnv(MINIMAL).LOG_FORMAT).toBe('json');
+  });
+
+  it('pretty açıkça seçilebilir', () => {
+    expect(parseEnv({ ...MINIMAL, LOG_FORMAT: 'pretty' }).LOG_FORMAT).toBe('pretty');
+  });
+
+  it('tanımsız değer reddedilir', () => {
+    expect(() => parseEnv({ ...MINIMAL, LOG_FORMAT: 'renkli' })).toThrow(/LOG_FORMAT/);
   });
 });
