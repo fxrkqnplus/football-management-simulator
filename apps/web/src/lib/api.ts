@@ -1,11 +1,15 @@
 import {
   apiPath,
+  type AppError,
   type AppPath,
   CORRELATION_HEADER,
   createCorrelationId,
+  DataProviderError,
   DomainError,
+  type ErrorContext,
   type Logger,
 } from '@fms/shared';
+import { captureException } from '@sentry/react';
 
 import { createBrowserLogger } from './logger.js';
 
@@ -32,6 +36,59 @@ import { createBrowserLogger } from './logger.js';
 
 /** Modül düzeyi kök logger. İstek başına `child()` ile kimlik bağlanır. */
 const baseLogger: Logger = createBrowserLogger({ level: 'info' });
+
+/**
+ * HTTP durumuna göre hata sınıfı seçer.
+ *
+ * ⚠️ 2.5b'DE DÜZELTİLDİ — 2.3b'de her başarısız yanıt `DomainError` oluyordu
+ * ve o **yanlış modellemeydi**: `DomainError` bir **iş kuralı ihlalidir**
+ * ("bütçen yetmiyor"), yani kullanıcı hatası. Sunucudan gelen bir **500** ise
+ * kullanıcı hatası değil, sistem arızasıdır.
+ *
+ * Hata 2.5b'de filtreleme kuralı yazılırken ortaya çıktı: `USER_FAULT_ERROR_KINDS`
+ * `domain`'i susturuyor, dolayısıyla **her 500 sessizce Sentry'den düşerdi**.
+ * Belirtisi olmayan bir kayıp — hata izleme kurulu görünür, en önemli olayları
+ * hiç görmezdi.
+ *
+ * Tarayıcı açısından API bir **yukarı akış veri kaynağıdır**; ulaşılamaması ya
+ * da 5xx dönmesi tam olarak `DataProviderError`ın tarifi ("dış veri kaynağı
+ * beklenen cevabı vermedi, genellikle yeniden denenebilir").
+ */
+function failureFor(
+  status: number | undefined,
+  options: { code: string; message: string; context: ErrorContext; cause?: unknown },
+): AppError {
+  const isUpstreamFault = status === undefined || status >= 500;
+  const construct = isUpstreamFault ? DataProviderError : DomainError;
+  return options.cause === undefined
+    ? new construct({ code: options.code, message: options.message, context: options.context })
+    : new construct({
+        code: options.code,
+        message: options.message,
+        context: options.context,
+        cause: options.cause,
+      });
+}
+
+/**
+ * Hatayı Sentry'ye kimlikli olarak bildirir.
+ *
+ * ⚠️ TARAYICI ZİNCİRİNİN SENTRY UCU. `spec/09` §11.1 zinciri *"Hata olursa
+ * Sentry'ye id ile gider"* diyor; sunucu tarafında bunu exception filter
+ * yapıyor (2.4), istemcide burası.
+ *
+ * Etiket şekli sunucudakiyle BİREBİR aynı (`correlationId`, `errorKind`,
+ * `errorCode`) — böylece Sentry'de tek bir arama iki tarafı da getiriyor.
+ *
+ * Neyin gönderilmeyeceğine burada karar VERİLMİYOR: `beforeSend`
+ * (`lib/sentry.ts`) tek karar noktası. İkinci bir filtre kurmak iki karar
+ * noktası üretirdi ve ayrışırlardı (SAPMA-013).
+ */
+function reportToSentry(error: AppError, correlationId: string): void {
+  captureException(error, {
+    tags: { correlationId, errorKind: error.kind, errorCode: error.code },
+  });
+}
 
 export interface ApiRequestResult<T> {
   readonly data: T;
@@ -81,12 +138,15 @@ export async function apiRequest<T>(
     // eşleşecek bir log satırı YOK. Sessizce yutulmuyor — loglanıp yeniden
     // fırlatılıyor (CLAUDE.md §1.3).
     logger.error({ code: 'api.networkError', method, url }, 'API isteği ağ katmanında düştü');
-    throw new DomainError({
+    // Sunucuya HİÇ ulaşılamadı — yukarı akış arızası, kullanıcı hatası değil.
+    const failure = failureFor(undefined, {
       code: 'api.networkError',
       message: `API isteği ağ katmanında düştü: ${method} ${url}`,
       context: { method, url, correlationId },
       cause,
     });
+    reportToSentry(failure, correlationId);
+    throw failure;
   }
 
   const serverCorrelationId = response.headers.get(CORRELATION_HEADER);
@@ -105,11 +165,13 @@ export async function apiRequest<T>(
       { code: 'api.requestFailed', method, url, status: response.status },
       'API isteği başarısız döndü',
     );
-    throw new DomainError({
+    const failure = failureFor(response.status, {
       code: 'api.requestFailed',
       message: `API ${String(response.status)} döndü: ${method} ${url}`,
       context: { method, url, status: response.status, correlationId },
     });
+    reportToSentry(failure, correlationId);
+    throw failure;
   }
 
   const data = (await response.json()) as T;

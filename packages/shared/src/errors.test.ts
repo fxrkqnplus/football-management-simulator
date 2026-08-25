@@ -8,7 +8,9 @@ import {
   ERROR_KINDS,
   ForbiddenError,
   isAppError,
+  isUserFaultError,
   NotFoundError,
+  USER_FAULT_ERROR_KINDS,
   ValidationError,
 } from './errors.js';
 
@@ -199,5 +201,38 @@ describe('hata sınıfları — JSON serileştirme', () => {
     const error = new DataProviderError({ code: 'p.x', message: 'x', cause: 'düz metin' });
     const serialized = JSON.parse(JSON.stringify(error)) as { cause?: unknown };
     expect(serialized.cause).toBeUndefined();
+  });
+});
+
+describe('isUserFaultError — Sentry filtresinin paylaşılan kuralı (2.5b)', () => {
+  it('ValidationError ve DomainError kullanıcı hatası', () => {
+    expect(isUserFaultError(new ValidationError({ code: 'a.b', message: 'm' }))).toBe(true);
+    expect(isUserFaultError(new DomainError({ code: 'a.b', message: 'm' }))).toBe(true);
+  });
+
+  it('sistem hataları kullanıcı hatası DEĞİL', () => {
+    expect(isUserFaultError(new EngineError({ code: 'a.b', message: 'm' }))).toBe(false);
+    expect(isUserFaultError(new DataProviderError({ code: 'a.b', message: 'm' }))).toBe(false);
+  });
+
+  it('4xx olan NotFound/Forbidden de kullanıcı hatası SAYILMIYOR', () => {
+    // Bilinçli: beklenmedik bir 404/403 çoğu zaman yönlendirme veya yetki
+    // hatasının belirtisi, yani bakmak isteriz.
+    expect(isUserFaultError(new NotFoundError({ code: 'a.b', message: 'm' }))).toBe(false);
+    expect(isUserFaultError(new ForbiddenError({ code: 'a.b', message: 'm' }))).toBe(false);
+  });
+
+  it('bizim olmayan değerler kullanıcı hatası SAYILMIYOR — susturulmuyor', () => {
+    expect(isUserFaultError(new TypeError('x'))).toBe(false);
+    expect(isUserFaultError('metin')).toBe(false);
+    expect(isUserFaultError(null)).toBe(false);
+    expect(isUserFaultError(undefined)).toBe(false);
+  });
+
+  it('liste yalnızca GEÇERLİ ErrorKind değerlerinden oluşuyor', () => {
+    // Yazım hatası olsaydı filtre sessizce hiçbir şeyi susturmazdı.
+    for (const kind of USER_FAULT_ERROR_KINDS) {
+      expect(Object.values(ERROR_KINDS)).toContain(kind);
+    }
   });
 });

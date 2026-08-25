@@ -222,6 +222,40 @@ export class ForbiddenError extends AppError {
 }
 
 /**
+ * KULLANICI HATASI sayılan türler — hata izleme servisine **gönderilmez**.
+ *
+ * ⚠️ BU LİSTE `apps/api`'DE DEĞİL BURADA, ve bu bilinçli. 2.5a'da yalnızca
+ * sunucu tarafı vardı ve liste `instrument.ts`'te duruyordu; 2.5b'de tarayıcı
+ * da aynı kuralı istedi. `apps/web` `apps/api`'yi import EDEMEZ (CLAUDE.md
+ * §2.4), yani tek seçenek ya kopyalamak ya buraya taşımaktı. Kopya, iki
+ * tarafın zamanla ayrışması demekti — SAPMA-013'ün aynı dersi.
+ *
+ * Buraya ait olmasının asıl gerekçesi ise mimari: bu bir **alan gerçeği**,
+ * bir Sentry ayarı değil. *"Bütçen yetmiyor"* ve *"bu alan boş bırakılamaz"*
+ * kullanıcı hatasıdır; hangi servise raporlandığından bağımsız olarak öyledir.
+ *
+ * `notFound`/`forbidden` listede **yok**: beklenmedik bir 404 veya 403 çoğu
+ * zaman bir yönlendirme ya da yetki hatasının belirtisidir, yani bakmak
+ * isteriz. `engine` (değişmez kırıldı) ve `dataProvider` (yukarı akış düştü)
+ * zaten sistem hatası.
+ */
+export const USER_FAULT_ERROR_KINDS: readonly ErrorKind[] = [
+  ERROR_KINDS.validation,
+  ERROR_KINDS.domain,
+];
+
+/**
+ * Bu fırlatılan şey bir **kullanıcı hatası** mı?
+ *
+ * `unknown` alıyor çünkü çağrı yerleri (`beforeSend` kancaları) yakalanan
+ * değerin tipini bilmiyor. Bizim hatamız olmayan her şey `false` döner —
+ * yani bilinmeyen bir şey **susturulmaz**, gönderilir.
+ */
+export function isUserFaultError(value: unknown): boolean {
+  return isAppError(value) && USER_FAULT_ERROR_KINDS.includes(value.kind);
+}
+
+/**
  * Bilinen bir uygulama hatası mı?
  *
  * `instanceof AppError` doğrudan da yazılabilir; bu sarmalayıcı `unknown`

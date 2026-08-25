@@ -1,17 +1,20 @@
 import {
   DataProviderError,
+  DEFAULT_THROTTLE_WINDOW_MS,
   DomainError,
   EngineError,
   ERROR_KINDS,
   ForbiddenError,
   NotFoundError,
+  USER_FAULT_ERROR_KINDS,
   ValidationError,
 } from '@fms/shared';
+import type { ErrorEvent } from '@sentry/node';
 import type { EventHint } from '@sentry/node';
-import { close, isInitialized } from '@sentry/node';
+import { close, getClient, isInitialized } from '@sentry/node';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { setupSentry, shouldReport, UNREPORTED_ERROR_KINDS } from './instrument.js';
+import { fingerprintOf, setupSentry, shouldReport } from './instrument.js';
 
 /**
  * Sentry enstrümantasyonu testleri — Faz 2 madde 2.5a.
@@ -57,49 +60,136 @@ function hintFor(error: unknown): EventHint {
   return { originalException: error };
 }
 
+/**
+ * ⚠️ HER ÇAĞRI BENZERSİZ BİR PARMAK İZİ ÜRETİR.
+ *
+ * `shouldReport` modül düzeyinde tek bir kısıtlayıcı kullanıyor ve o durum
+ * dosyadaki testler arasında **paylaşılıyor**. Aynı parmak izini iki test
+ * kullansaydı ikincisi kısıtlamaya takılır ve "filtre çalışmıyor" gibi
+ * görünürdü — testin kendisi kırılır, kod değil (günlük #20'nin dersi).
+ */
+let sequence = 0;
+function eventFor(message: string): ErrorEvent {
+  sequence += 1;
+  return {
+    type: undefined,
+    exception: { values: [{ type: `Tip${String(sequence)}`, value: message }] },
+  };
+}
+
+/** Kısıtlamayı devre dışı bırakacak kadar ileri bir zaman damgası. */
+function freshTime(): number {
+  return sequence * 60 * 60 * 1000;
+}
+
+/** Tek satırda: bu hata gönderilir mi? */
+function reports(error: unknown, message = 'm'): boolean {
+  return shouldReport(eventFor(message), hintFor(error), freshTime());
+}
+
 // ── ③ `beforeSend` FİLTRELEME ───────────────────────────────────────────
 describe('shouldReport — hangi hata Sentry’ye GİTMEZ (Karar 4)', () => {
   it('ValidationError GÖNDERİLMEZ — kullanıcı hatası', () => {
-    expect(shouldReport(hintFor(new ValidationError({ code: 'a.b', message: 'm' })))).toBe(false);
+    expect(reports(new ValidationError({ code: 'a.b', message: 'm' }))).toBe(false);
   });
 
   it('DomainError GÖNDERİLMEZ — kullanıcı hatası', () => {
-    expect(shouldReport(hintFor(new DomainError({ code: 'a.b', message: 'm' })))).toBe(false);
+    expect(reports(new DomainError({ code: 'a.b', message: 'm' }))).toBe(false);
   });
 
   it('EngineError GÖNDERİLİR — değişmez kırıldı, bizim hatamız', () => {
-    expect(shouldReport(hintFor(new EngineError({ code: 'a.b', message: 'm' })))).toBe(true);
+    expect(reports(new EngineError({ code: 'a.b', message: 'm' }))).toBe(true);
   });
 
   it('DataProviderError GÖNDERİLİR — yukarı akış düştü', () => {
-    expect(shouldReport(hintFor(new DataProviderError({ code: 'a.b', message: 'm' })))).toBe(true);
+    expect(reports(new DataProviderError({ code: 'a.b', message: 'm' }))).toBe(true);
   });
 
   it('NotFoundError ve ForbiddenError GÖNDERİLİR — 4xx ama bakmak isteriz', () => {
     // Bilinçli: beklenmedik bir 404/403 çoğu zaman yönlendirme veya yetki
     // hatasının belirtisi. Listenin dar tutulmasının sebebi bu.
-    expect(shouldReport(hintFor(new NotFoundError({ code: 'a.b', message: 'm' })))).toBe(true);
-    expect(shouldReport(hintFor(new ForbiddenError({ code: 'a.b', message: 'm' })))).toBe(true);
+    expect(reports(new NotFoundError({ code: 'a.b', message: 'm' }))).toBe(true);
+    expect(reports(new ForbiddenError({ code: 'a.b', message: 'm' }))).toBe(true);
   });
 
   it('bizim olmayan hatalar GÖNDERİLİR', () => {
-    expect(shouldReport(hintFor(new TypeError('beklenmedik')))).toBe(true);
-    expect(shouldReport(hintFor('düz dizge'))).toBe(true);
-    expect(shouldReport(hintFor(null))).toBe(true);
+    expect(reports(new TypeError('beklenmedik'))).toBe(true);
+    expect(reports('düz dizge')).toBe(true);
+    expect(reports(null)).toBe(true);
   });
 
   it('hint hiç yoksa GÖNDERİLİR — bilinmeyen olayı susturmuyoruz', () => {
-    expect(shouldReport(undefined)).toBe(true);
-    expect(shouldReport({})).toBe(true);
+    expect(shouldReport(eventFor('a'), undefined, freshTime())).toBe(true);
+    expect(shouldReport(eventFor('b'), {}, freshTime())).toBe(true);
   });
 
   it('susturulan liste GEÇERLİ ErrorKind değerlerinden oluşuyor', () => {
     // Liste bir gün elle düzenlenip yazım hatası yapılırsa filtre sessizce
     // hiçbir şeyi susturmaz hâle gelirdi — belirtisi olmayan bir bozulma.
     const known = Object.values(ERROR_KINDS);
-    for (const kind of UNREPORTED_ERROR_KINDS) {
+    for (const kind of USER_FAULT_ERROR_KINDS) {
       expect(known).toContain(kind);
     }
+  });
+});
+
+// ── KARAR 4 SON MADDESİ: PARMAK İZİ KISITLAMASI ─────────────────────────
+describe('shouldReport — aynı parmak izi pencere içinde DÜŞÜRÜLÜR', () => {
+  it('aynı hata pencere içinde ikinci kez gönderilmiyor', () => {
+    const event = eventFor('döngüde tekrar eden hata');
+    const hint = hintFor(new EngineError({ code: 'engine.invariant', message: 'm' }));
+    const t0 = freshTime();
+
+    expect(shouldReport(event, hint, t0)).toBe(true);
+    expect(shouldReport(event, hint, t0 + 1_000)).toBe(false);
+    expect(shouldReport(event, hint, t0 + 60_000)).toBe(false);
+  });
+
+  it('pencere dolunca yeniden gönderiliyor — süregelen arıza görünmez olmuyor', () => {
+    const event = eventFor('süregelen arıza');
+    const hint = hintFor(new EngineError({ code: 'engine.invariant', message: 'm' }));
+    const t0 = freshTime();
+
+    expect(shouldReport(event, hint, t0)).toBe(true);
+    expect(shouldReport(event, hint, t0 + DEFAULT_THROTTLE_WINDOW_MS)).toBe(true);
+  });
+
+  it('FARKLI parmak izleri birbirini kısıtlamıyor', () => {
+    const hint = hintFor(new EngineError({ code: 'engine.invariant', message: 'm' }));
+    const t0 = freshTime();
+
+    expect(shouldReport(eventFor('birinci'), hint, t0)).toBe(true);
+    expect(shouldReport(eventFor('ikinci'), hint, t0)).toBe(true);
+  });
+
+  it('kullanıcı hatası kısıtlayıcıya UĞRAMIYOR — sıra bu yüzden önemli', () => {
+    // Uğrasaydı bir kullanıcı hatası, aynı parmak izini taşıyan gerçek bir
+    // arızanın penceresini işgal edebilirdi.
+    const event = eventFor('aynı parmak izi');
+    const t0 = freshTime();
+
+    expect(shouldReport(event, hintFor(new DomainError({ code: 'a.b', message: 'm' })), t0)).toBe(
+      false,
+    );
+    // Kullanıcı hatası pencereyi TUTMADI: aynı parmak izi sistem hatası olarak gelince geçiyor.
+    expect(shouldReport(event, hintFor(new EngineError({ code: 'a.b', message: 'm' })), t0)).toBe(
+      true,
+    );
+  });
+});
+
+describe('fingerprintOf', () => {
+  it('tip ve mesajdan kararlı bir parmak izi üretiyor', () => {
+    expect(
+      fingerprintOf({
+        type: undefined,
+        exception: { values: [{ type: 'TypeError', value: 'x' }] },
+      }),
+    ).toBe('TypeError:x');
+  });
+
+  it('istisna bilgisi eksikse de bir dizge dönüyor — çökmüyor', () => {
+    expect(fingerprintOf({ type: undefined })).toBe('bilinmiyor:');
   });
 });
 
@@ -123,6 +213,21 @@ describe('setupSentry — kurulum koşulları', () => {
     expect(() => setupSentry({ SENTRY_DSN: 'https://k@o.ingest.sentry.io/1' })).not.toThrow();
     expect(setupSentry({ SENTRY_DSN: 'https://k@o.ingest.sentry.io/1' })).toBe(false);
     expect(isInitialized()).toBe(false);
+  });
+
+  it('KARAR 17 — toplama politikası GERÇEKTEN uygulanıyor', () => {
+    // ⚠️ Ölçüldü (2.5b): `sendDefaultPii: false` ile seçeneği hiç vermemek
+    // BİREBİR aynı ve ikisi de çerez/başlık/sorgu dizesini TOPLUYOR
+    // (yalnızca IP'yle ilgili birkaç anahtar eleniyor). Bu yüzden "seçeneği
+    // verdik" demek yetmez, çözülmüş politikaya bakılır.
+    setupSentry({ ...VALID_ENV, SENTRY_DSN: 'https://anahtar@o0.ingest.sentry.io/1' });
+    const resolved = getClient()?.getDataCollectionOptions();
+
+    expect(resolved?.userInfo).toBe(false);
+    expect(resolved?.cookies).toBe(false);
+    expect(resolved?.urlQueryParams).toBe(false);
+    expect(resolved?.httpHeaders).toEqual({ request: false, response: false });
+    expect(resolved?.httpBodies).toEqual([]);
   });
 
   it('DSN varsa ve env geçerliyse SDK KURULUYOR', () => {

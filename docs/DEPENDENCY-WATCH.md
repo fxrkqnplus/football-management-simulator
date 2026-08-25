@@ -28,7 +28,7 @@
 | `postgres` (Docker) | 16 | **Faz 3** | 18 mevcut (18.6, Ağu 2026). 16 bakımda ve **EOL Kas 2028**; 18'in EOL'ü Kas 2030. Şema Faz 3'te yazılıyor — majör değişimi ondan sonra dump/restore ister, öncesinde bedava. |
 | `redis` (Docker) | 7 | **Faz 16** | 8 mevcut (8.8.2). `ioredis`/`bullmq` majör kararlarıyla (BORÇ-001, BORÇ-002) aynı fazda birlikte değerlendirilir. |
 | `typescript` | ~6.0.3 | **TS 7.1 çıkınca** | ADR-0003. 7.0'da programatik derleyici API'si yok → `typescript-eslint` ve `nest build` çalışmıyor. 7.1 çıkınca üç maddelik kontrol listesi işletilir. |
-| `@sentry/*` 10.71.0 | — | **Faz 2.5b / sonraki faz** | 2.0'da alınmadı (1 günlük). **2.5a'da yeniden bakıldı: hâlâ 1 günlük** — 10.71.0 2026-08-24, karar günü 2026-08-25, yani takvim aynı gün. Yaş değişmediği için karar da değişmedi. Sonuç aşağıda. |
+| `@sentry/*` 10.71.0 | — | **sonraki faz** | 2.0'da alınmadı (1 günlük). **2.5a'da yeniden bakıldı: hâlâ 1 günlük** — 10.71.0 2026-08-24, karar günü 2026-08-25, yani takvim aynı gün. Yaş değişmediği için karar da değişmedi. Sonuç aşağıda. |
 | `jsdom` | 30.0.1 | **Faz 6** | 2.0b'de kuruldu. `happy-dom` yerine bilinçli seçildi; **Faz 6'da (Radix/shadcn, odak yönetimi) yeniden değerlendirilir**. Karar ve geri dönüş maliyeti aşağıda. |
 | `@testing-library/react` | 16.3.2 | **Faz 6** | 2.0b'de kuruldu. Faz 6 yüzlerce bileşen testi getiriyor; o fazda `@testing-library/user-event` ihtiyacı da doğacak. |
 
@@ -85,6 +85,34 @@ shims" düzeltmesini içeriyor ve geliştirme makinesi Windows + pwsh 7.
 > `thread-stream` → **0 eşleşme**, paket boyutu 2.2a tabanıyla **bayt bayt aynı**
 > (229.320). pino'nun `browser` alanı bu yüzden hiç devreye girmedi — tarayıcı
 > tarafı kendi `console` uygulamasını kullanıyor.
+
+### `@sentry/react` — Faz 2.5b, 2026-08-25 · **10.70.0 KURULDU**
+
+Kurulan: `@sentry/react@10.70.0` (`apps/web`, **tam sürüm — `^` yok**).
+`@sentry/node` ile **aynı** sürüm: ayrışsalardı `@sentry/core`'un iki kopyası
+gelirdi.
+
+**Paket maliyeti ÖLÇÜLDÜ** (soğuk derleme, ham bayt):
+
+| Ölçüm | Bayt |
+|---|---|
+| Taban (2.3b sonu) | 232.413 |
+| `@sentry/react` **kullanılıyorken** | **319.091** |
+| Artış | **+86.678 (%37,3)** |
+| Kontrol: import var, **kullanılmıyor** | 232.754 (+341) |
+
+Kontrol deneyi ağaç sarsmanın çalıştığını gösteriyor: artışın **86.337 baytı**
+gerçek kullanıma ait. Eşiğin (%40) altında kaldığı için lazy loading veya dar
+entegrasyon seti **değerlendirilmedi** — spekülatif optimizasyon yapılmadı.
+
+> ⚠️ **`sendDefaultPii` KULLANIMDAN KALDIRILDI (v10), v11'DE SİLİNECEK.**
+> Ölçüldü: `sendDefaultPii: false` ile seçeneği **hiç vermemek birebir aynı**
+> ve ikisi de "hiçbir şey toplama" DEMİYOR — `cookies`, `httpHeaders`,
+> `urlQueryParams` toplanıyor (yalnızca IP'yle ilgili birkaç anahtar eleniyor).
+> Yerine açık `dataCollection` politikası kondu (Karar 17,
+> `packages/shared/src/telemetry-policy.ts`). **v11 yükseltmesinde bu satır
+> tekrar okunmalı:** politika açıkça yazıldığı için geçiş güvenli, ama
+> `DataCollection` tipinin şekli değişirse derleme kırılır (istenen davranış).
 
 ### `@sentry/node` — Faz 2.5a, 2026-08-25 · **10.70.0 KURULDU**
 

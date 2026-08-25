@@ -1,4 +1,4 @@
-import { type ErrorKind, isAppError } from '@fms/shared';
+import { createEventThrottle, isUserFaultError, TELEMETRY_DATA_COLLECTION } from '@fms/shared';
 import { envSchema } from '@fms/shared/server';
 import type { ErrorEvent, EventHint } from '@sentry/node';
 import { init } from '@sentry/node';
@@ -36,18 +36,28 @@ import { init } from '@sentry/node';
  */
 
 /**
- * Sentry'ye **gönderilmeyecek** hata türleri (Karar 4).
+ * Olay kısıtlayıcı — Karar 4'ün son maddesi (*"aynı parmak izi N dakikada
+ * tekrarlarsa düşürülür"*). 2.5b'de eklendi.
  *
- * `validation` ve `domain` **kullanıcı hatasıdır, sistem hatası değil**:
- * "bütçen yetmiyor", "bu alan boş bırakılamaz". Bunlar 5.000 olay/ay kotasını
- * (`spec/10` §13.5) hızla yakar ve gerçek arızaları gürültüde boğar.
+ * Uygulama `@fms/shared`'da ve **tarayıcı tarafı da aynısını kullanıyor**:
+ * iki ayrı kopya yazılsaydı kaçınılmaz olarak ayrışırlardı (SAPMA-013).
  *
- * `notFound`/`forbidden` de 4xx ama listede **yok** ve bu bilinçli: beklenmedik
- * bir 404 veya 403 çoğu zaman bir yönlendirme/yetki hatasının belirtisidir,
- * yani bakmak isteriz. `engine` (değişmez kırıldı) ve `dataProvider` (yukarı
- * akış düştü) zaten sistem hatası.
+ * Sunucuda da gerekli: bir kuyruk tüketicisi veya yeniden deneyen bir istemci
+ * aynı hatayı tekrar tekrar üretebilir ve 5.000 olay/ay kotasını yakar.
  */
-export const UNREPORTED_ERROR_KINDS: readonly ErrorKind[] = ['validation', 'domain'];
+const throttle = createEventThrottle();
+
+/**
+ * Bir olayın parmak izi — hata tipi + mesajı.
+ *
+ * Yığın izi BİLEREK dışarıda: satır numaraları kaynak haritasına ve dağıtıma
+ * göre kayabiliyor, aynı hata farklı parmak izleri üretir ve kısıtlama hiç
+ * devreye girmezdi.
+ */
+export function fingerprintOf(event: ErrorEvent): string {
+  const first = event.exception?.values?.[0];
+  return `${first?.type ?? 'bilinmiyor'}:${first?.value ?? ''}`;
+}
 
 /**
  * Kaldırılan varsayılan entegrasyonun adı — release health oturumlarını yayan.
@@ -66,14 +76,25 @@ export const SESSION_INTEGRATION = 'ProcessSession';
  * veriyor. İki yerde filtreleme kaçınılmaz olarak ayrışır — SAPMA-013'ün
  * ("hiçbir kural iki yerde tanımlanmaz") aynı dersi.
  *
+ * İKİ ELEME VAR VE SIRASI ANLAMLI:
+ *   ① **Kullanıcı hatası mı** (`isUserFaultError`, `@fms/shared`) — hiç
+ *      gönderilmez ve kısıtlayıcıya **uğramaz**. Sıra bu yüzden önemli:
+ *      uğrasaydı bir kullanıcı hatası, gerçek bir arızanın kısıtlama
+ *      penceresini işgal edebilirdi.
+ *   ② **Kısıtlama** — sistem hatası, ama aynı parmak izi pencere içinde
+ *      zaten gönderilmişse düşürülür.
+ *
+ * Karar listesi 2.5b'de `@fms/shared`'a taşındı: `apps/web` `apps/api`'yi
+ * import edemez (CLAUDE.md §2.4), yani tarayıcı aynı kuralı ancak paylaşılan
+ * paketten alabilirdi.
+ *
  * Dışa aktarılıyor çünkü `beforeSend` bir kapanış (closure) içinde saklı
  * kalsaydı test edilemezdi ve kuralın kablolaması sınanamazdı
  * (`spec/09` §11.5).
  */
-export function shouldReport(hint: EventHint | undefined): boolean {
-  const original: unknown = hint?.originalException;
-  if (!isAppError(original)) return true;
-  return !UNREPORTED_ERROR_KINDS.includes(original.kind);
+export function shouldReport(event: ErrorEvent, hint: EventHint | undefined, now: number): boolean {
+  if (isUserFaultError(hint?.originalException)) return false;
+  return throttle.shouldAllow(fingerprintOf(event), now);
 }
 
 /**
@@ -106,8 +127,13 @@ export function setupSentry(source: Readonly<Record<string, string | undefined>>
     // Hataların HEPSİ gönderilir — örnekleme yapılmaz. Az kullanıcılı bir
     // sistemde bir hatayı kaçırmak, kota tasarrufundan pahalı.
     sampleRate: 1.0,
-    // KVKK açısından istenen varsayılan: IP, çerez, başlık gövdesi gönderilmez.
-    sendDefaultPii: false,
+    // ⚠️ KARAR 17 — `sendDefaultPii` DEĞİL, açık politika (2.5b'de ölçüldü).
+    // `sendDefaultPii: false` "hiçbir şey toplama" DEMİYOR: çerez, başlık ve
+    // sorgu dizesi yine toplanıyor, yalnızca IP'yle ilgili birkaç anahtar
+    // eleniyor. Ayrıca seçenek v10'da kullanımdan kaldırıldı, v11'de silinecek
+    // ve o an varsayılanlar yürürlüğe girerdi. Politika tek yerde:
+    // `@fms/shared` — tarayıcı tarafı da aynısını kullanıyor.
+    dataCollection: { ...TELEMETRY_DATA_COLLECTION, httpBodies: [] },
 
     // ⚠️ OTURUM İZLEME KAPALI — ÖLÇÜMLE BULUNAN YAN KANAL (2.5a).
     // `release` ayarlanınca SDK, hata zarfının YANINDA bir `session` zarfı
@@ -127,7 +153,7 @@ export function setupSentry(source: Readonly<Record<string, string | undefined>>
       defaults.filter((integration) => integration.name !== SESSION_INTEGRATION),
 
     beforeSend: (event: ErrorEvent, hint: EventHint): ErrorEvent | null =>
-      shouldReport(hint) ? event : null,
+      shouldReport(event, hint, Date.now()) ? event : null,
   });
 
   return true;

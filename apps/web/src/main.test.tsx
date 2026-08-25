@@ -35,11 +35,18 @@ describe('main.tsx — önyükleme', () => {
     resetBasePathForTests();
     window.history.pushState({}, '', basePathConfig.viteBase);
     vi.stubGlobal('__FMS_BASE_PATH__', BASE_PATH);
+    // 2.5b'de eklendi: `main.tsx` artık Sentry'yi de kuruyor ve o da derleme
+    // zamanı sabitleri okuyor. DSN **bilerek boş** — testte SDK kurulmamalı,
+    // yoksa test koşusu ağa çıkmaya çalışırdı.
+    vi.stubGlobal('__FMS_SENTRY_DSN__', '');
+    vi.stubGlobal('__FMS_SENTRY_RELEASE__', '');
+    vi.stubGlobal('__FMS_SERVER_MODE__', 'private');
+    // GERÇEK `Response` — düz nesne değil. `apiRequest` yanıt BAŞLIĞINI okuyor
+    // ve eksik bir sahte, taklit ettiği sözleşmenin yüzeyini eksik taklit eder
+    // (günlük #30'un aynı dersi).
     vi.stubGlobal(
       'fetch',
-      vi.fn(() =>
-        Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ status: 'ok' }) }),
-      ),
+      vi.fn(() => Promise.resolve(new Response(JSON.stringify({ status: 'ok' }), { status: 200 }))),
     );
     document.body.innerHTML = '';
   });

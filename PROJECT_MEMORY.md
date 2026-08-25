@@ -21,34 +21,35 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.5a bitti, SIRADA 2.5b** |
-| **Son tamamlanan** | ✅ **2.5a** Sentry API tarafı — ESM `--import` · `beforeSend` · konteyner doğrulaması |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.5 (a+b) bitti, SIRADA 2.6** |
+| **Son tamamlanan** | ✅ **2.5b** Sentry web tarafı — `@sentry/react` · gürültü filtreleri · paket ölçümü |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 10/15 alt görev (…2.3c, 2.4, 2.5a) — 2.5 ikiye bölündü |
-| **Bloke eden var mı?** | Hayır — ama **kabul kriteri 1'in yarısı kullanıcı işi** (aşağıdaki uyarı) |
-| **Son commit** | `feat(api): Sentry enstrümantasyonu — ESM --import sınırı ve tek karar noktalı filtreleme` |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 11/15 alt görev (…2.4, 2.5a, 2.5b) |
+| **Bloke eden var mı?** | Hayır |
+| **Son commit** | `feat(web,shared): tarayıcı Sentry kurulumu, ortak telemetri politikası ve olay kısıtlaması` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ✅ 2.4 koşusu `32888812075` yeşil. ⏳ 2.5a koşusu henüz işlenmedi. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle, `rm -rf .turbo/cache` sonrası) |
-| **test** | ✅ **377 test / 27 dosya** (2.5a: +19 test, +2 dosya) |
-| **kapsam** | ✅ satır **%93,12** · ifade %93,13 · dal %88,31 · fonksiyon **%94,94** — eşik %70 |
-| **Web paketi** | **232.413 bayt** (ham) — 2.5a sunucu tarafı, paket **değişmedi** (hash aynı). 2.5b'de büyüyecek. |
-| **API imajı** | **423 MB** (`docker images` ölçüsü) — Sentry öncesi 361 MB'tan **+62 MB**. İmaj içi `node_modules`: 29 → **81 MB**. ⚠️ `docker image inspect .Size` FARKLI bir şey ölçüyor (79→86 MB), karıştırma. |
-| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 · **@sentry/node 10.70.0** |
+| **CI** | ✅ 2.5a koşusu `32891495802` yeşil. ⏳ 2.5b koşusu henüz işlenmedi. |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
+| **test** | ✅ **414 test / 29 dosya** (2.5b: +37 test, +2 dosya) |
+| **kapsam** | ✅ satır **%93,28** · ifade %93,33 · dal %89,01 · fonksiyon **%94,64** — eşik %70 |
+| **Web paketi** | **319.091 bayt** (ham) — 2.5b'de 232.413'ten **+86.678 (%37,3)**. Kontrol deneyi: import kullanılmazken 232.754, yani artışın tamamı gerçek kullanıma ait. |
+| **API imajı** | **423 MB** (`docker images`) — 2.5a'da ölçüldü. ⚠️ `docker image inspect .Size` FARKLI bir şey ölçüyor, karıştırma. |
+| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 · **@sentry/node + @sentry/react 10.70.0** |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **5** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-005 (Faz 5) · **BORÇ-006** (Faz 50, Sentry kaynak haritası yüklemesi) |
-| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.5a yeni SAPMA açmadı; **Karar 14** ROADMAP 2.5a'ya yazıldı (oturum izleme kapatıldı) |
+| **Teknik borç sayısı** | **5** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
+| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.5b yeni SAPMA açmadı; **Karar 15/16/17** ROADMAP 2.5b'ye yazıldı |
 
-> ⚠️ **KABUL KRİTERİ 1'İN YARISI SENDE — 2.9'a kadar yapılabilir.**
-> (a) **tamam:** yerel yakalama sunucusuyla zarfın `correlationId`, `errorKind`, `release`,
-> `environment` taşıdığı kanıtlandı; `beforeSend` de gerçekten kablolu
-> (`ValidationError`/`DomainError` → **0 zarf**, kontrol deneyiyle birlikte).
-> (b) **yapılamadı:** gerçek Sentry projesine tek sefer gönderim + ekran görüntüsü.
-> `SENTRY_DSN` boş, ortada proje yok ve hesap açmak/`DSN` üretmek kullanıcının işi.
-> **Adımlar:** ① sentry.io'da proje aç · ② DSN'i `.env`'e yaz · ③
-> `node --import ./apps/api/dist/instrument.js --env-file=.env apps/api/dist/main.js`
-> ile aç · ④ bir `EngineError` tetikle · ⑤ olayın `correlationId` etiketiyle
-> göründüğünü doğrula. Kriter o zamana kadar `[ ]`.
+> ✅ **FAZ 2'NİN 1. KABUL KRİTERİ KAPANDI (2.5b).**
+> İki yol da koşuldu. (a) yerel yakalama sunucusu — zarfın etiketleri ham gövdede assert
+> edildi, `beforeSend` kontrol deneyiyle doğrulandı. (b) **gerçek Sentry'ye iki olay**:
+> sunucu (`event_id 6995813e…`, ingest **HTTP 200**, etiketler olaydan doğrudan okundu) ve
+> tarayıcı (gerçek tarayıcı, kimlik `01a03a8f-24c1-…`, **tek** zarf, ingest **HTTP 200**).
+> ⚠️ Doğrudan gözlenmeyen tek şey: tarayıcı zarfının **içindeki** etiket (gövde ikili,
+> ikinci olay yakmamak için zorlanmadı). Birim testleri + sunucudaki aynı etiket şekli
+> dolaylı kanıt. Sentry arayüzünde gözle bakmak bir tıklık iş.
+>
+> **Faz 2 kabul kriterleri:** **1 ✅** · **2 ✅** · 3 ⬜ (2.8) · 4 ⬜ (2.7) · 5 ⬜ (2.7).
+> Beşte ikisi kapandı.
 
 > ✅ **FAZ 2'NİN 2. KABUL KRİTERİ KAPANDI (2.3c).**
 > Dört halka gerçek tarayıcı + derlenmiş API ile kanıtlandı: tarayıcı
@@ -111,41 +112,36 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ---
 
-### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.5b
+### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.6
 
-**2.5b kapsamı (ROADMAP):** Sentry web tarafı — `@sentry/react` ·
-`apps/web/src/lib/sentry.ts` · `denyUrls` · `ignoreErrors` · `sourcemap: true` +
-`release` adlandırması (Karar 7). Kararlar ROADMAP 2.5 ve 2.5b'de yazılı.
+**2.6 kapsamı (ROADMAP):** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen +
+"Hata bildir" (`correlationId` ile). **Negatif test:** kayıtsız bir
+`ErrorBoundary`'nin hatası köke tırmanıyor mu. Metinler Türkçe sabit →
+**BORÇ-003** (2.6'da açılacak; BORÇ-005 ile aynı sınıf).
 
-**2.5b'ye girerken bilinmesi gerekenler — 2.5a'dan devir:**
+**2.6'ya girerken bilinmesi gerekenler — 2.5b'den devir:**
 
-- **Sürüm 10.70.0'a SABİT.** `@sentry/react` de aynı sürümden kurulur; iki
-  paketin sürümü ayrışırsa `@sentry/core` iki kopya gelir.
-- ⚠️ **PAKET BÜYÜYECEK, MİKTARI ÖLÇÜLECEK.** Taban **232.413 ham bayt**.
-  Soğuk derleme (`rm -rf .turbo/cache`) ve **ham bayt** karşılaştırması
-  (gzip'i karıştırma — günlük #26). **Kontrol deneyi zorunlu** (2.3b deseni):
-  import yazılıp KULLANILMAZSA paket değişmemeli; artış ancak gerçek kullanıma
-  atfedilebilir.
-- ⚠️ **OTURUM İZLEME TARAYICIDA DA KAPATILMALI** (Karar 14). API'de ölçüldü:
-  `release` ayarlıyken SDK fazladan `session` zarfı yolluyor. Tarayıcı SDK'sında
-  entegrasyonun adı FARKLI olabilir — **ölçmeden varsayma**, yerel yakalama
-  sunucusuyla zarf türlerine bak (`sentry-envelope.http.test.ts` deseni hazır).
-- **`beforeSend` KARARI TEK YERDE KALMALI.** API tarafında `shouldReport`
-  (`instrument.ts`) tek karar noktası. Tarayıcıda `denyUrls`/`ignoreErrors`
-  ek kurallar getiriyor; bunlar **ayrı bir endişe** (gürültü filtresi) ve
-  `shouldReport` mantığını kopyalamamalı — kopyalanırsa ayrışır (SAPMA-013).
-- **`captureException` çağrısı istemcide nereden gelecek?** API'de exception
-  filter tek kapı. Tarayıcıda karşılığı 2.6'nın `ErrorBoundary`si — yani 2.5b
-  SDK'yı kurar, yakalama noktası 2.6'da tamamlanır. 2.5b'de "hiçbir şey
-  yakalanmıyor" görünmesi **beklenen**; `ErrorBoundary` gelene kadar yalnızca
-  yakalanmamış global hatalar gider.
-- **`sourcemap: true` yükleme DEĞİL.** Karar 7: Faz 2'de yalnızca üretim +
-  adlandırma; CI yükleme adımı **BORÇ-006** (Faz 50). Kaynak haritalarının
-  üretim paketiyle **birlikte dağıtılmaması** gerektiğine dikkat — `.map`
-  dosyaları sunucu yollarını ve kaynak kodu sızdırır.
-- **DI/modül grafiği DEĞİŞMİYOR** (web tarafı), ama paket grafiği değişiyor:
-  SAPMA-014 gereği **build ET ve ÇALIŞTIR** — `vite preview` ile gerçek
-  tarayıcıda aç, konsolda SDK'nın kurulduğunu gör.
+- ⚠️ **`captureException` ÇAĞRISI EKLERKEN İKİNCİ FİLTRE KURMA.** Neyin
+  gönderilmeyeceğine **tek** karar noktası karar veriyor: `shouldReport`
+  (`lib/sentry.ts`). `ErrorBoundary` yakaladığını **koşulsuz** vermeli.
+- **Etiket şekli sabit:** `{ correlationId, errorKind, errorCode }`. Sunucu
+  filtresi (2.4) ve `api.ts` (2.5b) aynısını kullanıyor; Sentry'de tek arama
+  iki tarafı da getiriyor. `ErrorBoundary` de aynısını kullanmalı.
+- **"Hata bildir" düğmesi hangi `correlationId`'yi gönderecek?** Bir render
+  hatasının kendi isteği yok. `apiRequest` sonucu zaten `correlationId`
+  döndürüyor (`ApiRequestResult`); ekran onu tutup boundary'ye vermeli.
+  Aksi hâlde düğme kimliksiz bir rapor üretir ve zincir tam da en gerekli
+  anda kopar.
+- ⚠️ **KISITLAYICI RENDER DÖNGÜSÜNDE DEVREYE GİRECEK** (Karar 16). Bir
+  `ErrorBoundary` testi aynı hatayı arka arkaya fırlatırsa ikincisi **düşer**
+  ve bu **doğru davranıştır**. Testlerde her senaryo farklı hata mesajı
+  kullanmalı (günlük #43 — aynı tuzağa iki dosyada düşüldü).
+- **`@sentry/react` `ErrorBoundary` bileşeni HAZIR geliyor.** Kendi
+  sınıfımızı yazmadan önce onun yeterli olup olmadığına bakılmalı; K12
+  gereği gereksiz kod yazılmaz. Ama üç seviyeli hiyerarşi (kök/ekran/bileşen)
+  ve Türkçe yedek arayüz bizim işimiz.
+- **Paket yine büyüyecek.** Taban artık **319.091 ham bayt**. Soğuk derleme +
+  **kontrol deneyi** (import kullanılmazsa paket değişmemeli).
 
 **Kapılar (bu sırayla):**
 `rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
@@ -153,17 +149,25 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 **Çalışan sistemi ayağa kaldırma — İKİ KOMUT DA KRİTİK:**
 API `--import` olmadan açılırsa Sentry sessizce kurulmaz (2.5a).
-`vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli (`'../..'`)
-olduğu için `PUBLIC_BASE_PATH` okunamaz (Faz 1 hata #8). Aşağıdaki bloğa bak.
+`vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli olduğu için
+`PUBLIC_BASE_PATH` okunamaz (Faz 1 hata #8). Aşağıdaki bloğa bak.
 
-**Windows'ta Docker'a argüman geçerken** `MSYS_NO_PATHCONV=1` gerekiyor:
-Git Bash `-e PUBLIC_BASE_PATH=/fms` değerini `C:/Program Files/Git/fms`'e
-çeviriyor ve hata **rota/Sentry hatası gibi** görünüyor (günlük #40).
+⚠️ **`.env`'de GERÇEK SENTRY DSN VAR.** Yerel çalıştırmalarda gerçek olay
+gönderilir ve **5.000 olay/ay** kotası yanar. Deneme yaparken DSN'i geçici
+olarak boşalt ya da yerel yakalama sunucusuna yönlendir
+(`sentry-envelope.http.test.ts` deseni). Kısıtlayıcı (5 dk) bir miktar
+koruyor ama **döngüye sokma**.
 
-**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **41 satır**.
+**Windows'ta Docker'a argüman geçerken** `MSYS_NO_PATHCONV=1` gerekiyor
+(günlük #40).
 
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **45 satır**.
 
-**📦 PAKET TABANI GÜNCELLENDİ (2.3b): 229.320 → 232.413 ham bayt.**
+**📦 PAKET TABANI: 319.091 ham bayt (2.5b).** Geçmiş: 229.320 (2.2a) → 232.413 (2.3b,
+`api.ts` + tarayıcı logger'ı) → **319.091** (2.5b, `@sentry/react` **+86.678 / %37,3**).
+Her artış kontrol deneyiyle doğrulandı: import kullanılmazken paket tabanda kalıyor.
+
+**2.3b ölçümünün ayrıntısı (korunuyor):**
 Artışın **tamamı** `api.ts`in tarayıcı logger'ını **gerçekten kullanmasından**
 geliyor. Kontrol deneyiyle ölçüldü: `api.ts` diskte dururken `App.tsx` çıplak
 `fetch`e döndürüldü ve paket **bayt bayt 229.320** çıktı. Yani günlük #16'nın
@@ -431,6 +435,10 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 45 | 2.5b | **Gizlilik boşluğu ÖLÇÜMLE bulundu:** `sendDefaultPii: false`, "hiçbir şey toplama" demek değilmiş | Lint `no-deprecated` uyarısı kazıma yaptırdı. Ölçüldü: `sendDefaultPii: false` ile seçeneği **hiç vermemek birebir aynı** ve ikisi de `cookies`/`httpHeaders`/`urlQueryParams` topluyor — yalnızca IP'yle ilgili birkaç anahtar eleniyor. Çerez Faz 13'ten itibaren oturum jetonu taşıyacak | **Karar 17:** açık `dataCollection` politikası, `@fms/shared/telemetry-policy.ts`, iki tarafta da `false`. Testler `getDataCollectionOptions()` ile **etkin** değeri doğruluyor | **Ders: bir gizlilik ayarının ADI, ne yaptığını söylemez.** ROADMAP "KVKK açısından istenen varsayılan" diyordu ve ayar o niyeti karşılamıyordu. Ayrıca: **kullanımdan kaldırma uyarısı bir davranış değişikliği habercisidir** — v11'de seçenek silinseydi varsayılanlar sessizce yürürlüğe girerdi |
+| 44 | 2.5b | **`api.ts` her HTTP hatasını `DomainError` yapıyordu** — ve `DomainError` "kullanıcı hatası" listesinde | Filtreleme kuralı yazılırken görüldü: bu modellemeyle **her 500 sessizce Sentry'den düşerdi**. 2.3b'de yazılırken filtre yoktu, dolayısıyla yanlışlık zararsız görünüyordu | 5xx ve ağ hatası → `DataProviderError` (yukarı akış arızası), 4xx → `DomainError` | **Ders: bir sınıflandırma, onu TÜKETEN kural yazılana kadar yanlış olduğunu belli etmez.** Hata izleme filtresi, hata taksonomisinin ilk gerçek tüketicisiydi ve modelleme hatasını anında görünür kıldı |
+| 43 | 2.5b | Kısıtlayıcı eklenince **iki ayrı test dosyasında** testler kırıldı ("zarf gitmedi") | Aynı `type:value` parmak izini birden fazla test kullanıyordu; kısıtlayıcı ikincisini **doğru şekilde** düşürüyordu. Kod değil, testler yanlıştı | Her test benzersiz mesaj kullanıyor; iki dosyaya da gerekçeli uyarı yorumu kondu | **Kuralı test için gevşetmek elendi:** o zaman üretim yapılandırmasından sapardık ve testlerin tüm değeri "üretimle aynı" olması. Günlük #20'nin aynı dersi — kırmızı test "kod yanlış" demek değil |
+| 42 | 2.5b | `main.test.tsx` iki testle kırıldı: `__FMS_SENTRY_DSN__ is not defined` | `main.tsx` artık Sentry'yi de kuruyor ve o da derleme zamanı sabitleri okuyor; test yalnızca `__FMS_BASE_PATH__`'i sahteliyordu | Üç sabit de sahtelendi, **DSN bilerek boş** — testte SDK kurulmamalı, yoksa koşu ağa çıkardı. Aynı dosyadaki düz nesne `fetch` sahtesi de gerçek `Response`a çevrildi (günlük #30) | **Ders: `define` ile gömülen her yeni sabit, testlerin sahtelemesi gereken yeni bir sözleşmedir.** Sabit eklemek tek taraflı bir iş değil |
 | 41 | 2.5a | **İki imaj ölçüsü birbirini tutmadı:** `docker images` 361→423 MB (+62), `docker image inspect .Size` 79→86 MB (+6,6) | İki komut **farklı şeyi** ölçüyor. Hangisinin doğru olduğunu tahmin etmek yerine imajın **içi** ölçüldü: `node_modules` 29 MB → **81 MB (+52 MB)** — büyüklük sırası `docker images` ile tutarlı | Rapora `node_modules` ölçümü ve `docker images` deltası yazıldı; `inspect .Size` **kullanılmadı** | **Günlük #26'nın (gzip) aynı dersi, farklı araçla: ölçüm kaynağı değişmişse rakam karşılaştırılamaz.** İki rakamdan birini seçip diğerini görmezden gelmek yerine üçüncü, doğrudan bir ölçüm alındı |
 | 40 | 2.5a | **Konteyner duman testi kırıldı:** `PathError: Missing parameter name at index 3: /C:/Program Files/Git/fms/api$` | Ürün hatası **değil** — Git Bash'in MSYS yol dönüşümü `-e PUBLIC_BASE_PATH=/fms` argümanını `C:/Program Files/Git/fms`'e çevirmiş. Yığın izi `@sentry/core`'un Express sarmalayıcısından geçtiği için hata bir **Sentry/rota hatası gibi** görünüyordu | `MSYS_NO_PATHCONV=1` ile tekrar koşuldu, konteyner temiz açıldı | **Ders: Windows'ta Docker'a eğik çizgiyle başlayan argüman geçerken MSYS dönüşümü kapatılmalı.** Ve daha genel olarak: yığın izinin **en üstteki** çerçevesi suçluyu göstermez — burada Sentry yalnızca yolu ileten katmandı |
 | 39 | 2.5a | **`SENTRY_RELEASE` şemaya eklendi ama `apps/api` göremedi** — `TS2339: Property 'SENTRY_RELEASE' does not exist` | `packages/shared` **dist bayattı**; `apps/api` üretilmiş `.d.ts`'ye karşı derleniyor. Ben `pnpm --filter @fms/api exec tsc` diye **doğrudan** çağırdığım için turbo'yu atlamıştım | `pnpm --filter @fms/shared build` | Gerçek boşluk değil: `turbo.json` `typecheck` görevi zaten `dependsOn: ["^build"]` taşıyor, yani kök `pnpm typecheck` bunu kendisi yapıyor. **Ders: kapıyı kısayoldan çağırmak, kapının garantisini de atlar** |

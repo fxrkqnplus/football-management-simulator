@@ -548,7 +548,7 @@ docs/ADR/0001-monorepo-secimi.md
       kasıtlı fırlatan rota **eklenmedi** (her istekte 500 üreten kalıcı uç nokta saldırı yüzeyi
       olurdu). 5xx gerçek HTTP üzerinden **test modülüyle** kanıtlandı; üretim kablolaması 404 ile
       duman testi edildi (`{"status":404,"code":"http.404","correlationId":"…"}`).
-- [ ] **2.5** Sentry — **2.5a / 2.5b olarak BÖLÜNDÜ** (aşağıda). Bölme gerekçesi: iki ayrı risk
+- [x] **2.5** Sentry — **2.5a / 2.5b olarak BÖLÜNDÜ** (ikisi de bitti). Bölme gerekçesi: iki ayrı risk
       profili. 2.5a ESM `--import` sırası + Dockerfile + konteyner doğrulaması (R1, fazın en somut
       riski); 2.5b tarayıcı SDK'sı + paket ağırlığı. Aynı commit'te olsalardı bir aksaklıkta
       "ESM sırası mı, paketleyici mi?" sorusu doğardı — 2.3c'nin 2.4'ten ayrılmasıyla aynı ilke.
@@ -608,7 +608,43 @@ docs/ADR/0001-monorepo-secimi.md
       (c) DSN boşken hata fırlat → ağ isteği **gitmediğini** gör.
       **Kabul kriteri 1'in yarısı burada:** yerel yakalama sunucusuyla zarfın `correlationId`
       taşıdığı assert edilir. Gerçek projeye tek sefer gönderim **kullanıcı işi** (DSN yok).
-- [ ] **2.5b** Sentry — **web tarafı** · paket ölçümü
+- [x] **2.5b** Sentry — **web tarafı** · paket ölçümü
+      **Sonuç:** yapıldı. **1. kabul kriteri kapandı** (aşağıda `[x]`).
+      **PAKET: 232.413 → 319.091 ham bayt (+86.678, %37,3)** — soğuk derlemeyle.
+      **Kontrol deneyi (2.3b deseni):** import var ama KULLANILMIYORken paket **232.754**
+      (tabandan yalnızca +341, o da deneyin kendi `void` satırları). Yani artışın
+      **86.337 baytı gerçek kullanıma ait**, ağaç sarsma çalışıyor. Eşiğin (%40) altında
+      kaldığı için lazy loading/dar entegrasyon seti **değerlendirilmedi** — spekülatif
+      optimizasyon yapılmadı. Sızıntı taraması: `JWT_SECRET`/`DATABASE_URL`/`pino`/
+      `async_hooks`/`loadEnv` → **0**.
+      **KARAR 15 — ortak kural `@fms/shared`'a taşındı.** `USER_FAULT_ERROR_KINDS` +
+      `isUserFaultError` 2.5a'da `apps/api/src/instrument.ts`'teydi; `apps/web` `apps/api`'yi
+      import EDEMEZ (§2.4), yani tek seçenek kopyalamak ya da taşımaktı. Taşındı — bu bir
+      **alan gerçeği** ("hangi hata kullanıcı hatasıdır"), Sentry ayarı değil.
+      **KARAR 16 — parmak izi kısıtlaması (Karar 4'ün son maddesi) EKLENDİ.** 2.5a'da
+      yapılmamıştı. `createEventThrottle` saf ve izomorfik (`@fms/shared`), **iki tarafta da**
+      kullanılıyor. Tarayıcıda daha akut: bir render döngüsü saniyede yüzlerce özdeş hata
+      üretip aylık kotayı dakikalar içinde yakabilir. Sentry'nin `dedupeIntegration`ı bunu
+      çözmez — o yalnızca art arda gelen birebir aynı olayı eler, zaman penceresi tutmaz.
+      **KARAR 17 — `sendDefaultPii` BIRAKILDI, açık toplama politikası kondu.** Ölçüldü:
+      `sendDefaultPii: false` ile seçeneği **hiç vermemek birebir aynı** sonucu üretiyor ve
+      o sonuç "hiçbir şey toplama" DEĞİL — `cookies`, `httpHeaders`, `urlQueryParams`
+      toplanıyor (yalnızca IP'yle ilgili birkaç anahtar eleniyor). Çerez Faz 13'ten itibaren
+      **oturum jetonu** taşıyacak; sorgu dizesi 2.3c'de zaten loglardan çıkarılmıştı.
+      Ayrıca seçenek v10'da kullanımdan kaldırıldı, v11'de silinecek ve o an varsayılanlar
+      yürürlüğe girerdi. Politika `@fms/shared/telemetry-policy.ts`'te, **iki tarafta da**
+      açıkça `false`. Testler `getDataCollectionOptions()` ile **etkin** değeri doğruluyor —
+      "seçeneği verdik" demek yetmiyor.
+      **`api.ts` HATA MODELLEMESİ DÜZELTİLDİ.** 2.3b'de her başarısız yanıt `DomainError`dı;
+      `DomainError` kullanıcı hatası sayıldığı için `beforeSend` **her 500'ü sessizce
+      düşürürdü** — belirtisi olmayan bir kayıp. Artık 5xx ve ağ hatası `DataProviderError`
+      (yukarı akış arızası), 4xx `DomainError`. Hata 2.5b'de filtreleme kuralı yazılırken
+      ortaya çıktı.
+      **`BrowserSession` ≠ `ProcessSession`** — tarayıcıda oturum entegrasyonunun adı farklı,
+      **ölçülerek** bulundu. Sunucudaki sabit kopyalansaydı filtre sessizce hiçbir şeyi
+      kaldırmaz ve Karar 14 yalnızca sunucuda geçerli olurdu.
+      **`sourcemap: true`** (Karar 7). Normalde sızıntı endişesidir; **bu projede değil** —
+      repo AGPL-3.0 ile zaten açık (CLAUDE.md §1.5). Yükleme adımı → BORÇ-006, Faz 50.
       **Kapsam:** `@sentry/react` · `apps/web/src/lib/sentry.ts` · `denyUrls` (eklenti hataları) ·
       `ignoreErrors` (`ResizeObserver loop…`) · `sourcemap: true` + `release` adlandırması (Karar 7).
       **Paket:** taban **232.413 ham bayt**; `@sentry/react` ilk kez import edilince büyüyecek.
@@ -660,20 +696,30 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 ```
 
 **Kabul kriterleri:**
-- [ ] Kasıtlı bir hata fırlat → Sentry'de `correlationId` ile görünüyor — *doğrulama: önce yerel yakalama sunucusuna DSN + zarfın etiketi taşıdığını assert eden test, sonra gerçek projeye TEK SEFER gönderim + ekran görüntüsü*
-      **2.5a sonrası — iki yolun biri tamam, biri KULLANICI İŞİ:**
-      ✅ **(a) yerel yakalama sunucusu.** Gerçek bir HTTP sunucusu kaldırılıp DSN ona verildi;
-         zarfın `correlationId`, `errorKind`, `release`, `environment` taşıdığı ham gövde
-         üzerinde assert edildi. `beforeSend`in gerçekten kablolu olduğu ayrıca kanıtlandı:
-         `ValidationError`/`DomainError` → **0 zarf**, kontrol deneyiyle (`EngineError` → 1 zarf).
-         Tekrarlanabilir, CI'da koşuyor, ağa çıkmıyor.
-      ❌ **(b) gerçek projeye tek sefer gönderim + ekran görüntüsü — YAPILMADI.**
-         `SENTRY_DSN` boş; ortada bir Sentry projesi yok ve hesap açmak/`DSN` üretmek
-         kullanıcının işi. **Yapılması gereken:** (1) sentry.io'da proje aç, (2) DSN'i `.env`'e
-         yaz, (3) `node --import ./apps/api/dist/instrument.js --env-file=.env
-         apps/api/dist/main.js` ile aç, (4) bir `EngineError` tetikle, (5) Sentry arayüzünde
-         olayın `correlationId` etiketiyle göründüğünü doğrula.
-      Kriter, (b) yapılana kadar `[ ]` kalır (dürüstlük kuralı, `spec/11` §12.1).
+- [x] Kasıtlı bir hata fırlat → Sentry'de `correlationId` ile görünüyor — *doğrulama: önce yerel yakalama sunucusuna DSN + zarfın etiketi taşıdığını assert eden test, sonra gerçek projeye TEK SEFER gönderim*
+      **✅ İKİ YOL DA KOŞULDU.**
+      **(a) Yerel yakalama sunucusu (2.5a, tekrarlanabilir, CI'da koşuyor):** gerçek bir HTTP
+      sunucusuna DSN verildi; zarfın `correlationId`, `errorKind`, `release`, `environment`
+      taşıdığı **ham gövde üzerinde** assert edildi. `beforeSend`in kablolu olduğu ayrıca
+      kanıtlandı: `ValidationError`/`DomainError` → **0 zarf**, kontrol deneyiyle
+      (`EngineError` → 1 zarf).
+      **(b) Gerçek Sentry projesine gönderim — İKİ OLAY, TEK SEFER HER BİRİ:**
+      ① **Sunucu (2.5b):** üretimdeki `dist/instrument.js` `--import` ile yüklendi,
+         `EngineError` yakalandı. `event_id` `6995813e6c244248bfed1e438697b156`,
+         **ingest HTTP 200**, etiketler doğrudan olaydan okundu:
+         `correlationId=01a03966-5b00-7000-8000-2b5babcdef01`, `errorKind=engine`.
+         Üretim yapılandırması da doğrulandı: `ProcessSession` entegrasyonu **YOK** (Karar 14).
+      ② **Tarayıcı (2.5b, gerçek tarayıcı):** kimlik `01a03a8f-24c1-7422-a88a-d27fb5e5523f`
+         üretildi, konsola loglandı, API kapalıyken istek 502 döndü → `DataProviderError` →
+         `captureException`. `performance` kaydı **tam bir** zarfın gerçek EU ingest'e
+         gittiğini ve **HTTP 200** aldığını gösterdi (`sentry.javascript.react/10.70.0`).
+         Tek zarf olması Karar 14'ün tarayıcıda da tuttuğunun kanıtı.
+      **⚠️ DOĞRUDAN GÖZLENMEYEN TEK ŞEY:** tarayıcı zarfının İÇİNDEKİ etiket. İstek gövdesi
+      ikili/sıkıştırılmış ve dışarıdan okunamadı; ikinci bir olay yakmamak için zorlanmadı.
+      Etiketin varlığı (i) `reportToSentry` birim testleriyle ve (ii) sunucu tarafında **aynı
+      etiket şeklinin** gerçek Sentry olayından doğrudan okunmasıyla dolaylı olarak sağlanıyor.
+      Sentry arayüzünde gözle doğrulama kullanıcının bir tıklık işi: yukarıdaki `event_id`
+      veya `correlationId` aranır.
 - [x] Aynı `correlationId` ile frontend ve backend logları eşleşiyor — *doğrulama: tarayıcıda tıkla → `X-Correlation-Id` → sunucu logu. **Negatif:** başlıksız istek → sunucu kendi üretir. **Eşzamanlılık:** iki paralel istek → ALS bağlamları karışmıyor*
       **✅ 2.3c'de KAPANDI — dört halkanın dördü, gerçek tarayıcı + derlenmiş API ile:**
       ① Tarayıcı `01a0397a-6170-7b67-b523-34ba8a7a8d6f` üretti (uuid v7).

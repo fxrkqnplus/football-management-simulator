@@ -1,4 +1,10 @@
-import { CORRELATION_HEADER, DomainError, isCorrelationId } from '@fms/shared';
+import {
+  AppError,
+  CORRELATION_HEADER,
+  DataProviderError,
+  DomainError,
+  isCorrelationId,
+} from '@fms/shared';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
 import { apiRequest } from './api.js';
@@ -136,18 +142,30 @@ describe('apiRequest — hatalar', () => {
   it('2xx olmayan yanıt tipli hata fırlatır ve kimliği bağlama koyar', async () => {
     stubFetch({ status: 503 });
 
-    await expect(apiRequest<Health>('/health')).rejects.toThrow(DomainError);
+    // ⚠️ 2.5b'de DEĞİŞTİ. Eskiden her başarısız yanıt `DomainError`dı ve
+    // `DomainError` "kullanıcı hatası" sayıldığı için Sentry'nin `beforeSend`i
+    // her 500'ü SESSİZCE düşürürdü — belirtisi olmayan bir kayıp.
+    await expect(apiRequest<Health>('/health')).rejects.toThrow(DataProviderError);
     await expect(apiRequest<Health>('/health')).rejects.toMatchObject({
       code: 'api.requestFailed',
+      kind: 'dataProvider',
       context: { status: 503 },
     });
   });
 
-  it('ağ hatası sessizce yutulmaz — loglanır ve tipli hataya sarılır', async () => {
+  it('4xx → DomainError (kullanıcı hatası — Sentry’ye gitmez)', async () => {
+    stubFetch({ status: 409 });
+
+    await expect(apiRequest<Health>('/health')).rejects.toThrow(DomainError);
+    await expect(apiRequest<Health>('/health')).rejects.toMatchObject({ kind: 'domain' });
+  });
+
+  it('ağ hatası sessizce yutulmaz — loglanır ve YUKARI AKIŞ arızası sayılır', async () => {
     stubFetch({ reject: true });
 
     await expect(apiRequest<Health>('/health')).rejects.toMatchObject({
       code: 'api.networkError',
+      kind: 'dataProvider',
     });
     expect(errorSpy).toHaveBeenCalled();
   });
@@ -160,15 +178,15 @@ describe('apiRequest — hatalar', () => {
     vi.stubGlobal('fetch', () => Promise.reject('bağlantı yok'));
 
     const caught = await apiRequest<Health>('/health').catch((error: unknown) => error);
-    expect((caught as DomainError).cause).toBe('bağlantı yok');
+    expect((caught as AppError).cause).toBe('bağlantı yok');
   });
 
   it('hata bağlamındaki correlationId gerçek bir kimlik', async () => {
     stubFetch({ status: 500 });
 
     const caught = await apiRequest<Health>('/health').catch((error: unknown) => error);
-    expect(caught).toBeInstanceOf(DomainError);
-    const context = (caught as DomainError).context;
+    expect(caught).toBeInstanceOf(AppError);
+    const context = (caught as AppError).context;
     expect(isCorrelationId(String(context['correlationId']))).toBe(true);
   });
 });

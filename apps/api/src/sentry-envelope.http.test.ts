@@ -104,6 +104,20 @@ afterEach(async () => {
   if (isInitialized()) await close(0);
 });
 
+/**
+ * ⚠️ HER TESTTE FARKLI HATA MESAJI KULLANILMALI.
+ *
+ * `shouldReport` modül düzeyinde tek bir kısıtlayıcı tutuyor (Karar 4:
+ * "aynı parmak izi N dakikada tekrarlarsa düşürülür") ve o durum bu dosyadaki
+ * testler arasında **paylaşılıyor**. İki test aynı `type:value` çiftini
+ * kullanırsa ikincisi kısıtlamaya takılır ve "zarf gitmedi" görünür — kod
+ * doğruyken TEST kırılır (günlük #20'nin dersi: önce hangisinin yanlış
+ * olduğunu sor).
+ *
+ * Kısıtlamayı testte kapatmak DA bir seçenekti ve elendi: o zaman üretimdeki
+ * yapılandırmadan sapardık ve bu dosyanın tüm değeri "üretimle aynı" olması.
+ */
+
 /** Üretimdeki `instrument.ts` ile AYNI yapılandırma — `beforeSend` dahil. */
 function initLikeProduction(): void {
   init({
@@ -116,7 +130,7 @@ function initLikeProduction(): void {
     integrations: (defaults) =>
       defaults.filter((integration) => integration.name !== SESSION_INTEGRATION),
     beforeSend: (event: ErrorEvent, hint: EventHint): ErrorEvent | null =>
-      shouldReport(hint) ? event : null,
+      shouldReport(event, hint, Date.now()) ? event : null,
   });
 }
 
@@ -169,7 +183,7 @@ describe('DSN boşken ağa çıkılmıyor', () => {
     // test ortamının env'i geçerli olmadığı için kurulum YAPMADI.
     expect(isInitialized()).toBe(false);
 
-    captureException(new EngineError({ code: 'engine.invariant', message: 'm' }));
+    captureException(new EngineError({ code: 'engine.invariant', message: 'dsn boşken' }));
     // Gönderim asenkron olsaydı bile yakalamaya zaman tanıyoruz.
     await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -200,7 +214,7 @@ describe('kabul kriteri 1 — zarf correlationId taşıyor', () => {
 
   it('sürüm ve ortam etiketi de zarfta', async () => {
     initLikeProduction();
-    captureException(new EngineError({ code: 'a.b', message: 'm' }));
+    captureException(new EngineError({ code: 'a.b', message: 'sürüm etiketi denemesi' }));
     await close(2000);
 
     const payload = eventPayload(firstErrorEnvelope());
@@ -232,7 +246,7 @@ describe('beforeSend GERÇEKTEN kablolu — filtrelenen hata gönderilmiyor', ()
     // "zarf gitmedi" sonucu, taşımanın hiç çalışmamasından da kaynaklanabilirdi
     // (günlük #16'nın dersi).
     initLikeProduction();
-    captureException(new EngineError({ code: 'engine.invariant', message: 'm' }));
+    captureException(new EngineError({ code: 'engine.invariant', message: 'kontrol deneyi' }));
     await close(2000);
 
     expect(errorEnvelopes()).toHaveLength(1);

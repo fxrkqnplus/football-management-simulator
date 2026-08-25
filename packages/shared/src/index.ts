@@ -52,9 +52,17 @@ export {
   ERROR_KINDS,
   ForbiddenError,
   isAppError,
+  isUserFaultError,
   NotFoundError,
+  USER_FAULT_ERROR_KINDS,
   ValidationError,
 } from './errors.js';
+export type { EventThrottle } from './event-throttle.js';
+export {
+  createEventThrottle,
+  DEFAULT_THROTTLE_WINDOW_MS,
+  MAX_TRACKED_FINGERPRINTS,
+} from './event-throttle.js';
 export type { LogContextEnvelope, LogContextEnvelopeValue } from './log-context.js';
 export {
   LOG_CONTEXT_ENVELOPE_VERSION,
@@ -64,3 +72,5 @@ export {
 export type { LogContext, LogFormat, Logger, LogLevel, LogMethod, LogValue } from './logger.js';
 export { createNoopLogger, LOG_FORMATS, LOG_LEVELS, normalizeLogArgs } from './logger.js';
 export { isSensitiveKey, redactContext, REDACTED, SENSITIVE_KEY_PATTERNS } from './redact.js';
+export type { TelemetryCollectBehavior, TelemetryDataCollection } from './telemetry-policy.js';
+export { TELEMETRY_DATA_COLLECTION } from './telemetry-policy.js';
