@@ -4,7 +4,7 @@ import { basePathConfig, configureBasePath } from '@fms/shared';
 // Ortam doğrulaması SUNUCU ALT YOLUNDAN gelir: `process.env` okuyor ve şema
 // sistemdeki her sırrın adını sayıyor, bu yüzden izomorfik kök girişte durmamalı
 // (Faz 2.2a). Tarayıcı bu modülü import etmeye kalkarsa derleme kırılır.
-import { collectEnvWarnings, createServerLogger, loadEnv } from '@fms/shared/server';
+import { collectEnvWarnings, createServerLogger, getLogContext, loadEnv } from '@fms/shared/server';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module.js';
@@ -29,6 +29,11 @@ async function bootstrap(): Promise<void> {
     level: env.LOG_LEVEL,
     format: env.LOG_FORMAT,
     name: 'api',
+    // Gözlemlenebilirlik zincirinin bağlandığı TEK yer: logger her satırda
+    // AsyncLocalStorage'ı okuyor, böylece correlationId elle geçirilmiyor.
+    // Bağlantı burada kuruluyor çünkü logger ALS'i BİLMİYOR — yalnızca bir
+    // fonksiyon çağırıyor (docs/spec/09 §11.1).
+    contextProvider: getLogContext,
   });
 
   for (const warning of collectEnvWarnings(env)) {
@@ -38,7 +43,7 @@ async function bootstrap(): Promise<void> {
   configureBasePath(env.PUBLIC_BASE_PATH);
   const config = basePathConfig();
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  const app = await NestFactory.create(AppModule.forRoot(logger), { bufferLogs: false });
 
   // Tek kaynak: '/fms/api'. Elle yazılmaz, base-path'ten türetilir (K6).
   app.setGlobalPrefix(config.apiPrefix);

@@ -411,13 +411,42 @@ docs/ADR/0001-monorepo-secimi.md
       çünkü uygulama `server/` altında ve 2.2a'nın (iii) kuralı motoru oradan men ediyor. Motor iz
       (`debugTrace`) döndürür, log yazmaz — yapısal sınır bu tasarım kuralını arkadan destekler.
       **Bundle yeniden ölçümü:** 2.2a sonu tabanı ile karşılaştırılır; `pino`/`async_hooks` → 0 beklenir.
-- [ ] **2.3** `correlationId` zinciri — uuid v7 · `AsyncLocalStorage` · NestJS middleware ·
-      `X-Correlation-Id` gidiş-dönüş · tarayıcı üretimi · **taşınabilir zarf** (`serializeLogContext` /
-      `deserializeLogContext` + Zod).
+- [x] **2.3a** `correlationId` — sunucu içi zincir *(2.3 ikiye bölündü; gerekçe: bağlam sınırı ve
+      iki parçanın bağımsız doğrulanabilir olması)*
+      **Sonuç:** zincir gerçek HTTP üzerinden üç senaryoda da doğrulandı (başlıksız → üretilir,
+      geçerli → korunur, geçersiz → yenisi üretilir + `warn`). Sekiz **paralel** istek kimliklerini
+      karıştırmadı. uuid v7 bağımlılıksız yazıldı (RFC 9562, `crypto.getRandomValues`).
+      **SAPMA-014 — dairesel import:** `LOGGER` belirteci `app.module.ts`'te tanımlıydı ve middleware
+      onu oradan alıyordu; `@Inject(LOGGER)` dekoratörü modül gövdesi değerlendirilirken çalıştığı için
+      `ReferenceError: Cannot access 'LOGGER' before initialization` doğdu. **`typecheck`, `lint` ve
+      birim testleri üçü de sessiz kaldı** — yakalayan tek şey derlenmiş çıktının çalıştırılması oldu.
+      Belirteç hiçbir şey import etmeyen `common/tokens.ts`'e taşındı.
+      **`arch:check`'e yedinci kural:** `engine-forbidden-import` — motorun `@fms/shared`'dan belirli
+      **adları** almasını yasaklar (modül düzeyinde ifade edilemeyen yasak). Meta-teste ve kanaryaya eklendi.
+      **Kapsam:** uuid v7 üreteci (izomorfik, bağımlılıksız) · `AsyncLocalStorage` bağlamı
+      (`@fms/shared/server`) · NestJS middleware · `X-Correlation-Id` gidiş-dönüş · logger'ın
+      **otomatik** bağlanması (elle geçirme yok) · `arch:check`'e motor için **adlandırılmış import yasağı**.
+      **K2 sınırı:** uuid v7 **oyun rastgeleliği DEĞİL** — `SeededRng` kapsamına girmez, `Math.random()`
+      yasağı da onu ilgilendirmez; `crypto.getRandomValues` kullanır. Ama motor onu import
+      **edememeli**: yeni `arch:check` kuralı `packages/engine`'in `@fms/shared`'dan belirli adları
+      almasını yasaklar. Bu kural 2.7'de `measure` için de kullanılacak (Karar 6).
+      **Geçersiz başlık kararı:** gelen `X-Correlation-Id` **dış girdidir**, Zod ile doğrulanır.
+      Geçersizse istek **reddedilmez** — sunucu kendi id'sini üretir ve durumu `warn` seviyesinde,
+      gelen değeri **kısaltarak** loglar. Gerekçe: bozuk bir izleme başlığı kullanıcının işlemini
+      düşürmemeli; ama sınırsız/biçimsiz bir değer de log satırına ham girmemeli.
+      **Negatif testler:** (a) başlıksız istek → sunucu üretir · (b) geçersiz başlık → yeni üretilir,
+      uyarı basılır · (c) **eşzamanlılık** — iki paralel istek, ALS bağlamları karışmıyor (seri test
+      bunu yakalamaz) · (d) motora uuid importu → `arch:check` kırar.
+- [ ] **2.3b** `correlationId` — süreç ve tarayıcı sınırı
+      **Kapsam:** taşınabilir zarf (`serializeLogContext` / `deserializeLogContext` + Zod) ·
+      **gerçek alt süreç** testi · tarayıcı tarafı üretimi (`apps/web/src/lib/api.ts`) · paket ölçümü.
       **Karar 2:** sahte kuyruk KULLANILMAZ — aynı süreçte ALS zaten sızar, test "geçer" ve hiçbir şey
       kanıtlanmaz. Zincir **gerçek süreç sınırı** üzerinden test edilir: alt süreç başlatılır, zarf argümanla
       geçilir, çocuk kendi ALS'ini zarftan kurar, `correlationId` eşleşmesi doğrulanır. BullMQ'ya özgü
       kablolama `[ ]` kalır → **BORÇ-004**, Faz 16.
+      **Paket:** tarayıcı logger'ı 2.2b'de yazıldı ama hiçbir yerden import edilmiyordu, bu yüzden ağaç
+      sarsmayla paketten çıkıyordu. `api.ts` onu kullanınca paket **büyüyecek** — taban **229.320 bayt**,
+      artış soğuk derlemeyle ölçülüp gerekçesi yazılır.
 - [ ] **2.4** NestJS global exception filter — hata sınıfı → HTTP durumu + Türkçe gövde + `correlationId`.
       Bilinmeyen hata → 500, ayrıntı **yalnızca** logda. **Negatif test:** `Error` olmayan fırlatma
       (`throw 'metin'`) da yakalanmalı.

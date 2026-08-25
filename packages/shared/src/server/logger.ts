@@ -35,6 +35,20 @@ export interface ServerLoggerOptions {
   readonly name?: string;
   /** Her satıra eklenecek sabit alanlar (`service`, `version`…). */
   readonly base?: LogContext;
+  /**
+   * Her satırda YENİDEN okunan dinamik bağlam — `docs/spec/09` §11.1'in
+   * "tüm loglar otomatik taşır" şartı.
+   *
+   * `base`'den farkı zamanlama: `base` logger kurulurken bir kez donar,
+   * bu ise **her çağrıda** okunur. `correlationId` istek başına değişiyor,
+   * yani donmuş bir alan onu taşıyamaz.
+   *
+   * Bağımlılık yönü bilerek böyle: logger `AsyncLocalStorage`'ı **bilmiyor**,
+   * yalnızca bir fonksiyon çağırıyor. Bağlantıyı `apps/api` kuruyor
+   * (`contextProvider: getLogContext`). Böylece logger ALS'siz de test
+   * edilebiliyor ve iki modül birbirine kilitlenmiyor.
+   */
+  readonly contextProvider?: () => LogContext;
 }
 
 /** `AppError` gibi kendi serileştirmesini taşıyan hatalar. */
@@ -70,13 +84,25 @@ function prepare(context: LogContext): Record<string, unknown> {
   return output;
 }
 
+/** Boş bağlam döner — sağlayıcı verilmediğinde kullanılır. */
+const NO_AMBIENT: () => LogContext = () => ({});
+
 /** pino örneğini `Logger` arayüzüne sarar. */
-function wrap(instance: PinoLogger, level: LogLevel): Logger {
+function wrap(
+  instance: PinoLogger,
+  level: LogLevel,
+  ambient: () => LogContext = NO_AMBIENT,
+): Logger {
   const method =
     (fn: (obj: Record<string, unknown>, msg: string) => void) =>
     (first: LogContext | string, second?: string): void => {
       const { context, message } = normalizeLogArgs(first, second);
-      fn(prepare(context), message);
+      // Ortam bağlamı ÖNCE, çağrının kendi alanları SONRA: bir çağrı
+      // `correlationId`'yi bilerek ezmek isterse ezebilsin. Kaza ihtimali
+      // düşük (alan adı çakışması gerekir), ezme yeteneği ise gerçek bir
+      // ihtiyaç — örn. bir tur işlenirken üst zincirin id'si yerine tur
+      // kendi kimliğini yazmak isteyebilir.
+      fn(prepare({ ...ambient(), ...context }), message);
     };
 
   return {
@@ -99,7 +125,8 @@ function wrap(instance: PinoLogger, level: LogLevel): Logger {
     trace: method((o, m) => {
       instance.trace(o, m);
     }),
-    child: (bindings: LogContext): Logger => wrap(instance.child(prepare(bindings)), level),
+    child: (bindings: LogContext): Logger =>
+      wrap(instance.child(prepare(bindings)), level, ambient),
   };
 }
 
@@ -132,5 +159,5 @@ export function createServerLogger(
   };
 
   const instance = destination === undefined ? pino(pinoOptions) : pino(pinoOptions, destination);
-  return wrap(instance, options.level);
+  return wrap(instance, options.level, options.contextProvider ?? NO_AMBIENT);
 }

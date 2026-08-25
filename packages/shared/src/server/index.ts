@@ -30,6 +30,7 @@
  * türetmesi, `Logger` **arayüzü** (uygulaması değil), `DebugTrace` — bunlar
  * kök girişte (`@fms/shared`) kalır ve motorla tarayıcı ikisi de kullanır.
  */
+export { addLogContext, getLogContext, runWithLogContext } from './context.js';
 export type { Env, EnvIssue, EnvWarning } from './env.js';
 export {
   checkDatabaseUrlConsistency,

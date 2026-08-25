@@ -29,6 +29,13 @@ export {
   normalizeBasePath,
   resetBasePathForTests,
 } from './base-path.js';
+export {
+  CORRELATION_HEADER,
+  createCorrelationId,
+  isAcceptableCorrelationId,
+  isCorrelationId,
+  truncateForLog,
+} from './correlation.js';
 export type {
   AppErrorOptions,
   ErrorContext,

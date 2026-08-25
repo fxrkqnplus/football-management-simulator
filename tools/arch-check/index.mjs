@@ -115,6 +115,23 @@ export const APP_PATH_PREFIXES = ['/api', '/assets', '/login', '/logout', '/regi
 export const ASSET_EXTENSIONS = ['.html', '.json', '.css'];
 
 /**
+ * MOTORUN ALAMAYACAĞI ADLANDIRILMIŞ DIŞA AKTARIMLAR (Faz 2.3a).
+ *
+ * `@fms/shared` motora açık ama içindeki her sembol açık değil. Bu liste
+ * MODÜL düzeyinde ifade edilemeyen yasakları taşır:
+ *   • `createCorrelationId` — kimlik üretmek zaman + entropi okumaktır (K3).
+ *     Kimlik oyun rastgeleliği DEĞİL (K2 kapsamı dışı) ama motorun işi de
+ *     değil: motor iz döndürür, kimliği çağıran taraf ilişkilendirir.
+ * Faz 2.7'de `measure` de buraya girecek (Karar 6): motor kendini ölçmez,
+ * ölçüm motoru DIŞARIDAN sarmalar.
+ */
+export const ENGINE_FORBIDDEN_SHARED_EXPORTS = {
+  createCorrelationId:
+    'Kimlik üretmek zaman ve entropi okumaktır (K3). Motor iz (debugTrace) döndürür; ' +
+    'correlationId ilişkilendirmesini çağıran taraf yapar.',
+};
+
+/**
  * arch:check'in BAKTIĞI uzantılar.
  *
  * Sabit olarak dışa aktarılıyor çünkü meta-test onu doğruluyor: 2.1'de bu
@@ -232,7 +249,17 @@ export function scanSource(text, fileName) {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
       const spec = node.moduleSpecifier;
       if (spec !== undefined && ts.isStringLiteral(spec)) {
-        imports.push({ spec: spec.text, line: lineOf(spec) });
+        // Adlandırılmış bağlamalar da toplanıyor (Faz 2.3a). Gerekçe: bazı
+        // yasaklar MODÜL değil SEMBOL düzeyinde. `@fms/shared` motora açık,
+        // ama içindeki `createCorrelationId` açık değil — kimlik üretmek zaman
+        // ve entropi okumak demek (K3). Modül belirteci bunu ayırt edemez.
+        const named = [];
+        const clause = ts.isImportDeclaration(node) ? node.importClause : undefined;
+        const bindings = clause?.namedBindings;
+        if (bindings !== undefined && ts.isNamedImports(bindings)) {
+          for (const element of bindings.elements) named.push(element.name.getText(sf));
+        }
+        imports.push({ spec: spec.text, line: lineOf(spec), named });
       }
     } else if (
       ts.isCallExpression(node) &&
@@ -240,7 +267,7 @@ export function scanSource(text, fileName) {
       node.arguments.length > 0 &&
       ts.isStringLiteral(node.arguments[0])
     ) {
-      imports.push({ spec: node.arguments[0].text, line: lineOf(node.arguments[0]) });
+      imports.push({ spec: node.arguments[0].text, line: lineOf(node.arguments[0]), named: [] });
     } else if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
       calls.push({ text: node.expression.getText(sf), line: lineOf(node) });
     } else if (ts.isNewExpression(node) && node.expression.getText(sf) === 'Date') {
@@ -424,7 +451,7 @@ export function runArchCheck(root) {
       const { imports, calls, newDates, moduleMutables } = scanSource(text, abs);
       const isEngine = layer === 'packages/engine';
 
-      for (const { spec, line } of imports) {
+      for (const { spec, line, named } of imports) {
         if (spec.startsWith('@fms/') && layer !== null) {
           const selfPkg = `@fms/${layer.split('/')[1]}`;
           const isSelfImport = basePackageOf(spec) === selfPkg;
@@ -453,6 +480,21 @@ export function runArchCheck(root) {
                 `'${layer}' katmanı '${spec}' alt yolunu import edemez. ${restriction} ` +
                 `İzomorfik olan her şey kök girişte ('${basePackageOf(spec)}') durur.`,
             });
+          }
+
+          // ⑦ Motorun alamayacağı adlandırılmış dışa aktarımlar (2.3a)
+          if (isEngine) {
+            for (const name of named) {
+              const reason = ENGINE_FORBIDDEN_SHARED_EXPORTS[name];
+              if (reason !== undefined) {
+                violations.push({
+                  file: rel,
+                  line,
+                  rule: 'engine-forbidden-import',
+                  message: `Motor '${spec}' paketinden '${name}' alamaz (K3). ${reason}`,
+                });
+              }
+            }
           }
 
           // ⑥ Bildirilmiş bağımlılık (2.2a) — "izinli" ile "çözümlenebilir" ayrı şeyler.

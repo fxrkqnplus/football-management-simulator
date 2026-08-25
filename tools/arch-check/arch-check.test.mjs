@@ -10,6 +10,7 @@ import {
   checkImportCasing,
   ENGINE_FORBIDDEN_CALLS,
   ENGINE_FORBIDDEN_MODULE_PREFIXES,
+  ENGINE_FORBIDDEN_SHARED_EXPORTS,
   isDependencyDeclared,
   isForbiddenEngineModule,
   isImportAllowed,
@@ -331,6 +332,12 @@ describe('META: arch:check kural tabloları boşalmadı', () => {
     );
   });
 
+  it('motorun alamayacağı adlandırılmış dışa aktarım listesi boşalmadı (2.3a)', () => {
+    // Bu liste MODÜL düzeyinde ifade edilemeyen yasakları taşıyor; boşalırsa
+    // motor kimlik üretmeye başlar ve hiçbir kapı ötmez.
+    expect(Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS)).toContain('createCorrelationId');
+  });
+
   it('sunucu alt yolu ÜÇ katmana birden kapalı — biri düşerse sınır delinir', () => {
     const rule = RESTRICTED_SUBPATHS['@fms/shared/server'];
     expect(rule).toBeDefined();
@@ -376,6 +383,12 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
       "import { y } from '@fms/shared';\nexport const d = y;\n",
     );
 
+    // Kural 6 — motorun alamayacağı adlandırılmış dışa aktarım (2.3a).
+    write(
+      'packages/engine/src/forbidden-name.ts',
+      "import { createCorrelationId } from '@fms/shared';\nexport const e = createCorrelationId;\n",
+    );
+
     // Kural 5 — varlıkta mutlak yol.
     write('apps/api/package.json', JSON.stringify({ dependencies: {} }));
     write('apps/api/src/manifest.json', '{ "start_url": "/fms/" }\n');
@@ -385,7 +398,7 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('beş kuralın hepsi ihlal bildiriyor', () => {
+  it('altı kuralın hepsi ihlal bildiriyor', () => {
     const rules = runArchCheck(root).map((v) => v.rule);
     for (const rule of [
       'layer-direction',
@@ -393,6 +406,7 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
       'restricted-subpath',
       'undeclared-dependency',
       'asset-absolute-path',
+      'engine-forbidden-import',
     ]) {
       expect(rules).toContain(rule);
     }
