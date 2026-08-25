@@ -213,6 +213,54 @@ Tekrar eden kural, iki yerden birinde gevşetilince sessizce ölür.
 - Katman bağımlılık yönü ihlali (CLAUDE.md §2.4) → HATA
 - Göreli import yolunun diskteki dosya adıyla harf uyuşmazlığı → HATA
 - `.html`/`.json`/`.css` kaynak varlıklarında mutlak uygulama yolu → HATA
+- `packages/engine`'in `@fms/shared`'dan alamayacağı **adlandırılmış dışa aktarımlar** → HATA
+  (`ENGINE_FORBIDDEN_SHARED_EXPORTS`; modül düzeyinde ifade edilemeyen sembol yasakları)
+- Bir dosya `@fms/X` import ediyorsa o paketin `package.json`'ında **bildirilmiş** olmalı → HATA
+- Kısıtlı alt yol (`@fms/shared/server`) yasak katmanda kullanılıyorsa → HATA
+
+### ⚠️ "Test öncesi `pnpm build`" YETMEZ — BUILD ET **VE ÇALIŞTIR** (SAPMA-014)
+
+Faz 1 hata #7 şu kuralı doğurmuştu: *test öncesi `pnpm build`, çünkü bayat
+`dist` yeşil yalanı üretir.* Faz 2.3a'da bu kuralın **eksik** olduğu ölçüldü.
+
+**Ölçüm.** `apps/api`'de bir DI belirteci (`LOGGER`) `app.module.ts`'te
+tanımlıydı; `correlation.middleware.ts` onu oradan alıyordu ve `app.module.ts`
+de middleware'i import ediyordu — **dairesel bağımlılık**. Sonuç:
+
+```
+ReferenceError: Cannot access 'LOGGER' before initialization
+    at __param(0, Inject(LOGGER))
+```
+
+| Kapı | Sonuç |
+|---|---|
+| `pnpm typecheck` | ✅ **geçti** — döngü tip düzeyinde tamamen geçerli |
+| `pnpm lint` | ✅ **geçti** |
+| `pnpm test` (19 birim testi) | ✅ **geçti** |
+| `pnpm build` | ✅ **geçti** — derleme dairesel importtan şikâyet etmez |
+| **Derlenmiş çıktıyı çalıştırmak** | ❌ **açılışta patladı** |
+
+**Neden birim testleri göremedi:** Vitest modül grafiğini kendi çözümleyicisiyle
+ve üretimden **farklı sırayla** yükler. Aynı döngü test ortamında çözülebilir
+kalırken Node'un ESM yükleyicisinde çözülemez hale gelir. Yani birim testinin
+yeşil olması, modülün üretimde yüklenebileceğini **kanıtlamaz**.
+
+**Dekoratörler bu sınıfı ağırlaştırıyor:** `@Inject(TOKEN)` modül gövdesi
+değerlendirilirken çalışır. Sıradan bir fonksiyon içindeki döngüsel referans
+"sonra çözülür" lüksüne sahiptir; dekoratör argümanı sahip değildir.
+
+**KURAL — DI veya modül grafiği değişen her alt görevde:**
+
+1. `pnpm build`
+2. Derlenmiş çıktı **gerçekten çalıştırılır** (`node dist/main.js` veya konteyner)
+3. Açılış logunun beklenen satırları bastığı görülür
+
+Bu üç adım `apps/api`, `apps/worker` ve DI/dekoratör kullanan her yeni modül
+için geçerlidir. "Testler yeşil" bu adımın yerine geçmez.
+
+**Tekrar önleme:** DI belirteçleri **hiçbir şey import etmeyen** ayrı bir
+modülde toplanır (`apps/api/src/common/tokens.ts`). Belirteç dosyası
+bağımlılıksız olduğu sürece bu döngü sınıfı doğamaz.
 
 ## 11.5b Paket Sınırı Denetimi — hangi savunma gerçekten çalışıyor
 

@@ -21,57 +21,118 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3a bitti, 2.3b bekliyor** |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3a bitti, SIRADA 2.3b** |
 | **Son tamamlanan** | ✅ **2.3a** `correlationId` sunucu içi zinciri (uuid v7 · ALS · middleware · gidiş-dönüş) |
 | **Tarih** | 2026-08-25 |
 | **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 6/13 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(memory): 2.3a CI sonucunu işle ve test sayısını düzelt` (2.3a işi `feat(api): correlationId zinciri…` commit'inde) |
-| **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | ✅ koşu `32854771148` — **dört işin dördü de yeşil**. ARM64 rakamları yerelle birebir aynı: 92,51 / 89,7 / 95 / 92,53 · 271 test. |
+| **Son commit** | `docs(spec): SAPMA-014 kuralını §11.5'e yaz ve devir teslimi tamamla` |
+| **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
+| **CI** | ✅ koşu `32854771148` — dört işin dördü de yeşil. ARM64 rakamları yerelle birebir aynı. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
-| **test** | ✅ **271 test / 17 dosya** (229 → 271) |
+| **test** | ✅ **271 test / 17 dosya** |
 | **kapsam** | ✅ satır **%92,53** · ifade %92,51 · dal %89,7 · fonksiyon **%95** — eşik %70 |
-| **Web paketi** | **229.320 bayt** — değişmedi (tarayıcı tarafı 2.3b'de bağlanacak) |
+| **Web paketi** | **229.320 bayt** (ham) — 2.2a'dan beri değişmedi |
+| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | 2 — BORÇ-001, BORÇ-002 (Faz 16) |
+| **Teknik borç sayısı** | **2** — BORÇ-001, BORÇ-002 (ikisi de Faz 16) |
+| **SAPMA sayısı** | 14 (SAPMA-001…014) |
 
-**2.3a'da kurulan zincir — `docs/spec/09` §11.1'in sunucu yarısı:**
-İstek gelir → `CorrelationMiddleware` başlığı doğrular (dış girdi) → geçerliyse
-kullanır, değilse üretir → yanıt başlığına yazar → `runWithLogContext` ile
-`AsyncLocalStorage` bağlamı açar → **bundan sonra her log satırı kimliği
-otomatik taşır** (`contextProvider: getLogContext`, `main.ts`'te bağlanıyor).
-Elle geçirme yok.
+---
 
-**Gerçek HTTP ile doğrulandı (üç senaryo + eşzamanlılık):**
-- Başlıksız → sunucu üretti (`01a03922-80c8-7e72-…`)
-- Geçerli başlık → aynen döndü (v4 de kabul ediliyor — zinciri başka bir taraf
-  başlatmış olabilir)
-- Geçersiz başlık → yeni üretildi + `{"code":"correlation.invalidHeader",
-  "received":"bozuk-deger",…}` uyarısı basıldı. **İstek reddedilmedi.**
-- **8 paralel istek** → sekizi de kendi kimliğini geri aldı, karışma yok.
+### 🔑 BU OTURUMDA ÖĞRENİLEN AMA HİÇBİR DOSYADA YAZILI OLMAYAN ŞEYLER
 
-**⚠️ 2.3b'ye girerken bilinmesi gereken:**
-1. **SAPMA-014 dersi:** `typecheck` + `lint` + birim testleri dairesel importu
-   göremedi; yalnızca **derlenmiş çıktıyı çalıştırmak** yakaladı. 2.3b'de de
-   `pnpm build` sonrası API'yi gerçekten koştur.
-   DI belirteçleri `apps/api/src/common/tokens.ts`'e konur, o dosya **hiçbir şey
-   import etmez**.
-2. Tarayıcı logger'ı hâlâ hiçbir yerden import edilmiyor → paket 229.320'de sabit.
-   2.3b'de `apps/web/src/lib/api.ts` onu kullanınca **büyüyecek**; soğuk
-   derlemeyle ölç, artışı gerekçelendir.
-3. `arch:check`'te artık **yedi kural** var; yenisi `engine-forbidden-import`
-   (`ENGINE_FORBIDDEN_SHARED_EXPORTS`). 2.7'de `measure` de oraya girecek.
-4. ALS **süreç içinde** taşır. Süreç sınırı (kuyruk, alt süreç) için taşınabilir
-   zarf gerekiyor — 2.3b'nin asıl işi bu.
+> Soru bilerek soruldu: sohbette kalan her karar kayba gider. Aşağıdakiler
+> koda veya belgeye girmemişti; buraya yazıldılar.
 
-**Sıradaki oturumda ilk yapılacak — 2.3b:**
-1. `docs/ROADMAP.md` → madde **2.3b** (taşınabilir zarf · alt süreç testi ·
-   tarayıcı üretimi · paket ölçümü)
-2. Kapılar (build önce, **soğuk**): `build` → `typecheck` → `lint` →
-   `test:coverage` → `arch:check` → `format:check`
-3. Hataları **🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ**'ne anında yaz (24 satır birikti)
-4. **Karar 2:** sahte kuyruk KULLANILMAZ — gerçek alt süreç sınırı
+**① Gzip rakamları iki kaynaktan gelirse KARŞILAŞTIRILAMAZ.**
+Vite kendi çıktısında gzip boyutu bildiriyor (2.2a'da 73,77 kB), ben ayrıca
+Node'un `zlib.gzipSync`'iyle ölçtüm (71,24 kB). **Aynı paketin iki farklı
+rakamı** — sıkıştırma seviyeleri farklı. Faz 1 kaydındaki "73,42 kB gzip"
+Vite'ın rakamı.
+**Kural: paket karşılaştırması HAM BAYT üzerinden yapılır** (229.320).
+Gzip yalnızca aynı kaynaktan alınmışsa karşılaştırılabilir.
+
+**② Soğuk derleme nasıl zorlanır.**
+`pnpm build` tek başına `>>> FULL TURBO` diyip önbellekten dönebilir.
+Gerçek soğuk derleme için önce `rm -rf .turbo/cache`. SAPMA-011 gereği
+`dist` üzerinde yapılan HER ölçüm bunu gerektiriyor.
+
+**③ Windows'ta 3001 portunu boşaltma.**
+Duman testleri sırasında sunucu süreci arkada kalıyor ve sonraki koşu
+`EADDRINUSE` alıyor. Kullanılan komut:
+```
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"
+```
+2.3b'de yine gerekecek (tarayıcı↔sunucu gidiş-dönüş kanıtı için).
+
+**④ `undeclared-dependency` kuralının kapsamı DAR ve öyle kalmalı.**
+Kural yalnızca `@fms/*` belirteçlerini denetliyor. Tüm paketlere
+genişletilirse **her test dosyası ihlal verir**: `vitest` hiçbir workspace
+paketinin `package.json`'ında bildirilmemiş, yine de çalışıyor — Vitest
+kendi çözümleyicisini kullanıyor, `tsc` ise kök `node_modules`'a kadar
+yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
+
+**⑤ Faz 2 kabul kriterlerinin GERÇEK durumu** (2.9'da abartılmasın diye):
+
+| # | Kriter | Durum |
+|---|---|---|
+| 1 | Kasıtlı hata → Sentry'de `correlationId` ile görünüyor | ⬜ 2.5 |
+| 2 | Aynı `correlationId` ile frontend/backend logları eşleşiyor | 🟨 **YARIM** — sunucu yarısı 2.3a'da bitti ve gerçek HTTP ile kanıtlandı; tarayıcı yarısı 2.3b'de |
+| 3 | Debug paneli açılıyor + canlı log akışı | ⬜ 2.8 |
+| 4 | `assertInvariant` dev'de fırlatıyor, prod'da loglayıp devam ediyor | ⬜ 2.7 |
+| 5 | Performans sarmalayıcısı bütçe aşımında uyarı basıyor | ⬜ 2.7 |
+
+**⑥ `.env`'de `ACTIVE_PACK` boş** — bu yüzden API her açılışta
+`env.activePackMissing` uyarısı basıyor. **Hata değil, beklenen davranış**
+(veri paketleri Faz 7-9). Yeni oturum bunu regresyon sanmasın.
+
+---
+
+### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.3b
+
+**Kapsam:** taşınabilir zarf · gerçek alt süreç testi · tarayıcı üretimi · paket ölçümü.
+
+**1. Üretilecek/değişecek dosyalar (tahmin):**
+- `packages/shared/src/log-context.ts` [YENİ] — `serializeLogContext` /
+  `deserializeLogContext` + Zod şeması. **İzomorfik** (kök giriş): zarfı hem
+  sunucu hem tarayıcı üretebilmeli.
+- `packages/shared/src/log-context.test.ts` [YENİ]
+- `apps/web/src/lib/api.ts` [YENİ] — `fetch` sarmalayıcısı; kimlik üretir,
+  `X-Correlation-Id` başlığına koyar, tarayıcı logger'ını **ilk kez** kullanır.
+- `apps/web/src/lib/api.test.ts` [YENİ]
+- Alt süreç testi için küçük bir çocuk betiği (konumu 2.3b'de kararlaştırılır).
+
+**2. Karar 2 — SAHTE KUYRUK KULLANILMAZ, gerekçesi:**
+Sahte kuyruk aynı süreçte kalır. `AsyncLocalStorage` zaten süreç içinde
+taşıdığı için zincir "çalışıyor" görünür — **oysa taşınan şey zarf değil,
+ALS'in kendisidir.** Test yeşil olur ve hiçbir şey kanıtlanmaz. Zarfın işe
+yaradığı ancak **gerçek bir süreç sınırında** görülür: alt süreç başlatılır,
+zarf argümanla geçilir, çocuk kendi ALS'ini **zarftan** kurar,
+`correlationId` eşleşmesi doğrulanır.
+BullMQ'ya özgü kablolama `[ ]` kalır → **BORÇ-004**, Faz 16'da açılacak.
+
+**3. Zorunlu negatif testler:**
+- Zarf **bozuk JSON** ile gelirse → Zod reddeder, çocuk kendi kimliğini üretir
+- Zarf **eksik alanla** gelirse → aynı davranış
+- Zarftaki **hassas alan** → `redactContext` ile temizlenmiş mi (zarf loga da gidiyor)
+- Tarayıcı: `fetch` başlığı **gerçekten gönderiyor mu** (yanıt başlığıyla eşleşme)
+- Alt süreç: çocuğun ürettiği log satırında **ebeveynin** `correlationId`'si var mı
+
+**4. Paket ölçümü — ARTIŞ BEKLENİYOR:**
+Taban **229.320 ham bayt**. Tarayıcı logger'ı 2.2b'de yazıldı ama hiçbir
+yerden import edilmediği için ağaç sarsmayla paketten çıkıyordu. `api.ts`
+onu kullanınca **büyüyecek** — bu beklenen. Ölçüm **soğuk** derlemeyle
+(`rm -rf .turbo/cache`), karşılaştırma **ham bayt** üzerinden (yukarıda ①).
+Artış makul değilse (örn. > ~5 kB) sebebi bulunur.
+
+**5. Kapılar (bu sırayla):**
+`rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
+→ `arch:check` → `format:check`
+**Ve SAPMA-014 gereği:** DI/modül grafiği değişirse derlenmiş çıktı
+**gerçekten çalıştırılır** (`spec/09` §11.5).
+
+**6. Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **25 satır**.
 
 **✅ 1.8'DEN TAŞINAN RİSK KAPANDI (2.2a + 2.2b).**
 `@fms/shared` barrel'ı sunucu modüllerini tarayıcı paketine taşıyordu ve Faz 1'de
@@ -250,6 +311,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | 6 | 2.0b | Lint 17 yanlış pozitif: `no-hardcoded-path` `.test.tsx`'te tetikleniyor | ESLint muafiyet listesi `**/*.test.ts` ve `**/*.test.mjs` diyor, `.tsx` demiyor — SAPMA-007'nin **beşinci** örneği | Liste `.tsx`/`.mts`/`.cts` ile tamamlandı | Muafiyet bloğuna gerekçeli uyarı yorumu |
 | 7 | 2.0b | **Kendi çıkardığım regresyon:** yedi paketin testleri `dist/`e sızdı | `tsconfig.build.json` `exclude` desenini `{ts,tsx,mts,cts}` yaptım; TypeScript glob dili **süslü parantezi desteklemiyor**, desen hiçbir şeyle eşleşmiyor. `typecheck`, `lint`, `test` üçü de sessiz kaldı | Uzantılar tek tek yazıldı | SAPMA-009, `spec/09` §11.4'e "iki glob lehçesi" bölümü + `find dist -name '*.test.*'` doğrulaması. **Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") ikinci kez kurtardı** |
 | 8 | 2.0b | Motor ortam testinde `navigator` kontrolü yanlış olacaktı | Node 21'den beri `navigator` **Node'da da global** (Node 24.19.0'da `typeof navigator === 'object'`) — DOM göstergesi değil | Kontrol yalnızca `document` ve `window`'a indirildi | Testin içine gerekçe yorumu; yazmadan önce ölçüldü |
+| 26 | 2.2a/b | **Kıl payı yanlış iddia:** aynı paket için iki farklı gzip rakamı elimde vardı — Vite 73,77 kB, Node `zlib.gzipSync` 71,24 kB | İki araç farklı sıkıştırma seviyesi kullanıyor. Faz 1 kaydındaki "73,42 kB" Vite'ın rakamı; benimkiyle karşılaştırılsaydı sahte bir "paket küçüldü" sonucu çıkardı | Karşılaştırmalar HAM BAYT üzerinden yapıldı (229.320), gzip kayda girmedi | **Kural: ölçüm kaynağı değişmişse rakam karşılaştırılamaz.** Yanlış iddia landing etmedi ama edebilirdi |
 | 25 | 2.3a | **Bayat ölçüm:** ANLIK DURUMa test sayısını 270 yazdım, CI 271 dedi | Rakamı meta-teste yeni kuralı EKLEMEDEN önce ölçmüştüm; sonraki değişiklik sayıyı bir artırdı | 271 olarak düzeltildi | `spec/11` §12.5 zaten diyor ki §7 rakamları kapanışta YENİDEN ölçülür — aynı kural alt görev ölçümleri için de geçerli: **son değişiklikten sonra ölç** |
 | 24 | 2.3a | Meta-teste yeni kuralı eklerken kanarya dosyası **ayrıştırılamadı** | Node betiğinden yazarken `\n` kaçışı gerçek satır sonuna dönüştü ve dizgi literali kırıldı | Dosya doğrudan düzenlendi | Çok katmanlı kaçış (kabuk → node → dosya) gereken yerde doğrudan düzenleme tercih edilir |
 | 23 | 2.3a | Nest modülünü `Reflect.defineMetadata` + statik değiştirilebilir alanla kurmaya çalıştım | Nest'in `forRoot()` dinamik modül deseni zaten bunun için var; elle metadata yazmak çerçeveyle kavga | `DynamicModule` döndüren `forRoot(logger)` | İlk çözüm çalışıyordu ama çirkindi; çerçevenin kendi desenine dönmek hem kısa hem test edilebilir oldu |
