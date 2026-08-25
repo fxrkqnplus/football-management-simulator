@@ -21,33 +21,32 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3b bitti, SIRADA 2.4** |
-| **Son tamamlanan** | ✅ **2.3b** taşınabilir zarf (bölünmüş) · gerçek alt süreç testi · tarayıcı üretimi (`api.ts`) · paket ölçümü |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3c bitti, SIRADA 2.4** |
+| **Son tamamlanan** | ✅ **2.3c** istek loglaması — zincirin dördüncü halkası (G-08 kapandı) |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 7/13 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b) |
-| **Bloke eden var mı?** | Hayır — ama **bir karar bekliyor**: G-08 (istek başına sunucu logu). Bkz. aşağıdaki uyarı. |
-| **Son commit** | `feat(shared,web): taşınabilir log zarfı, alt süreç sınırı ve tarayıcı correlationId üretimi` |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 8/14 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b, 2.3c) |
+| **Bloke eden var mı?** | Hayır |
+| **Son commit** | `feat(api): istek başına log satırı — zincirin dördüncü halkası` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ⏳ 2.3b koşusu **henüz işlenmedi** — push edildi, sonuç bir sonraki oturumda ANLIK DURUM'a yazılacak. Önceki yeşil koşu: `32854771148`. |
+| **CI** | ✅ 2.3b koşusu `32862778557` — dört işin dördü yeşil, ARM64/amd64 rakamları yerelle **birebir** aynı (308 test, %93,5, paket hash'i `index-Bbvu0kTr.js` özdeş). ⏳ 2.3c koşusu henüz işlenmedi. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle, `rm -rf .turbo/cache` sonrası) |
-| **test** | ✅ **308 test / 22 dosya** (2.3b: +37 test, +4 dosya) |
-| **kapsam** | ✅ satır **%93,50** · ifade %93,47 · dal %90,38 · fonksiyon **%95,18** — eşik %70 |
-| **Web paketi** | **232.413 bayt** (ham) — taban 229.320'den **+3.093 (%1,35)**. Sebep ölçüldü, aşağıda. |
+| **test** | ✅ **326 test / 23 dosya** (2.3c: +18 test, +1 dosya) |
+| **kapsam** | ✅ satır **%93,85** · ifade %93,85 · dal %90,74 · fonksiyon **%95,45** — eşik %70 |
+| **Web paketi** | **232.413 bayt** (ham) — 2.3c sunucu tarafı, paket **değişmedi** (içerik hash'i bile aynı: `index-Bbvu0kTr.js`) |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 |
 | **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | **3** — BORÇ-001, BORÇ-002, **BORÇ-004** (üçü de Faz 16) |
-| **SAPMA sayısı** | 14 (SAPMA-001…014) — 2.3b yeni SAPMA açmadı; iki karar ROADMAP 2.3b'ye yazıldı (Karar 9, Karar 10) |
+| **SAPMA sayısı** | **15** (SAPMA-001…015) — **SAPMA-015** 2.3c'de geriye dönük açıldı (2.3a'nın kayıtsız Zod sapması) |
 
-> ⚠️ **2.3b BİR KARAR BIRAKTI — 2.4'e girmeden çözülmeli.**
-> Faz 2'nin **2. kabul kriteri** (`frontend ve backend logları eşleşiyor`) `[ ]` kaldı.
-> Sebep tahmin değil ölçüm: gerçek tarayıcıda kimlik üretildi, `console`a loglandı,
-> `X-Correlation-Id` ile gönderildi, sunucu **aynı kimliği yanıt başlığında geri verdi**
-> (ekranda "zincir kapandı: evet") — ama `grep` ile o kimlik sunucu logunda **0** kez
-> bulundu, çünkü **sunucu mutlu yolda hiçbir şey loglamıyor.** ALS→logger kablolaması
-> sağlam (geçersiz başlıkta middleware'in `warn` satırı kimliği taşıyor).
-> Eksik olan tek şey **istek başına bir log satırı** → **G-08** (`docs/SPEC-COVERAGE-GAPS.md`).
-> ROADMAP'in hiçbir alt görevi bunu üretmiyor. 2.3b kapsamına tek taraflı **eklenmedi** (K11/K12).
-> **Karar:** 2.4'e madde olarak mı girsin, yoksa ayrı bir 2.3c mi açılsın?
+> ✅ **FAZ 2'NİN 2. KABUL KRİTERİ KAPANDI (2.3c).**
+> Dört halka gerçek tarayıcı + derlenmiş API ile kanıtlandı: tarayıcı
+> `01a0397a-6170-…` üretti → konsolunda **iki satırda** logladı → `X-Correlation-Id`
+> ile gönderdi, sunucu **aynı kimliği geri verdi** (`zincir kapandı = evet`) →
+> **sunucu logunda aynı kimlikle `http.request` satırı** (304, 0,8 ms).
+> 2.3b'de üç halka vardı, dördüncüsü yoktu.
+>
+> **Faz 2 kabul kriterleri — güncel durum:** 1 ⬜ (2.5) · **2 ✅** · 3 ⬜ (2.8) ·
+> 4 ⬜ (2.7) · 5 ⬜ (2.7). Beşte biri kapandı.
 
 ---
 
@@ -89,7 +88,7 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 | # | Kriter | Durum |
 |---|---|---|
 | 1 | Kasıtlı hata → Sentry'de `correlationId` ile görünüyor | ⬜ 2.5 |
-| 2 | Aynı `correlationId` ile frontend/backend logları eşleşiyor | 🟨 **YARIM** — sunucu yarısı 2.3a'da bitti ve gerçek HTTP ile kanıtlandı; tarayıcı yarısı 2.3b'de |
+| 2 | Aynı `correlationId` ile frontend/backend logları eşleşiyor | ✅ **KAPANDI — 2.3c.** Dört halka: sunucu içi zincir 2.3a · tarayıcı üretimi 2.3b · **sunucu log satırı 2.3c**. Gerçek tarayıcı + derlenmiş API ile kanıtlandı |
 | 3 | Debug paneli açılıyor + canlı log akışı | ⬜ 2.8 |
 | 4 | `assertInvariant` dev'de fırlatıyor, prod'da loglayıp devam ediyor | ⬜ 2.7 |
 | 5 | Performans sarmalayıcısı bütçe aşımında uyarı basıyor | ⬜ 2.7 |
@@ -102,8 +101,8 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.4
 
-**ÖNCE KARAR (yukarıdaki uyarı):** G-08 nereye gidiyor? 2.4'e madde mi, 2.3c mi?
-Karar verilmeden 2. kabul kriteri kapanamaz.
+**G-08 KAPANDI** — 2.3c ayrı alt görev olarak yazıldı, 2. kabul kriteri işaretlendi.
+Bekleyen karar yok.
 
 **2.4 kapsamı (ROADMAP):** NestJS global exception filter — hata sınıfı → HTTP
 durumu + Türkçe gövde + `correlationId`. Bilinmeyen hata → 500, ayrıntı
@@ -124,6 +123,13 @@ da yakalanmalı.
   gövde okunmuyor. Filter tipli gövde basmaya başlayınca istemci tarafı da
   ona göre güncellenmeli — yoksa sunucu Türkçe mesaj üretir, tarayıcı onu
   görmez ve iki taraf sessizce ayrışır.
+- ⚠️ **ÇİFT LOGLAMA RİSKİ — 2.3c bir satır zaten yazıyor.** `RequestLogMiddleware`
+  her istek için **tek** bir `http.request` satırı basıyor (metot · yol · durum ·
+  süre · `correlationId`), 5xx'te `error` seviyesinde. 2.4'ün exception filter'ı
+  **işlemi** değil **hatayı** loglamalı: `code`, sınıf, yığın izi, bağlam. Aynı
+  bilgiyi ikinci kez basarsa log iki katına çıkar ve "kaç istek düştü?" sorusu
+  sayılamaz hale gelir. İş bölümü: middleware *ne oldu*, filter *neden*.
+  2.3c'nin 2.4'ten ayrı tutulmasının sebebi zaten buydu.
 - **DI/modül grafiği değişecek** (yeni filter, muhtemelen yeni belirteç):
   **SAPMA-014 geçerli — build ET ve ÇALIŞTIR.** Belirteçler hiçbir şey import
   etmeyen `apps/api/src/common/tokens.ts`'e konur, `app.module.ts`'e değil.
@@ -140,7 +146,7 @@ da yakalanmalı.
 olduğu için `PUBLIC_BASE_PATH` okunamaz ve derleme durur (Faz 1 hata #8).
 Doğrusu `apps/web` dizininden çalıştırmaktır (aşağıdaki blok).
 
-**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **32 satır**.
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **35 satır**.
 
 **📦 PAKET TABANI GÜNCELLENDİ (2.3b): 229.320 → 232.413 ham bayt.**
 Artışın **tamamı** `api.ts`in tarayıcı logger'ını **gerçekten kullanmasından**
@@ -371,6 +377,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-015 | `karar` | 2 | **GERİYE DÖNÜK KAYIT (2.3c'de açıldı, sapma 2.3a'da yapıldı).** ROADMAP Faz 2 madde 2.3a *"gelen `X-Correlation-Id` **dış girdidir**, Zod ile doğrulanır"* diyor; `correlation.middleware.ts` gerçekte `isAcceptableCorrelationId` **regex koruyucusunu** kullanıyor. Karar doğruydu ama **hiçbir kütüğe yazılmamıştı**. | **Kararın gerekçesi:** doğrulanan şey tek bir dizgenin **biçimi** — sabit uzunluk, sabit alfabe, enjeksiyon yok. Zod bunun için `z.string().regex(...)` üretirdi, yani aynı regex artı bir şema nesnesi. Buna karşılık `isAcceptableCorrelationId` **izomorfik kök girişte** duruyor ve tarayıcı da onu kullanabiliyor; Zod'lu bir sürüm kök barrel'a `zod` çekerdi — 2.1'de ölçülüp 2.2a'da düzeltilen sızıntının aynısı (2.3b Karar 9 aynı çatışmayı zarf için çözdü). CLAUDE.md §1.3'ün *"tüm dış girdiler Zod ile doğrulanır"* maddesi **gövde/sorgu/dosya** gibi **yapılandırılmış** girdiler için yazılmış; tek bir başlık dizgesinin biçim kontrolü o sınıfa girmiyor. **Kaydın geriye dönük açılma sebebi:** karar savunulabilir olsa da kayıtsız kalması kütüğün amacını zedeliyordu — bir sonraki oturum ROADMAP ile kodu karşılaştırdığında "burada bir hata mı var?" diye zaman harcardı. `spec/11` §12.4: sapma **tespit edildiği anda** kayda geçer, doğru olması onu muaf tutmaz. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.3a (gerekçe eklendi), `packages/shared/src/correlation.ts` (gerekçe zaten dosyadaydı) |
 | SAPMA-014 | `düzeltme` | 2 | Faz 1 hata #7'nin kuralı — *"test öncesi `pnpm build`, bayat dist yeşil yalanı üretir"* — **eksikmiş**: derlemek yetmiyor, çıktının **çalıştırılması** da gerekiyor. | Ölçüm (2.3a): `LOGGER` DI belirteci `app.module.ts`'te tanımlıydı, `correlation.middleware.ts` onu oradan alıyordu, `app.module.ts` de middleware'i import ediyordu — **dairesel bağımlılık**. Belirti yalnızca çalışma zamanında çıktı: `ReferenceError: Cannot access 'LOGGER' before initialization` (`__param(0, Inject(LOGGER))` satırında). **`typecheck` geçti** (döngü tip düzeyinde geçerli), **`lint` geçti**, **19 birim testi de geçti** — Vitest modül grafiğini farklı sırayla çözüyor. Dekoratörler bu sınıfı acımasız yapıyor: `@Inject(LOGGER)` modül gövdesi değerlendirilirken çalışıyor, "sonra çözülür" lüksü yok. Belirteç hiçbir şey import etmeyen `apps/api/src/common/tokens.ts`'e taşındı ve kural dosyanın başına yazıldı. | ✅ `apps/api/src/common/tokens.ts` [YENİ] (gerekçe dosyada), `docs/ROADMAP.md` Faz 2 madde 2.3a |
 | SAPMA-013 | `karar` | 2 | Faz 2 planı redaksiyonu `@fms/shared/server` altına koyuyordu; **kökte kaldı**. Ayrıca `env.ts`'teki `process.stderr.write` doğrudan `logger.warn`a çevrilmedi — doğrulayıcı artık uyarıyı **döndürüyor** (`collectEnvWarnings`), basmıyor. | **Redaksiyon:** iki logger uygulaması da (pino ve tarayıcı) onu kullanmak zorunda. `server/`'a konsaydı tarayıcı kendi kopyasını yazardı ve iki kopya kaçınılmaz olarak ayrışırdı — `spec/09` §11.5'in "hiçbir kural iki yerde denetlenmez" disiplini. Ek gerekçe: pino'nun kendi `redact` seçeneği **tam yol** sözdizimi istiyor (`req.headers.authorization`), bizim kuralımız anahtar adında **alt dize** araması; pino'nun sözdizimi bunu ifade edemiyor. **Uyarı sırası:** `logger`'ın kendisi env'den doğuyor (`LOG_LEVEL`, `LOG_FORMAT`), yani `parseEnv` çalışırken logger henüz **yok**. K8'i sağlamanın tek yolu sırayı tersine çevirmekti: doğrulayıcı saf kalır ve teşhis döner, çağıran taraf logger'ı kurduktan sonra basar. Yan fayda: uyarı mantığı artık çıktı yakalamadan, düz assert ile test edilebiliyor. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.2b, `packages/shared/src/redact.ts` ve `server/env.ts` (gerekçe dosyalarda) |
 | SAPMA-012 | `düzeltme` | 2 | Faz 2 planındaki *"üç kat savunma: `apps/web` `types: []` → **derlenmez** · `arch:check` · bundle grep"* iddiası **ölçümle çürütüldü**. `types: []` alt yol sınırını korumuyor; `sideEffects: false` de sızıntıyı engellemiyor. | Kontrol deneyi (2.2a): `App.tsx`'e `@fms/shared/server` importu konup **gerçekten çağrıldı**. `typecheck` **GEÇTİ** — çünkü `types: []` Node *globallerini* yasaklar, oysa `loadEnv(): Env` imzasında Node tipi yok ve üretilen `.d.ts` tarayıcı tsconfig'iyle sorunsuz derleniyor. `vite build` **BAŞARILI**; paket **229.320 → 299.370 bayt** (+%30); tarayıcı paketinde `zod` **318**, `DATABASE_URL` **7**, `POSTGRES_PASSWORD` **3**, `JWT_SECRET` **2** eşleşme — `sideEffects: false` AÇIKKEN (ağaç sarsma yalnızca *kullanılmayan* kodu siler). **Yalnızca `arch:check` yakaladı.** Yani gerçekte dört değil **iki** çalışan hat var: `arch:check` önler, paket taraması doğrular. Karar 1'in gerekçesi ("`sideEffects: false` bir paketleyici optimizasyonudur, yapısal sınır değildir") rakamla doğrulanmış oldu. Ek ölçüm: import'u yazıp **kullanmayınca** paket bayt bayt aynı kaldı — kullanılmayan kontrol deneyi yanlış güven üretiyor. | ✅ `docs/spec/09-quality-protocol.md` §11.5b (yeni bölüm + ölçüm tablosu), `docs/ROADMAP.md` Faz 2 madde 2.2a |
@@ -404,6 +411,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 35 | 2.3c | **Sapma yapılmış ama kütüğe yazılmamış** (2.3a'da): ROADMAP *"Zod ile doğrulanır"* diyor, kod `isAcceptableCorrelationId` regex koruyucusu kullanıyor | Karar doğruydu (tek dizgenin biçim kontrolü; Zod'lu sürüm izomorfik kök girişe `zod` çekerdi) ama kayıt adımı atlanmış — sapma **kod incelenirken** yapıldığı için "kütüğe yaz" refleksi tetiklenmemiş | Geriye dönük **SAPMA-015** açıldı, ROADMAP satırı gerekçeyle düzeltildi | **Ders: bir sapmanın DOĞRU olması, onu kayıttan muaf tutmaz.** Kayıtsız doğru karar, sonraki oturumda "burada hata mı var?" diye zaman yaktırır. `spec/11` §12.4 zaten "tespit edildiği anda kayda geçer" diyor — eksik olan, *"planla kod ayrıştığında bu bir sapmadır"* farkındalığıydı |
+| 34 | 2.3c | Ölçülen sınır: `GET /api/health` (global ön ek **dışı**) 404 dönüyor ama **loglanmıyor** | `forRoutes('*splat')` deseni `setGlobalPrefix` kapsamına giriyor; ön ek dışı istekler middleware'e hiç uğramıyor | Eylem yok — üretimde `/fms/api/*` dışı API'ye ulaşmıyor ve CI bu sınırı zaten iddia ediyor | **Yazıldı** (middleware başlığı + ROADMAP). Ders: bir kapının sessiz kaldığı yer, **yazılmadıysa yok sayılır** — bu fazın tekrar tekrar öğrendiği şey |
+| 33 | 2.3c | **Varsayım ölçümle ikiye bölündü:** `res.on('finish')` dinleyicisi ALS bağlamını görüyor mu? | Cevap dinleyicinin nerede **kaydedildiğine** değil, olayın nereden **emit edildiğine** bağlı. Sentetik `EventEmitter` + bağlam dışı `setTimeout` → `getStore()` **undefined**. Gerçek `node:http`, `res.end()` bağlam içinde → bağlam **korunuyor** | Bağlam istek **başlarken senkron** yakalanıyor, `finish` anında **açıkça** loglanıyor — ortama güvenilmiyor | **Ders: "gerçek ortamda çalışıyor" ile "çalışması garanti" ayrı şeyler.** Bugünkü akışta korunuyor ama sebebi middleware'in kontrolünde değil; yanıt bağlam dışından sonlanırsa satır **kimliksiz** çıkardı ve **kopukluğun belirtisi olmazdı**. Teste kontrol deneyi kondu: aynı anda ortam bağlamının gerçekten boş olduğu ayrıca doğrulanıyor, yoksa test doğru sebeple geçtiğini kanıtlamazdı (günlük #16) |
 | 32 | 2.3b | **Kabul kriteri kapanmadı: zincirin son halkası hiç yokmuş.** Tarayıcı kimliği üretiyor, logluyor, gönderiyor; sunucu kabul edip yanıt başlığında geri veriyor — ama `grep` ile tarayıcının kimliği sunucu logunda **0** kez bulundu | Sunucu **mutlu yolda hiçbir şey loglamıyor.** ALS→logger kablolaması sağlam (geçersiz başlık gönderilince middleware'in `warn` satırı kimliği taşıyor — karşıt kanıtla doğrulandı), ama `health.controller` loglamıyor ve ROADMAP'in tamamında "istek logu / erişim logu" geçmiyor | Kriter `[ ]` bırakıldı, gerekçesi ROADMAP'e yazıldı; boşluk **G-08** olarak kayda geçti. 2.3b kapsamına **tek taraflı eklenmedi** (K11/K12) | **Ders: "mekanizma çalışıyor" ile "kriter sağlandı" ayrı şeyler.** Mekanizmayı sınayan birim testleri yeşildi ve kriteri sağladığımızı düşündürüyordu; yalnızca **uçtan uca, gerçek tarayıcıyla** denemek eksik halkayı gösterdi. SAPMA-008'in sınıfı: spec bir şey istiyor, hiçbir alt görev onu üretmiyor |
 | 31 | 2.3b | Tip bağı kapsam raporunu kirletti: `server/log-context.ts` fonksiyon kapsamı **%50** | Şema↔tip bağını `const f: (p) => Canonical = (p) => p` biçiminde yazmıştım; garanti doğruydu ama **asla çağrılmayan bir fonksiyon** üretiyordu | Saf tip düzeyine çevrildi (`Assert<T extends true>`), hiç JS üretmiyor | Kapsam bu projede bir kapı (K10). Ölü kodla kirletmek, sonra gelen birinin *"kapsamı düzelteyim"* diye **kapının kendisini silmesine** davetiye çıkarır. Ayrıca: tip takma adı `noUnusedLocals` yüzünden `TS6196` verdi → `export` edildi (barrel'dan yeniden aktarılmıyor) |
 | 30 | 2.3b | `App.test.tsx` 6 testle kırıldı: sahte `fetch` `headers` taşımıyor | Sahteler düz nesne (`{ok, status, json}`) dönüyordu; `apiRequest` yanıt **başlığını** okuyor. Sahte, taklit ettiği şeyin yüzeyini **eksik** taklit ediyordu | Sahteler gerçek `Response` döndürüyor ve sunucu gibi kimliği geri veriyor | **Ders: bir sahte, taklit ettiği sözleşmenin tamamını taklit etmeli.** Eksik sahte, üretimde var olmayan bir dünyada yeşil kalır. Ayrıca ağ hatası artık tipli hataya sarıldığı için bir testin beklentisi **davranış değiştiği için** güncellendi — gevşetilerek değil: ham reddetme değerinin `cause`'da korunduğu ayrı bir testle sınandı |

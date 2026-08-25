@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { CorrelationMiddleware } from './common/middleware/correlation.middleware.js';
+import { RequestLogMiddleware } from './common/middleware/request-log.middleware.js';
 import { LOGGER } from './common/tokens.js';
 import { HealthController } from './health.controller.js';
 
@@ -29,7 +30,11 @@ export class AppModule implements NestModule {
     return {
       module: AppModule,
       controllers: [HealthController],
-      providers: [{ provide: LOGGER, useValue: logger }, CorrelationMiddleware],
+      providers: [
+        { provide: LOGGER, useValue: logger },
+        CorrelationMiddleware,
+        RequestLogMiddleware,
+      ],
     };
   }
 
@@ -40,6 +45,11 @@ export class AppModule implements NestModule {
     // için doğrusu elle yazılıyor.
     // Alt yol burada YOK: `setGlobalPrefix` onu zaten uyguluyor, desen ön ek
     // İÇİNDE göreli (K6).
-    consumer.apply(CorrelationMiddleware).forRoutes('*splat');
+    // SIRA ANLAMLI: `CorrelationMiddleware` ÖNCE gelmeli. O, isteğin geri
+    // kalanını `runWithLogContext` içinde çalıştırıyor; `RequestLogMiddleware`
+    // ancak bu sayede başlangıçta bağlamı okuyabiliyor (2.3c Karar 12).
+    // Ters sırada log satırı **kimliksiz** çıkardı ve kopukluğun belirtisi
+    // olmazdı — satır yine yazılırdı.
+    consumer.apply(CorrelationMiddleware, RequestLogMiddleware).forRoutes('*splat');
   }
 }

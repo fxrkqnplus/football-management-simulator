@@ -430,7 +430,11 @@ docs/ADR/0001-monorepo-secimi.md
       yasağı da onu ilgilendirmez; `crypto.getRandomValues` kullanır. Ama motor onu import
       **edememeli**: yeni `arch:check` kuralı `packages/engine`'in `@fms/shared`'dan belirli adları
       almasını yasaklar. Bu kural 2.7'de `measure` için de kullanılacak (Karar 6).
-      **Geçersiz başlık kararı:** gelen `X-Correlation-Id` **dış girdidir**, Zod ile doğrulanır.
+      **Geçersiz başlık kararı:** gelen `X-Correlation-Id` **dış girdidir**, doğrulanır.
+      ⚠️ **Zod ile DEĞİL, regex koruyucusuyla** (`isAcceptableCorrelationId`) — bu satır
+      önce "Zod ile doğrulanır" diyordu, uygulama farklı çıktı ve sapma 2.3c'ye kadar
+      kayıtsız kaldı → **SAPMA-015** (gerekçesi orada; özeti: doğrulanan şey tek bir
+      dizgenin biçimi, ve Zod'lu sürüm izomorfik kök girişe `zod` çekerdi).
       Geçersizse istek **reddedilmez** — sunucu kendi id'sini üretir ve durumu `warn` seviyesinde,
       gelen değeri **kısaltarak** loglar. Gerekçe: bozuk bir izleme başlığı kullanıcının işlemini
       düşürmemeli; ama sınırsız/biçimsiz bir değer de log satırına ham girmemeli.
@@ -468,6 +472,48 @@ docs/ADR/0001-monorepo-secimi.md
       **Paket:** tarayıcı logger'ı 2.2b'de yazıldı ama hiçbir yerden import edilmiyordu, bu yüzden ağaç
       sarsmayla paketten çıkıyordu. `api.ts` onu kullanınca paket **büyüyecek** — taban **229.320 bayt**,
       artış soğuk derlemeyle ölçülüp gerekçesi yazılır.
+- [x] **2.3c** İstek loglaması — zincirin dördüncü halkası (**G-08**)
+      **Sonuç:** yapıldı, **2. kabul kriteri kapandı** (aşağıda `[x]`). Tarayıcı paketi
+      **değişmedi** — 232.413 ham bayt, içerik hash'i bile aynı (`index-Bbvu0kTr.js`).
+      **Ölçülen tuzak — ALS `finish` anında kaybolabiliyor:** iki ölçüm yapıldı.
+      Sentetik `EventEmitter`'da dinleyici bağlam **içinde** kayıtlı olmasına rağmen
+      `emit()` bağlam dışından geldiği için `getStore()` → **undefined**; gerçek
+      `node:http` sunucusunda (`res.end()` bağlam içinde) bağlam **korunuyor**. Yani
+      bugün çalışıyor ama çalışmasının sebebi middleware'in kontrol ettiği bir şey değil.
+      Çözüm: bağlam istek **başlarken senkron** okunup kapatılıyor, `finish` anında
+      **açıkça** loglanıyor. Testte kontrol deneyi var — aynı anda ortam bağlamının
+      gerçekten boş olduğu ayrıca doğrulanıyor (günlük #16'nın dersi).
+      **Ölçülen sınır:** `GET /fms/api/yok` → 404 **loglanıyor** (`warn`, kimlikli);
+      `GET /api/health` (global ön ek **dışı**) → 404 ama **loglanmıyor**, çünkü
+      `forRoutes('*splat')` ön ek kapsamına giriyor. Üretimde `/fms/api/*` dışı API'ye
+      ulaşmıyor ve CI bu sınırı zaten iddia ediyor; yine de yazıldı.
+      **Neden ayrı alt görev:** 2.4 exception filter yazıyor — **hata yolu**. Bu madde **mutlu yol**.
+      İkisi aynı commit'te olsaydı bir aksaklıkta "filter mı, istek loglayıcı mı?" sorusu doğardı;
+      BORÇ-001/002'nin kaçındığı belirsizlik sınıfı. Ayrıca Faz 2'nin **2. kabul kriteri** burada
+      kapanıyor ve kriterin hangi alt görevde kapandığı izlenebilir olmalı.
+      **Kapsam:** istek başına tek log satırı — metot · yol · durum kodu · süre (ms) ·
+      `correlationId` (ALS'ten **otomatik**, elle geçirilmez). Gövde, başlık, sorgu dizesi
+      **loglanmaz**.
+      **Karar 11 — seviye durum sınıfına göre:** `2xx/3xx → info` · `4xx → warn` · `5xx → error`.
+      Başarılı istek neden `debug` DEĞİL: kapatılmaya çalışılan delik tam olarak bu.
+      `LOG_LEVEL=info` üretim varsayılanı; başarılı istek `debug` olsaydı mutlu yolda **yine hiç
+      satır olmazdı**. `spec/09` §11.1'in senaryosu geriye dönük (*"5. sezonda transferim
+      kayboldu"*) ve `debug` sonradan açılamaz. Hacim endişesi ölçümle karşılanmıyor: tur tabanlı
+      oyun, 1–5 kullanıcı (tavan 200), zamanlanmış yoklama yok.
+      **`/health` hariç TUTULMUYOR** — ölçüldü: API için Docker `HEALTHCHECK` yok, `spec/10`
+      yoklama tanımlamıyor, CI yalnızca tek seferlik duman testi yapıyor. Var olmayan bir gürültü
+      için filtre yazmak kör nokta üretir (K12). Koşul adlandırıldı: dağıtımda zamanlanmış yoklama
+      eklenirse (Faz 13/47/50) yeniden değerlendirilir.
+      **Karar 12 — ayrı middleware, interceptor DEĞİL:** interceptor Nest boru hattının içinde
+      çalışır ve **404'leri kaçırır** (eşleşen rota yoksa hiç tetiklenmez) — oysa "istediğim uç
+      nokta yok" teşhisin en çok istendiği durum. `res.on('finish')` middleware'de 404 dahil her
+      yanıtı görür. `CorrelationMiddleware`'e eklenmiyor: kimlik ile işlem kaydı ayrı
+      sorumluluklar. **Ölçülecek risk:** `finish` dinleyicisi ALS bağlamını görüyor mu —
+      varsayılmaz, test edilir.
+      **Sorgu dizesi loglanmaz:** `?token=…` gibi bir değer redaksiyondan geçmeden satıra girerdi.
+      **Negatif testler:** (a) log satırında `correlationId` var mı · (b) yanıt başlığındaki id ile
+      log satırındaki id **aynı** mı · (c) hata durumunda (404, 500) da satır çıkıyor mu.
+      **Paket:** sunucu tarafı — tarayıcı paketi **değişmemeli**, taban **232.413 ham bayt**.
 - [ ] **2.4** NestJS global exception filter — hata sınıfı → HTTP durumu + Türkçe gövde + `correlationId`.
       Bilinmeyen hata → 500, ayrıntı **yalnızca** logda. **Negatif test:** `Error` olmayan fırlatma
       (`throw 'metin'`) da yakalanmalı.
@@ -529,17 +575,19 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 
 **Kabul kriterleri:**
 - [ ] Kasıtlı bir hata fırlat → Sentry'de `correlationId` ile görünüyor — *doğrulama: önce yerel yakalama sunucusuna DSN + zarfın etiketi taşıdığını assert eden test, sonra gerçek projeye TEK SEFER gönderim + ekran görüntüsü*
-- [ ] Aynı `correlationId` ile frontend ve backend logları eşleşiyor — *doğrulama: tarayıcıda tıkla → `X-Correlation-Id` → sunucu logu. **Negatif:** başlıksız istek → sunucu kendi üretir. **Eşzamanlılık:** iki paralel istek → ALS bağlamları karışmıyor*
-      **2.3b sonrası durum — üç halkanın ikisi kanıtlı, biri YOK:**
-      ✅ Tarayıcı kimliği üretiyor, **logluyor** ve `X-Correlation-Id` ile gönderiyor
-      (2.3b, gerçek tarayıcı: `01a03965-5248-…` iki `console` satırında + istek başlığında).
-      ✅ Sunucu kabul ediyor, ALS'e koyuyor ve **aynı kimliği yanıt başlığında geri veriyor**
-      (ekranda "zincir kapandı: evet"). Negatif ve eşzamanlılık testleri 2.3a'da yeşil.
-      ❌ **Sunucu mutlu yolda hiçbir şey LOGLAMIYOR** — eşleşecek bir "backend log satırı"
-      üretilmiyor. `grep` ile tarayıcının kimliği sunucu logunda **0** kez bulundu.
-      Mekanizma sağlam (geçersiz başlık gönderilince middleware'in `warn` satırı kimliği
-      taşıyor); eksik olan tek şey **istek başına log satırı** → **G-08**.
-      Kriter, o eklenene kadar `[ ]` kalır (dürüstlük kuralı, `spec/11` §12.1).
+- [x] Aynı `correlationId` ile frontend ve backend logları eşleşiyor — *doğrulama: tarayıcıda tıkla → `X-Correlation-Id` → sunucu logu. **Negatif:** başlıksız istek → sunucu kendi üretir. **Eşzamanlılık:** iki paralel istek → ALS bağlamları karışmıyor*
+      **✅ 2.3c'de KAPANDI — dört halkanın dördü, gerçek tarayıcı + derlenmiş API ile:**
+      ① Tarayıcı `01a0397a-6170-7b67-b523-34ba8a7a8d6f` üretti (uuid v7).
+      ② Tarayıcı konsolunda **iki satır** o kimliği taşıdı (`api.request`, `api.response`).
+      ③ `X-Correlation-Id` ile gönderildi; sunucu **aynı kimliği yanıt başlığında geri verdi**
+         — ekranda `zincir kapandı = evet` (kod içinde assert edilen karşılaştırma).
+      ④ **Sunucu logunda aynı kimlikle satır:**
+         `{"correlationId":"01a0397a-6170-…","code":"http.request","method":"GET",`
+         `"path":"/fms/api/health","status":304,"durationMs":0.8,"msg":"İstek tamamlandı"}`
+      **Negatif:** başlıksız istek → sunucu kendi üretir (2.3a, hâlâ yeşil) · geçersiz başlık →
+      `warn` + yeni kimlik · 404 → satır çıkıyor (`warn`) · 500 → satır çıkıyor (`error`).
+      **Eşzamanlılık:** 2.3a'daki paralel istek testi yeşil.
+      2.3b'de üç halka vardı, dördüncüsü (sunucu log satırı) **yoktu** → G-08, 2.3c'de kapandı.
 - [ ] Debug paneli açılıyor ve canlı log akışı gösteriyor — *doğrulama: `Ctrl+Shift+D` + üretim paketinde YOKLUĞUNUN kanıtı (dize nöbetçisi, Karar 3)*
 - [ ] `assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor — *doğrulama: İKİ AYRI DERLEME alınır ve ikisi de çalıştırılır; `NODE_ENV` koklanmaz*
 - [ ] Performans sarmalayıcısı bütçe aşımında uyarı basıyor — *doğrulama: 1 ms bütçe / 50 ms fonksiyon → uyarı; 500 ms bütçe → sessiz*

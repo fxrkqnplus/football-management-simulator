@@ -218,6 +218,52 @@ Tekrar eden kural, iki yerden birinde gevşetilince sessizce ölür.
 - Bir dosya `@fms/X` import ediyorsa o paketin `package.json`'ında **bildirilmiş** olmalı → HATA
 - Kısıtlı alt yol (`@fms/shared/server`) yasak katmanda kullanılıyorsa → HATA
 
+### ⚠️ BİR KURALIN BİRİM TESTİ, KABLOLAMASININ TEST EDİLDİĞİ ANLAMINA GELMEZ
+
+**KURAL.** Bir kuralın saf fonksiyonunu doğrulayan birim testi, o kuralın
+denetleyici içinde **gerçekten uygulandığını** kanıtlamaz. Her kural için bir
+**kanarya fixture'ı zorunludur**: kuralın ihlalini içeren sahte bir depo
+taranır ve kuralın gerçekten ötüğü görülür. **Kural sayısı ile kanarya kapsamı
+eşit olmalıdır ve bu eşitlik meta-testle sabitlenir.**
+
+**Ölçüm (Faz 2.3b).** `arch:check`'in yedi kuralı vardı; kanarya **altısını**
+kapsıyordu — `import-casing` kapsam dışıydı. `runArchCheck` içindeki
+`import-casing` bildirimi susturuldu:
+
+| Kapı | Sonuç |
+|---|---|
+| `checkImportCasing` beş birim testi | ✅ **geçti** — saf fonksiyonu doğrudan çağırıyorlar |
+| Kanarya (`META: KANARYA`) | ✅ **geçti** — bu kurala hiç bakmıyordu |
+| Tablo bütünlüğü (`META: … tabloları boşalmadı`) | ✅ **geçti** — tablo doluydu |
+| Tüm arch-check testleri | ✅ **43/43 geçti** |
+| `pnpm arch:check` | ✅ **"temiz" dedi** |
+
+Yani kural **tamamen körelmişti** ve hiçbir kapı ötmedi. ADR-0004'e göre harf
+duyarlılığı bu projenin en pahalı hata sınıfı (Windows'ta çalışır, Linux/ARM64
+üretimde kırılır) ve yerelde asla tekrar üretilemiyor — kapı tam orada
+sessizce kapanabilirmiş.
+
+Fixture eklendikten sonra aynı mutasyon **1 başarısız** veriyor. Test sayısı
+değişmedi (43): yani boşluk *"bu kuralın testi yok"* diye değil, ancak
+**kural sayısı ile kanarya kapsamı sayılarak** bulunabilirdi.
+
+**Meta-test iki katmanlıdır ve birincisi yetmez:**
+
+| Katman | Ne yakalar | Ne YAKALAMAZ |
+|---|---|---|
+| ① Tablo bütünlüğü | Sabit liste boşalmış/kırpılmış mı | Tablo doluyken **kablolaması kopmuş** kuralı |
+| ② Kanarya deposu | Kuralın gerçekten ötüp ötmediğini | Kanarya listesinde **olmayan** kuralı |
+
+②'nin kör noktası ①'inkiyle kapanmıyor: ikisi de kural listesinin tamamını
+gördüğü sürece savunma tam. Bu yüzden liste **üç yerde birden** güncellenir —
+denetleyicinin başlığındaki kapsam beyanı, kanarya fixture'ı + beklenen kural
+listesi, ve `PROJECT_MEMORY.md`'deki kapsam bloğu.
+
+**Genellemesi:** bu kural `arch:check`e özgü değildir. Bir ESLint kuralı, bir
+Zod şeması, bir invariant — kendi başına doğru olması, çağrıldığını
+kanıtlamaz. Denetleyen her mekanizma için sorulacak soru şudur:
+*"Bu kuralı sustursam hangi test kırılır?"* Cevap **yoksa**, kural yoktur.
+
 ### ⚠️ "Test öncesi `pnpm build`" YETMEZ — BUILD ET **VE ÇALIŞTIR** (SAPMA-014)
 
 Faz 1 hata #7 şu kuralı doğurmuştu: *test öncesi `pnpm build`, çünkü bayat
