@@ -26,11 +26,11 @@
 | **Tarih** | 2026-08-25 |
 | **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 6/13 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(api): correlationId zinciri — uuid v7, ALS ve middleware` |
+| **Son commit** | `docs(memory): 2.3a CI sonucunu işle ve test sayısını düzelt` (2.3a işi `feat(api): correlationId zinciri…` commit'inde) |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) |
-| **CI** | 2.3a koşusu **ölçülmedi** — push sonrası bakılacak. (2.2b koşusu `32852050653` dört işte de yeşildi.) |
+| **CI** | ✅ koşu `32854771148` — **dört işin dördü de yeşil**. ARM64 rakamları yerelle birebir aynı: 92,51 / 89,7 / 95 / 92,53 · 271 test. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
-| **test** | ✅ **270 test / 17 dosya** (229 → 270) |
+| **test** | ✅ **271 test / 17 dosya** (229 → 271) |
 | **kapsam** | ✅ satır **%92,53** · ifade %92,51 · dal %89,7 · fonksiyon **%95** — eşik %70 |
 | **Web paketi** | **229.320 bayt** — değişmedi (tarayıcı tarafı 2.3b'de bağlanacak) |
 | **Açık sorun sayısı** | **0** |
@@ -250,6 +250,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | 6 | 2.0b | Lint 17 yanlış pozitif: `no-hardcoded-path` `.test.tsx`'te tetikleniyor | ESLint muafiyet listesi `**/*.test.ts` ve `**/*.test.mjs` diyor, `.tsx` demiyor — SAPMA-007'nin **beşinci** örneği | Liste `.tsx`/`.mts`/`.cts` ile tamamlandı | Muafiyet bloğuna gerekçeli uyarı yorumu |
 | 7 | 2.0b | **Kendi çıkardığım regresyon:** yedi paketin testleri `dist/`e sızdı | `tsconfig.build.json` `exclude` desenini `{ts,tsx,mts,cts}` yaptım; TypeScript glob dili **süslü parantezi desteklemiyor**, desen hiçbir şeyle eşleşmiyor. `typecheck`, `lint`, `test` üçü de sessiz kaldı | Uzantılar tek tek yazıldı | SAPMA-009, `spec/09` §11.4'e "iki glob lehçesi" bölümü + `find dist -name '*.test.*'` doğrulaması. **Faz 1 hata #7'nin kuralı ("test öncesi `pnpm build`") ikinci kez kurtardı** |
 | 8 | 2.0b | Motor ortam testinde `navigator` kontrolü yanlış olacaktı | Node 21'den beri `navigator` **Node'da da global** (Node 24.19.0'da `typeof navigator === 'object'`) — DOM göstergesi değil | Kontrol yalnızca `document` ve `window`'a indirildi | Testin içine gerekçe yorumu; yazmadan önce ölçüldü |
+| 25 | 2.3a | **Bayat ölçüm:** ANLIK DURUMa test sayısını 270 yazdım, CI 271 dedi | Rakamı meta-teste yeni kuralı EKLEMEDEN önce ölçmüştüm; sonraki değişiklik sayıyı bir artırdı | 271 olarak düzeltildi | `spec/11` §12.5 zaten diyor ki §7 rakamları kapanışta YENİDEN ölçülür — aynı kural alt görev ölçümleri için de geçerli: **son değişiklikten sonra ölç** |
 | 24 | 2.3a | Meta-teste yeni kuralı eklerken kanarya dosyası **ayrıştırılamadı** | Node betiğinden yazarken `\n` kaçışı gerçek satır sonuna dönüştü ve dizgi literali kırıldı | Dosya doğrudan düzenlendi | Çok katmanlı kaçış (kabuk → node → dosya) gereken yerde doğrudan düzenleme tercih edilir |
 | 23 | 2.3a | Nest modülünü `Reflect.defineMetadata` + statik değiştirilebilir alanla kurmaya çalıştım | Nest'in `forRoot()` dinamik modül deseni zaten bunun için var; elle metadata yazmak çerçeveyle kavga | `DynamicModule` döndüren `forRoot(logger)` | İlk çözüm çalışıyordu ama çirkindi; çerçevenin kendi desenine dönmek hem kısa hem test edilebilir oldu |
 | 22 | 2.3a | **DAİRESEL IMPORT — üç kapı da sessiz kaldı.** `ReferenceError: Cannot access 'LOGGER' before initialization` | `LOGGER` `app.module.ts`'te tanımlı, middleware onu oradan alıyor, `app.module` da middleware'i alıyor. `@Inject(LOGGER)` dekoratörü modül gövdesi değerlendirilirken çalışıyor, döngünün "sonra çözülür" lüksü yok | Belirteç hiçbir şey import etmeyen `common/tokens.ts`'e taşındı | SAPMA-014. **`typecheck` ✅, `lint` ✅, 19 birim testi ✅ — yakalayan tek şey derlenmiş çıktıyı ÇALIŞTIRMAK oldu.** Faz 1 hata #7'nin kuralı "önce build" idi; artık **"build ET ve ÇALIŞTIR"** |
