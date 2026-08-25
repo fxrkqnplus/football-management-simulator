@@ -392,20 +392,42 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
     // Kural 5 — varlıkta mutlak yol.
     write('apps/api/package.json', JSON.stringify({ dependencies: {} }));
     write('apps/api/src/manifest.json', '{ "start_url": "/fms/" }\n');
+
+    // Kural 7 — import yolu harf duyarlılığı (Faz 2.3b'de EKLENDİ).
+    //
+    // NEDEN SONRADAN: kanarya altı kuralı kapsıyordu, `import-casing` kapsam
+    // DIŞINDAYDI. Ölçüldü (2.3b): `runArchCheck` içindeki bildirim satırı
+    // susturulduğunda arch-check testlerinin **43'ü de geçti** —
+    // `checkImportCasing`in beş birim testi saf fonksiyonu doğrudan çağırıyor,
+    // kanarya da bu kurala hiç bakmıyordu. Yani kuralın KABLOLAMASI kopsa
+    // `pnpm arch:check` "✓ temiz" derdi. Bu bölümün var olma sebebi (yukarıdaki
+    // ② maddesi: "tablo doluyken kuralın kablolaması kopmuş olabilir") tam
+    // olarak bu kuralda işlemiyordu.
+    //
+    // Platformdan bağımsız: karşılaştırma `readdirSync` çıktısı üzerinde dizge
+    // eşleşmesiyle yapılıyor, dosya sistemi çözümlemesiyle değil — Windows'un
+    // harf duyarsız dosya sisteminde de diskteki ad 'Widget.ts' okunur.
+    write('packages/ui/package.json', JSON.stringify({ dependencies: {} }));
+    write('packages/ui/src/Widget.ts', 'export const w = 1;\n');
+    write('packages/ui/src/consumer.ts', "import { w } from './widget.js';\nexport const f = w;\n");
   });
 
   afterAll(() => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('altı kuralın hepsi ihlal bildiriyor', () => {
+  it('YEDİ kuralın hepsi ihlal bildiriyor', () => {
     const rules = runArchCheck(root).map((v) => v.rule);
+    // Bu liste `index.mjs` başlığındaki kural listesiyle BİREBİR aynı olmalı.
+    // Oraya yeni bir kural eklenip buraya eklenmezse kanarya onu görmez ve
+    // kablolaması koptuğunda kapı sessizce körelir.
     for (const rule of [
       'layer-direction',
       'engine-purity',
+      'import-casing',
+      'asset-absolute-path',
       'restricted-subpath',
       'undeclared-dependency',
-      'asset-absolute-path',
       'engine-forbidden-import',
     ]) {
       expect(rules).toContain(rule);

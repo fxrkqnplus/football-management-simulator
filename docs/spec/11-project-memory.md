@@ -138,6 +138,34 @@ Her **alt görev** sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyu
 > yazmak, kurala uymaya yetmiyor — kolay ihlal edilebilir olduğu için ayrıca
 > yazılıyor. Alan bir öncekini gösteriyorsa blok en az bir commit bayattır.
 
+> **ANLIK DURUM'da KALICI BÖLÜM: savunma hatlarının KAPSAMI yazılır.**
+> (Faz 2.3b'de eklendi.)
+>
+> Blok her alt görevde tamamen yeniden yazılır — ama projenin **tek savunma
+> hattı** olan mekanizmaların kapsamı bu silinen kısımda **durmaz**. Ayrı,
+> kalıcı bir alt bölümde tutulur ve yalnızca **kapsam değişince** güncellenir.
+>
+> **Ne yazılır:** ne denetliyor, **kaç kural** (adlarıyla), hangi **uzantılar**,
+> hangi dizinler atlanıyor, tabloların büyüklüğü — ve rakamlar **ölçülerek**,
+> elle sayılmadan.
+>
+> **Gerekçe:** kapsamı yazılı olmayan bir gate sessizce daralabilir ve yeni
+> oturum bunu fark edemez. Bir denetleyicinin `✓ temiz` çıktısı, dosyaya
+> **bakıldığını** söylemez. Ampirik: Faz 2.1'de `arch:check`'in taradığı uzantı
+> listesinden `.cts` eksikti; bir `.cts` dosyası denetimden tamamen kaçıyordu ve
+> kapı yine "temiz" diyordu. Elle, tesadüfen bulundu.
+>
+> **Kapsam bloğu mekanizmanın kendisiyle ayrışmamalı.** Kural eklendiğinde
+> güncellenecek yerler blokta **numaralı olarak** sayılır; blok kendi
+> bakımının tarifini taşır.
+>
+> **Meta-test iki katmanlıdır ve birincisi yetmez** (2.3b'de ölçüldü):
+> *tablo bütünlüğü* sabit listelerin boşalmadığını görür ama kuralın
+> **kablolaması** koptuğunda sessiz kalır; bunu ancak her kuralın ihlalini
+> içeren bir **kanarya deposu** yakalar. Kanarya kural listesinin tamamını
+> kapsamıyorsa eksik kalan kural, birim testleri yeşilken körelebilir —
+> saf fonksiyonun birim testi **kablolamayı kanıtlamaz.**
+
 **Sıradaki oturumda ilk yapılacak:**
 1. `docs/spec/08-admin-panel.md` ve `docs/spec/10-deployment.md` oku
 2. `pnpm typecheck && pnpm lint && pnpm test` çalıştır, temiz mi doğrula

@@ -22,15 +22,15 @@
 | | |
 |---|---|
 | **Aktif faz / alt görev** | **Faz 2 — alt görev 2.3a bitti, SIRADA 2.3b** |
-| **Son tamamlanan** | ✅ **2.3a** `correlationId` sunucu içi zinciri (uuid v7 · ALS · middleware · gidiş-dönüş) |
+| **Son tamamlanan** | ✅ **2.3a** `correlationId` sunucu içi zinciri (uuid v7 · ALS · middleware · gidiş-dönüş) · ardından **hafıza boşluğu kapatma** (`arch:check` kapsam bloğu + kanarya deliği) — alt görev değil, bakım commit'i |
 | **Tarih** | 2026-08-25 |
 | **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 6/13 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(spec): SAPMA-014 kuralını §11.5'e yaz ve devir teslimi tamamla` |
+| **Son commit** | `test(arch): import-casing kanaryası + arch:check kapsamını hafızaya yaz` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
 | **CI** | ✅ koşu `32854771148` — dört işin dördü de yeşil. ARM64 rakamları yerelle birebir aynı. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle) |
-| **test** | ✅ **271 test / 17 dosya** |
+| **test** | ✅ **271 test / 18 dosya** (2.3b-öncesinde düzeltildi: kayıt "17 dosya" diyordu, `d35175d` anında da **18**'di — test sayısı doğruydu, dosya sayısı yanlıştı) |
 | **kapsam** | ✅ satır **%92,53** · ifade %92,51 · dal %89,7 · fonksiyon **%95** — eşik %70 |
 | **Web paketi** | **229.320 bayt** (ham) — 2.2a'dan beri değişmedi |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 |
@@ -175,6 +175,78 @@ sessizce kaybolur.
 - Commit alt görev başına, PR faz başına · Rapor formatı `docs/OUTPUT-FORMAT.md`
 - Alt görev listesi onaylanır onaylanmaz ROADMAP'e yazılır (K11)
 
+---
+
+### 🛡️ `arch:check` KAPSAMI — kalıcı blok (SAPMA-012: tek yapısal savunma hattı)
+
+> **Neden burada:** SAPMA-012'den beri paket sınırının tek **önleyici** hattı bu
+> araç (`types: []` ve `sideEffects: false` ölçümle çürütüldü; paket taraması
+> yalnızca **doğrulayıcı** ikinci hat). Kapsamı hiçbir yerde yazılı değildi.
+> Yazılı olmayan bir kapı sessizce daralabilir ve `✓ arch:check temiz` çıktısı
+> bunu **söylemez** — 2.1'de `.cts` ile tam olarak bu oldu ve elle bulundu.
+> Bu blok her alt görevde silinmez; **kapsam değişince güncellenir.**
+>
+> Rakamlar 2026-08-25'te `tools/arch-check/index.mjs` üzerinden **ölçüldü**,
+> elle sayılmadı.
+
+**Kural sayısı: 7** (kaynak: `runArchCheck` içinde basılan `rule:` belirteçleri)
+
+| # | `rule` | Ne denetler | Geldiği faz |
+|---|---|---|---|
+| ① | `layer-direction` | Katman bağımlılık yönü (CLAUDE.md §2.4) | 1.6 |
+| ② | `engine-purity` | K3 — yasaklı modül · yasaklı çağrı · `new Date()` · modül düzeyi değiştirilebilir bağlama (**4 ayrı bildirim yeri, tek kural adı**) | 1.6 |
+| ③ | `import-casing` | Göreli import yolu ↔ diskteki dosya adı harf eşleşmesi | 1.6 |
+| ④ | `asset-absolute-path` | `.html`/`.json`/`.css` kaynak varlıklarında mutlak uygulama yolu (K6) | 1.6 |
+| ⑤ | `restricted-subpath` | `@fms/shared/server` yasak katmanda mı | **2.2a** |
+| ⑥ | `undeclared-dependency` | `@fms/X` import ediliyorsa `package.json`'da bildirilmiş mi | **2.2a** |
+| ⑦ | `engine-forbidden-import` | Motorun `@fms/shared`'dan alamayacağı **adlandırılmış** dışa aktarımlar | **2.3a** |
+
+**Taranan uzantılar (7):** `.ts .tsx .mts .cts .mjs .cjs .js`
+— `.cts` 2.1'de eksikti ve bir `.cts` dosyası denetimden **tamamen** kaçıyordu.
+**Varlık uzantıları (3):** `.html .json .css` — yalnızca `/src/` altında.
+**Atlanan dizinler:** `node_modules`, `dist`, `.git`, `.turbo`, `coverage`.
+**Taranan kökler:** `apps`, `packages`, `tools`, `scripts`.
+
+**Katman tablosu: 9 katman, 13 izinli bağ**
+`apps/web` 2 · `apps/api` 3 · `apps/worker` 3 · `packages/db` 1 ·
+`packages/engine` 1 · `packages/ui` 1 · `packages/shared` **0** ·
+`tools/data-cli` 2 · `scripts` **0**
+*(Günlük #13'teki "12 bağ" 2.1 ölçümüdür; bugünkü ölçüm **13**.)*
+
+**Diğer sabit tablolar:** motor yasaklı modül öneki **11** · motor yasaklı çağrı
+**3** (`Math.random`, `Date.now`, `performance.now`) · motorun alamayacağı
+dışa aktarım **1** (`createCorrelationId`) · varlık yolu ön eki **6** ·
+kısıtlı alt yol **1** (`@fms/shared/server` → `apps/web`, `packages/ui`,
+`packages/engine` — **üç** katmana birden kapalı).
+
+**Meta-test neden var — İKİ KATMAN, ve birincisi yetmez:**
+
+- **① Tablo bütünlüğü** (`META: arch:check kural tabloları boşalmadı`) —
+  sabit listeler boşalmış veya kırpılmış mı diye bakar.
+  **Yakalayamadığı şey:** tablo dopdolu olabilir ama kuralın `runArchCheck`
+  içindeki **kablolaması** kopmuş olabilir. Tablo kuralın *tanımını* tutar,
+  *uygulandığını* kanıtlamaz.
+- **② Kanarya deposu** (`META: KANARYA`) — geçici bir dizine her kuralın
+  ihlalini içeren sahte bir repo yazılır, taranır ve her kuralın gerçekten
+  **ötüğü** görülür. Ayrıca temiz bir depoda hiç ötmediği (yanlış pozitif yok).
+
+> ⚠️ **2.3b'de ölçülen delik — kapatıldı.** Kanarya **6/7** kuralı kapsıyordu;
+> `import-casing` kapsam dışındaydı. Mutasyon deneyi: `runArchCheck` içindeki
+> `import-casing` bildirimi susturuldu → arch-check testlerinin **43'ü de
+> geçti** ve `pnpm arch:check` "✓ temiz" dedi. Saf fonksiyonun beş birim testi
+> onu doğrudan çağırdığı için yeşil kalıyordu — yani **birim testi kablolamayı
+> kanıtlamıyor.** ADR-0004'e göre harf duyarlılığı bu projenin en pahalı hata
+> sınıfı ve yerelde asla tekrar üretilemiyor; kapı tam orada körelebilirmiş.
+> Kanaryaya `packages/ui/src/Widget.ts` ↔ `./widget.js` fixture'ı eklendi.
+> Aynı mutasyon şimdi **1 başarısız** veriyor. Test sayısı değişmedi (43).
+
+**Kapsam değişirse ÜÇ YER birden güncellenir:**
+1. `tools/arch-check/index.mjs` → başlıktaki kural listesi
+2. `tools/arch-check/arch-check.test.mjs` → kanarya fixture'ı **ve** beklenen kural listesi
+3. **bu blok**
+
+---
+
 **Çalışan sistemi ayağa kaldırma:**
 ```
 docker compose up -d
@@ -303,6 +375,8 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 28 | 2.3b-öncesi | ANLIK DURUM **"271 test / 17 dosya"** diyordu; ölçüm **18 dosya** verdi | `git ls-tree d35175d` ile bakıldı: o commit anında da 18'di — yani rakam bayat değil, **yazıldığı anda yanlıştı**. Test sayısı (271) doğru olduğu için satır güvenilir görünüyordu | 18 olarak düzeltildi | Günlük #25'in **aynı satırdaki ikinci vakası**: orada test sayısı, burada dosya sayısı. **Ders: bir satırdaki bir rakamın doğru olması, yanındakini doğrulamaz** — birlikte yazılan ölçümler birlikte ölçülür, biri diğerine kefil olmaz |
+| 27 | 2.3b-öncesi | **Hafıza testi bir delik buldu, delik başka bir delik açığa çıkardı.** Yeni oturum "`arch:check` kaç kural denetliyor?" sorusuna cevap veremedi — kapsam hiçbir dosyada yazılı değildi. Kapsamı çıkarmak için kaynak okununca **kanaryanın 7 kuraldan yalnızca 6'sını kapsadığı** görüldü: `import-casing` kapsam dışı | Kanarya fixture'ı kural kural elle yazılıyor; 1.6'da yazılan `import-casing` için hiç fixture konmamış. `checkImportCasing`in **beş birim testi** saf fonksiyonu doğrudan çağırdığı için bölge "test edilmiş" görünüyordu — oysa sınanan şey fonksiyondu, **kablolaması** değil. Ayrıca `index.mjs` başlığı hâlâ *"dört şey"* diyordu; ⑤⑥⑦ 2.2a/2.3a'da eklenmiş, kapsam beyanı güncellenmemişti | **Mutasyon deneyi:** `runArchCheck` içindeki `import-casing` bildirimi susturuldu → **43/43 test geçti**, `pnpm arch:check` "✓ temiz" dedi. Kanaryaya `packages/ui/src/Widget.ts` ↔ `./widget.js` fixture'ı eklendi; aynı mutasyon artık **1 başarısız** veriyor. Başlık yorumu yedi kuralı listeler hâle getirildi | Kapsam `PROJECT_MEMORY.md`'de **kalıcı blok** oldu + `spec/11` §12.3'e kural. **Ders: bir kuralın birim testi, o kuralın ÇALIŞTIĞINI kanıtlamaz — yalnızca fonksiyonun doğru olduğunu kanıtlar.** Kanarya kural listesinin TAMAMINI kapsamalı; eksik kalan kural birim testleri yeşilken körelir. Test sayısı değişmedi (43), yani boşluk "test yok" diye değil ancak **kapsam sayılarak** bulunabilirdi |
 | 1 | 2.0 | Kapsam raporu 13 dosya sayıyor, diskte 15 var | `coverage.include` deseni yalnızca `*.ts`; `.tsx` hiç görülmüyor | Desen `*.{ts,tsx,mts,cts}` | SAPMA-007, `spec/09` §11.4 + dosya sayısı doğrulama yöntemi |
 | 2 | 2.0 | ANLIK DURUM "PR #1 açık" diyor, PR merge edilmiş | SAPMA-004 "her alt görev sonunda" diyor ama faz **kapanış** commit'leri alt görev sayılmıyor | `spec/11` §12.1'e "ANLIK DURUM'u yazan commit fazın SON commit'i olmalı" | Kural yazıldı |
 | 3 | 2.0 | **Kendi yazdığım kurala düştüm:** 2. maddedeki bayatlık kuralını ekleyen commit'in kendisi "Son commit" alanını bir öncekini gösterir hâlde bıraktı — art arda iki commit boyunca | Alan blokla aynı commit'te yazılıyor; değeri commit mesajıyla **birlikte** kararlaştırılmalı, ama bu kendiliğinden anlaşılmıyor | `c3f7692` ile hizalandı | `spec/11` §12.3'e ayrı bir kural: *"Son commit alanı BULUNDUĞU commit'i adlandırır"*. **Ders: kural yazmak kurala uymaya yetmiyor** — kolay ihlal edilebilirliği ampirik olarak kanıtlandı |

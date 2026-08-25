@@ -4,11 +4,27 @@
  * ESLint İLE İŞ BÖLÜMÜ (tekrar yok):
  *   ESLint yapar      → `console.log` (K8), kaynak kodda mutlak yol (K6),
  *                       tip farkında kurallar, biçim.
- *   arch:check yapar  → ESLint'in göremediği veya beceremediği dört şey:
- *                       ① katman bağımlılık yönü (paket sınırları)
- *                       ② motor saflığı (K3) — yasaklı modül ve sözdizimi
- *                       ③ import yolu harf duyarlılığı (dosya sistemi erişimi ister)
- *                       ④ TS olmayan kaynak varlıklarda mutlak yol (.html/.json/.css)
+ *   arch:check yapar  → ESLint'in göremediği veya beceremediği YEDİ şey.
+ *
+ * KURAL LİSTESİ — bu yorum kapsam beyanıdır, kod ile AYRIŞMAMALI.
+ * (Adı geçen her belirteç aşağıda `rule:` alanı olarak basılır.)
+ *
+ *   ① layer-direction        katman bağımlılık yönü (CLAUDE.md §2.4) — 9 katman, 13 izinli bağ
+ *   ② engine-purity          motor saflığı (K3) — yasaklı modül, yasaklı çağrı,
+ *                             `new Date()`, modül düzeyi değiştirilebilir bağlama (4 bildirim yeri)
+ *   ③ import-casing          import yolu harf duyarlılığı (dosya sistemi erişimi ister)
+ *   ④ asset-absolute-path    TS olmayan kaynak varlıklarda mutlak yol (.html/.json/.css)
+ *   ⑤ restricted-subpath     kısıtlı alt yol (`@fms/shared/server`) — Faz 2.2a
+ *   ⑥ undeclared-dependency  import edilen `@fms/X` package.json'da bildirilmiş mi — Faz 2.2a
+ *   ⑦ engine-forbidden-import motorun alamayacağı adlandırılmış dışa aktarımlar — Faz 2.3a
+ *
+ * ⚠️ BU LİSTE DEĞİŞTİRİLİRSE ÜÇ YER BİRDEN GÜNCELLENİR (Faz 2.3b'de kurallaştı):
+ *   1. burada,
+ *   2. `arch-check.test.mjs` → META KANARYA fixture'ı + beklenen kural listesi,
+ *   3. `PROJECT_MEMORY.md` → "arch:check kapsamı" bloğu.
+ * Gerekçe: SAPMA-012'den beri bu araç paket sınırının TEK yapısal savunması.
+ * Kapsamı yazılı olmayan bir kapı sessizce daralabilir ve "✓ temiz" çıktısı
+ * bunu söylemez.
  *
  * `scripts/` için AYRI MUAFİYET YOK — bilinçli. Dizin bazlı muafiyet kaçış
  * deliği açar. Bootstrap betikleri zaten `console` kullanmaz, doğrudan
