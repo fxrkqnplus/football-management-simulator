@@ -28,7 +28,7 @@
 | `postgres` (Docker) | 16 | **Faz 3** | 18 mevcut (18.6, Ağu 2026). 16 bakımda ve **EOL Kas 2028**; 18'in EOL'ü Kas 2030. Şema Faz 3'te yazılıyor — majör değişimi ondan sonra dump/restore ister, öncesinde bedava. |
 | `redis` (Docker) | 7 | **Faz 16** | 8 mevcut (8.8.2). `ioredis`/`bullmq` majör kararlarıyla (BORÇ-001, BORÇ-002) aynı fazda birlikte değerlendirilir. |
 | `typescript` | ~6.0.3 | **TS 7.1 çıkınca** | ADR-0003. 7.0'da programatik derleyici API'si yok → `typescript-eslint` ve `nest build` çalışmıyor. 7.1 çıkınca üç maddelik kontrol listesi işletilir. |
-| `@sentry/*` 10.71.0 | — | **Faz 2.5** | 2.0'da **alınmadı**: 2026-08-24 yayınlandı, karar anında **1 günlük**. 2.5'te yaşı yeniden bakılır. |
+| `@sentry/*` 10.71.0 | — | **Faz 2.5b / sonraki faz** | 2.0'da alınmadı (1 günlük). **2.5a'da yeniden bakıldı: hâlâ 1 günlük** — 10.71.0 2026-08-24, karar günü 2026-08-25, yani takvim aynı gün. Yaş değişmediği için karar da değişmedi. Sonuç aşağıda. |
 | `jsdom` | 30.0.1 | **Faz 6** | 2.0b'de kuruldu. `happy-dom` yerine bilinçli seçildi; **Faz 6'da (Radix/shadcn, odak yönetimi) yeniden değerlendirilir**. Karar ve geri dönüş maliyeti aşağıda. |
 | `@testing-library/react` | 16.3.2 | **Faz 6** | 2.0b'de kuruldu. Faz 6 yüzlerce bileşen testi getiriyor; o fazda `@testing-library/user-event` ihtiyacı da doğacak. |
 
@@ -85,6 +85,35 @@ shims" düzeltmesini içeriyor ve geliştirme makinesi Windows + pwsh 7.
 > `thread-stream` → **0 eşleşme**, paket boyutu 2.2a tabanıyla **bayt bayt aynı**
 > (229.320). pino'nun `browser` alanı bu yüzden hiç devreye girmedi — tarayıcı
 > tarafı kendi `console` uygulamasını kullanıyor.
+
+### `@sentry/node` — Faz 2.5a, 2026-08-25 · **10.70.0 KURULDU**
+
+Kurulan: `@sentry/node@10.70.0` (`apps/api`, **tam sürüm — `^` yok**).
+
+**Sürüm kararı yeniden bakıldı ve DEĞİŞMEDİ.** En yeni kararlı sürüm hâlâ
+10.71.0 (2026-08-24); karar günü 2026-08-25, yani **takvim aynı gün** ve sürüm
+hâlâ **1 günlük**. 2.0'daki gerekçe olduğu gibi geçerli. 10.71.0 takip satırı
+yukarıda duruyor; bir sonraki fazda yaşı gerçekten değişmiş olacak.
+
+**OTel ağırlığı ÖLÇÜLDÜ** (2.0'da "yeniden ölç" notu bırakılmıştı):
+
+| Ölçüm | Sentry öncesi | Sentry ile | Fark |
+|---|---|---|---|
+| İmaj (`docker images`) | 361 MB | **423 MB** | +62 MB (%17) |
+| İmaj içi `node_modules` | 29 MB | **81 MB** | +52 MB |
+
+En büyük kalemler: `@sentry/core` 12 MB · `@sentry/node` 7 MB ·
+`@opentelemetry/semantic-conventions` 7 MB. Doğrudan bağımlılık **9**, bunların
+**4'ü** OpenTelemetry.
+
+**Kabul edilebilir bulundu:** Oracle disk sınırı 200 GB (`spec/10` §13.5) ve bu
+bir defalık imaj maliyeti; CI çekme/gönderme süresine etkisi ölçülebilir ama
+engelleyici değil.
+
+> ⚠️ `docker image inspect .Size` **başka bir şey ölçüyor** (79 → 86 MB) ve iki
+> ölçü karıştırılmamalı. Günlük #26'nın (gzip: Vite 73,77 kB vs Node 71,24 kB)
+> aynı dersi, farklı araçla: **ölçüm kaynağı değişmişse rakam
+> karşılaştırılamaz.** Yukarıdaki tabloda her satır tek bir kaynaktan.
 
 ### `@sentry/node`, `@sentry/react` — Faz 2.0, 2026-08-25 · **10.70.0'a SABİTLENDİ** (kurulum 2.5'te)
 

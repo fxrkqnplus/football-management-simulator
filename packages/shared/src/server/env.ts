@@ -42,6 +42,10 @@ const ENV_DOCS: Record<string, { what: string; example?: string }> = {
     example: 'balanced',
   },
   TURN_LOCK_TTL_SECONDS: { what: 'Tur kilidinin azami ömrü (saniye).', example: '300' },
+  SENTRY_RELEASE: {
+    what: 'Sentry sürüm etiketi. Boşsa olaylar sürümsüz gruplanır.',
+    example: 'fms@0.0.0',
+  },
   LOG_LEVEL: { what: 'Log eşiği.', example: 'info' },
   LOG_FORMAT: {
     what: 'Log çıktı biçimi. json = üretim (makine okur), pretty = geliştirme (renkli, pino-pretty gerekir).',
@@ -116,6 +120,10 @@ export const envSchema = z.object({
 
   // Gözlem
   SENTRY_DSN: z.string().optional(),
+  // Sürüm etiketi (Karar 7). Boş bırakılabilir: Sentry o zaman olayları
+  // sürümsüz gruplar. Kaynak haritası YÜKLEME adımı Faz 50'ye ertelendi
+  // (BORÇ-006) — bu alan o adımın bugünden hazır duran yarısı.
+  SENTRY_RELEASE: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   // NODE_ENV KOKLANMAZ (Faz 1 hata #10): biçim açık bayrakla gelir.
   LOG_FORMAT: z.enum(['json', 'pretty']).default('json'),

@@ -548,7 +548,11 @@ docs/ADR/0001-monorepo-secimi.md
       kasıtlı fırlatan rota **eklenmedi** (her istekte 500 üreten kalıcı uç nokta saldırı yüzeyi
       olurdu). 5xx gerçek HTTP üzerinden **test modülüyle** kanıtlandı; üretim kablolaması 404 ile
       duman testi edildi (`{"status":404,"code":"http.404","correlationId":"…"}`).
-- [ ] **2.5** Sentry — API + web · `correlationId` etiketi · örnekleme ve filtreleme disiplini.
+- [ ] **2.5** Sentry — **2.5a / 2.5b olarak BÖLÜNDÜ** (aşağıda). Bölme gerekçesi: iki ayrı risk
+      profili. 2.5a ESM `--import` sırası + Dockerfile + konteyner doğrulaması (R1, fazın en somut
+      riski); 2.5b tarayıcı SDK'sı + paket ağırlığı. Aynı commit'te olsalardı bir aksaklıkta
+      "ESM sırası mı, paketleyici mi?" sorusu doğardı — 2.3c'nin 2.4'ten ayrılmasıyla aynı ilke.
+      Aşağıdaki Karar 4 / Karar 7 / Risk R1 **her iki alt göreve de** uygulanır.
       **Karar 4:** üretimde `tracesSampleRate: 0` (1–5 kullanıcı için performans izleme kotaya değmez;
       `measure()` zaten var), `sampleRate: 1.0` (hataların hepsi). `beforeSend`: beklenen
       `ValidationError`/`DomainError` **gönderilmez** (kullanıcı hatası, sistem hatası değil) ·
@@ -559,6 +563,57 @@ docs/ADR/0001-monorepo-secimi.md
       **Risk R1:** `apps/api` saf ESM — SDK enstrümante edilecek modüllerden ÖNCE yüklenmeli;
       `node --import ./dist/instrument.js dist/main.js` gerekir. Dockerfile + çalıştırma komutu birlikte,
       konteynerde duman testi.
+- [x] **2.5a** Sentry — **API tarafı** · ESM `--import` · konteyner doğrulaması
+      **Sonuç:** yapıldı. Tarayıcı paketi **değişmedi** (232.413 bayt, hash aynı — sunucu tarafı).
+      **R1 ÖLÇÜLDÜ, ÜÇ DURUM:** `--import` YOK → `"sentry":false` · `--import` VAR + DSN dolu →
+      `"sentry":true` · `--import` VAR + DSN boş → `"sentry":false`. Açılış logundaki `sentry`
+      alanı bu yüzden var: `--import` unutulduğunda **tek belirti** odur, uygulama yine açılır.
+      **KARAR 14 — OTURUM İZLEME KAPATILDI (ölçümle bulunan yan kanal).** `release` ayarlanınca
+      SDK, hata zarfının yanında bir `session` zarfı daha gönderiyor (release health). Ölçüm:
+      release yok → 1 zarf `["event"]` · release var → **2 zarf** `["session","event"]` ·
+      `ProcessSession` entegrasyonu çıkarıldı → 1 zarf `["event"]`. `release`ı Karar 7 için
+      koyduk; release health hiçbir yerde istenmedi ve Karar 4'ün gerekçesi kota disiplini —
+      ölçülmemiş, istenmemiş bir giden kanal o kararla çelişirdi. **`autoSessionTracking: false`
+      v10'da ETKİSİZ** (ölçüldü; seçenek kaldırılmış, sessizce yok sayılıyor).
+      **İmaj boyutu (⑦):** `node_modules` imaj içinde **29 MB → 81 MB (+52 MB)**; `docker images`
+      ölçüsüyle **361 MB → 423 MB (+62 MB, %17)**. Kabul edilebilir: Oracle disk sınırı 200 GB
+      (`spec/10` §13.5) ve bu bir defalık imaj maliyeti. En büyük kalemler `@sentry/core` (12 MB),
+      `@sentry/node` (7 MB), `@opentelemetry/semantic-conventions` (7 MB).
+      ⚠️ `docker image inspect .Size` **farklı bir şey ölçüyor** (79→86 MB) ve iki ölçü
+      karıştırılmamalı — SAPMA-004'ün gzip dersinin aynısı: **ölçüm kaynağı değişmişse rakam
+      karşılaştırılamaz.**
+      **CI sözleşmesi korundu:** eksik env → konteyner açılmıyor, `main.ts`'in teşhisi
+      (`DATABASE_URL`, `tanımlı değil`) hâlâ görünüyor ve Sentry hiç konuşmuyor.
+      **Kabul kriteri 1 — YARIM.** (a) yerel yakalama sunucusuyla zarfın `correlationId`,
+      `errorKind`, `release`, `environment` taşıdığı **kanıtlandı**; `beforeSend`in gerçekten
+      kablolu olduğu da (ValidationError/DomainError → 0 zarf, kontrol deneyiyle birlikte).
+      (b) gerçek projeye tek sefer gönderim **YAPILMADI** — `SENTRY_DSN` boş, ortada proje yok
+      ve hesap açmak kullanıcının işi. Kriter `[ ]` kalıyor.
+      **Kapsam:** `@sentry/node@10.70.0` · `apps/api/src/instrument.ts` (init + `beforeSend`) ·
+      `--import` ile Dockerfile ve çalıştırma komutu · exception filter'dan `captureException` +
+      `correlationId` etiketi · **yerel yakalama sunucusuyla** zarf doğrulaması · konteyner duman
+      testi · imaj boyutu ölçümü.
+      **Sürüm:** 10.70.0 kalıyor. 2.5 açılışında yeniden bakıldı: en yeni kararlı sürüm hâlâ
+      **10.71.0 (2026-08-24)** ve bugün 2026-08-25 — takvim aynı gün olduğu için yaş değişmedi
+      (**1 günlük**). BORÇ-001/002'nin ilkesi geçerli.
+      **`instrument.ts` env doğrulamasını ÜSTLENMEZ:** `envSchema.safeParse` ile bakar, geçersizse
+      Sentry'yi hiç kurmaz ve sessizce çekilir. Gerekçe CI'da yazılı bir sözleşme — *"Eksik ortam
+      değişkeniyle API AÇILMAMALI"* testi `main.ts`'in biçimlendirilmiş hatasını (`DATABASE_URL`,
+      `tanımlı değil`) arıyor. **Enstrümantasyon, uygulamanın açılıp açılmayacağına karar vermemeli.**
+      **Tek karar noktası:** filter yakaladığı HER hatayı `captureException`a verir; neyin
+      gönderilmeyeceğine **yalnızca** `beforeSend` karar verir. İki yerde filtreleme, kaçınılmaz
+      olarak ayrışır (SAPMA-013'ün dersi).
+      **Negatif testler:** (a) `--import` olmadan çalıştır → enstrümantasyonun kurulmadığını göster ·
+      (b) `ValidationError`/`DomainError` fırlat → zarfın Sentry'ye **gitmediğini** kanıtla ·
+      (c) DSN boşken hata fırlat → ağ isteği **gitmediğini** gör.
+      **Kabul kriteri 1'in yarısı burada:** yerel yakalama sunucusuyla zarfın `correlationId`
+      taşıdığı assert edilir. Gerçek projeye tek sefer gönderim **kullanıcı işi** (DSN yok).
+- [ ] **2.5b** Sentry — **web tarafı** · paket ölçümü
+      **Kapsam:** `@sentry/react` · `apps/web/src/lib/sentry.ts` · `denyUrls` (eklenti hataları) ·
+      `ignoreErrors` (`ResizeObserver loop…`) · `sourcemap: true` + `release` adlandırması (Karar 7).
+      **Paket:** taban **232.413 ham bayt**; `@sentry/react` ilk kez import edilince büyüyecek.
+      Soğuk derlemeyle ölçülüp artış gerekçelendirilir. Kontrol deneyi (2.3b deseni): import
+      yazılıp **kullanılmazsa** paket değişmemeli.
 - [ ] **2.6** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen + "Hata bildir" (`correlationId` ile).
       **Negatif test:** kayıtsız bir `ErrorBoundary`'nin hatası köke tırmanıyor mu.
       Metinler Türkçe sabit; i18n Faz 5'te → **BORÇ-003**.
@@ -606,6 +661,19 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 
 **Kabul kriterleri:**
 - [ ] Kasıtlı bir hata fırlat → Sentry'de `correlationId` ile görünüyor — *doğrulama: önce yerel yakalama sunucusuna DSN + zarfın etiketi taşıdığını assert eden test, sonra gerçek projeye TEK SEFER gönderim + ekran görüntüsü*
+      **2.5a sonrası — iki yolun biri tamam, biri KULLANICI İŞİ:**
+      ✅ **(a) yerel yakalama sunucusu.** Gerçek bir HTTP sunucusu kaldırılıp DSN ona verildi;
+         zarfın `correlationId`, `errorKind`, `release`, `environment` taşıdığı ham gövde
+         üzerinde assert edildi. `beforeSend`in gerçekten kablolu olduğu ayrıca kanıtlandı:
+         `ValidationError`/`DomainError` → **0 zarf**, kontrol deneyiyle (`EngineError` → 1 zarf).
+         Tekrarlanabilir, CI'da koşuyor, ağa çıkmıyor.
+      ❌ **(b) gerçek projeye tek sefer gönderim + ekran görüntüsü — YAPILMADI.**
+         `SENTRY_DSN` boş; ortada bir Sentry projesi yok ve hesap açmak/`DSN` üretmek
+         kullanıcının işi. **Yapılması gereken:** (1) sentry.io'da proje aç, (2) DSN'i `.env`'e
+         yaz, (3) `node --import ./apps/api/dist/instrument.js --env-file=.env
+         apps/api/dist/main.js` ile aç, (4) bir `EngineError` tetikle, (5) Sentry arayüzünde
+         olayın `correlationId` etiketiyle göründüğünü doğrula.
+      Kriter, (b) yapılana kadar `[ ]` kalır (dürüstlük kuralı, `spec/11` §12.1).
 - [x] Aynı `correlationId` ile frontend ve backend logları eşleşiyor — *doğrulama: tarayıcıda tıkla → `X-Correlation-Id` → sunucu logu. **Negatif:** başlıksız istek → sunucu kendi üretir. **Eşzamanlılık:** iki paralel istek → ALS bağlamları karışmıyor*
       **✅ 2.3c'de KAPANDI — dört halkanın dördü, gerçek tarayıcı + derlenmiş API ile:**
       ① Tarayıcı `01a0397a-6170-7b67-b523-34ba8a7a8d6f` üretti (uuid v7).

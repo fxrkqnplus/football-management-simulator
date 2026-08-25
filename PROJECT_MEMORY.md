@@ -21,22 +21,34 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.4 bitti, SIRADA 2.5** |
-| **Son tamamlanan** | ✅ **2.4** global exception filter — hata sınıfı → HTTP durumu + Türkçe gövde + `correlationId` |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.5a bitti, SIRADA 2.5b** |
+| **Son tamamlanan** | ✅ **2.5a** Sentry API tarafı — ESM `--import` · `beforeSend` · konteyner doğrulaması |
 | **Tarih** | 2026-08-25 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 9/14 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b, 2.3c, 2.4) |
-| **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(api): global hata filtresi — tipli hata → HTTP durumu ve Türkçe gövde` |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 10/15 alt görev (…2.3c, 2.4, 2.5a) — 2.5 ikiye bölündü |
+| **Bloke eden var mı?** | Hayır — ama **kabul kriteri 1'in yarısı kullanıcı işi** (aşağıdaki uyarı) |
+| **Son commit** | `feat(api): Sentry enstrümantasyonu — ESM --import sınırı ve tek karar noktalı filtreleme` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ✅ 2.3c koşusu `32864898347` yeşil. ⏳ 2.4 koşusu henüz işlenmedi. (2.3b `32862778557`: ARM64/amd64 rakamları yerelle **birebir** aynıydı.) |
+| **CI** | ✅ 2.4 koşusu `32888812075` yeşil. ⏳ 2.5a koşusu henüz işlenmedi. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle, `rm -rf .turbo/cache` sonrası) |
-| **test** | ✅ **358 test / 25 dosya** (2.4: +32 test, +2 dosya) |
-| **kapsam** | ✅ satır **%93,11** · ifade %93,05 · dal %88,94 · fonksiyon **%95,74** — eşik %70 |
-| **Web paketi** | **232.413 bayt** (ham) — 2.4 sunucu tarafı, paket **değişmedi** (içerik hash'i bile aynı: `index-Bbvu0kTr.js`) |
-| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 |
+| **test** | ✅ **377 test / 27 dosya** (2.5a: +19 test, +2 dosya) |
+| **kapsam** | ✅ satır **%93,12** · ifade %93,13 · dal %88,31 · fonksiyon **%94,94** — eşik %70 |
+| **Web paketi** | **232.413 bayt** (ham) — 2.5a sunucu tarafı, paket **değişmedi** (hash aynı). 2.5b'de büyüyecek. |
+| **API imajı** | **423 MB** (`docker images` ölçüsü) — Sentry öncesi 361 MB'tan **+62 MB**. İmaj içi `node_modules`: 29 → **81 MB**. ⚠️ `docker image inspect .Size` FARKLI bir şey ölçüyor (79→86 MB), karıştırma. |
+| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 + pino-pretty 13.1.3 · **@sentry/node 10.70.0** |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **4** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · **BORÇ-005** (Faz 5, hata gövdesi Türkçe metinleri) |
-| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.4 yeni SAPMA açmadı; **SAPMA-010 ölçümle DOĞRULANDI** (sahte `ErrorKind` → `TS2741`) |
+| **Teknik borç sayısı** | **5** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-005 (Faz 5) · **BORÇ-006** (Faz 50, Sentry kaynak haritası yüklemesi) |
+| **SAPMA sayısı** | **15** (SAPMA-001…015) — 2.5a yeni SAPMA açmadı; **Karar 14** ROADMAP 2.5a'ya yazıldı (oturum izleme kapatıldı) |
+
+> ⚠️ **KABUL KRİTERİ 1'İN YARISI SENDE — 2.9'a kadar yapılabilir.**
+> (a) **tamam:** yerel yakalama sunucusuyla zarfın `correlationId`, `errorKind`, `release`,
+> `environment` taşıdığı kanıtlandı; `beforeSend` de gerçekten kablolu
+> (`ValidationError`/`DomainError` → **0 zarf**, kontrol deneyiyle birlikte).
+> (b) **yapılamadı:** gerçek Sentry projesine tek sefer gönderim + ekran görüntüsü.
+> `SENTRY_DSN` boş, ortada proje yok ve hesap açmak/`DSN` üretmek kullanıcının işi.
+> **Adımlar:** ① sentry.io'da proje aç · ② DSN'i `.env`'e yaz · ③
+> `node --import ./apps/api/dist/instrument.js --env-file=.env apps/api/dist/main.js`
+> ile aç · ④ bir `EngineError` tetikle · ⑤ olayın `correlationId` etiketiyle
+> göründüğünü doğrula. Kriter o zamana kadar `[ ]`.
 
 > ✅ **FAZ 2'NİN 2. KABUL KRİTERİ KAPANDI (2.3c).**
 > Dört halka gerçek tarayıcı + derlenmiş API ile kanıtlandı: tarayıcı
@@ -99,54 +111,57 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ---
 
-### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.5
+### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.5b
 
-**2.5 kapsamı (ROADMAP):** Sentry — API + web · `correlationId` etiketi ·
-örnekleme ve filtreleme disiplini. Kararlar ROADMAP 2.5'te yazılı (Karar 4,
-Karar 7, Risk R1) — **oradan oku, burada tekrarlanmıyor.**
+**2.5b kapsamı (ROADMAP):** Sentry web tarafı — `@sentry/react` ·
+`apps/web/src/lib/sentry.ts` · `denyUrls` · `ignoreErrors` · `sourcemap: true` +
+`release` adlandırması (Karar 7). Kararlar ROADMAP 2.5 ve 2.5b'de yazılı.
 
-**2.5'e girerken bilinmesi gerekenler — 2.4'ten devir:**
+**2.5b'ye girerken bilinmesi gerekenler — 2.5a'dan devir:**
 
-- ⚠️ **RİSK R1 EN BÜYÜK İŞ.** `apps/api` saf ESM; `import` yükseltmesi
-  Sentry `init()`ini geç bırakır. `node --import ./dist/instrument.js
-  dist/main.js` gerekiyor — yani **Dockerfile + çalıştırma komutu birlikte**
-  değişecek ve konteynerde duman testi şart. Bu, SAPMA-014'ün tam hedefi:
-  yerelde çalışan bir şey imajda kırılabilir.
-- **`beforeSend` için hazır malzeme var.** Filter artık her hatayı `kind` ile
-  sınıflandırıyor (`STATUS_BY_KIND`). Karar 4 *"beklenen
-  `ValidationError`/`DomainError` gönderilmez"* diyor — bu ayrım `kind`
-  üzerinden tek satırda yapılabilir, `instanceof` zinciri gerekmiyor.
-- **`correlationId` etiketi için iki kaynak var** ve filtre ikisini de
-  kullanıyor: ALS (`getLogContext`) ve yanıt başlığı. Sentry entegrasyonu
-  aynı yardımcıyı (`resolveCorrelationId`) kullanmalı, üçüncü bir yol açmamalı.
-- ⚠️ **ÜÇÜNCÜ LOG SATIRI AÇMA.** Bugün istek başına en fazla iki satır var ve
-  ikisinin iş bölümü yazılı: `http.request` (ne oldu) · `http.exception`
-  (neden). Sentry bir **olay** kanalıdır, log kanalı değil — aynı hatayı
-  üçüncü kez loglamak sayımı bozar.
-- **Tarayıcı paketi büyüyecek.** `@sentry/react` ilk kez import edilecek;
-  taban **232.413 ham bayt**, artış soğuk derlemeyle ölçülüp gerekçesi yazılır.
-  Ölçüm kuralları aşağıdaki ① ② maddelerinde.
-- **DI/modül grafiği değişecek** (`instrument.ts`, muhtemelen yeni sağlayıcı):
-  **SAPMA-014 geçerli — build ET ve ÇALIŞTIR.** Belirteçler hiçbir şey import
-  etmeyen `apps/api/src/common/tokens.ts`'e konur.
-- **Alt süreç testi `dist` tazeliğine bağlı** (2.3b Karar 10). `packages/shared`
-  altında bir dosya değişirse test `tsc`yi kendisi çağırıp yeniden derliyor;
-  ilk koşu ~2 sn uzun sürebilir, bu **beklenen** davranıştır.
-- **Kabul kriteri 1 burada kapanıyor** — doğrulama yöntemi ROADMAP'te yazılı
-  (önce yerel yakalama sunucusu + assert eden test, sonra gerçek projeye TEK
-  SEFER gönderim). Karar 7 gereği kaynak haritası CI yüklemesi **Faz 50'ye**
-  erteleniyor ve **ilgili kabul kriteri gerekçesiyle `[ ]` kalır**.
+- **Sürüm 10.70.0'a SABİT.** `@sentry/react` de aynı sürümden kurulur; iki
+  paketin sürümü ayrışırsa `@sentry/core` iki kopya gelir.
+- ⚠️ **PAKET BÜYÜYECEK, MİKTARI ÖLÇÜLECEK.** Taban **232.413 ham bayt**.
+  Soğuk derleme (`rm -rf .turbo/cache`) ve **ham bayt** karşılaştırması
+  (gzip'i karıştırma — günlük #26). **Kontrol deneyi zorunlu** (2.3b deseni):
+  import yazılıp KULLANILMAZSA paket değişmemeli; artış ancak gerçek kullanıma
+  atfedilebilir.
+- ⚠️ **OTURUM İZLEME TARAYICIDA DA KAPATILMALI** (Karar 14). API'de ölçüldü:
+  `release` ayarlıyken SDK fazladan `session` zarfı yolluyor. Tarayıcı SDK'sında
+  entegrasyonun adı FARKLI olabilir — **ölçmeden varsayma**, yerel yakalama
+  sunucusuyla zarf türlerine bak (`sentry-envelope.http.test.ts` deseni hazır).
+- **`beforeSend` KARARI TEK YERDE KALMALI.** API tarafında `shouldReport`
+  (`instrument.ts`) tek karar noktası. Tarayıcıda `denyUrls`/`ignoreErrors`
+  ek kurallar getiriyor; bunlar **ayrı bir endişe** (gürültü filtresi) ve
+  `shouldReport` mantığını kopyalamamalı — kopyalanırsa ayrışır (SAPMA-013).
+- **`captureException` çağrısı istemcide nereden gelecek?** API'de exception
+  filter tek kapı. Tarayıcıda karşılığı 2.6'nın `ErrorBoundary`si — yani 2.5b
+  SDK'yı kurar, yakalama noktası 2.6'da tamamlanır. 2.5b'de "hiçbir şey
+  yakalanmıyor" görünmesi **beklenen**; `ErrorBoundary` gelene kadar yalnızca
+  yakalanmamış global hatalar gider.
+- **`sourcemap: true` yükleme DEĞİL.** Karar 7: Faz 2'de yalnızca üretim +
+  adlandırma; CI yükleme adımı **BORÇ-006** (Faz 50). Kaynak haritalarının
+  üretim paketiyle **birlikte dağıtılmaması** gerektiğine dikkat — `.map`
+  dosyaları sunucu yollarını ve kaynak kodu sızdırır.
+- **DI/modül grafiği DEĞİŞMİYOR** (web tarafı), ama paket grafiği değişiyor:
+  SAPMA-014 gereği **build ET ve ÇALIŞTIR** — `vite preview` ile gerçek
+  tarayıcıda aç, konsolda SDK'nın kurulduğunu gör.
 
 **Kapılar (bu sırayla):**
 `rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
 → `arch:check` → `format:check`
 
-**Çalışan sistemi ayağa kaldırma — ÖNİZLEME KOMUTU KRİTİK:**
+**Çalışan sistemi ayağa kaldırma — İKİ KOMUT DA KRİTİK:**
+API `--import` olmadan açılırsa Sentry sessizce kurulmaz (2.5a).
 `vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli (`'../..'`)
-olduğu için `PUBLIC_BASE_PATH` okunamaz ve derleme durur (Faz 1 hata #8).
-Doğrusu `apps/web` dizininden çalıştırmaktır (aşağıdaki blok).
+olduğu için `PUBLIC_BASE_PATH` okunamaz (Faz 1 hata #8). Aşağıdaki bloğa bak.
 
-**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **38 satır**.
+**Windows'ta Docker'a argüman geçerken** `MSYS_NO_PATHCONV=1` gerekiyor:
+Git Bash `-e PUBLIC_BASE_PATH=/fms` değerini `C:/Program Files/Git/fms`'e
+çeviriyor ve hata **rota/Sentry hatası gibi** görünüyor (günlük #40).
+
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **41 satır**.
+
 
 **📦 PAKET TABANI GÜNCELLENDİ (2.3b): 229.320 → 232.413 ham bayt.**
 Artışın **tamamı** `api.ts`in tarayıcı logger'ını **gerçekten kullanmasından**
@@ -284,7 +299,10 @@ kısıtlı alt yol **1** (`@fms/shared/server` → `apps/web`, `packages/ui`,
 **Çalışan sistemi ayağa kaldırma:**
 ```
 docker compose up -d
-node --env-file=.env apps/api/dist/main.js      # :3001
+# ⚠️ `--import` ZORUNLU (2.5a, Risk R1). Unutulursa uygulama yine açılır ama
+# Sentry enstrümantasyonu SESSİZCE kurulmaz. Tek belirti: açılış logundaki
+# `"sentry": false` alanı. Dockerfile CMD'si de aynı bayrağı taşıyor.
+node --import ./apps/api/dist/instrument.js --env-file=.env apps/api/dist/main.js   # :3001
 pnpm --filter @fms/web exec vite preview        # :3000/fms/
 ```
 
@@ -351,6 +369,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | ID | Faz | Borç | Neden ertelendi | Ödenmesi gereken faz |
 |---|---|---|---|---|
 | BORÇ-001 | 1 | `ioredis` 5.11.1'de tutuldu; 6.0.0 alınmadı | 6.0.0 kurulum anında 3 haftalıktı. Faz 16 (tur motoru) projenin en riskli fazı — orada "bu kütüphane regresyonu mu, benim idempotency mantığım mı?" sorusuyla uğraşmanın maliyeti günlerle ölçülür; ertelemenin maliyeti bir minor bump. | **16** — faz açılışında changelog okunup karar verilecek |
+| BORÇ-006 | 2 | **Sentry kaynak haritası CI YÜKLEME adımı yapılmadı** (Karar 7). Faz 2'de yalnızca `release` adlandırması kuruldu (`SENTRY_RELEASE` env alanı, 2.5a) ve tarayıcı tarafında `sourcemap: true` gelecek (2.5b). Yüklenmiş kaynak haritası olmadan Sentry'deki yığın izleri **küçültülmüş** kalır. | Yükleme adımı CI'a Sentry auth token'ı, organizasyon/proje adı ve `sentry-cli` bağımlılığı getiriyor — üçü de ortada bir Sentry projesi **olmadan** yazılamaz ve bugün proje yok (`SENTRY_DSN` boş). Ayrıca yükleme, her derlemede dışarıya varlık gönderen bir CI adımıdır; dağıtım hattı Faz 50'de bütünsel ele alınıyor. Adlandırma bugün kurulduğu için yükleme sonradan **tek bir CI adımı** olarak eklenebilir; geriye dönük iş yok. | **50** — dağıtım hattı kurulurken |
 | BORÇ-005 | 2 | **Hata gövdesindeki Türkçe metinler koda gömülü** (`MESSAGE_BY_KIND`, `apps/api/src/common/filters/global-exception.filter.ts`). K5 arayüzde sabit Türkçe metni yasaklıyor. | i18n Faz 5'te geliyor; 2.6'nın BORÇ-003'üyle **aynı sınıf** borç. Metin `AppError.message`'tan alınamıyor çünkü o alan bilinçli olarak **geliştirici mesajı** (`errors.ts`: *"loga ve Sentry'ye gider, çevrilmez, kullanıcıya gösterilmesi hedeflenmez"*) — doğrudan gövdeye konsaydı iç ayrıntı sızardı. Tablo bir **yedek**: sözleşmenin aslı `code` + `context` ve ikisi de gövdede dönüyor, yani Faz 5 işi `t('errors:' + code, context)` yazmaya iner, fırlatma yerlerini gezmeye değil. Metinler bilerek **genel** tutuldu ki hataya özgü cümle `code` üzerinden gelsin. | **5** — i18n kurulurken tablo silinir, istemci `code`+`context`ten üretir |
 | BORÇ-004 | 2 | **BullMQ'ya özgü `correlationId` kablolaması yapılmadı.** Taşınabilir zarf (`serializeLogContext`/`deserializeLogContext`) 2.3b'de kuruldu ve **gerçek bir süreç sınırında** test edildi (`spawnSync` + argv), ama `job.data.correlationId` alanına yazan/okuyan kuyruk tarafı yok. | `spec/09` §11.1 zincirinde *"Kuyruğa iş atılırsa `job.data.correlationId` taşınır → Worker aynı id ile loglar"* adımı var; ama **kuyruk henüz yok** — BullMQ Faz 16'da (tur motoru) kuruluyor. Bugün yazılacak kablolama, bağlanacağı üretici/tüketici olmadığı için ancak sahte bir kuyrukla test edilebilirdi ve o test **hiçbir şey kanıtlamazdı**: sahte kuyruk aynı süreçte kalır, ALS zaten oradan taşır (2.3b Karar 2). Zarfın kendisi — kırılabilecek asıl parça — bugün gerçek süreç sınırında sınandı; geriye kalan yalnızca BullMQ'nun kendi alanına bağlama işi. | **16** — kuyruk kurulurken üretici ve tüketici tarafına birlikte bağlanacak |
 | BORÇ-002 | 1 | `bullmq` 5.81.3'te tutuldu; 6.2.0 alınmadı | Aynı gerekçe (BORÇ-001). Ek olarak bullmq 6 `ioredis`'i peer'a taşıdı ve `pg`/`redis` peer'ları ekledi — kuyruk yapılandırmasını değiştiren bir mimari değişiklik, Faz 16'da bilinçli ele alınmalı. | **16** — faz açılışında changelog okunup karar verilecek |
@@ -412,6 +431,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 41 | 2.5a | **İki imaj ölçüsü birbirini tutmadı:** `docker images` 361→423 MB (+62), `docker image inspect .Size` 79→86 MB (+6,6) | İki komut **farklı şeyi** ölçüyor. Hangisinin doğru olduğunu tahmin etmek yerine imajın **içi** ölçüldü: `node_modules` 29 MB → **81 MB (+52 MB)** — büyüklük sırası `docker images` ile tutarlı | Rapora `node_modules` ölçümü ve `docker images` deltası yazıldı; `inspect .Size` **kullanılmadı** | **Günlük #26'nın (gzip) aynı dersi, farklı araçla: ölçüm kaynağı değişmişse rakam karşılaştırılamaz.** İki rakamdan birini seçip diğerini görmezden gelmek yerine üçüncü, doğrudan bir ölçüm alındı |
+| 40 | 2.5a | **Konteyner duman testi kırıldı:** `PathError: Missing parameter name at index 3: /C:/Program Files/Git/fms/api$` | Ürün hatası **değil** — Git Bash'in MSYS yol dönüşümü `-e PUBLIC_BASE_PATH=/fms` argümanını `C:/Program Files/Git/fms`'e çevirmiş. Yığın izi `@sentry/core`'un Express sarmalayıcısından geçtiği için hata bir **Sentry/rota hatası gibi** görünüyordu | `MSYS_NO_PATHCONV=1` ile tekrar koşuldu, konteyner temiz açıldı | **Ders: Windows'ta Docker'a eğik çizgiyle başlayan argüman geçerken MSYS dönüşümü kapatılmalı.** Ve daha genel olarak: yığın izinin **en üstteki** çerçevesi suçluyu göstermez — burada Sentry yalnızca yolu ileten katmandı |
+| 39 | 2.5a | **`SENTRY_RELEASE` şemaya eklendi ama `apps/api` göremedi** — `TS2339: Property 'SENTRY_RELEASE' does not exist` | `packages/shared` **dist bayattı**; `apps/api` üretilmiş `.d.ts`'ye karşı derleniyor. Ben `pnpm --filter @fms/api exec tsc` diye **doğrudan** çağırdığım için turbo'yu atlamıştım | `pnpm --filter @fms/shared build` | Gerçek boşluk değil: `turbo.json` `typecheck` görevi zaten `dependsOn: ["^build"]` taşıyor, yani kök `pnpm typecheck` bunu kendisi yapıyor. **Ders: kapıyı kısayoldan çağırmak, kapının garantisini de atlar** |
 | 38 | 2.4 | **Lint üç yerde haklı çıktı:** `describeUnknown`da `String(value)` ve `JSON.stringify(...) ?? String(...)` | `no-base-to-string`: bir nesne için `String({...})` → `'[object Object]'`, yani **hiçbir bilgi taşımayan** teşhis satırı. `no-unnecessary-condition`: `JSON.stringify` nesne için asla `undefined` dönmüyor, `??` ölü daldı | Kural **bastırılmadı**; dallar `typeof` ile tek tek ayrıldı (`null`/`undefined` nesne dalından ÖNCE — `typeof null === 'object'`), döngüsel referans için durumu **adlandıran** metin dönülüyor | **Ders: `eslint-disable` yazmadan önce kuralın haklı olup olmadığı sorulur.** Burada uyarı gerçek bir teşhis kaybını gösteriyordu — bastırılsaydı üretimde `[object Object]` loglanırdı ve `throw {…}` vakalarında hiçbir bilgi kalmazdı |
 | 37 | 2.4 | Filtreyi yazarken DI belirteci import'unu **dosyanın ortasına** koydum | Belirtecin `tokens.ts`'ten geldiğini açıklayan uzun yorumu import'la birlikte yazınca blok gövdeye kaydı; lint (`simple-import-sort`) yakaladı | Import başa taşındı, gerekçe kısa satır yorumu olarak yanında kaldı | Küçük ama tekrar eden desen: **açıklama uzunsa import'u değil, açıklamayı taşı.** SAPMA-014'ün kuralı (belirteçler bağımlılıksız modülde) korundu |
 | 36 | 2.4 | **Kablolama açığı — 2.3b'nin dersinin aynısı, bu sefer ÖNCEDEN yakalandı.** Birim testleri filtrenin `catch()`ini doğrudan çağırıyordu; `APP_FILTER` kaydı silinse **hepsi yeşil kalırdı** | Saf fonksiyonun/metodun testi, o şeyin **kablolandığını** kanıtlamaz (`spec/09` §11.5, 2.3b'de yazılan kural) | Ayrı bir **gerçek HTTP** testi yazıldı: gerçek Nest uygulaması, gerçek port, gövde tel üzerinden okunuyor. Mutasyon: `APP_FILTER` kaldırıldı → **6 entegrasyon testi kırıldı**, birim testlerin hepsi geçti | **Kural işe yaradı.** 2.3b'de kural ödenmiş bir bedelden doğmuştu; burada aynı sınıf açık, kural sayesinde **yazılırken** görüldü. Yazılmış bir dersin ilk gerçek getirisi |

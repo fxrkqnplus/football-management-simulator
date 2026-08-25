@@ -6,6 +6,11 @@ import { basePathConfig, configureBasePath } from '@fms/shared';
 // (Faz 2.2a). Tarayıcı bu modülü import etmeye kalkarsa derleme kırılır.
 import { collectEnvWarnings, createServerLogger, getLogContext, loadEnv } from '@fms/shared/server';
 import { NestFactory } from '@nestjs/core';
+// ⚠️ `@sentry/node` BURADA KURULMUYOR, yalnızca DURUMU okunuyor. Kurulum
+// `instrument.ts`'te ve o dosya `--import` ile bu modülden ÖNCE yükleniyor
+// (Risk R1): ESM import yükseltmesi yüzünden buraya yazılan bir `init()`
+// zaten geç kalırdı.
+import { isInitialized } from '@sentry/node';
 
 import { AppModule } from './app.module.js';
 
@@ -59,7 +64,17 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(env.API_PORT);
   logger.info(
-    { port: env.API_PORT, apiPrefix: config.apiPrefix, serverMode: env.SERVER_MODE },
+    {
+      port: env.API_PORT,
+      apiPrefix: config.apiPrefix,
+      serverMode: env.SERVER_MODE,
+      // ⚠️ `--import ./dist/instrument.js` UNUTULURSA BUNUN TEK BELİRTİSİ BUDUR.
+      // Sentry geç kurulduğunda uygulama çalışmaya devam eder ve hiçbir kapı
+      // ötmez — enstrümantasyon sessizce eksik kalır (Risk R1). Açılış satırı
+      // durumu görünür kılıyor: `false` görülüyorsa ya DSN boştur ya da
+      // çalıştırma komutu `--import` taşımıyordur.
+      sentry: isInitialized(),
+    },
     'API hazır',
   );
 }

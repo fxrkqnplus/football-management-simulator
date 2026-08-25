@@ -15,6 +15,7 @@ import {
   HttpException,
   Inject,
 } from '@nestjs/common';
+import { captureException } from '@sentry/node';
 import type { Response } from 'express';
 
 // DI belirteci hiçbir şey import etmeyen ayrı modülden geliyor: `@Inject(...)`
@@ -89,6 +90,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       },
       'İstek hatayla sonuçlandı',
     );
+
+    // ── SENTRY (2.5a) ────────────────────────────────────────────────────
+    // Yakalanan HER hata gönderiliyor; neyin düşürüleceğine **yalnızca**
+    // `instrument.ts`'teki `beforeSend` karar veriyor. Burada ikinci bir
+    // filtre kurmak iki karar noktası üretirdi ve ikisi kaçınılmaz olarak
+    // ayrışırdı (SAPMA-013).
+    //
+    // NestJS exception filter'ı istisnayı **yutuyor**, yani Sentry'nin kendi
+    // Express hata ara katmanı onu hiç görmüyor — açık `captureException`
+    // zorunlu. SDK kurulmamışsa (DSN boş) bu çağrı sessiz bir no-op.
+    captureException(exception, {
+      tags: {
+        ...(correlationId === undefined ? {} : { correlationId }),
+        errorKind: resolved.kind,
+        errorCode: resolved.code,
+      },
+      extra: { status: resolved.status },
+    });
 
     response.status(resolved.status).json({
       status: resolved.status,
