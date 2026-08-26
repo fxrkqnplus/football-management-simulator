@@ -50,7 +50,22 @@ export default tseslint.config(
           // ileride eklenecekler) hiçbir paket tsconfig'ine dahil değil.
           // Bunlar olmadan projectService "was not found by the project
           // service" hatası verir. Glob `**` içermemeli.
-          allowDefaultProject: ['*.config.ts'],
+          //
+          // İkinci giriş (Faz 3.0): `packages/db/drizzle.config.ts`. Paket
+          // kökünde yaşıyor, `src/` altında değil.
+          //
+          // ⚠️ ÖNCE DOĞRU ÇÖZÜM DENENDİ VE ELENDİ. `apps/web` emsali
+          // (`tsconfig.json` → `include: [..., "vite.config.ts"]`) burada
+          // çalışmıyor: `apps/web`i Vite derliyor, `packages/db`yi `tsc` ve
+          // onun `rootDir: "src"` kısıtı var. Denendi, ölçüldü:
+          //
+          //   error TS6059: File '.../drizzle.config.ts' is not under
+          //   'rootDir' '.../src'. 'rootDir' is expected to contain all
+          //   source files.
+          //
+          // `rootDir`i gevşetmek `dist/` düzenini değiştirirdi — bir araç
+          // yapılandırma dosyası için ödenecek bedel değil.
+          allowDefaultProject: ['*.config.ts', 'packages/db/drizzle.config.ts'],
         },
         tsconfigRootDir: import.meta.dirname,
       },

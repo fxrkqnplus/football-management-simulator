@@ -15,23 +15,64 @@ name: fms
 
 services:
   postgres:
-    image: postgres:16
+    # 16 → 18 (Faz 3.0). Şema bu fazda yazılıyor; majör değişimi bugün bedava,
+    # veri girdikten sonra pg_upgrade/dump-restore ister. 16 EOL Kas 2028,
+    # 18 EOL Kas 2030. ARM64 manifesti doğrulandı: `docker manifest inspect
+    # postgres:18` → linux/arm64/v8 mevcut (K14). Ölçülen sürüm: 18.6.
+    image: postgres:18
     container_name: fms-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fms}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD tanımlı değil — .env.example dosyasını .env olarak kopyalayın}
       POSTGRES_DB: ${POSTGRES_DB:-fms}
-      # Veri dosyalarının karşılaştırma (collation) davranışını sabitler.
-      # Sonradan değişirse indeksler sessizce bozulabilir.
-      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+      # ⚠️ `--locale=C` DEĞİL — ölçümle elendi (Faz 3.0).
+      #
+      # `C` ctype Unicode büyük-küçük harf katlaması YAPMIYOR ve bu Türkçe
+      # metinde aramayı SESSİZCE bozuyordu. Ölçüldü (postgres:18, --locale=C):
+      #     'BEŞİKTAŞ' ILIKE '%beşiktaş%'  →  f   ❌
+      #     lower('BEŞİKTAŞ')              →  beŞİktaŞ   ❌
+      # ASCII adlarda sorun görünmüyordu; hata yalnızca Türkçe harflerde çıkıyor,
+      # yani "çalışıyor gibi" bir kapı. Faz 32 (50.000 oyuncu üzerinde transfer
+      # araması) ve her kulüp/oyuncu adı araması bunun üstünde çalışacak.
+      #
+      # `builtin` sağlayıcı + `C.UTF-8` seçildi. Aynı ölçüm bu ayarla:
+      #     'BEŞİKTAŞ' ILIKE '%beşiktaş%'  →  t   ✅
+      #     lower('BEŞİKTAŞ')              →  beşiktaş   ✅
+      #     lower('I') = 'i', upper('i') = 'I'          ✅
+      #
+      # Son satır bilinçli: veritabanı VARSAYILANI Türkçe DEĞİL. `tr-TR` seçilseydi
+      # `lower('I')` → `ı` olurdu (ölçüldü) ve bu kural İngilizce kulüp/oyuncu
+      # adlarına da uygulanırdı — "Inter" araması bozulurdu.
+      #
+      # Sıralama bir SUNUM kaygısıdır ve sorgu başına çözülür:
+      #     ORDER BY name COLLATE "tr-TR-x-icu"   (v1 Türkçe arayüz)
+      #     ORDER BY name COLLATE "en-US-x-icu"   (v2 İngilizce arayüz)
+      # Veritabanı `C` locale'inde olsa bile 871 ICU collation kullanılabilir
+      # durumda (ölçüldü) ve COLLATE'li bir indeks ORDER BY ... LIMIT için
+      # Index Only Scan veriyor (EXPLAIN ile doğrulandı) — yani tek veritabanı
+      # iki dilli arayüzü karşılıyor.
+      #
+      # ⚠️ `builtin` sağlayıcı PostgreSQL 17+ gerektiriyor: PG16'da
+      # `initdb: error: unrecognized locale provider: builtin` (ölçüldü).
+      # PG16 aynı işlevi libc `C.UTF-8` ile de yapabilirdi, ama orada
+      # `datcollversion` BOŞ geliyor — glibc yükseltmesi indeksleri uyarı
+      # vermeden geçersizleştirebilir. `builtin`de `datcollversion=1` ve
+      # Postgres'in kendi içinde uygulandığı için işletim sistemi
+      # yükseltmelerinden etkilenmiyor.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale-provider=builtin --builtin-locale=C.UTF-8'
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       # Named volume — bind mount DEĞİL. Windows'ta bind mount hem izin
       # sorunları çıkarır hem de WSL2 ile Windows dosya sistemi arasındaki
       # köprü yüzünden belirgin yavaştır (docs/ADR/0004).
-      - pgdata:/var/lib/postgresql/data
+      #
+      # ⚠️ BAĞLAMA NOKTASI 18'DE DEĞİŞTİ: `/var/lib/postgresql/data` DEĞİL,
+      # `/var/lib/postgresql`. 18+ imajları veriyi majör sürüme özgü bir alt
+      # dizine koyuyor (ölçüldü: `SHOW data_directory` → /var/lib/postgresql/18/docker).
+      # Eski yol verilirse konteyner açılmıyor, exit 1 ve açık bir hata basıyor.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       # `pg_isready` DEĞİL, bilinçli. Ölçüldü (Faz 1.7): pg_isready yalnızca
       # "sunucu bağlantı kabul ediyor mu" sorusuna bakar; var olmayan bir

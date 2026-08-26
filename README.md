@@ -115,7 +115,7 @@ docs/
 ## 🛠 Teknoloji Yığını
 
 **Frontend** React 19 · TypeScript · Vite · Tailwind 4 · shadcn/ui · Zustand · TanStack Query/Table · PixiJS · Howler · i18next
-**Backend** NestJS · Drizzle ORM · PostgreSQL 16 · Redis · BullMQ · Zod · Pino
+**Backend** NestJS · Drizzle ORM · PostgreSQL 18 · Redis · BullMQ · Zod · Pino
 **Kalite** Vitest · Playwright · ESLint · Sentry · GitHub Actions
 **Altyapı** Oracle Cloud Always Free (ARM64) · Cloudflare (Pages, R2, Turnstile) · Resend
 

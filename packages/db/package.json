@@ -20,7 +20,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "typescript": "catalog:",
-    "@types/node": "catalog:"
+    "@testcontainers/postgresql": "12.1.0",
+    "@types/node": "catalog:",
+    "drizzle-kit": "0.31.10",
+    "testcontainers": "12.1.0",
+    "typescript": "catalog:"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2"
   }
 }

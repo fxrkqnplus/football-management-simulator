@@ -4,6 +4,60 @@
 
 Drizzle ORM. Tüm tablolar `snake_case`. Her tablo `created_at` ve `updated_at` taşır (aksi belirtilmedikçe).
 
+## 3.0 Migration Disiplini — neden `down` yazmak `up` yazmaktan zor
+
+> **Bu bölüm Faz 3.0'da eklendi.** `PROJECT_MEMORY.md` Faz 2 kaydı *"migration
+> `down` yazmak `up` yazmaktan zordur"* uyarısını taşıyordu ama **gerekçesiz**:
+> önerme olarak veriliyor, açıklanmıyordu. Faz 3 açılışında bu bir hafıza boşluğu
+> olarak tespit edildi ve gerekçe buraya yazıldı — bir sonraki oturum aynı boşluğu
+> yeniden keşfetmesin.
+
+**Asimetri bilgi kaybındadır.** `up` ileri yönde bilgi **ekler**: yeni tablo, yeni
+sütun, yeni kısıt. Ekleme işlemi kendi kendini tanımlar — hedef durum şemada yazılıdır.
+`down` ise bilgi **siler**, ve silinen bilgi kendiliğinden geri gelmez:
+
+| `up` ne yaptı | `down`un geri alması gereken | Neden zor |
+|---|---|---|
+| `ADD COLUMN` | `DROP COLUMN` | Kolay görünür, ama sütundaki **veri** yok olur; `down` sonrası `up` aynı şemayı verir, aynı veriyi vermez |
+| `ALTER COLUMN TYPE` (daraltma) | Eski tipe genişletme | Daraltma **kayıplı**: `text` → `varchar(8)` sonrası kesilen karakterler yok. Şema geri gelir, içerik gelmez |
+| `DROP CONSTRAINT` | Kısıtı **birebir** yeniden kurma | Kısıtın tam tanımı (`CHECK` ifadesi, `ON DELETE` davranışı, ad) `up` betiğinde yazmıyorsa `down` onu **tahmin eder** |
+| `DROP TABLE` | Tabloyu yeniden yaratma | Tablonun tanımı artık yalnızca *önceki* migration'da; `down` onu kopyalamak zorunda ve kopya ile asıl **ayrışabilir** |
+
+Sonuç: `down` bir **türev** değil, ayrı bir eserdir; ve doğruluğu ancak
+**çalıştırılarak** kanıtlanır. Bu yüzden kabul kriteri `up`/`down`'ı gerçek bir
+Postgres örneğine karşı ister (`testcontainers`, G-03). Bir `down` betiği,
+"mantıklı görünüyor" testini geçebilir ve yine de şemayı farklı bir yere bırakabilir.
+
+**Doğrulama şekli — round-trip:** `up` → **veri yaz** → `down` → `up` → şema
+başlangıçtakiyle **birebir** aynı mı? Veri yazma adımı bilerek ortada: boş bir
+veritabanında `down` çalışıyormuş gibi görünen çok sayıda hata, dolu bir tabloda
+`NOT NULL` veya `FOREIGN KEY` yüzünden patlar.
+
+### `drizzle-kit` `down` migration ÜRETMEZ — ölçüldü (Faz 3.0)
+
+`drizzle-kit@0.31.10` üzerinde ölçüldü, blogdan okunmadı:
+
+- Komut listesinde `down` **yok**: `generate · migrate · introspect · push · studio ·
+  up · check · drop · export`. (`up` = migration **dosya formatını** yükseltir,
+  `drop` = journal'dan bir migration **siler** — ikisi de "geri al" değil.)
+- `generate --help` bayrakları arasında `--down` **yok**.
+- İki ayrı migration gerçekten üretildi; çıktı **yalnızca ileri yönlü**:
+
+```
+drizzle/0000_probe_initial.sql        -> CREATE TABLE "probe" (...)
+drizzle/0001_probe_add_country.sql    -> ALTER TABLE "probe" ADD COLUMN "country" text NOT NULL;
+drizzle/meta/0000_snapshot.json
+drizzle/meta/0001_snapshot.json
+drizzle/meta/_journal.json
+```
+
+**Ama `down` körlemesine yazılmıyor.** Her migration'ın yanında `meta/NNNN_snapshot.json`
+duruyor: şemanın o adımdan **sonraki tam ve makine-okunur hâli** (`tables`, `enums`,
+`schemas`, `sequences`, `views`, `policies` … ve `prevId` ile zincirlenmiş). Yani
+N numaralı migration'ın `down`u = snapshot N'den snapshot N−1'e giden fark, ve
+round-trip testinin beklediği durum **snapshot N−1'in kendisidir**. `down` elle
+yazılır, ama karşılaştırılacağı bir **doğruluk kaynağı** vardır.
+
 ## 3.1 Master World — Salt Okunur
 
 Bu tablolar tüm kayıtlar tarafından paylaşılır. **Asla kullanıcı işlemiyle değiştirilmez** (K4).

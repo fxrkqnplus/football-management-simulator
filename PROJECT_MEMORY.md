@@ -21,25 +21,27 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **FAZ 2 KAPANDI (2.9) — SIRADA FAZ 3** |
-| **Son tamamlanan** | ✅ **Faz 2 — Hata Kontrol ve Gözlemlenebilirlik Protokolü.** 16/16 alt görev, **5/5 kabul kriteri** |
+| **Aktif faz / alt görev** | **FAZ 3 — Veritabanı Şeması I: Dünya Çekirdeği · 3.0 BİTTİ** (11 alt görevden 1'i) |
+| **Son tamamlanan** | ✅ **3.0 — Bağımlılık kararları ve `packages/db` migration kablolaması.** Altı karar da ölçümle verildi |
 | **Tarih** | 2026-08-26 |
-| **Genel ilerleme** | **2 / 50 faz (%4)** |
-| **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(memory): PR #3 numarasını işle ve Faz 2'yi kapat` |
-| **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · **Faz 2 → PR #3 AÇIK**, hedef `develop`. ⚠️ PR'ı **kullanıcı merge edecek**; Faz 3 yeni oturumda `develop`tan açılır. |
-| **CI** | ✅ 2.8 koşusu `c06e044` → **`32918475973` başarılı** (1 dk 42 sn). Kapanış commit'lerinin koşuları push edildi, **sonucu Faz 3 oturumu işleyecek**. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **faz kapanışında yeniden ölçüldü** (`rm -rf .turbo/cache` sonrası) |
-| **test** | ✅ **520 test / 37 dosya** |
-| **kapsam** | ✅ satır **%94,92** · ifade %94,96 · dal %90,37 · fonksiyon **%96,17** — eşik %70. ⚠️ Motor eşiği (%85) **boş yere** sağlanıyor: `packages/engine`'de 0 ifade var, gerçek anlamını Faz 22'de kazanacak. |
-| **Web paketi** | **321.495 bayt** (ham). Faz 2 boyunca 229.320 → 321.495 (**+%40,2**); artışın %94'ü `@sentry/react`. |
-| **API imajı** | **423 MB** (`docker images` ölçüsü) — **faz kapanışında yeniden derlenip ölçüldü**, konteyner çalıştırıldı ve `/fms/api/health` **200** döndü. ⚠️ `docker image inspect .Size` FARKLI bir şey ölçüyor, karıştırma. |
-| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 · @sentry/node + @sentry/react **10.70.0** |
+| **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
+| **Bloke eden var mı?** | Hayır. ⚠️ Ama **plan revizyonu onay bekliyor**: `drizzle-kit` `down` migration ÜRETMİYOR (ölçüldü), 3.2 bir `down` katmanı + kendi koşucumuzu gerektiriyor → 3.2a/3.2b bölünmesi öneriliyor |
+| **Son commit** | `feat(db): drizzle + testcontainers kurulumu, Postgres 18 ve collation kararları` |
+| **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
+| **CI** | ✅ Faz 2 kapanış koşuları **işlendi**: `32920287739` ✅ · `32920409271` ✅ · PR #3 `32920412520` ✅ · `develop` merge `32920960769` ✅ (1 dk 51 sn). Faz 3 koşularının sonucu 3.1'de işlenecek. |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
+| **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
+| **test** | ✅ **520 test / 37 dosya** (3.0 test eklemedi — bağımlılık/yapılandırma alt görevi) |
+| **kapsam** | ✅ satır **%94,92** · ifade %94,96 · dal %90,37 · fonksiyon **%96,17** — eşik %70. ⚠️ Motor eşiği (%85) **boş yere** sağlanıyor (`packages/engine` 0 ifade, Faz 22'de anlam kazanır). ⚠️ **`packages/db` kapsamı da bu fazda KANIT SAYILMAYACAK:** Drizzle şema dosyalarını import etmek kapsamı %100 yapar, hiçbir iddia doğrulanmadan — aynı sınıf yalan |
+| **Veritabanı** | **PostgreSQL 18.6** (16.15'ten yükseltildi, SAPMA-019) · `builtin`/`C.UTF-8` locale (SAPMA-020) · bağlama noktası `pgdata:/var/lib/postgresql` (18'de **değişti**) · `pg_trgm` 1.6 mevcut · `docker compose up -d` → **healthy**, işlevsel olarak doğrulandı |
+| **Web paketi** | **321.495 bayt** (ham) — 3.0'da değişmedi (tarayıcı kodu eklenmedi) |
+| **API imajı** | **423 MB** — Faz 2 kapanış ölçümü, 3.0'da yeniden ölçülmedi (`apps/api` değişmedi) |
+| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · **drizzle-orm 0.45.2 + drizzle-kit 0.31.10** (tam sürüm, `^` yok) · **testcontainers + @testcontainers/postgresql 12.1.0** · jsdom 30.0.1 · pino 10.3.1 · @sentry/* 10.70.0 |
 | **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
-| **SAPMA sayısı** | **18** (SAPMA-001…018) — Faz 2'de on iki yeni kayıt |
-| **Faz 2 kabul kriterleri** | **1 ✅** (2.5b) · **2 ✅** (2.3c) · **3 ✅** (2.8) · **4 ✅** (2.7) · **5 ✅** (2.7) — **5/5** |
-| **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, Sentry panosundan yeniden ölçülmedi. 2.7/2.8/2.9'da hiç olay gönderilmedi. |
+| **SAPMA sayısı** | **20** (SAPMA-001…020) — 3.0'da iki yeni kayıt (019 Postgres 18, 020 collation) |
+| **Faz 3 kabul kriterleri** | 1 ⏳ (3.2) · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **0/5**, hiçbiri henüz sağlanmadı |
+| **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, panodan yeniden ölçülmedi. 3.0'da hiç olay gönderilmedi. |
 
 ---
 
@@ -57,52 +59,74 @@
 
 ---
 
-### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — FAZ 3 AÇILIŞI
+### 🎯 SIRADAKİ ALT GÖREV — 3.1 (Şema kapsam mutabakatı)
 
-⚠️ **FAZ 2 KAPANDI.** Bu blok artık bir alt görev devri değil, **faz devri**.
-Ayrıntılı devir teslim faz kaydının **§11** başlığında; burada yalnızca ilk
-oturumun elini çabuklaştıracak olanlar var.
+⚠️ **ÖNCE: plan revizyonu onay bekliyor.** 3.0'da ölçüldü — `drizzle-kit` `down`
+migration **üretmiyor**. 3.2'nin kapsamı buna göre büyüyor (aşağıda). Kullanıcı
+kararı gelmeden 3.2'ye geçilmez; **3.1 bundan bağımsız ve başlanabilir.**
 
-**İlk iş — üç kontrol:**
-1. Faz 2 kapanış commit'lerinin CI koşularının sonucunu bu bloğa işle.
-2. **PR #3'ün durumunu kontrol et** (`gh pr view 3`). PR'ı **kullanıcı merge
-   edecek**; merge edilmişse `develop`tan yeni dal açılır:
-   `feature/faz-03-database`. ⚠️ PR numaraları faz sırasını takip etmiyor
-   (#2 bu projeye ait değil).
-3. `🧪 FAZ 2 — ÇALIŞMA GÜNLÜĞÜ` başlığını **`🧪 FAZ 3 — ÇALIŞMA GÜNLÜĞÜ`**
-   olarak güncelle (`spec/11` §12.2 — başlık kalır, içerik faz başına yenilenir).
+**3.1'in üç ölçümü (tahmin edilmeyecek):**
 
-**Okunacaklar:** `docs/spec/01-database.md` · `docs/spec/09-quality-protocol.md`
-§11.4 · `docs/spec/12-data-packs.md` · `docs/ROADMAP.md` Faz 3 ·
-`docs/DEPENDENCY-WATCH.md` (Faz 3'e vadeli **üç** satır var).
+1. **`competition_seasons` (b) — tarihsel sezon verisi.** `spec/01` ve `spec/12`
+   bunu gerçekten istiyor mu? ROADMAP **Faz 8** kulüp detay ekranı maddesi ne
+   diyor? İstiyorsa hangi tablo taşıyacak, Faz 3'te mi Faz 8'de mi?
+   ((a) aktif sezon örneği save'e özel → Faz 3 dışı; yeri Faz 12 mi Faz 16 mı,
+   gerekçesiyle karara bağlanacak.)
+2. **`key` benzersizliği global mi, tablo başına mı?** `spec/12` §17.3'teki slug
+   algoritması `galatasaray`'ı bir kulüp, bir stadyum ve bir yarışma için **aynı
+   anda** üretebilir mi? Algoritma okunup örnekle sınanacak.
+3. **İleri FK etkisi.** `people` Faz 4'te; `federations.presidentPersonId`,
+   `clubs.chairmanPersonId`, `referees.personId` sütunları Faz 3'te
+   **yazılmayacak** (ROADMAP'te karara bağlandı) — bunun `docs/schema/world.md`
+   iskeletine nasıl not düşüleceği.
 
-**⚠️ FAZ 3'ÜN EN PAHALI KARARI, İLK GÜN VERİLİYOR:**
-`postgres` Docker imajı **16 → 18**. Şema henüz yazılmadığı için majör değişimi
-**bugün bedava**; şema yazıldıktan sonra dump/restore ister. `DEPENDENCY-WATCH`
-satırı bunu Faz 3'e bilerek bağladı. 16 bakımda ve **EOL Kas 2028**, 18'in EOL'ü
-**Kas 2030**. Kararı erteleme.
+**Ayrıca 3.1'de:** `SPEC-COVERAGE-GAPS.md`'ye **G-09** (`asset_index`, Faz 7)
+yazılır · `docs/schema/world.md` iskeleti açılır · Faz 3 CI koşularının sonucu
+ANLIK DURUM'a işlenir.
 
-**Faz 3'ün diğer iki bağımlılık kararı:** `drizzle-orm`/`drizzle-kit` (1.0 hattı
-RC'ydi; GA olduysa değerlendirilir) · `testcontainers` (**yeni** bağımlılık,
-ARM64 uyumu kurulumda doğrulanır — K14).
+---
 
-**⚠️ MİGRATION `down` YAZMAK `up` YAZMAKTAN ZORDUR** ve kabul kriteri ikisini de
-istiyor. `testcontainers` (G-03) tam bunun için kuruluyor: sahte bir veritabanına
-karşı "çalışıyor" demek, faz kaydı §5'teki **D5 deseninin** (test yeşil, üretim
-kırık) ta kendisidir.
+### ⚠️ 3.0'DAN ÇIKAN VE 3.2'Yİ DEĞİŞTİREN BULGU
 
-**Faz 2'den taşınan hazır altyapı:**
-- `arch:check` **8 kural** denetliyor. `packages/db` yalnızca `@fms/shared`
-  import edebilir; yeni bir bağ gerekirse `LAYER_RULES` **ve** `package.json`
-  **birlikte** güncellenir ("izinli" ≠ "çözümlenebilir").
-- **Hata sınıfları hazır:** şema doğrulama → `ValidationError`, değişmez ihlali
-  → `EngineError`. `assertInvariant` varsayılan **`throw`** kipinde ve motor onu
-  gevşetemez (`configureAssertions` motora yasak).
-- **Loglama kablolu:** `correlationId` otomatik taşınıyor. `packages/db` içinde
-  log yazılacaksa logger **parametre olarak** alınır.
-- `clean-dist.mjs` sekiz paketin `build` betiğinde. **Yeni paket eklenirse ona
-  da bağlanır**, yoksa turbo bayat çıktı servis eder (SAPMA-011).
-- `debugTrace` hazır ama Faz 3'te gerek yok; ilk gerçek tüketici Faz 14/20.
+`drizzle-kit@0.31.10` **yalnızca ileri yönlü** migration üretiyor. Kanıt ve tam
+ölçüm: `docs/spec/01-database.md` **§3.0**. Özet:
+
+- Komut listesinde `down` yok (`up` = dosya formatını yükseltir, `drop` =
+  journal'dan siler — ikisi de "geri al" değil), `generate --help`'te `--down` yok
+- İki migration gerçekten üretildi, çıktı: `NNNN_ad.sql` (ileri) +
+  `meta/NNNN_snapshot.json` + `meta/_journal.json`
+
+**Ama `down` körlemesine yazılmayacak:** her adımın `meta/NNNN_snapshot.json`
+dosyası şemanın o adımdan sonraki **tam, makine-okunur** hâlini tutuyor ve
+`prevId` ile zincirleniyor. N'inci migration'ın `down`u = snapshot N → N−1 farkı;
+round-trip testinin beklediği durum da **snapshot N−1'in kendisi**.
+
+**Sonuç — 3.2 büyüyor:** drizzle'ın `migrate()`i yalnızca ileri gidiyor, yani
+`down` için kendi koşucumuz gerekiyor. Önerilen bölünme **3.2a** (migration
+koşucusu: journal okuma, takip tablosu, up+down, `testcontainers` hattı) /
+**3.2b** (round-trip kanıtı + negatif testler). Karar kullanıcıda.
+
+---
+
+### 📌 3.0'DAN TAŞINAN, SONRAKİ ALT GÖREVLERİ BAĞLAYAN KISITLAR
+
+- **Entegrasyon testi ayrı komut olmalı — ölçülmüş sebep:** `testcontainers` ile
+  tek Postgres konteyneri **5.592 ms**'de kalkıyor. Birkaç test dosyası kapı
+  koşusunu saniyelerden dakikalara çıkarır. ⚠️ Ve o komut **faz kapanış listesine
+  yazılmalı** (`docs/spec/09` §11.5) — yazılmazsa hiç koşulmaz, G-01'in birebir
+  aynı hatası.
+- **Sürücü seçimi 3.2'ye BIRAKILDI** (`pg` mi `postgres.js` mi). 3.0'ın kapsamı
+  bağımlılık *kararlarıydı* ve `drizzle-kit generate` sürücüsüz çalışıyor;
+  sürücüyü bugün seçmek 3.2'nin işine girmek olurdu (K12).
+- **`drizzle.config.ts` `packages/db` kökünde** ve `dbCredentials` **yok** —
+  3.2'de koşucu yazılırken tamamlanacak.
+- **`packages/db/drizzle.config.ts` ESLint'te `allowDefaultProject`'e eklendi.**
+  `apps/web` emsali (tsconfig `include`) burada çalışmıyor: `rootDir: "src"`
+  kısıtı TS6059 veriyor. Yeni bir paket kökü yapılandırma dosyası gelirse aynı
+  yere eklenir.
+- **`allowBuilds` politikası kuruldu.** Yeni bir bağımlılık kurulum betiği
+  getirirse `pnpm-workspace.yaml`'a **açık** satır yazılır; varsayılan `false`.
+  Ayrıntı: ORTAM TUZAKLARI ⑫.
 
 ---
 
@@ -191,6 +215,31 @@ gerekiyorsa IIFE'ye sarılır: `(async () => { … })()`.
 **⑪ `.env`'de `ACTIVE_PACK` BOŞ ve bu BEKLENEN** — API her açılışta
 `env.activePackMissing` uyarısı basıyor. Hata değil (veri paketleri Faz 7-9).
 Yeni oturum bunu regresyon sanmasın.
+
+**⑫ `pnpm install` KURULUM BETİĞİ OLAN BİR PAKETTE KURULUMU KIRAR** (Faz 3.0).
+pnpm 11 bağımlılıkların `install`/`postinstall` betiklerini varsayılan olarak
+çalıştırmaz ve **karara bağlanmamış** bir betik kalırsa `pnpm install` **exit 1**
+döner (`ERR_PNPM_IGNORED_BUILDS`). Yeni bir bağımlılık böyle bir paket getirirse
+`pnpm-workspace.yaml` → `allowBuilds` haritasına **açık** satır yazılır.
+
+- ⚠️ **Anahtar `ignoredBuiltDependencies` DEĞİL.** pnpm 11'de o ayar (ve
+  `onlyBuiltDependencies`, `neverBuiltDependencies`, `onlyBuiltDependenciesFile`)
+  **LEGACY** ve **sessizce yok sayılıyor**. Faz 3.0'da ikisi de yazıldı, kurulum
+  yine exit 1 verdi; cevap pnpm'in kendi dağıtımından okundu (`LEGACY_BUILD_SETTINGS`).
+- ⚠️ **`pnpm install` `pnpm-workspace.yaml`'ı KENDİSİ DEĞİŞTİRİR** — iskelet satır
+  yazar (`paket: set this to true or false`). Kurulum sonrası
+  `git diff pnpm-workspace.yaml` bakılır.
+- ⚠️ **Karar `node_modules/.modules.yaml`'da ÖNBELLEKLENİR** ve o dosya
+  `.gitignore`'da. Yani ayar olmadan da yerelde `exit 0` alınabilir — **CI temiz
+  kurulumda kırılır**. Negatif test `pnpm install --force` ile yapılır, aksi
+  hâlde yanlış negatif verir (günlük #4).
+
+**⑬ Bash aracının ÇALIŞMA DİZİNİ ÇAĞRILAR ARASINDA KALICI** (Faz 3.0). Bir
+çağrıda `cd packages/db` yapılırsa sonraki çağrıdaki göreli yol **oradan** çözülür.
+Faz 3.0'da sonda dosyaları `packages/db/packages/db/` altına yazıldı ve `find`
+maxdepth yüzünden onları bulamadı. **Dosya yazarken her zaman mutlak yol; `pwd`
+çıktısı varsayılmaz.** Tuzak ①'in (MSYS yol dönüşümü) akrabası: ikisi de "yol
+yazdığın yere gitmedi" sınıfı ve ikisi de sessiz.
 
 ---
 
@@ -467,6 +516,8 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec/ROADMAP güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-020 | `düzeltme` | 3 | `docker-compose.yml` veritabanını `--locale=C` ile `initdb` ediyordu ve dosyadaki yorum bunu *"karşılaştırma davranışını sabitler"* diye savunuyordu. **İddia ölçümle çürütüldü:** `C` ctype Unicode büyük-küçük harf katlaması yapmıyor ve Türkçe metinde aramayı sessizce bozuyor. `--locale-provider=builtin --builtin-locale=C.UTF-8` ile değiştirildi. | **Ölçüm** (postgres:18): `--locale=C` altında `'BEŞİKTAŞ' ILIKE '%beşiktaş%'` → **`f`**, `lower('BEŞİKTAŞ')` → **`beŞİktaŞ`**. ASCII adlarda hata görünmüyor — yani "çalışıyor gibi duran" bir kapı; Faz 32'nin 50.000 oyuncu üzerindeki araması ve her ad araması bunun üstünde çalışacaktı. `builtin`/`C.UTF-8` ile aynı ölçüm: `t` ve `beşiktaş`. **Veritabanı varsayılanı bilinçli olarak Türkçe DEĞİL:** `tr-TR`'de `lower('I')` → `ı` (ölçüldü) ve bu kural İngilizce kulüp adlarına da uygulanır, "Inter" araması bozulurdu — Türkçe casing bir **sunum** kuralıdır. Sıralama sorgu başına `COLLATE "tr-TR-x-icu"` ile çözülüyor (veritabanı `C` olsa bile **871 ICU collation** kullanılabilir durumda, ölçüldü) ve `COLLATE`'li indeks `ORDER BY … LIMIT` için **Index Only Scan** veriyor (`EXPLAIN` ile doğrulandı) — tek veritabanı iki dilli arayüzü karşılıyor. **Elenen alternatif:** libc `C.UTF-8` (PG16'nın da yapabildiği); işlevsel olarak eşdeğer ama `datcollversion` **boş** geliyor, yani glibc yükseltmesi indeksleri **uyarı vermeden** geçersizleştirebilir. `builtin`de `datcollversion=1`. ⚠️ Dürüstlük notu: ICU collation'ları sürüm taşıyor (`153.128.46`), o yüzden ICU'yla kurulan **indeksler** hâlâ etkilenebilir — kazanç etki alanının veritabanı geneli yerine tek indekse daralması. | ✅ `docker-compose.yml` (ölçüm tablosu yorumda), `docs/DEPENDENCY-WATCH.md` (tam karşılaştırma tablosu). ROADMAP'te collation iddiası **geçmiyor** (grep ile arandı) |
+| SAPMA-019 | `karar` | 3 | `postgres` Docker imajı **16 → 18**. `CLAUDE.md` §2.1, `docker-compose.yml`, `docs/ROADMAP.md` §0.1b ve §0.2, `README.md` "PostgreSQL 16" diyordu. | **Şema Faz 3'te yazılıyor, yani majör değişimi bugün bedava** — veri girdikten sonra `pg_upgrade`/dump-restore ister. 16 EOL Kas 2028, 18 EOL Kas 2030. Docker Hub `docker manifest inspect` ile yoklandı: 14–18 var, 19 yok; **18 dahil hepsinde `linux/arm64/v8`** (K14 ✅). Ölçülen sürüm 18.6. **EOL'den bağımsız ikinci gerekçe:** `builtin` locale sağlayıcısı PG17+ ve SAPMA-020'nin çözümü ona dayanıyor — PG16'da `initdb: error: unrecognized locale provider: builtin` (ölçüldü). **İki kırıcı değişiklik ölçüldü:** ① 18+ imajları veriyi majör sürüme özgü alt dizine koyuyor, bağlama noktası `/var/lib/postgresql/data` → **`/var/lib/postgresql`** (eski yolla konteyner exit 1 ve açık hata veriyor; `SHOW data_directory` → `/var/lib/postgresql/18/docker`) ② mevcut `pgdata` volume'ü `PG_VERSION=16` taşıyordu ve kullanılamaz, silindi. Yığın yeniden kurulup **çalıştırıldı** (D5): `fms-postgres Up (healthy)`, `psql -c 'SELECT 1'` healthcheck'i geçiyor, `pg_trgm` 1.6 mevcut. | ✅ `docker-compose.yml`, `CLAUDE.md` §2.1, **`docs/ROADMAP.md` §0.1b + §0.2**, `README.md`, `docs/DEPENDENCY-WATCH.md`. ⚠️ `CHANGELOG.md` ve ROADMAP Faz 1 maddeleri (1.7) **bilerek dokunulmadı** — tarihsel kayıt, o gün gerçekten 16'ydı. `docs/MASTER-SPEC.md` donmuş arşiv |
 | SAPMA-018 | `karar` | 2 | **2.3b'nin "iş düşürülmez" kararının KAPSAMI daraltıldı (2.7).** `apps/web/src/lib/api.ts` sunucu farklı bir `correlationId` döndürdüğünde `logger.warn` basıp devam ediyordu; artık `assertInvariant` çağırıyor ve **geliştirme derlemesinde FIRLATIYOR**. | **Karar iptal edilmedi, kapsamı daraltıldı: üretim davranışı BAYT BAYT AYNI** — prod derlemesinde hâlâ `logger.warn` basıp devam ediyor (gerçek tarayıcıda ölçüldü: `API durumu = ok`, `zincir kapandı mı = HAYIR`). Değişen tek şey dev derlemesi. **Neden gerekliydi:** kabul kriteri 4 iki derlemeyi **koşarak** kanıtlamayı istiyor; çağrı yeri olmadan ağaç sarsma modülü paketten siler ve koşulacak davranış kalmaz. Elenen iki alternatif: (a) `App.tsx`'e ikinci bir kontrol koymak — `spec/09` §11.5'in açıkça yasakladığı şey (aynı değişmez iki yerde denetlenirse birinde gevşetilince sessizce ölür); (b) ürüne bir sonda koymak — üretime test kodu sızdırırdı. **Neden bu değişmez doğru aday:** kontrol zaten vardı ve gerçek bir değişmezi denetliyor; 2.3c bir alt görevi bu zincirin kapandığını kanıtlamaya harcadı, sessizce bozulursa çürür. `kind: dataProvider` seçildi (Karar 18): bu bir motor değişmezi değil, yukarı akış anomalisi. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.7 + kabul kriteri 4, `apps/web/src/lib/api.ts` (gerekçe dosyada) |
 | SAPMA-017 | `karar` | 2 | ROADMAP kabul kriteri 4 *"prod **build**'de loglayıp devam ediyor"* diyor; ayrım **yalnızca tarayıcıda** kuruldu. `apps/api`/`apps/worker` tarafına bayrak **eklenmedi**; orada varsayılan `throw` geçerli. | **Üç gerekçe.** ① **Tüketici yok (K12):** `apps/api`'de tek bir `assertInvariant` çağrı yeri yok; bayrak eklemek spekülatif yapılandırma olurdu. ② **Kanıtlanamaz → işaretlenemez:** çağrı yeri olmadan iki kip **koşularak ayırt edilemez**; yalnızca "bayrak okundu" loglanabilirdi ve bu kanıt değil. Bu projede sürekli kaçınılan şey tam olarak bu. ③ **Env ≠ build bayrağı:** `apps/api` düz `tsc` ile derleniyor, `define` yok; oradaki tek seçenek bir **çalışma zamanı** env değişkeni olurdu ve çalışma zamanında değiştirilebilen bir bayrak, derlemeye sabitlenmiş bir bayrağın garantisini vermez. **Varsayılanın `throw` olması bir eksiklik değil, doğru davranış:** `spec/09` §11.3 *"İhlal → tur geri alınır"* diyor. **YENİDEN DEĞERLENDİRME KOŞULU:** motor `assertInvariant` kullanmaya başladığında (Faz 16 tur motoru / Faz 22 maç motoru). O gün bayrak `LOG_FORMAT`'ın deseniyle **açık bir Zod enum'u** olarak gelir, `NODE_ENV`'den çıkarsanmaz. | ✅ `docs/ROADMAP.md` Faz 2 madde 2.7, `docs/spec/09-quality-protocol.md` §11.3 (yeni alt bölüm), `packages/shared/src/assert.ts` (gerekçe dosya başında) |
 | SAPMA-016 | `karar` | 2 | `docs/spec/09` §11.2 `DebugTrace.input` alanını `Record<string, unknown>` olarak tanımlıyordu; **`ErrorContext`'e daraltıldı** (düz, JSON-güvenli ilkeller + sığ dizi). | **2.1'deki `AppError.context` daraltmasının doğal uzantısı ve birebir aynı gerekçe:** bu veri loglara ve Sentry'ye gidiyor. İç içe nesneye izin vermek "bütün varlığı ize koy" alışkanlığını mümkün kılar; dar tip izi üreten tarafı **alan seçmeye** zorlar. Aynı redaksiyon hattına giden iki tip tutarsız olmamalı — biri gevşek kalırsa gevşek olan kullanılır. **Elenen alternatif:** tipi geniş bırakıp düzleştirmede iç içe değerleri `[NESTED]` ile temizlemek. Sızıntıyı yine engellerdi ama korumayı **derleme zamanından çalışma zamanına** taşırdı: geliştirici bütün nesneyi koyar, düzleştirici sessizce temizler, kimse yanlış yaptığını fark etmez. **`output` bilinçli olarak serbest kaldı** — hesaplamanın asıl sonucu odur, daraltmak `DebugTrace<T>`'yi işe yaramaz kılardı; log hattına tek köprü `traceToLogContext()` ve o `output`'a hiç dokunmuyor, ikinci kilit tipte (`LogValue` nesne kabul etmiyor → derleme kırılır). | ✅ `docs/spec/09-quality-protocol.md` §11.2 (arayüz + gerekçe bloğu), `packages/shared/src/debug-trace.ts` (gerekçe dosya başında) |
@@ -488,9 +539,28 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 ---
 
-## 🧪 FAZ 2 — ÇALIŞMA GÜNLÜĞÜ
+## 🧪 FAZ 3 — ÇALIŞMA GÜNLÜĞÜ
 
 > **Kalıcı yapı, geçici içerik.** Kurallar: `docs/spec/11-project-memory.md` §12.2.
+> Faz süresince karşılaşılan hatalar buraya **anında** yazılır; faz kapanışında
+> faz kaydının §5 tablosuna işlenir, tablo **boşaltılır ama başlık kalır**.
+>
+> **En yeni satır en üstte.**
+
+| #   | Alt görev | Hata (belirti)                                                                                                                                                                                                | Kök neden                                                                                                                                                                            | Çözüm                                                                                                                                                    | Tekrar önleme                                                                                                                                                        |
+| --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6   | 3.0       | `pnpm lint` kırıldı: `drizzle.config.ts was not found by the project service`                                                                                                                                  | Dosya paket kökünde, hiçbir tsconfig'in `include`'unda değil; `allowDefaultProject` yalnızca **kök** `*.config.ts` eşliyordu                                                            | `apps/web` emsali (`include`'a ekle) denendi → **TS6059, `rootDir: "src"` dışında**. `apps/web`i Vite derliyor, `packages/db`yi `tsc`. ESLint tarafından çözüldü | Negatif test: dosyaya `any` + `console.log` konup lint'in **2 hata** verdiği, geri alınca temizlendiği ölçüldü. Emsal kopyalamadan önce "aynı koşullar mı?" sorulur      |
+| 5   | 3.0       | Sonda dosyaları `packages/db/packages/db/` altına yazıldı                                                                                                                                                       | Bash aracının **çalışma dizini çağrılar arasında kalıcı**; önceki `cd packages/db`'den sonra göreli yol oradan çözüldü                                                                  | Dizin silindi, dosyalar mutlak yolla yeniden yazıldı                                                                                                        | **Dosya yazarken her zaman mutlak yol.** `pwd` çıktısı varsayılmaz                                                                                                     |
+| 4   | 3.0       | `allowBuilds` negatif testi **yanlış NEGATİF** verdi: ayar kaldırıldı, `pnpm install` yine exit 0                                                                                                              | Karar `node_modules/.modules.yaml` (`ignoredBuilds`) içinde **önbelleğe alınmıştı**; kapıyı tutan yapılandırma değil önbellekti                                                         | Test `pnpm install --force` ile tekrarlandı: ayar yok → **exit 1**, ayar var → **exit 0**                                                                    | D2. Bir negatif test "kırılmadı" diyorsa **önce aracın durumu** sorgulanır. `.modules.yaml` `.gitignore`'da — yerel geçmek CI'ın geçeceğini göstermez                    |
+| 3   | 3.0       | `ignoredBuiltDependencies: [esbuild]` yazıldı, kurulum **hâlâ** exit 1; `onlyBuiltDependencies: []` eklendi, yine exit 1                                                                                        | pnpm 11'de bu anahtarlar **LEGACY** ve sessizce yok sayılıyor (`LEGACY_BUILD_SETTINGS`, pnpm dağıtımından okundu). Yerine `allowBuilds: {paket: bool}` geldi                            | `allowBuilds` haritası yazıldı, `pnpm-workspace.yaml`'da gerekçesiyle sabitlendi                                                                            | Bir ayar yazıldığı hâlde davranış değişmiyorsa **aracın kendi kaynağına** bakılır. Yazılmış ama hiçbir şey yapmayan ayar = sessiz kapı                                  |
+| 2   | 3.0       | `pnpm install` **exit 1** — `ERR_PNPM_IGNORED_BUILDS` (`esbuild` ×3)                                                                                                                                            | `drizzle-kit` üç esbuild sürümü getirdi; pnpm 11 karara bağlanmamış kurulum betiği kalırsa kurulumu **kırıyor**. Karar `.gitignore`'daki `.modules.yaml`'da saklanıyor, yani CI da kırılırdı | Üç sürümün de betiksiz çalıştığı **ölçüldü**, `allowBuilds: {esbuild: false}` yazıldı                                                                       | Yeni bağımlılık kurulum betiği getirirse `pnpm-workspace.yaml`'a **açık** satır eklenir; varsayılan `false`                                                            |
+| 1   | 3.0       | `pnpm install` izlenen bir dosyayı **kendisi değiştirdi**: `pnpm-workspace.yaml`'a `allowBuilds: {esbuild: set this to true or false}` iskeleti yazdı. Fark edilmeden ikinci bir blok eklenince YAML çift anahtar hatası verdi | pnpm'in `approve-builds` akışı iskeleti otomatik yazıyor                                                                                                                              | Dosya tek bloğa indirildi                                                                                                                                   | **`pnpm install` sonrası `git diff pnpm-workspace.yaml`.** Bir kurulum komutu izlenen dosyayı değiştirebilir                                                           |
+
+---
+
+<details>
+<summary>Faz 2 günlüğünün kapanış notu (arşiv)</summary>
+
 > Faz süresince karşılaşılan hatalar buraya **anında** yazılır; 2.9'da faz
 > kaydının §5 tablosuna işlenir, tablo **boşaltılır ama başlık kalır**.
 >
@@ -518,6 +588,10 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 > Başlık kalıyor (`docs/spec/11-project-memory.md` §12.2): aksi hâlde her faz
 > aynı ihtiyacı yeniden keşfeder ve bölümü yeniden icat eder.
 > **Faz 3 açılışında başlık `🧪 FAZ 3 — ÇALIŞMA GÜNLÜĞÜ` olarak güncellenir.**
+
+✅ Başlık 3.0'da güncellendi, tablo Faz 3 satırlarıyla yeniden açıldı.
+
+</details>
 
 ---
 

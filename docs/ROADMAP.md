@@ -34,7 +34,7 @@
 | Katman | Servis | Ücretsiz limit | Yeterli mi? |
 |---|---|---|---|
 | Sunucu | Oracle Cloud Always Free A1 (ARM) | 2 OCPU / 12 GB / 200 GB / 10 TB egress | ✅ Süresiz |
-| Veritabanı | **Kendi sunucumuzda Postgres 16** | 200 GB disk içinde | ✅ Yönetilen ücretsiz Postgres'ler (Supabase 500 MB, Neon 0.5 GB) **yetersiz** |
+| Veritabanı | **Kendi sunucumuzda Postgres 18** | 200 GB disk içinde | ✅ Yönetilen ücretsiz Postgres'ler (Supabase 500 MB, Neon 0.5 GB) **yetersiz** |
 | Redis | Kendi sunucumuzda | — | ✅ |
 | Frontend | **Origin konteyneri (Caddy arkası)** | Oracle A1 içinde | ✅ `/fms` bir ALT YOL; aynı hostname'in alt yolunu Pages'e kırmak Workers akrobasisi gerektirir ve hiçbir şey kazandırmaz. Statik varlıklar Cloudflare önbellek kuralıyla hızlandırılır. |
 | CDN / TLS / DDoS / WAF | Cloudflare proxy | Ücretsiz plan | ✅ |
@@ -115,7 +115,7 @@ Durum:         Zustand + TanStack Query
 Render:        PixiJS (maç sahası) + Canvas 2D (grafikler)
 Backend:       Node.js + TypeScript + NestJS
 Motor:         packages/engine (paylaşımlı TS, sunucuda çalışır)
-Veritabanı:    PostgreSQL 16 + Drizzle ORM
+Veritabanı:    PostgreSQL 18 + Drizzle ORM        (16 → 18, Faz 3.0 — SAPMA-019)
 Kuyruk:        BullMQ + Redis
 Realtime:      Server-Sent Events (SSE)
 Auth:          @node-rs/argon2 + jose (JWT) — CLAUDE.md §2.1 kilitli
@@ -1062,7 +1062,15 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 
 ### Faz 3 — Alt görev listesi
 
-- [ ] **3.0** Bağımlılık kararları ve `packages/db` migration kablolaması.
+- [x] **3.0** Bağımlılık kararları ve `packages/db` migration kablolaması.
+      **SONUÇ:** `drizzle-orm@0.45.2` + `drizzle-kit@0.31.10` kuruldu (1.0 hâlâ RC,
+      karar korundu) · `testcontainers`+`@testcontainers/postgresql@12.1.0` kuruldu,
+      ARM64 denetlendi ve **gerçekten çalıştırıldı** (5.592 ms'de PG18 konteyneri) ·
+      Postgres **16 → 18.6** (SAPMA-019, bağlama noktası değişti) · collation
+      `--locale=C` → **`builtin`/`C.UTF-8`** (SAPMA-020, `C` Türkçe `ILIKE`'ı
+      sessizce bozuyordu) · `pnpm` `allowBuilds` politikası kuruldu.
+      ⚠️ **`drizzle-kit` `down` migration ÜRETMİYOR** (ölçüldü, `spec/01` §3.0) —
+      3.2 büyüyor, 3.2a/3.2b bölünmesi öneriliyor.
       **Sıra bağlayıcı:** ① `drizzle-kit` gerçekten `down` migration **üretiyor mu**
       (registry ve aracın **kendi çıktısından** ölçülür, blogdan değil — üretmiyorsa
       `down`'lar elle yazılır, her migration'ın maliyeti iki katına çıkar ve **bu liste

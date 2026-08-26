@@ -50,6 +50,28 @@ uçtan uca denendi ve zincirin bir halkası **yok** çıktı.
 
 ---
 
+## Tarama 3 — Faz 3.0 (2026-08-26)
+
+Yöntem: Faz 3 açılışında `docs/spec/12-data-packs.md` (veri paketleri) şemadan ne
+istediği açısından satır satır okundu ve `docs/spec/01-database.md` §3.1 ile
+karşılaştırıldı.
+
+| #    | Spec referansı                                                                                         | Ne istiyor                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Hangi faza ait olmalı                                                                     | Durum                                                                                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G-09 | `spec/12` §17.5 adım 7 — *"İndeksle → **`asset_index`** tablosuna kaydet (id, tip, kaynak, hash)"*     | Varlık hattının ürettiği her görselin kaydedileceği bir indeks tablosu. **`spec/01`'de yok, `docs/ROADMAP.md`'nin hiçbir fazında geçmiyor** — yani hiç kimsenin işi. `spec/12` §17.5'in tamamı bu tabloya yazmakla bitiyor ve §17.9 kabul kriteri *"eksik varlık oranı raporlanıyor"* diyor; o oranın sayılacağı yer burası.                                                                                                                                              | **Faz 7** (DataProvider) — tabloyu **dolduran** hat orada; Faz 8-9 ingest onu kullanacak     | ⏳ ROADMAP'e işlenmedi — **Faz 3'te bilinçli olarak AÇILMIYOR.** Hiçbir şeyin yazmadığı bir tablo açmak, tüketicisi olmayan bir sütun açmakla aynı sınıf (Faz 2 §5 **D3**).      |
+
+**Faz 3'ün buna bağlı kararı:** `crestAssetId`, `portraitAssetId`, `logoAssetId`,
+`flagAssetId` alanları `spec/01`'deki gibi düz `text` kalıyor — `asset_index`'e FK
+verilip verilmeyeceği tabloyu açan fazda kararlaştırılır.
+
+> ℹ️ Aynı taramanın **boşluk olmayan** bulguları ROADMAP Faz 3'e doğrudan işlendi:
+> `spec/12` §17.1'in *"her varlık kaydında `source` alanı"* ve §17.3'ün `key` +
+> `externalIds` gereksinimleri `spec/01`'in master tablolarında yoktu. Bunlar
+> "hiçbir fazın işi değil" sınıfına girmiyor — Faz 3'ün **kendi** şema işi — o
+> yüzden burada değil, ROADMAP Faz 3 tablo envanterinde.
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.

@@ -212,7 +212,7 @@ Her PR açıklaması: faz numarası, kapsam özeti, kabul kriteri kontrol listes
   "backend": {
     "framework": "NestJS 11 (Express 5 — joker rota sözdizimi değişti: /*splat)",
     "orm":       "drizzle-orm 0.45 + drizzle-kit 0.31",   // 1.0 hâlâ RC, girilmedi
-    "db":        "PostgreSQL 16",
+    "db":        "PostgreSQL 18",                          // 16 → 18, Faz 3.0 (SAPMA-019)
     "cache":     "ioredis 5.11",                          // 6.x → BORÇ-001, Faz 16
     "queue":     "bullmq 5.81",                           // 6.x → BORÇ-002, Faz 16
     "validation":"zod 4",
