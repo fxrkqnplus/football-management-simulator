@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-26 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. Plan revizyonu **onaylandı**: 3.2 → **3.2a** (koşucu) / **3.2b** (round-trip kanıtı), liste 11 → **12** alt görev |
-| **Son commit** | `feat(db): round-trip kanıtı — 89 olgu karşılaştırıldı, sessiz bozuk down yakalanıyor` |
+| **Son commit** | `docs(memory): 3.2b CI sonucunu işle — round-trip arm64'te de yeşil` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ 3.2a düzeltme koşusu `33001816073` ve `33002062059` — altı iş de yeşil, *Entegrasyon* işi **arm64 dahil**. **3.2b koşusunun sonucu 3.3'te işlenecek.** ⚠️ Kalıcı ders (günlük #15, `spec/09` §11.5): yeni bir CI işi, mevcut işlerin **örtük hazırlık adımlarını** miras almaz — `Entegrasyon` işi `pnpm build` olmadan iki mimaride birden kırılmıştı. |
+| **CI** | ✅ **3.2b koşusu `33016109348` — ALTI İŞ DE YEŞİL**, *Entegrasyon* işi **arm64 dahil**: round-trip kanıtı gerçek bir ARM64 runner'ında da koştu. ⚠️ Kalıcı ders (günlük #15, `spec/09` §11.5): yeni bir CI işi, mevcut işlerin **örtük hazırlık adımlarını** miras almaz — `Entegrasyon` işi `pnpm build` olmadan `33001368015`'te iki mimaride birden kırılmıştı. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
 | **test** | ✅ **590 test / 43 dosya** (`pnpm test`) — 3.2b **+23 test / +2 dosya**. Ayrıca ✅ **`pnpm test:db` 16 test / 2 dosya** (3.2b **+8**), gerçek PG18 konteyneriyle (varsayılan `pnpm test`'e GİRMEZ) |
@@ -74,8 +74,6 @@ geçemez. K4 zaten *"tip seviyesinde derlenmez"* diyor.
 **Neden 11 tablodan ÖNCE:** zorlama farklı bir tablo tanımı biçimi isterse (örneğin
 şema nesnelerinin ayrı bir sarmalayıcıdan geçmesi), 11 tablo yazıldıktan sonra
 öğrenmek 11 tabloyu yeniden yazmak demek.
-
-**İlk iş:** 3.2b CI koşusunun sonucunu ANLIK DURUM'a işle.
 
 ---
 
