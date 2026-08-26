@@ -997,7 +997,19 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
   örneğine karşı doğrulanabilir. **ARM64 uyumu kurulumda doğrulanır (K14).**
 
 **Kabul kriterleri:**
-- [ ] Migration ileri ve geri çalışıyor (`up` / `down`) — *gerçek Postgres'e karşı, `testcontainers` ile (G-03)*
+- [x] Migration ileri ve geri çalışıyor (`up` / `down`) — *gerçek Postgres'e karşı, `testcontainers` ile (G-03)*
+      **Faz 3.2b'de kanıtlandı.** Çevrim: `up` → **veri yaz** → `down` → `up` →
+      gerçek `information_schema`/`pg_catalog` durumu çevrim öncesiyle karşılaştırıldı:
+      **89 olgu, fark yok** (`countries`); çok adımlı fixture zincirinde **48 olgu, fark yok**.
+      Kanıt üç yerde birden koştu: `pnpm test:db` (16 test, PG18 konteyneri) · CI'ın
+      `Entegrasyon` işi (**amd64 + arm64**) · **derlenmiş çıktı düz `node` ile** gerçek
+      Postgres'e karşı (D5).
+      ⚠️ **Negatif testler zorunluydu ve bozuk `down`un İKİ SINIFI ölçüldü:**
+      *eksik kalan* (`down` kendi eklediğini düşürmez) → sonraki `up` **patlıyor**,
+      gürültülü sınıf · *fazla giden* (`down` kendi yaratmadığını da düşürür) → hiçbir
+      hata çıkmıyor, şema **sessizce eksiliyor** ve **yalnızca karşılaştırma yakalıyor**.
+      Mutasyonla doğrulandı: karşılaştırıcı köreltildiğinde 16 testin **yalnızca 1'i**
+      kırılıyor — o da bu negatif test. Pozitif testler kör bir karşılaştırıcıyla da geçer.
 - [ ] 6 ülke + 6 lig + 5 UEFA/yerel kupa örnek verisiyle seed başarılı
 - [ ] Tüm yabancı anahtarlar ve `ON DELETE` davranışları tanımlı
 - [ ] `EXPLAIN ANALYZE` ile temel sorgular < 20 ms
@@ -1122,13 +1134,29 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       **`--dry-run`** aynı mekanizmayı kullanıyor: gerçekten uygular, ölçer,
       `RollbackSignal` ile geri alır. Gerekçe `packages/db/src/migrate/loss.ts`
       başlığında.
-- [ ] **3.2b** **Round-trip kanıtı** — **yalnızca `countries`** üzerinde:
-      `up` → **veri yaz** → `down` → `up` → şema `meta/NNNN_snapshot.json` ile
-      **birebir aynı mı**, gerçek Postgres'te. Negatif test: `down`'ın bir adımı
-      bilerek bozulur, testin **kırıldığı** görülür. **Kabul kriteri 1 burada
-      kanıtlanır ve sonraki her migration bu hattı miras alır.**
-      Ayrı alt görev olmasının sebebi: koşucu ve kanıtı aynı commit'te olsaydı bir
-      aksaklıkta *"koşucu mu bozuk, `down` mu?"* sorusu doğardı
+- [x] **3.2b** **Round-trip kanıtı.** `packages/db/src/schema-state/` — derin
+      introspection (sütun tipi, `NOT NULL`, `DEFAULT`, kısıtlar `pg_get_constraintdef`
+      ile, indeksler, sequence tanımı), saf karşılaştırıcı, drizzle snapshot
+      ayrıştırıcısı. **Kabul kriteri 1 kapandı** (yukarıda, ölçümleriyle).
+      **İKİ AYRI İDDİA ayrı ayrı kanıtlandı:** ① round-trip — gerçek şema durumu
+      çevrim öncesi vs sonrası ② snapshot güvenilirliği — drizzle'ın
+      `meta/NNNN_snapshot.json`'ı gerçek şemayı doğru anlatıyor mu. İkincisi
+      olmadan snapshot'ı sonraki fazlarda doğruluk kaynağı saymak temenniye dayanırdı.
+      ⚠️ **Snapshot KAYIPLI bir temsil — ölçüldü ve kapsam YAZILDI:** snapshot
+      `"type": "serial"` diyor, gerçek `integer` + `nextval(...)`; snapshot
+      `sequences: {}` diyor, gerçekte `countries_id_seq` **var**. Bu yüzden ②'nin
+      kapsamı dar tutuldu (tablo/sütun adları, sıra, `NOT NULL`, birincil anahtar,
+      benzersizlik) ve darlığı `drizzle-snapshot.ts` başlığında **tablo hâlinde**
+      yazılı — yazılmasaydı "snapshot doğrulandı" izlenimi veren bir D3 olurdu.
+      ⚠️ **SEQUENCE KARARI:** tanım **şemadır** (karşılaştırılır), konum
+      (`last_value`/`is_called`) **veridir** (karşılaştırılmaz). Ölçüldü: üç satır
+      sonrası çevrimde `last_value` **3 → 1**, ama tanım (ad, tip, start, min, max,
+      increment, cycle) **birebir aynı**. Karşılaştırmaya sokulsaydı test yalnızca
+      hiç veri yazılmamışken geçerdi — yani kriterin *"veri yaz"* adımını sabote
+      ederdi. **Dışlama sessiz değil:** entegrasyon testi konumu okuyup raporluyor.
+      **Çok adımlı çevrim GEÇİCİ FIXTURE ZİNCİRİYLE kanıtlandı**, gerçek zincire
+      ikinci bir migration eklenmeden: `drizzle/` pratikte append-only ve bir test
+      migration'ı 3.4'ün numaralandırmasını sonsuza kadar kirletirdi
 - [ ] **3.3** K4 — Master World salt-okunurluğu **tip seviyesinde**. `db.master` istemcisi,
       `DeepReadonly` dönüşler, denetim kuralı. **Negatif test: master tabloya yazma
       girişimi DERLENMEZ.** 11 tablodan **önce** geliyor: sonra takılsaydı ve farklı bir

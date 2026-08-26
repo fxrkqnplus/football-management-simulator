@@ -6,3 +6,4 @@
  */
 export * from './migrate/index.js';
 export * from './schema/index.js';
+export * from './schema-state/index.js';

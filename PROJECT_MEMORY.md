@@ -21,18 +21,18 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **FAZ 3 — Veritabanı Şeması I: Dünya Çekirdeği · 3.2a BİTTİ** (12 alt görevden 3'ü) |
-| **Son tamamlanan** | ✅ **3.2a — Migration koşucusu.** `up`+`down`, kayıp ÖLÇÜMÜ, `--dry-run`, `pnpm test:db` hattı. **Faz 3'ün ilk kodu** |
+| **Aktif faz / alt görev** | **FAZ 3 — Veritabanı Şeması I: Dünya Çekirdeği · 3.2b BİTTİ** (12 alt görevden 4'ü) |
+| **Son tamamlanan** | ✅ **3.2b — Round-trip kanıtı.** Derin şema introspection'ı + saf karşılaştırıcı. **Faz 3'ün 1. KABUL KRİTERİ KAPANDI** |
 | **Tarih** | 2026-08-26 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. Plan revizyonu **onaylandı**: 3.2 → **3.2a** (koşucu) / **3.2b** (round-trip kanıtı), liste 11 → **12** alt görev |
-| **Son commit** | `docs(memory): 3.2a CI sonucunu işle — entegrasyon işi arm64'te de yeşil` |
+| **Son commit** | `feat(db): round-trip kanıtı — 89 olgu karşılaştırıldı, sessiz bozuk down yakalanıyor` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ **3.2a düzeltme koşusu `33001816073` — ALTI İŞ DE YEŞİL**, yeni *Entegrasyon — gerçek Postgres* işi **arm64 dahil**. Bu, bu makinede (Windows/amd64) native kanıtlanamayan K14 doğrulaması: `testcontainers` gerçek bir ARM64 runner'da PG18 konteyneri açıp 8 testi geçti. ⚠️ İlk koşu `33001368015` **kutu kutuya kırılmıştı** (işte `pnpm build` yoktu, günlük #15) — kayıt korunuyor: yeni bir CI işi mevcut işlerin örtük adımlarını miras almaz. |
+| **CI** | ✅ 3.2a düzeltme koşusu `33001816073` ve `33002062059` — altı iş de yeşil, *Entegrasyon* işi **arm64 dahil**. **3.2b koşusunun sonucu 3.3'te işlenecek.** ⚠️ Kalıcı ders (günlük #15, `spec/09` §11.5): yeni bir CI işi, mevcut işlerin **örtük hazırlık adımlarını** miras almaz — `Entegrasyon` işi `pnpm build` olmadan iki mimaride birden kırılmıştı. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
-| **test** | ✅ **567 test / 41 dosya** (`pnpm test`) — 3.2a **+47 test / +4 dosya**. Ayrıca ✅ **`pnpm test:db` 8 test / 1 dosya**, gerçek PG18 konteyneriyle (varsayılan `pnpm test`'e GİRMEZ) |
-| **kapsam** | ✅ satır **%91,88** · ifade %91,61 · dal %89,57 · fonksiyon **%87,26** — eşik %70, eşik DÜŞÜRÜLMEDİ. ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor. ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ** — somut kanıt: `file-source.ts` ve `postgres-executor.ts` raporda **%0** görünüyor ama entegrasyon testiyle kapsanıyorlar; `countries.ts` de %0 çünkü hiçbir birim testi import etmiyor — Şema dosyasının kapsamı doğruluk hakkında hiçbir şey söylemiyor |
+| **test** | ✅ **590 test / 43 dosya** (`pnpm test`) — 3.2b **+23 test / +2 dosya**. Ayrıca ✅ **`pnpm test:db` 16 test / 2 dosya** (3.2b **+8**), gerçek PG18 konteyneriyle (varsayılan `pnpm test`'e GİRMEZ) |
+| **kapsam** | ✅ satır **%89,75** · ifade %89,60 · dal %88,40 · fonksiyon **%84,12** — eşik %70, eşik DÜŞÜRÜLMEDİ. ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor. ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ** — `file-source.ts`, `postgres-executor.ts` ve **`introspect.ts`** raporda **%0** görünüyor ama üçü de entegrasyon testiyle gerçek Postgres'e karşı koşuyor; `countries.ts` de %0 çünkü hiçbir birim testi import etmiyor |
 | **Veritabanı** | **PostgreSQL 18.6** (16.15'ten yükseltildi, SAPMA-019) · `builtin`/`C.UTF-8` locale (SAPMA-020) · bağlama noktası `pgdata:/var/lib/postgresql` (18'de **değişti**) · `pg_trgm` 1.6 mevcut · `docker compose up -d` → **healthy**, işlevsel olarak doğrulandı |
 | **Web paketi** | **321.495 bayt** (ham) — 3.0'da değişmedi (tarayıcı kodu eklenmedi) |
 | **API imajı** | **423 MB** — Faz 2 kapanış ölçümü, 3.0'da yeniden ölçülmedi (`apps/api` değişmedi) |
@@ -40,7 +40,7 @@
 | **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
 | **SAPMA sayısı** | **25** (SAPMA-001…025) — 3.0'da iki, 3.1'de üç, **3.2a'da iki**: 024 (`format:check` Markdown'a bakmıyor) · 025 (sürücü `postgres.js`) |
-| **Faz 3 kabul kriterleri** | 1 ⏳ (**3.2b**) · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **0/5**, hiçbiri henüz sağlanmadı |
+| **Faz 3 kabul kriterleri** | **1 ✅ (3.2b)** · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **1/5**. Kriter 1: çevrim sonrası **89 olgu, fark yok**; çok adımlı zincirde **48 olgu, fark yok** |
 | **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, panodan yeniden ölçülmedi. 3.0'da hiç olay gönderilmedi. |
 
 ---
@@ -59,41 +59,36 @@
 
 ---
 
-### 🎯 SIRADAKİ ALT GÖREV — 3.2b (Round-trip kanıtı)
+### 🎯 SIRADAKİ ALT GÖREV — 3.3 (K4: Master World salt-okunurluğu)
 
-**Kabul kriteri 1 burada kanıtlanır** ve sonraki her migration bu hattı miras alır.
+**Ne yapılacak:** master tablolara yazmanın **tip seviyesinde derlenmemesi**.
+`db.master` salt-okunur istemcisi, `DeepReadonly` dönüşler, denetim kuralı.
+**Negatif test zorunlu:** master tabloya `insert`/`update` girişimi **DERLENMEZ** —
+ve bu, testin kırılmasıyla değil **derlemenin kırılmasıyla** gösterilir.
 
-**Ne yapılacak — yalnızca `countries` üzerinde:**
-`up` → **veri yaz** → `down` → `up` → şema `drizzle/meta/0000_snapshot.json` ile
-**birebir aynı mı**. Veri yazma adımı bilerek ortada: boş bir veritabanında
-çalışıyormuş gibi görünen çok sayıda `down`, dolu bir tabloda `NOT NULL` veya
-`FOREIGN KEY` yüzünden patlar (`spec/01` §3.0).
+**⚠️ `is_master = true` BAYRAK SÜTUNU KULLANILMAYACAK.** ROADMAP'in ilk hâli bunu
+istiyordu; hiçbir şeyin tüketmediği bir bayrak bir **temennidir** (D3) ve
+`spec/09` §11.5'in *"bir yol yanlış tarafa düşerse hangi test kırılır?"* testini
+geçemez. K4 zaten *"tip seviyesinde derlenmez"* diyor.
 
-**Negatif test zorunlu:** `down`'ın bir adımı bilerek bozulur ve testin
-**kırıldığı** görülür — aksi hâlde yeşil bir round-trip testi hiçbir şey
-kanıtlamaz.
+**Neden 11 tablodan ÖNCE:** zorlama farklı bir tablo tanımı biçimi isterse (örneğin
+şema nesnelerinin ayrı bir sarmalayıcıdan geçmesi), 11 tablo yazıldıktan sonra
+öğrenmek 11 tabloyu yeniden yazmak demek.
 
-**Hazır olanlar (3.2a'da kuruldu ve gerçek PG18'e karşı koşuldu):**
-
-- `migrateUp` / `migrateDown`, `SqlExecutor` arayüzü, `postgres.js` uygulaması
-- Takip tablosu `fms_meta.migrations` — **`public` DIŞINDA**, tam da 3.2b'nin şema
-  karşılaştırmasını kirletmemesi için
-- `pnpm test:db` hattı + `packages/db/integration/runner.itest.ts` (8 test)
-- `countries` minimal migration'ı ve **elle yazılmış** `drizzle/down/0000_*.sql`
-
-**Karşılaştırma nasıl yapılacak:** drizzle'ın snapshot'ı `tables`/`columns`/
-`enums`/`sequences`/… taşıyor ve `prevId` ile zincirli. 3.2b'nin işi canlı
-şemadan aynı biçimde bir yapı çıkarıp karşılaştırmak. `captureSchemaState`
-(runner.ts) bunun **daha dar** bir hâli — kayıp ölçümü için tablo+sütun+satır
-yetiyordu; round-trip tip, varsayılan ve kısıtları da istiyor.
+**İlk iş:** 3.2b CI koşusunun sonucunu ANLIK DURUM'a işle.
 
 ---
 
-### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 + 3.1 + 3.2a)
+### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 → 3.2b)
 
 **Tablo envanteri 11'de kesin.** Karar tablosu `docs/ROADMAP.md` → *Faz 3 — Tablo
 envanteri*. Özet `docs/schema/world.md`. Sütun sözleşmesi
 `docs/spec/01-database.md` **§3.1.0** ve **§3.1.1**. Migration disiplini **§3.0**.
+
+**✅ Kabul kriteri 1 KAPANDI (3.2b).** Çevrim sonrası **89 olgu, fark yok**
+(`countries`); çok adımlı fixture zincirinde **48 olgu, fark yok**. Üç yerde birden
+koştu: `pnpm test:db` · CI `Entegrasyon` işi (amd64+arm64) · derlenmiş çıktı düz
+`node` ile (D5).
 
 **Faz 3'te bilerek YAPILMAYAN dört şey — hepsinin gerekçesi yazılı:**
 
@@ -106,8 +101,7 @@ envanteri*. Özet `docs/schema/world.md`. Sütun sözleşmesi
 
 **Sonraki alt görevleri bağlayan ölçülmüş kısıtlar:**
 
-- **3.3 (K4):** salt-okunurluk **tip seviyesinde** zorlanır, `is_master` bayrağıyla
-  değil — hiçbir şeyin tüketmediği bir bayrak bir temennidir (D3).
+- **3.3 (K4):** yukarıdaki blok.
 - **3.7 (indeksler):** düz `pg_trgm` Türkçe aramayı **sağlamıyor**
   (`'Beşiktaş' % 'besiktas'` → **`f`**, benzerlik 0,286 · eşik 0,3). `unaccent`
   gerekiyor (1,0) ama **`STABLE`**, indekste doğrudan kullanılamıyor →
@@ -116,19 +110,24 @@ envanteri*. Özet `docs/schema/world.md`. Sütun sözleşmesi
   `COLLATE "tr-TR-x-icu"` ile ve `COLLATE`'li indeks `Index Only Scan` veriyor.
 - **Yeni migration yazan her alt görev `drizzle/down/<tag>.sql` de yazar.**
   Dosya yoksa koşucu `migration.downScriptMissing` ile **veritabanına dokunmadan
-  durur** — yani unutmak sessiz değil, gürültülü.
-- **`packages/db` kapsamı KANIT SAYILMAZ.** Somut: `file-source.ts` ve
-  `postgres-executor.ts` raporda **%0** ama entegrasyon testiyle kapsanıyorlar;
-  `countries.ts` de %0 çünkü hiçbir birim testi import etmiyor. Şema dosyasının
-  kapsamı doğruluk hakkında hiçbir şey söylemiyor.
+  durur** — unutmak sessiz değil, gürültülü.
+- **Yeni migration ekleyen her alt görev round-trip testini de genişletir.**
+  Hat hazır (`src/schema-state/`), maliyeti bir `it()` bloğu. Genişletilmezse yeni
+  tablonun `down`u **hiç sınanmamış** olur ve 3.2b'nin kanıtı yalnızca `countries`
+  için geçerli kalır.
+- **`packages/db` kapsamı KANIT SAYILMAZ.** `file-source.ts`, `postgres-executor.ts`
+  ve `introspect.ts` raporda **%0** ama üçü de entegrasyon testiyle gerçek
+  Postgres'e karşı koşuyor.
 - **`allowBuilds` politikası:** yeni bir bağımlılık kurulum betiği getirirse
   `pnpm-workspace.yaml`'a **açık** satır yazılır; varsayılan `false`
   (ORTAM TUZAKLARI ⑫).
 - **`packages/db/tsconfig.json` `rootDir` TAŞIMAZ** — emit eden
   `tsconfig.build.json`'da. Geri konursa `integration/` ve `drizzle.config.ts`
-  tip denetiminden **sessizce** çıkar (3.2a'da ölçüldü, günlük #11).
+  tip denetiminden **sessizce** çıkar (günlük #11).
 - **`pnpm format:check` Markdown'a bakmıyor** (SAPMA-024). Belge ağırlıklı bir
-  alt görevde `format ✅` yazılmaz; `docs/OUTPUT-FORMAT.md`'deki kural geçerli.
+  alt görevde `format ✅` yazılmaz.
+- **CI'a yeni iş eklenirse mevcut işlerin ÖRTÜK hazırlık adımları çıkarılır**
+  (`spec/09` §11.5). `Entegrasyon` işi `pnpm build` olmadan kırılmıştı.
 
 ---
 
@@ -571,6 +570,8 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | #   | Alt görev | Hata (belirti)                                                                                                                                                                                                | Kök neden                                                                                                                                                                            | Çözüm                                                                                                                                                    | Tekrar önleme                                                                                                                                                        |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 17  | 3.2b      | Negatif testin fixture'ı `relation "probe_aux" already exists` ile patladı — bozuk `down` yakalandı ama **karşılaştırma tarafından değil**                                                                                  | Fixture'ı öyle kurdum ki `down` kendi yarattığı tabloyu bırakıyordu; sonraki `up` onu yeniden yaratmaya çalışıp çakıştı. Yani kanıtlamak istediğim şeyi (karşılaştırma bakıyor) değil, başka bir şeyi kanıtladı | Bozuk `down`un **iki sınıfı** ayrıldı ve ikisi de test edildi: *eksik kalan* → `up` patlar (gürültülü) · *fazla giden* → sessiz, **yalnızca karşılaştırma yakalar** | **D6:** kırmızı olan **testti**, kod değildi. Ve bir negatif test, hangi mekanizmanın yakaladığını da göstermeli — "yakalandı" yetmez, "**neyin** yakaladığı" sorulur |
+| 16  | 3.2b      | Round-trip testinin `identical: true` iddiası **tek başına boştu**                                                                                                                                                            | Kör bir karşılaştırıcı da `identical: true` döner; pozitif test bunu ayırt edemez                                                                                                                             | `comparedFacts` sayacı eklendi (ölçüldü: `countries` 89, fixture zinciri 48) ve mutasyonla doğrulandı: karşılaştırıcı köreltilince **16 testin yalnızca 1'i** kırılıyor — o da negatif test | **D3:** pozitif bir testin yeşili, karşılaştırmanın baktığını göstermez. Bir karşılaştırıcı yazan her yerde *"kaç olguya baktı?"* sorusu sorulur ve cevap iddia edilir |
 | 15  | 3.2a      | **Yeni CI işi `Entegrasyon` iki mimaride birden kırıldı** — `Failed to resolve entry for package "@fms/shared"`. Yerelde `pnpm test:db` geçiyordu                                                              | Testler `@fms/*`'ı `exports` üzerinden, yani **derlenmiş `dist/`** üzerinden çözüyor. `quality` işinde derleme adımı **görünmüyor** ama var: `turbo.json`'da `typecheck` görevi `dependsOn: ["^build"]` taşıyor ve bağımlılıkları bir **yan etki** olarak derliyor. Yeni iş `typecheck` koşmadığı için o yan etkiyi almadı. Yerelde geçmesinin sebebi önceki kapılardan kalan `dist/`ti | CI işine açık `pnpm build` adımı eklendi. Kök neden **yerelde tekrar üretildi** (`rm -rf packages/*/dist` → aynı hata) ve düzeltme aynı sırayla doğrulandı (build → test:db → 8/8) | Faz 1 hata #7'nin ("test öncesi `pnpm build`") **CI sürümü**: kural yazılıydı ama yeni bir iş onu **miras almamıştı**. Örtük bağımlılık artık workflow'da açık yazılı. **Ders: bir kural mevcut bir işin içinde yaşıyorsa, yeni iş onu otomatik devralmaz** |
 | 14  | 3.2a      | `pnpm format:check` "temiz" diyordu ama belge ağırlıklı commit'lerde **değişen hiçbir dosyaya bakmıyordu**                                                                                                       | `.prettierignore` `*.md` taşıyor (Faz 1, `1bafb7e` — bilinçli karar). Eksik olan karar değil, **sonucunun hiçbir yerde yazılı olmaması**                                                                | Kapsam ölçüldü (125 denetlenen / 31 yok sayılan / 12 desteklenmeyen). Karar korundu — açılsaydı 29 dosya, 4.159 satır değişirdi. Raporlama kuralı `OUTPUT-FORMAT`'a yazıldı | SAPMA-024. **D3'ün yeni biçimi:** denetleyici sağlam, **kapsamı** dar ve kapsam yazılı değil. Soru artık her kapı için: *"benim DEĞİŞTİRDİĞİM dosyalara baktı mı?"*        |
 | 13  | 3.2a      | `MSYS_NO_PATHCONV=1` bu kez **pnpm'in kendi yolunu** bozdu: `Cannot find module 'C:\c\Program Files\nodejs\...'`                                                                                                | Tuzak ①'in TERSİ — dönüşümü kapatmak Docker argümanlarını kurtarıyor ama `pnpm` kabuk sarmalayıcısının kendi yolunu bozuyor                                                                             | Docker çağrıları ve `pnpm` çağrıları **ayrı** Bash çağrılarına bölündü                                                                                                      | `MSYS_NO_PATHCONV=1` yalnızca `docker` komutunu içeren çağrılarda verilir, oturum geneline değil                                                                            |

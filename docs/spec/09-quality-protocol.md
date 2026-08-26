@@ -315,6 +315,41 @@ pnpm perf:budget            # Faz 6+
 pnpm arch:check             # katman bağımlılık ihlali
 ```
 
+### ⚠️ CI'A YENİ BİR İŞ EKLENDİĞİNDE, MEVCUT İŞLERİN ÖRTÜK HAZIRLIK ADIMLARI ÇIKARILIR (Faz 3.2a)
+
+**Kural:** CI'a yeni bir iş eklendiğinde, mevcut işlerin hangi **hazırlık
+adımlarına örtük olarak bağlı** olduğu çıkarılır ve yeni işe açıkça yazılır.
+**Bir işin geçmesi, bağımlılıklarının o işte de kurulu olduğunu göstermez.**
+
+**Ölçülmüş vaka.** 3.2a'da eklenen `Entegrasyon` işi iki mimaride birden kırıldı:
+
+```
+Error: Failed to resolve entry for package "@fms/shared".
+```
+
+Testler `@fms/*` paketlerini `package.json` `exports` üzerinden, yani **derlenmiş
+`dist/`** üzerinden çözüyor. `quality` işinde derleme adımı **görünmüyor** ama var:
+`turbo.json`'da `typecheck` görevi `dependsOn: ["^build"]` taşıyor ve bağımlılıkları
+bir **yan etki** olarak derliyor. Yeni iş `typecheck` koşmadığı için o yan etkiyi
+almadı.
+
+**Yerelde geçmesinin sebebi** önceki kapı koşularından kalan `dist/` idi — yani
+yerel ortam CI'ın görmediği bir durumu gizliyordu.
+
+Bu, Faz 1 hata #7'nin (*"test öncesi `pnpm build`, bayat `dist` yeşil yalanı
+üretir"*) CI sürümü: **kural yazılıydı ama yeni bir iş onu miras almadı.** D3'ün
+ayrı bir biçimi — burada körelen bir denetleyici değil, **devralınmayan bir
+hazırlık**.
+
+**Yeni iş eklerken sorulacak üç soru:**
+
+1. Bu iş hangi **üretilmiş** artefaktlara dokunuyor? (`dist/`, `node_modules/`,
+   Docker imajı, çekilmiş konteyner imajı)
+2. O artefaktları mevcut işlerde **hangi adım** üretiyor — ve o adım burada var mı?
+3. Adım bir **yan etki** olarak mı geliyor (turbo `dependsOn`, bir betiğin
+   yaptığı ek iş)? Öyleyse yeni işte **açıkça** yazılır; yan etkiye güvenmek onu
+   görünmez kılar.
+
 ### ⚠️ `pnpm format:check` MARKDOWN'A BAKMIYOR — "format ✅" belge değişikliği için hiçbir şey kanıtlamaz (SAPMA-024)
 
 `.prettierignore` `*.md` satırını taşıyor. **Karar bilinçli ve Faz 1'de verildi**
