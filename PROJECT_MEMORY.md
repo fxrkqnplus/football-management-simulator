@@ -28,7 +28,7 @@
 | **Bloke eden var mı?** | Hayır. ⚠️ Ama **plan revizyonu onay bekliyor**: `drizzle-kit` `down` migration ÜRETMİYOR (ölçüldü), 3.2 bir `down` katmanı + kendi koşucumuzu gerektiriyor → 3.2a/3.2b bölünmesi öneriliyor |
 | **Son commit** | `feat(db): drizzle + testcontainers kurulumu, Postgres 18 ve collation kararları` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ Faz 2 kapanış koşuları **işlendi**: `32920287739` ✅ · `32920409271` ✅ · PR #3 `32920412520` ✅ · `develop` merge `32920960769` ✅ (1 dk 51 sn). Faz 3 koşularının sonucu 3.1'de işlenecek. |
+| **CI** | ✅ Faz 2 kapanış koşuları **işlendi**: `32920287739` · `32920409271` · PR #3 `32920412520` · `develop` merge `32920960769` — dördü de başarılı. ✅ **3.0 koşusu `32970730618` BAŞARILI** — dört iş de yeşil: *Kalite kapıları (amd64)* · **(arm64)** · *İmaj (amd64)* · *(arm64)*. ⚠️ **arm64 işi burada özellikle önemli:** yerelde Docker Desktop `windows/amd64` olduğu için `testcontainers`in ARM64 uyumu native kanıtlanamıyordu; temiz bir arm64 kurulumu yeni `allowBuilds` politikasıyla **gerçekten** koştu (K14). |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
 | **test** | ✅ **520 test / 37 dosya** (3.0 test eklemedi — bağımlılık/yapılandırma alt görevi) |
