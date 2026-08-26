@@ -983,8 +983,10 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 
 **Kapsam:**
 - Drizzle şema tanımları + migration altyapısı
-- **Tablolar:** `countries`, `confederations`, `competitions` (lig/kupa/turnuva ortak), `competition_seasons`, `competition_rules` (JSONB: küme düşme sayısı, play-off, yabancı kotası, kadro limiti), `clubs`, `club_reputations`, `stadiums`, `club_facilities`, `club_colors`, `kit_templates`, `club_kits`, `rivalries`, `referees`, `federations`
-- **Master/Delta ayrımı temeli:** her master tablo `is_master = true`, salt-okunur işaretli
+- **Tablolar (11 — aşağıdaki "Tablo envanteri" bölümüne bakınız):** `countries`,
+  `federations`, `competitions`, `clubs`, `club_facilities`, `club_finances_base`,
+  `stadiums`, `rivalries`, `kit_templates`, `club_kits`, `referees`
+- **Master/Delta ayrımı temeli:** master tablolara yazma **tip seviyesinde derlenmez** (K4)
 - İndeksler: `clubs(competition_id)`, `competitions(country_id)`, arama için `pg_trgm` GIN indeksi
 - Seed betiği iskeleti (`tools/data-cli/seed.ts`)
 - ER diyagramı → `docs/schema/world.md` (mermaid)
@@ -1002,6 +1004,102 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 - [ ] Şema dokümanı ve mermaid diyagramı üretildi
 
 **Bağımlılık:** Faz 1, 2
+
+---
+
+### Faz 3 — Tablo envanteri (3.0 açılışında onaylandı)
+
+Bu bölümün ilk hâli **15** tablo sayıyordu ve `docs/spec/01-database.md` §3.1 ile
+**çelişiyordu** (spec bu kapsam için **11** tablo tanımlıyor; `PROJECT_MEMORY.md`
+Faz 2 kaydı §11 ise "16 master tablo" diyordu — **üç farklı sayı**). Çelişki faz
+açılışında, tek satır SQL yazılmadan çözüldü. Karar tablosu:
+
+| ROADMAP (eski) | `spec/01` | Karar | Gerekçe |
+|---|---|---|---|
+| `confederations` ayrı tablo | `countries.confederation` sütunu | **spec/01** | v1'de 6 ülke, hepsi UEFA. Tek satırlık tablo, hiçbir sorgu ondan geçmez (K12) |
+| `competition_rules` ayrı tablo | `competitions.rules: jsonb` | **spec/01** | 1:1 ve hep birlikte okunuyor; ayrı tablo her sorguya bir JOIN ekler |
+| `club_reputations` ayrı tablo | `clubs.reputation` | **spec/01** | Tek `smallint`. Ayrı tablo yalnızca zaman serisi için anlamlı; itibar değişimi `save_deltas`'a gidiyor (K4) |
+| `club_colors` ayrı tablo | `clubs.color{Primary,Secondary,Tertiary}` | **spec/01** | Üç sabit sütun, 1:1 |
+| `competition_seasons` | — | **3.1'de ölçülecek** | Aşağıya bakınız |
+| — | `club_finances_base` | **spec/01** | ROADMAP listesinde eksikti; başlangıç finansalları master (paketten gelir), değişimi delta |
+
+**`competition_seasons` — 3.1'de ölçülecek, ikiye ayrılıyor:**
+
+- **(a) Aktif sezon örneği** (2026-27 fikstürü, puan durumu, katılımcılar) — kullanıcıya
+  özel, `saveId` taşır, **master değil** → Faz 3 kapsamı dışında. Yeri 3.1'de karara
+  bağlanır (aday: **Faz 12** tanım / **Faz 16** doldurma).
+- **(b) Tarihsel sezon verisi** ("2020-21 şampiyonu X", kulübün sezon sezon performans
+  geçmişi) — **olgusal ve herkes için aynı**, yani **master**. ROADMAP Faz 8 kulüp detay
+  ekranı bunu istiyor, `spec/12` veri paketinden geliyor. **3.1'de ölçülecek:** `spec/01`
+  ve `spec/12` bunu gerçekten istiyor mu, ROADMAP Faz 8 ne diyor, hangi tablo taşıyacak,
+  Faz 3'te mi Faz 8'de mi.
+
+**İleri yabancı anahtarlar — sütun Faz 3'te YAZILMAZ.** `federations.presidentPersonId`,
+`clubs.chairmanPersonId`, `referees.personId` üçü de `people` tablosuna işaret ediyor ve
+`people` **Faz 4**'te geliyor. Sütun bugün kısıtsız yazılsaydı 3. kabul kriterini
+(*"tüm yabancı anahtarlar tanımlı"*) **görünürde** sağlarken gerçekte delerdi — hiçbir
+şeyin tüketmediği bir sütun bir temennidir (Faz 2 §5 D3). Faz 4'ün migration'ı sütunu ve
+FK'yı **birlikte** ekler. Bedeli: hakemler Faz 4'e kadar isimsiz (ilk görüntülendikleri
+yer Faz 26).
+
+**Veri paketi alanları — `spec/12`'nin şemadan istedikleri Faz 3'te eklenir.**
+`docs/spec/12-data-packs.md` §17.1 *"her varlık kaydında `source` alanı tutulur"* diyor,
+§17.3 eşleme için `key` (slug) ve `externalIds` istiyor; `spec/01`'in master tablolarında
+**üçü de yoktu**. Sonradan eklemek 11 tabloya `ALTER TABLE` + seed'in yeniden yazımı demek.
+
+| Alan | Tip | Hangi tablolarda | Not |
+|---|---|---|---|
+| `key` | `text` | Pakette **görünen** varlıklar: `countries`, `competitions`, `clubs`, `stadiums`, `referees` | 1:1 uydu tablolara (`club_facilities`, `club_finances_base`, `club_kits`) **konmaz** — onlara `clubId` üzerinden erişiliyor. Benzersizliğin **global mi tablo başına mı** olduğu 3.1'de ölçülüp karara bağlanır (`spec/12` §17.3 slug algoritması `galatasaray`'ı kulüp, stadyum ve yarışma için aynı anda üretebilir mi?) |
+| `source` | `text` + **CHECK** | `key` taşıyan her tablo | Serbest metin **değil**: `pack \| api \| wikidata \| openfootball \| procedural` |
+| `externalIds` | `jsonb` + Zod | `key` taşıyan her tablo | Alanlar `spec/12` §17.3'te (`wikidata`, `apiFootball`, `transfermarkt`) |
+
+**`asset_index` Faz 3'te AÇILMAZ.** `spec/12` §17.5 adım 7 bu tabloyu istiyor ama
+`spec/01`'de ve ROADMAP'in hiçbir fazında yok → **G-09** olarak `docs/SPEC-COVERAGE-GAPS.md`'ye
+yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `crestAssetId`,
+`portraitAssetId`, `logoAssetId`, `flagAssetId` bugün `spec/01`'deki gibi düz `text` kalır.
+
+---
+
+### Faz 3 — Alt görev listesi
+
+- [ ] **3.0** Bağımlılık kararları ve `packages/db` migration kablolaması.
+      **Sıra bağlayıcı:** ① `drizzle-kit` gerçekten `down` migration **üretiyor mu**
+      (registry ve aracın **kendi çıktısından** ölçülür, blogdan değil — üretmiyorsa
+      `down`'lar elle yazılır, her migration'ın maliyeti iki katına çıkar ve **bu liste
+      büyür**) ② `postgres` Docker imajı **16 → 18** + ARM64 manifest + `pgdata` volume
+      davranışı ③ `drizzle-orm`/`drizzle-kit` 1.0 GA oldu mu ④ `testcontainers` ARM64
+      uyumu (paket denetimi: `.node` ikilisi · `binding.gyp` · `install`/`postinstall`)
+      ⑤ **collation kararı** ⑥ `docs/DEPENDENCY-WATCH.md` üç satırının sonucu yazılır
+- [ ] **3.1** Şema kapsam mutabakatı — yukarıdaki envanterin açık kalan üç ölçümü
+      (`competition_seasons` (b), `key` benzersizliği, ileri FK etkisi), `docs/schema/world.md`
+      iskeleti, SAPMA kayıtları, G-09
+- [ ] **3.2** İlk migration + `testcontainers` koşum hattı — **yalnızca `countries`**.
+      `up` → veri yaz → `down` → `up` → şema **birebir aynı mı**, gerçek Postgres'te.
+      Entegrasyon testleri **varsayılan `pnpm test`'e girmez** (kapı koşusu dakikalara
+      çıkardı) → ayrı komut, **ve o komut faz kapanış listesine yazılır** yoksa hiç
+      koşulmaz (G-01'in birebir aynısı). **Kabul kriteri 1 burada kanıtlanır ve sonraki
+      her migration bu hattı miras alır**
+- [ ] **3.3** K4 — Master World salt-okunurluğu **tip seviyesinde**. `db.master` istemcisi,
+      `DeepReadonly` dönüşler, denetim kuralı. **Negatif test: master tabloya yazma
+      girişimi DERLENMEZ.** 11 tablodan **önce** geliyor: sonra takılsaydı ve farklı bir
+      tablo biçimi isteseydi 11 tablo yeniden yazılırdı
+- [ ] **3.4** Coğrafya ve kurumlar — `countries` (tamamlanır), `federations`,
+      `competitions` + `CompetitionRules` Zod şeması
+- [ ] **3.5** Kulüp çekirdeği — `clubs`, `club_facilities`, `club_finances_base`,
+      `stadiums`, `rivalries`
+- [ ] **3.6** Görsel varlıklar ve hakemler — `kit_templates`, `club_kits`, `referees`
+- [ ] **3.7** İndeksler + `pg_trgm` GIN + `CREATE EXTENSION` migration'ı
+- [ ] **3.8** Seed betiği (`tools/data-cli/seed.ts`) — 6 ülke + 6 lig + 5 kupa,
+      **deterministik** (K2), **idempotent** (iki kez koşulur)
+- [ ] **3.9** `EXPLAIN ANALYZE` ölçümü (< 20 ms) seed verisiyle + FK/`ON DELETE`
+      envanteri `information_schema`'dan **programatik** doğrulanır (gözle sayılmaz)
+- [ ] **3.10** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR
+
+> **⚠️ `packages/db` kapsamı bu fazda bir KANIT sayılmaz.** Drizzle şema dosyaları modül
+> düzeyi ifadelerden ibarettir: bir testin onları **import etmesi** kapsamı %100 yapar,
+> hiçbir iddia doğrulanmadan. Bu, `packages/engine`'in %85 eşiğiyle **aynı sınıf yalan**
+> (`PROJECT_MEMORY.md` Faz 2 kaydı §6). Bu fazın gerçek kanıtı migration round-trip'i ve
+> `EXPLAIN` ölçümüdür. Faz kaydına dürüstlük notu olarak yazılır.
 
 ---
 
