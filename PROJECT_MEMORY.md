@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-26 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `docs(memory): Faz 2 kaydı, günlük devri ve faz kapanışı` |
-| **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · **Faz 2 PR'ı: PR açılacak** → `develop`. ⚠️ PR'ı **kullanıcı merge edecek**; Faz 3 yeni oturumda açılır. |
-| **CI** | ✅ 2.8 koşusu `c06e044` → **`32918475973` başarılı** (1 dk 42 sn). Kapanış commit'inin koşusu push edildi, **sonucu Faz 3 oturumu işleyecek**. |
+| **Son commit** | `docs(memory): PR #3 numarasını işle ve Faz 2'yi kapat` |
+| **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · **Faz 2 → PR #3 AÇIK**, hedef `develop`. ⚠️ PR'ı **kullanıcı merge edecek**; Faz 3 yeni oturumda `develop`tan açılır. |
+| **CI** | ✅ 2.8 koşusu `c06e044` → **`32918475973` başarılı** (1 dk 42 sn). Kapanış commit'lerinin koşuları push edildi, **sonucu Faz 3 oturumu işleyecek**. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **faz kapanışında yeniden ölçüldü** (`rm -rf .turbo/cache` sonrası) |
 | **test** | ✅ **520 test / 37 dosya** |
 | **kapsam** | ✅ satır **%94,92** · ifade %94,96 · dal %90,37 · fonksiyon **%96,17** — eşik %70. ⚠️ Motor eşiği (%85) **boş yere** sağlanıyor: `packages/engine`'de 0 ifade var, gerçek anlamını Faz 22'de kazanacak. |
@@ -64,9 +64,11 @@ Ayrıntılı devir teslim faz kaydının **§11** başlığında; burada yalnız
 oturumun elini çabuklaştıracak olanlar var.
 
 **İlk iş — üç kontrol:**
-1. Faz 2 kapanış commit'inin CI koşusunun sonucunu bu bloğa işle.
-2. **PR durumunu kontrol et** (`gh pr view`). PR'ı **kullanıcı merge edecek**;
-   merge edilmişse `develop`tan yeni dal açılır: `feature/faz-03-database`.
+1. Faz 2 kapanış commit'lerinin CI koşularının sonucunu bu bloğa işle.
+2. **PR #3'ün durumunu kontrol et** (`gh pr view 3`). PR'ı **kullanıcı merge
+   edecek**; merge edilmişse `develop`tan yeni dal açılır:
+   `feature/faz-03-database`. ⚠️ PR numaraları faz sırasını takip etmiyor
+   (#2 bu projeye ait değil).
 3. `🧪 FAZ 2 — ÇALIŞMA GÜNLÜĞÜ` başlığını **`🧪 FAZ 3 — ÇALIŞMA GÜNLÜĞÜ`**
    olarak güncelle (`spec/11` §12.2 — başlık kalır, içerik faz başına yenilenir).
 
@@ -511,9 +513,14 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 ### FAZ 2 — Hata Kontrol ve Gözlemlenebilirlik Protokolü
 **Tarih:** 2026-08-25 → 2026-08-26 · **Süre:** 2 gün · **Durum:** ✅ Tamamlandı
-**Dal:** `feature/faz-02-observability` · **PR:** PR açılacak → `develop`
+**Dal:** `feature/faz-02-observability` · **PR:** **#3** → `develop`
 **Commit aralığı:** `a474c86..c06e044` — **25 commit**, 105 dosya, **+12.383 / −181 satır**
 *(faz kaydını yazan commit hariç; §7 notuna bakınız)*
+
+> ℹ️ **PR numarası neden #3, #2 değil:** `#2` bu projeye ait değil — `main`'e
+> açılıp kapatılmış ilgisiz bir PR (`feat: add football-management-simulator
+> ECC bundle`). Faz PR'ları: Faz 1 → **#1** (merge edildi), Faz 2 → **#3**.
+> Numaralar faz sırasını takip etmiyor; sonraki oturum eşleştirmeye çalışmasın.
 
 ---
 
