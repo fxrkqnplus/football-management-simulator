@@ -130,6 +130,24 @@ jobs:
       - name: Bağımlılıkları kur
         run: pnpm install --frozen-lockfile
 
+      # ⚠️ BU ADIM ZORUNLU — atlanınca iş kırılıyor, ölçüldü.
+      #
+      # Testler `@fms/*` paketlerini `package.json`'daki `exports` üzerinden,
+      # yani DERLENMİŞ `dist/` üzerinden çözüyor. Derleme yoksa:
+      #   Error: Failed to resolve entry for package "@fms/shared".
+      #
+      # `quality` işinde bu adım GÖRÜNMÜYOR ama var: `turbo.json`'da
+      # `typecheck` görevi `dependsOn: ["^build"]` taşıyor, yani `pnpm typecheck`
+      # bağımlılıkları bir YAN ETKİ olarak derliyor. Bu iş `typecheck`
+      # koşmadığı için o yan etkiyi almıyordu.
+      #
+      # İlk koşuda tam olarak bu oldu: yerelde geçti (önceki kapılardan kalan
+      # `dist/` duruyordu), CI'da iki mimaride birden kırıldı. Faz 1 hata #7'nin
+      # ("test öncesi `pnpm build`") CI sürümü — kural yazılıydı, yeni iş onu
+      # miras almamıştı. Bağımlılık artık ÖRTÜK değil, burada AÇIK.
+      - name: Derleme (testler dist üzerinden çözüyor)
+        run: pnpm build
+
       # Testin kendisi de bu etiketi kullanıyor; önceden çekmek, konteyner
       # açılış süresini imaj indirmesinden ayırıyor. Etiket `docker-compose.yml`
       # ile AYNI majör olmalı — koşucuyu başka bir sürüme karşı kanıtlamak,
