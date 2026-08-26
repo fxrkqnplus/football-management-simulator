@@ -17,6 +17,20 @@
  *
  * **Sunucuya özgü olan her şey → `@fms/shared/server`.**
  */
+export type {
+  AssertInvariantOptions,
+  AssertionMode,
+  AssertionPolicy,
+  InvariantReporter,
+  InvariantViolation,
+} from './assert.js';
+export {
+  assertInvariant,
+  ASSERTION_MODES,
+  assertionMode,
+  configureAssertions,
+  resetAssertionsForTests,
+} from './assert.js';
 export type { AppPath, BasePathConfig } from './base-path.js';
 export {
   apiPath,
@@ -36,6 +50,20 @@ export {
   isCorrelationId,
   truncateForLog,
 } from './correlation.js';
+export type {
+  DebugTrace,
+  DebugTraceBuilder,
+  DebugTraceInit,
+  DebugTraceStep,
+} from './debug-trace.js';
+export {
+  createDebugTrace,
+  DEBUG_TRACE_INPUT_PREFIX,
+  DEBUG_TRACE_LOG_CODE,
+  DEBUG_TRACE_STEP_PREFIX,
+  isDebugTrace,
+  traceToLogContext,
+} from './debug-trace.js';
 export type {
   AppErrorOptions,
   ErrorContext,
@@ -71,6 +99,8 @@ export {
 } from './log-context.js';
 export type { LogContext, LogFormat, Logger, LogLevel, LogMethod, LogValue } from './logger.js';
 export { createNoopLogger, LOG_FORMATS, LOG_LEVELS, normalizeLogArgs } from './logger.js';
+export type { BudgetReporter, Measurement, MeasureOptions } from './perf.js';
+export { measure } from './perf.js';
 export { isSensitiveKey, redactContext, REDACTED, SENSITIVE_KEY_PATTERNS } from './redact.js';
 export type { TelemetryCollectBehavior, TelemetryDataCollection } from './telemetry-policy.js';
 export { TELEMETRY_DATA_COLLECTION } from './telemetry-policy.js';

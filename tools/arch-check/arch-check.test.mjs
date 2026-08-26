@@ -332,10 +332,14 @@ describe('META: arch:check kural tabloları boşalmadı', () => {
     );
   });
 
-  it('motorun alamayacağı adlandırılmış dışa aktarım listesi boşalmadı (2.3a)', () => {
+  it('motorun alamayacağı adlandırılmış dışa aktarım listesi boşalmadı (2.3a, 2.7)', () => {
     // Bu liste MODÜL düzeyinde ifade edilemeyen yasakları taşıyor; boşalırsa
-    // motor kimlik üretmeye başlar ve hiçbir kapı ötmez.
-    expect(Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS)).toContain('createCorrelationId');
+    // motor kimlik üretmeye, kendini ölçmeye ya da kendi değişmez kontrolünü
+    // gevşetmeye başlar ve hiçbir kapı ötmez.
+    const names = Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS);
+    expect(names).toContain('createCorrelationId');
+    expect(names).toContain('measure');
+    expect(names).toContain('configureAssertions');
   });
 
   it('sunucu alt yolu ÜÇ katmana birden kapalı — biri düşerse sınır delinir', () => {
@@ -384,9 +388,24 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
     );
 
     // Kural 6 — motorun alamayacağı adlandırılmış dışa aktarım (2.3a).
+    //
+    // ⚠️ ÜÇ GİRDİNİN ÜÇÜ DE AYRI FIXTURE'LA KAPSANIYOR (2.7'de eklendi).
+    // Kural düzeyinde tek fixture yeterli GÖRÜNÜR ama değildir: tabloya
+    // `measure` eklenirken anahtar yanlış yazılsaydı (`Measure`, `measures`)
+    // kural `createCorrelationId` üzerinden ötmeye devam eder, kanarya yeşil
+    // kalır ve yeni yasak sessizce hiç uygulanmazdı. 2.3b'de `import-casing`
+    // ile ölçülen körelmenin aynı sınıfı, bir kademe aşağıda.
     write(
       'packages/engine/src/forbidden-name.ts',
       "import { createCorrelationId } from '@fms/shared';\nexport const e = createCorrelationId;\n",
+    );
+    write(
+      'packages/engine/src/forbidden-measure.ts',
+      "import { measure } from '@fms/shared';\nexport const g = measure;\n",
+    );
+    write(
+      'packages/engine/src/forbidden-configure.ts',
+      "import { configureAssertions } from '@fms/shared';\nexport const h = configureAssertions;\n",
     );
 
     // Kural 5 — varlıkta mutlak yol.
@@ -431,6 +450,18 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
       'engine-forbidden-import',
     ]) {
       expect(rules).toContain(rule);
+    }
+  });
+
+  it('yasaklı ÜÇ adın HER BİRİ ayrı ayrı ötüyor (2.7)', () => {
+    // Kural sayısını değil, TABLO GİRDİLERİNİ sabitliyor. Yukarıdaki test
+    // "kural ötüyor mu" diye sorar; bu test "hangi girdiler ötüyor" diye.
+    const messages = runArchCheck(root)
+      .filter((v) => v.rule === 'engine-forbidden-import')
+      .map((v) => v.message);
+
+    for (const name of Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS)) {
+      expect(messages.some((m) => m.includes(`'${name}'`))).toBe(true);
     }
   });
 

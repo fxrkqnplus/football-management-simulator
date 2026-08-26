@@ -1,4 +1,11 @@
-import { configureBasePath, CORRELATION_HEADER, resetBasePathForTests } from '@fms/shared';
+import {
+  ASSERTION_MODES,
+  configureAssertions,
+  configureBasePath,
+  CORRELATION_HEADER,
+  resetAssertionsForTests,
+  resetBasePathForTests,
+} from '@fms/shared';
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,6 +71,7 @@ describe('App — alt yol kanıt ekranı', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     resetBasePathForTests();
+    resetAssertionsForTests();
   });
 
   it('türetilmiş yapılandırmanın altı katmanını da ekrana basar', async () => {
@@ -113,8 +121,8 @@ describe('App — alt yol kanıt ekranı', () => {
     expect(screen.getByTestId('chain-closed').textContent).toBe('evet');
   });
 
-  it('sunucu FARKLI kimlik döndürürse ekran zincirin koptuğunu söyler', async () => {
-    configureBasePath('/fms');
+  /** Sunucunun BAŞKA bir kimlik döndürdüğü senaryo — zincir değişmezi ihlali. */
+  function mockFetchMismatch(): void {
     vi.stubGlobal(
       'fetch',
       vi.fn(() =>
@@ -126,12 +134,48 @@ describe('App — alt yol kanıt ekranı', () => {
         ),
       ),
     );
+  }
+
+  it('ÜRETİM KİPİ: sunucu FARKLI kimlik döndürürse ekran zincirin koptuğunu söyler', async () => {
+    // ⚠️ KİP AÇIKÇA KURULUYOR (2.7). Üretim derlemesinde bunu `main.tsx`
+    // `__FMS_DEV__`ten türetiyor; burada elle kuruluyor çünkü `App.test.tsx`
+    // `main.tsx`i hiç yüklemiyor ve varsayılan kip `throw`.
+    configureAssertions({ mode: ASSERTION_MODES.report, report: () => undefined });
+    configureBasePath('/fms');
+    mockFetchMismatch();
 
     render(<App />);
     await screen.findByText('ok');
 
-    // Kopukluk SESSİZ kalmıyor — 2.3b'nin bütün amacı buydu.
+    // Kopukluk SESSİZ kalmıyor ama İŞ DE DÜŞMÜYOR — 2.3b'nin kararı aynen
+    // geçerli: veri geldi (`ok` bulundu), durum ekranda görünüyor.
     expect(screen.getByTestId('chain-closed').textContent).toBe('HAYIR');
+  });
+
+  it('GELİŞTİRME KİPİ: aynı senaryoda veri DÜŞÜYOR, hata ekrana yazılıyor', async () => {
+    // ⚠️ BU TEST KRİTER 4'Ü KAPATMAZ. Kip burada elle kuruluyor; üretimde onu
+    // `__FMS_DEV__` **derleme zamanı sabiti** sürüyor ve derlemeye gömülü bir
+    // değeri testte değiştirmek yalnızca testi yeşile boyar (2.6 günlük #48).
+    // Kriterin kanıtı iki ayrı derlemeyi gerçek tarayıcıda koşmak.
+    //
+    // Ölçülen ikinci şey: fırlatma bir PROMISE zincirinin içinde olduğu için
+    // ErrorBoundary onu YAKALAMIYOR (React sınırları yalnızca render/lifecycle
+    // hatalarını yakalar). Yakalayan, `App.tsx`teki kendi `.catch()`i.
+    configureAssertions({ mode: ASSERTION_MODES.throw });
+    configureBasePath('/fms');
+    mockFetchMismatch();
+
+    render(<App />);
+
+    const status = await screen.findByTestId('api-status');
+    await vi.waitFor(() => {
+      expect(status.textContent).toContain('correlationId');
+    });
+    // Veri hiç ekrana gelmedi ve zincir durumu "bekleniyor"da kaldı.
+    expect(screen.queryByText('ok')).toBeNull();
+    expect(screen.getByTestId('chain-closed').textContent).toBe('bekleniyor');
+    // ErrorBoundary yedek arayüzü DEVREDE DEĞİL — tablo ayakta.
+    expect(screen.getByTestId('base').textContent).toBe('/fms');
   });
 
   it('API hata koduyla dönerse durum yerine hata metni gösterir', async () => {

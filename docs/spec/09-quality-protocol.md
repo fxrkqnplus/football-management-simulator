@@ -34,13 +34,48 @@ Her önemsiz olmayan hesaplama şunu döner:
 ```ts
 interface DebugTrace<T> {
   module: string
-  input: Record<string, unknown>
+  input: ErrorContext        // ⚠️ Faz 2.7'de daraltıldı — aşağıya bakınız (SAPMA-016)
   steps: Array<{ name: string; value: number | string; reason?: string }>
   output: T
   summary: string          // Türkçe, insan okunabilir tek cümle
   seed?: string
 }
 ```
+
+> ⚠️ **`input` DARALTILDI: `Record<string, unknown>` → `ErrorContext` (Faz 2.7, SAPMA-016).**
+>
+> `ErrorContext` = `Readonly<Record<string, string | number | boolean | null |
+> readonly string[] | readonly number[]>>` — düz, JSON-güvenli, iç içe nesne yok.
+>
+> **Gerekçe 2.1'deki `AppError.context` daraltmasının birebir aynısı:** bu veri
+> loglara ve Sentry'ye gidiyor. İç içe nesneye izin vermek "bütün varlığı ize koy"
+> alışkanlığını mümkün kılar; dar tip, izi üreten tarafı **alan seçmeye** zorlar.
+> Aynı redaksiyon hattına giden iki tipin biri gevşek kalırsa, gevşek olan
+> kullanılır.
+>
+> **Elenen alternatif:** tipi geniş bırakıp düzleştirme sırasında iç içe değerleri
+> `[NESTED]` ile temizlemek. Sızıntıyı yine engellerdi ama korumayı **derleme
+> zamanından çalışma zamanına** taşırdı: geliştirici bütün nesneyi koyar,
+> düzleştirici sessizce temizler, kimse yanlış yaptığını fark etmez.
+>
+> **`output` bilinçli olarak SERBEST kaldı.** O, hesaplamanın asıl sonucudur
+> (bir transfer kararı, bir olay listesi) ve daraltmak `DebugTrace<T>`'yi kendi
+> işinde işe yaramaz kılardı. Redaksiyon kaygısı yalnızca **loglanana** ait ve
+> `output` loglanmıyor: log hattına tek köprü `traceToLogContext()` ve o
+> `module` · `summary` · `input.*` · `step.*` · `seed` taşıyor. İkinci kilit
+> tipte: `logger.info({ output }, …)` yazan biri olursa `LogValue` nesne kabul
+> etmediği için **derleme kırılır**.
+
+**⚠️ İZ NASIL LOGLANIR — düzleştirmeden loglanmaz.**
+`redactContext()` **sığdır**, özyinelemez. İz olduğu gibi loglansaydı
+`trace.input.password` redaksiyondan kaçardı. `traceToLogContext()` girdiyi ve
+adımları `input.<anahtar>` / `step.<ad>` biçiminde **düzleştirir**; redaksiyonun
+alt dize eşleşmesi böylece `input.password`'ü yakalar. Redaksiyonu köprü
+yapmaz — logger yapar (§11.5: hiçbir kural iki yerde denetlenmez).
+
+**⚠️ MOTOR LOGLAMAZ, İZ DÖNDÜRÜR.** `debugTrace` üreten hiçbir fonksiyon
+`Logger` çağırmaz (K3 — log yazmak yan etkidir). Nesne döner; loglamayı çağıran
+taraf yapar ve `correlationId` ilişkilendirmesini o kurar (§11.1).
 
 Örnek:
 ```json
@@ -87,6 +122,59 @@ const SAVE_INVARIANTS = [
   'Kadro kaydı ülke kurallarına uygun',
 ];
 ```
+
+### `assertInvariant` — kip, varsayılan ve kapsam (Faz 2.7)
+
+`assertInvariant(condition, { code, message, context?, kind? })` bir değişmezi
+denetler ve **`boolean` döner** (değişmez tuttu mu).
+
+**Neden `asserts condition` imzası KULLANILMIYOR:** o imza "bu satırdan sonra
+koşul kesin doğrudur" der. `report` kipinde fonksiyon fırlatmıyor, yani söz
+yalan olurdu — üretimde koşul yanlışken derleyici tipi daraltır ve sonraki
+satırlar var olmayan bir garantiye dayanır.
+
+| Kip | Davranış | Nerede |
+|---|---|---|
+| `throw` (**varsayılan**) | Tipli `AppError` fırlatır | Motor, `apps/api`, `apps/worker`, testler, tarayıcı **geliştirme** derlemesi |
+| `report` | Bildiriciyi çağırır, `false` döner, iş devam eder | Yalnızca tarayıcı **üretim** derlemesi |
+
+**Varsayılan `throw` güvenli taraftır** ve yukarıdaki *"İhlal → tur geri
+alınır"* şartıyla tutarlı. Kip yalnızca `configureAssertions()` ile,
+uygulama önyüklemesinde değişir; modül ortamı **hiç okumaz** (`NODE_ENV`
+koklanmaz — Faz 1 hata #10).
+
+`configureAssertions` ve `report` bildiricisi **ayrılmaz bir çift** olarak,
+ayrık birleşim (discriminated union) ile modellenir: bildiricisiz bir `report`
+kipi **temsil edilemez**. Aksi hâlde her ihlalin sessizce kaybolduğu bir
+yapılandırma mümkün olurdu.
+
+**Fırlatılan sınıf `kind` ile seçilir, varsayılanı `EngineError`.** Sabit tek
+bir sınıf kullanmak §11.5'teki *"bir sınıflandırma bağlamdan bağımsız
+değildir"* kuralını ihlal ederdi: bir motor değişmezi `engine`'dir, ama
+tarayıcıda sunucunun tutarsız bir başlık döndürmesi `dataProvider`'dır ve
+ikisi exception filter'da farklı durum kodu, Sentry'de farklı eleme alır.
+Eşleme `Record<ErrorKind, …>` olduğu için yeni bir `ErrorKind` eklenip
+yazılmazsa **derleme kırılır**.
+
+⚠️ **Motor `configureAssertions`'ı IMPORT EDEMEZ** (`arch:check` →
+`ENGINE_FORBIDDEN_SHARED_EXPORTS`). Motorun gördüğü kip her zaman varsayılandır;
+motor kendi değişmez kontrolünü gevşetemez.
+
+### `measure` — performans sarmalayıcısı (Faz 2.7)
+
+`measure({ name, budgetMs, onExceeded? }, fn)` eşzamanlı bir işi ölçer ve
+`{ name, durationMs, budgetMs, exceeded, value }` döner. Bütçe aşılırsa
+`onExceeded` çağrılır; **uyarıyı modül basmaz**, bildiriciyi çağıran taraf
+`logger.warn`a bağlar (K8). `onExceeded` verilmese bile `exceeded` bayrağı her
+zaman döner — ihlal sessizce kaybolamaz.
+
+⚠️ **Eşzamansız iş REDDEDİLİR:** `fn` bir thenable döndürürse `ValidationError`
+fırlatılır. Sessizce kabul edilseydi ölçülen şey promise'in **kurulma** süresi
+olurdu ve kapı hiç ötmezdi. Eşzamansız ölçüm `pnpm perf:budget` ile gelecek
+(Faz 6, G-01).
+
+⚠️ **Motor `measure`'ı IMPORT EDEMEZ** (Karar 6). Ölçmek zaman okumaktır (K3);
+motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 
 ## 11.4 Test Katmanları
 

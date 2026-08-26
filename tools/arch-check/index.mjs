@@ -17,6 +17,7 @@
  *   ⑤ restricted-subpath     kısıtlı alt yol (`@fms/shared/server`) — Faz 2.2a
  *   ⑥ undeclared-dependency  import edilen `@fms/X` package.json'da bildirilmiş mi — Faz 2.2a
  *   ⑦ engine-forbidden-import motorun alamayacağı adlandırılmış dışa aktarımlar — Faz 2.3a
+ *                             (3 giriş: createCorrelationId · measure · configureAssertions)
  *
  * ⚠️ BU LİSTE DEĞİŞTİRİLİRSE ÜÇ YER BİRDEN GÜNCELLENİR (Faz 2.3b'de kurallaştı):
  *   1. burada,
@@ -131,20 +132,35 @@ export const APP_PATH_PREFIXES = ['/api', '/assets', '/login', '/logout', '/regi
 export const ASSET_EXTENSIONS = ['.html', '.json', '.css'];
 
 /**
- * MOTORUN ALAMAYACAĞI ADLANDIRILMIŞ DIŞA AKTARIMLAR (Faz 2.3a).
+ * MOTORUN ALAMAYACAĞI ADLANDIRILMIŞ DIŞA AKTARIMLAR (Faz 2.3a, 2.7'de genişledi).
  *
  * `@fms/shared` motora açık ama içindeki her sembol açık değil. Bu liste
  * MODÜL düzeyinde ifade edilemeyen yasakları taşır:
  *   • `createCorrelationId` — kimlik üretmek zaman + entropi okumaktır (K3).
  *     Kimlik oyun rastgeleliği DEĞİL (K2 kapsamı dışı) ama motorun işi de
  *     değil: motor iz döndürür, kimliği çağıran taraf ilişkilendirir.
- * Faz 2.7'de `measure` de buraya girecek (Karar 6): motor kendini ölçmez,
- * ölçüm motoru DIŞARIDAN sarmalar.
+ *   • `measure` — Faz 2.7, Karar 6. Ölçmek zaman okumaktır; motor kendini
+ *     ölçmez, ölçüm motoru DIŞARIDAN sarmalar.
+ *   • `configureAssertions` — Faz 2.7. Motor kendi değişmez kontrolünü
+ *     GEVŞETEMEZ; varsayılan `throw` kipi orada değiştirilemez kalmalı.
+ *
+ * ⚠️ HER GİRDİNİN KENDİ KANARYA FIXTURE'I VAR (`arch-check.test.mjs`).
+ * Kural sayısı değişmiyor ama giriş sayısı değişiyor: yalnızca kural düzeyinde
+ * kanarya tutmak, bir anahtarın yanlış yazılmasını (`Measure`, `measures`)
+ * göremezdi — kural `createCorrelationId` üzerinden ötmeye devam eder ve yeni
+ * yasak sessizce hiç uygulanmazdı.
  */
 export const ENGINE_FORBIDDEN_SHARED_EXPORTS = {
   createCorrelationId:
     'Kimlik üretmek zaman ve entropi okumaktır (K3). Motor iz (debugTrace) döndürür; ' +
     'correlationId ilişkilendirmesini çağıran taraf yapar.',
+  measure:
+    'Ölçmek zaman okumaktır (K3, K2). Motor kendini ölçmez; ölçüm motoru DIŞARIDAN ' +
+    'sarmalar: measure(..., () => engine.simulate(...)).',
+  configureAssertions:
+    'Motor kendi değişmez kontrolünü gevşetemez (K3, spec/09 §11.3). assertInvariant ' +
+    'motorda her zaman varsayılan `throw` kipindedir; kip yalnızca uygulama ' +
+    'önyüklemesinde, motorun dışında ayarlanır.',
 };
 
 /**

@@ -2,10 +2,12 @@ import {
   apiPath,
   type AppError,
   type AppPath,
+  assertInvariant,
   CORRELATION_HEADER,
   createCorrelationId,
   DataProviderError,
   DomainError,
+  ERROR_KINDS,
   type ErrorContext,
   type Logger,
 } from '@fms/shared';
@@ -156,14 +158,37 @@ export async function apiRequest<T>(
 
   const serverCorrelationId = response.headers.get(CORRELATION_HEADER);
 
-  if (serverCorrelationId !== null && serverCorrelationId !== correlationId) {
-    // Zincir koptu ama istek çalıştı. Uyarı basılır, iş düşürülmez —
-    // 2.3a'daki geçersiz başlık kararının istemci tarafındaki aynadaki hâli.
-    logger.warn(
-      { code: 'api.correlationMismatch', sent: correlationId, received: serverCorrelationId },
-      'Sunucu farklı bir correlationId döndürdü — zincir kopuk',
-    );
-  }
+  /**
+   * ⚠️ ZİNCİR DEĞİŞMEZİ — Faz 2.7'de `logger.warn`dan `assertInvariant`a çevrildi.
+   *
+   * Denetlenen şey aynı: sunucunun geri verdiği kimlik ya yoktur ya da
+   * gönderdiğimizle aynıdır. Değişen şey **kipe göre davranış**:
+   *   • Geliştirme derlemesi → FIRLATIR. 2.3c bir alt görevi bu zincirin
+   *     kapandığını kanıtlamaya harcadı; sessizce bozulursa çürür.
+   *   • Üretim derlemesi → `logger.warn` basıp DEVAM EDER. 2.3b'nin
+   *     "iş düşürülmez" kararı burada aynen geçerli — bozuk bir izleme
+   *     başlığı kullanıcının işlemini düşürmemeli.
+   *
+   * Karar iptal edilmedi, KAPSAMI DARALTILDI (SAPMA-018).
+   *
+   * `kind: dataProvider` bilinçli (Karar 18): bu bir **motor** değişmezi değil,
+   * yukarı akışın (sunucu ya da araya giren vekil) tutarsız cevabı.
+   * `engine` denseydi exception filter'ın durum kodu ve Sentry elemesi yanlış
+   * yönlendirilirdi.
+   *
+   * Uyarıyı bu modül basmaz — bildiriciyi `main.tsx` kuruyor (2.3c deseni).
+   */
+  assertInvariant(serverCorrelationId === null || serverCorrelationId === correlationId, {
+    code: 'api.correlationMismatch',
+    message: 'Sunucu farklı bir correlationId döndürdü — zincir kopuk',
+    context: {
+      method,
+      url,
+      sent: correlationId,
+      received: serverCorrelationId ?? '',
+    },
+    kind: ERROR_KINDS.dataProvider,
+  });
 
   if (!response.ok) {
     logger.error(

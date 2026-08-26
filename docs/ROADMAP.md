@@ -698,12 +698,45 @@ docs/ADR/0001-monorepo-secimi.md
       **Ölçülecek:** (a) üç katman ayrı ayrı yakalıyor mu · (b) kayıtsız hata köke tırmanıyor
       mu · (c) fallback'in kendisi patlarsa ne oluyor · (d) üretim derlemesinde yığın izi
       ekranda YOK · (e) çökme Sentry'ye gerçekten gidiyor mu.
-- [ ] **2.7** `debugTrace` + `assertInvariant` + `measure` (K7). İlk ikisi **saf** — motor kullanacak.
-      **Karar 6:** `perf.ts` kökte kalır (izomorfik, `performance.now()`), ama `arch:check`'e
-      "motor `perf.js` import edemez" kuralı eklenir — motor K3 gereği kendini ölçemez; ölçüm motoru
-      **dışarıdan** sarmalar.
-      `assertInvariant` dev/prod ayrımı **`NODE_ENV` koklamaz** — açık bayrakla sürülür (Faz 1 dersi,
-      hata #10: kapı yanlış şeyi ölçüyordu).
+- [x] **2.7** `debugTrace` + `assertInvariant` + `measure` (K7). İlk ikisi **saf** — motor kullanacak.
+      **Sonuç:** üçü de kuruldu, **4. ve 5. kabul kriteri kapandı**. Test 438 → **486**
+      (31 → 35 dosya), kapsam satır %93,59 → **%94,40**, fonksiyon %95 → **%95,68**.
+      Paket 320.641 → **321.483 ham bayt (+842, %0,26)**.
+      **Karar 6 — UYGULANDI, ama kural düzeyinde değil GİRDİ düzeyinde.** `perf.ts` kökte
+      kaldı (izomorfik, `performance.now()`); yeni bir `arch:check` kuralı **eklenmedi** çünkü
+      2.3a'nın `engine-forbidden-import` kuralı zaten tam bu işi yapıyor. `measure` ve
+      `configureAssertions` `ENGINE_FORBIDDEN_SHARED_EXPORTS` tablosuna girdi.
+      Kural sayısı **7'de kaldı**, tablo girdisi 1 → **3** oldu.
+      **Kanarya bir kademe aşağı indi:** her girdi için ayrı fixture + "yasaklı ÜÇ adın
+      HER BİRİ ayrı ayrı ötüyor" testi. İki mutasyonla ölçüldü —
+      **(a)** `measure` fixture'ı devre dışı bırakıldı: yalnızca yeni test kırıldı (1/44),
+      "YEDİ kural" ve tablo bütünlüğü testleri **yeşil kaldı** → yeni testin kapsadığı
+      boşluk gerçek. **(b)** tablo anahtarı `measure` → `measured` diye yanlış yazıldı:
+      iki test kırıldı ama **`pnpm arch:check` "✓ temiz" dedi** — kapının sessizce
+      körelmesinin tam örneği.
+      **Negatif test:** `packages/engine`'e `measure` + `configureAssertions` importu kondu,
+      `arch:check` **2 ihlalle kırıldı**, geri alındı.
+      **`assertInvariant` dev/prod ayrımı `NODE_ENV` KOKLAMIYOR** — değer `__FMS_DEV__`
+      derleme zamanı sabitinden (Vite `define`) geliyor. Varsayılan **`throw`**; yalnızca
+      tarayıcı üretim derlemesi `report`a çeviriyor. **Sunucuya bayrak EKLENMEDİ** →
+      SAPMA-017 (tüketici yok, K12; env değişkeni çalışma zamanı ayarıdır, "prod build"
+      değil).
+      **Çağrı yeri:** `apps/web/src/lib/api.ts`'teki mevcut `correlationId` uyumsuzluğu
+      kontrolü `logger.warn`dan `assertInvariant`a çevrildi → SAPMA-018. 2.3b'nin
+      "iş düşürülmez" kararı **üretimde aynen geçerli**, yalnızca dev'de fırlatıyor.
+      **`debugTrace.input` `ErrorContext`'e daraltıldı** (spec §11.2 `Record<string, unknown>`
+      diyordu) → SAPMA-016. `output` serbest kaldı ve loglanmıyor; tip sistemi ikinci kilit.
+      **Redaksiyon uçtan uca kanıtlandı:** iz GERÇEK pino logger'ından geçirildi,
+      `input.password` ve `input.refreshToken` → `[REDACTED]`, `input.userId` → 7.
+      Köprü (`traceToLogContext`) düzleştiriyor, redaksiyonu **logger** yapıyor (§11.5).
+      **Motor kanıtı:** `packages/engine/src/observability-from-engine.test.ts` —
+      `types: []` + `lib: ["ES2024"]` altında iz üretiliyor ve `assertInvariant` fırlatıyor.
+      **⚠️ `measure`in henüz ürün çağrı yeri YOK** ve bu ölçüldü: paket taramasında
+      `perf.asyncNotSupported` · `debugTrace.summaryRequired` · `debug.trace` → **0**.
+      Ağaç sarsma ikisini de tamamen siliyor (günlük #19'un aynı dersi); +842 baytın
+      tamamı `assert.ts` + `main.tsx` kablolamasından geliyor.
+      Sızıntı taraması temiz: `pino` · `async_hooks` · `zod` · `JWT_SECRET` ·
+      `DATABASE_URL` · `thread-stream` → **0**.
 - [ ] **2.8** Geliştirici Hata Ayıklama Paneli (`Ctrl+Shift+D`), 4 sekme.
       **Karar 3:** üretimden dışlama **grep ile kanıtlanamaz** — küçültme tanımlayıcıları değiştirir,
       `grep "DebugPanel"` kod pakette dururken bile 0 döner. Panelin içine küçültmeden sağ çıkan bir
@@ -724,9 +757,10 @@ packages/shared/src/logger.ts                            [2.2] Logger ARAYÜZÜ 
 packages/shared/src/server/logger.ts                     [2.2] pino uygulaması — alt yol
 packages/shared/src/server/context.ts                    [2.3] AsyncLocalStorage
 packages/shared/src/log-context.ts                       [2.3] taşınabilir zarf (Zod)
-packages/shared/src/debug-trace.ts                       [2.7]
-packages/shared/src/assert.ts                            [2.7]
-packages/shared/src/perf.ts                              [2.7]
+packages/shared/src/debug-trace.ts                       [2.7] SAF — iz üretir, LOGLAMAZ
+packages/shared/src/assert.ts                            [2.7] SAF — varsayılan kip `throw`
+packages/shared/src/perf.ts                              [2.7] izomorfik ama MOTORA YASAK
+packages/engine/src/observability-from-engine.test.ts    [2.7] motorun K3 altında kullanabildiğinin kanıtı
 apps/api/src/instrument.ts                               [2.5] Sentry — main'den ÖNCE yüklenir
 apps/api/src/common/filters/global-exception.filter.ts   [2.4]
 apps/api/src/common/middleware/correlation.middleware.ts [2.3]
@@ -734,7 +768,7 @@ apps/web/src/lib/sentry.ts                               [2.5]
 apps/web/src/lib/api.ts                                  [2.3] X-Correlation-Id gönderimi
 apps/web/src/components/ErrorBoundary.tsx                [2.6]
 apps/web/src/components/dev/DebugPanel.tsx               [2.8]
-tools/arch-check/index.mjs                               [2.2, 2.7] alt yol + perf kuralları
+tools/arch-check/index.mjs                               [2.2, 2.7] alt yol kuralı + motor yasaklı ad tablosu (1 → 3 girdi)
 eslint.config.js                                         [2.2] process.stdout/stderr yasağı
 vitest.config.ts                                         [2.0] coverage.include .tsx
 docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk envanteri
@@ -779,8 +813,49 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
       **Eşzamanlılık:** 2.3a'daki paralel istek testi yeşil.
       2.3b'de üç halka vardı, dördüncüsü (sunucu log satırı) **yoktu** → G-08, 2.3c'de kapandı.
 - [ ] Debug paneli açılıyor ve canlı log akışı gösteriyor — *doğrulama: `Ctrl+Shift+D` + üretim paketinde YOKLUĞUNUN kanıtı (dize nöbetçisi, Karar 3)*
-- [ ] `assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor — *doğrulama: İKİ AYRI DERLEME alınır ve ikisi de çalıştırılır; `NODE_ENV` koklanmaz*
-- [ ] Performans sarmalayıcısı bütçe aşımında uyarı basıyor — *doğrulama: 1 ms bütçe / 50 ms fonksiyon → uyarı; 500 ms bütçe → sessiz*
+- [x] `assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor — *doğrulama: İKİ AYRI DERLEME alınır ve ikisi de çalıştırılır; `NODE_ENV` koklanmaz*
+      **✅ 2.7'DE KAPANDI — İKİ DERLEME ALINDI, İKİSİ DE GERÇEK TARAYICIDA KOŞULDU.**
+      Sahte API (`:3001`) gelen `X-Correlation-Id`'yi bilerek farklı bir değerle geri
+      verdi (2.6 tekniği); `vite preview` ile aynı ekran iki derlemede açıldı.
+
+      | Gözlem | **Üretim derlemesi** | **Geliştirme derlemesi** |
+      |---|---|---|
+      | `API durumu` | `ok` — veri geldi | `Sunucu farklı bir correlationId döndürdü — zincir kopuk` |
+      | `correlationId` | `01a03b7b-0f27-…` | `bekleniyor` — hiç set edilmedi |
+      | `zincir kapandı mı` | `HAYIR` | `bekleniyor` |
+      | Konsol | `api.request` → **`[warn]` zincir kopuk** → `api.response` | `api.request` → **hiçbir şey**, akış durdu |
+      | Konsol `[error]` | — | **0** (Sentry'ye gitmedi) |
+      | ErrorBoundary yedeği | yok | **yok** — 10 tablo satırının 10'u ayakta |
+
+      **Ölçülen ve önceden bilinmeyen bulgu:** fırlatma bir **promise zincirinin**
+      içinde olduğu için ErrorBoundary onu YAKALAMIYOR (React sınırları yalnızca
+      render/lifecycle hatalarını yakalar). Yakalayan, `App.tsx`teki kendi `.catch()`i.
+      Bu yüzden dev'de de yığın izi ekrana çıkmıyor, Sentry'ye de bir şey gitmiyor —
+      `crash` etiketi (Karar 18) bu yolda hiç devreye girmiyor.
+
+      **Statik kanıt (aynı yöntem, aynı `grep -F` deseni, iki paket):**
+      | Nöbetçi | Üretim | Geliştirme |
+      |---|---|---|
+      | `mode:b.report` | **1** | **0** |
+      | `code:e.code,correlationId` | **1** | **0** |
+
+      Bootstrap çağrısının kendisi: üretimde
+      `te({mode:b.report,report:e=>{Af.warn({...e.context,code:e.code,correlationId:cf()},e.message)})`,
+      geliştirmede `te({mode:b.throw})`. **Tek üçlü ifade, derleme zamanında iki farklı
+      dala katlanmış** — çalışma zamanında `process.env` okunmuyor.
+      ⚠️ İlk denemede nöbetçi olarak çift tırnaklı `"report"` arandı ve iki pakette de 0
+      çıktı: küçültücü dizeleri **ters tırnakla** yazıyor, yani o desen ayırt edici
+      değildi. Ölçüm `grep -F` ile yeniden alındı (günlük #50).
+- [x] Performans sarmalayıcısı bütçe aşımında uyarı basıyor — *doğrulama: 1 ms bütçe / 50 ms fonksiyon → uyarı; 500 ms bütçe → sessiz*
+      **✅ 2.7'DE KAPANDI — sayısal senaryonun ikisi de test edildi.**
+      1 ms bütçe / ~50 ms meşgul bekleme → `onExceeded` **1 kez** çağrıldı,
+      `exceeded: true`, `durationMs > 1`. 500 ms bütçe / aynı iş → `onExceeded`
+      **hiç çağrılmadı**, `exceeded: false`.
+      Uyarı GERÇEK pino logger'ından geçirildi (K8): satır `level: 40` (warn),
+      `code: perf.budgetExceeded`, `metric: tur.atlama`.
+      **Sahte zamanlayıcı KULLANILMADI** — `performance.now`u sahtelemek ölçümün
+      kendisini sahtelemek olurdu; meşgul bekleme ile gerçek süre harcandı.
+      **Bildiricisiz çağrıda da ihlal kaybolmuyor:** `exceeded` bayrağı her zaman dönüyor.
 
 **Bağımlılık:** Faz 1
 

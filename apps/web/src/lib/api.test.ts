@@ -1,9 +1,13 @@
 import {
   AppError,
+  ASSERTION_MODES,
+  configureAssertions,
   CORRELATION_HEADER,
   DataProviderError,
   DomainError,
+  type InvariantViolation,
   isCorrelationId,
+  resetAssertionsForTests,
 } from '@fms/shared';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
@@ -57,13 +61,12 @@ function stubFetch(options: {
 // Casuslar değişkende tutuluyor: `expect(console.warn)` yazmak K8'in ESLint
 // kuralını (`no-console`) tetikliyor ve o kural test dosyaları için de açık —
 // bilinçli, çünkü kaçış deliği açmak kuralın güvenilirliğini bozar.
-let warnSpy: MockInstance;
 let errorSpy: MockInstance;
 
 beforeEach(() => {
   // Tarayıcı logger'ı `console`a yazıyor; test çıktısını kirletmesin.
   vi.spyOn(console, 'info').mockImplementation(() => undefined);
-  warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
@@ -121,17 +124,52 @@ describe('apiRequest — başlık GERÇEKTEN gönderiliyor', () => {
   });
 });
 
+/**
+ * ⚠️ ZİNCİR DEĞİŞMEZİ İKİ KİPTE DE SINANIYOR (2.7).
+ *
+ * `api.ts` artık `assertInvariant` çağırıyor ve davranış kipe bağlı. Yalnızca
+ * bir kipi test etmek, diğerinin sessizce bozulmasına izin verirdi.
+ *
+ * ⚠️ AMA BU TESTLER KRİTER 4'Ü KAPATMAZ. Kip burada `configureAssertions` ile
+ * elle kuruluyor; üretimde onu `__FMS_DEV__` **derleme zamanı sabiti** sürüyor
+ * ve o sabiti testte sahtelemek yalnızca testi yeşile boyar (2.6 günlük #48).
+ * Kriterin kanıtı İKİ AYRI DERLEMEYİ gerçek tarayıcıda koşmak.
+ */
 describe('apiRequest — zincir koptuğunda', () => {
-  it('sunucu FARKLI kimlik döndürürse uyarır ama işi düşürmez', async () => {
+  afterEach(() => {
+    resetAssertionsForTests();
+  });
+
+  it('ÜRETİM KİPİ (`report`): uyarır ama işi düşürmez — 2.3b kararı korunuyor', async () => {
+    const report = vi.fn<(violation: InvariantViolation) => void>();
+    configureAssertions({ mode: ASSERTION_MODES.report, report });
+
     stubFetch({ echo: 'different' });
     const result = await apiRequest<Health>('/health');
 
     expect(result.serverCorrelationId).toBe('baska-bir-kimlik');
     expect(result.data.status).toBe('ok'); // iş düşmedi
-    expect(warnSpy).toHaveBeenCalled();
+    expect(report).toHaveBeenCalledTimes(1);
+
+    const violation = report.mock.calls[0]?.[0];
+    expect(violation?.code).toBe('api.correlationMismatch');
+    expect(violation?.kind).toBe('dataProvider'); // motor değişmezi DEĞİL — Karar 18
+    expect(violation?.context['received']).toBe('baska-bir-kimlik');
   });
 
-  it('sunucu başlık hiç yazmazsa `null` döner', async () => {
+  it('GELİŞTİRME KİPİ (`throw`): fırlatıyor — bozuk zincir sessiz kalmıyor', async () => {
+    // Varsayılan kip zaten `throw`; burada açıkça kuruluyor ki testin neyi
+    // iddia ettiği okunsun.
+    configureAssertions({ mode: ASSERTION_MODES.throw });
+    stubFetch({ echo: 'different' });
+
+    await expect(apiRequest<Health>('/health')).rejects.toBeInstanceOf(DataProviderError);
+  });
+
+  it('sunucu başlık hiç yazmazsa `null` döner ve değişmez İHLAL SAYILMAZ', async () => {
+    // Kontrol deneyi: kip `throw` iken bile başlıksız yanıt fırlatmamalı.
+    // Yoksa kural "her yanıt başlık yazmalı" olurdu ve o başka bir iddia.
+    configureAssertions({ mode: ASSERTION_MODES.throw });
     stubFetch({ echo: 'none' });
     const result = await apiRequest<Health>('/health');
     expect(result.serverCorrelationId).toBeNull();
