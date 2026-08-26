@@ -185,7 +185,7 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 | Snapshot | Vitest | Motor | Bilinen girdi → sabitlenmiş olay akışı |
 | Denge | Özel runner | Maç motoru | 10.000 maç → 5.13'teki 17 metrik |
 | Regresyon | Özel runner | Tüm sistem | 20 sezon → invariant + denge + çökme yok |
-| Entegrasyon | Vitest + testcontainers | API + DB | Gerçek Postgres ile uçtan uca modül |
+| Entegrasyon | Vitest + testcontainers | API + DB | Gerçek Postgres ile uçtan uca modül — `pnpm test:db` (Faz 3.2a'da kuruldu) |
 | Uçtan uca | Playwright | Kritik akışlar | Kayıt → kariyer → transfer → maç → sezon |
 | Görsel | Playwright | Ekranlar | Anlık görüntü karşılaştırma (mobil + masaüstü) |
 | Erişilebilirlik | axe-core | Tüm ekranlar | 0 kritik ihlal |
@@ -252,6 +252,15 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > | 6 | 7 × `tsconfig.build.json` → `exclude` | Testler `dist`'e girmesin | **parantez YOK** |
 > | 7 | `tools/arch-check/index.mjs` → taranan uzantılar | Hangi dosyalar denetlenir | düz dizi |
 > | 8 | `tools/arch-check/index.mjs` → `checkImportCasing` adayları | `.js→.ts`, `.mjs→.mts`, `.cjs→.cts` | düz dizi |
+> | 9 | `vitest.integration.config.ts` → `test.include` | Entegrasyon testi keşfi (`integration/**/*.itest.ts`) | süslü parantez ✅ |
+>
+> **9. satır Faz 3.2a'da eklendi** ve bu, listenin kendi kuralının işlemesidir:
+> yeni bir dosya deseni repoya girdiğinde envanter gözden geçirilir. `.itest.ts`
+> yeni bir **uzantı** değil, ayrı bir **desen** — ama aynı körlüğü taşıyor.
+> Ölçüldü: kök `vitest.config.ts`'in `db` projesi `src/**/*.test.{ts,tsx}`
+> deseniyle `integration/**/*.itest.ts` dosyalarını **almıyor** (`pnpm test`
+> 41 dosya sayıyor, entegrasyon dosyası içlerinde değil) — istenen davranış bu,
+> ama iki desenin ayrıştığı yer artık **yazılı**.
 >
 > **Ölçülmüş ders (2.1):** 7. satırdaki listede `.cts` eksikti ve sonuç sessizdi —
 > ihlal içeren bir `.cts` dosyası konulduğunda `arch:check` **"temiz"** dedi
@@ -264,6 +273,28 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > `*/src/**` desenini alır; geliştirme araçları (`arch-check`, `eslint-local-rules`)
 > test edilir ama ürün kodu sayılmaz ve %70/%85 eşiklerine girmez.
 
+> ### ⚠️ ENTEGRASYON TESTLERİ VARSAYILAN `pnpm test`'E GİRMEZ (Faz 3.2a)
+>
+> `testcontainers` ile tek bir Postgres konteyneri **5.592 ms**'de kalkıyor (Faz 3.0'da
+> ölçüldü). Bu dosyalar kök `vitest.config.ts`'in `projects` listesine konsaydı, günde
+> onlarca kez koşulan kapı zinciri saniyelerden dakikalara çıkardı ve pratikte
+> atlanmaya başlanırdı.
+>
+> Ayrı yapılandırma: `vitest.integration.config.ts` · ayrı komut: **`pnpm test:db`** ·
+> ayrı dosya deseni: `packages/*/integration/**/*.itest.ts`.
+>
+> **⚠️ AYRI KOMUT YAZMAK YETMEZ — komutun KOŞULDUĞU YER de yazılmalı.** Yukarıdaki
+> §11.5 faz kapanış listesine ve CI'a ayrı iş olarak eklendi. Yazılmasaydı bu tam
+> olarak `docs/SPEC-COVERAGE-GAPS.md` **G-01** olurdu: spec bir kapı tanımlıyor,
+> hiçbir faz onu kurmuyor, kapı yıllarca sessizce koşulmuyor.
+>
+> **Kapsam raporu bilerek AYRI tutuldu.** Entegrasyon koşumu kapsam üretmiyor: iki
+> ayrı koşumun kapsamını birleştirmek, birleştirme doğru yapılmazsa eşiği **şişirir**
+> ve K10'un anlamı kaybolur. Sonucu şu: `packages/db`nin I/O sınırındaki dosyaları
+> (`file-source.ts`, `postgres-executor.ts`) kapsam raporunda **%0** görünüyor —
+> gerçekte entegrasyon testiyle kapsanıyorlar. Bu rakam bilinçli olarak
+> düzeltilmiyor; kapsamın bu fazda bir kanıt olmadığı ROADMAP Faz 3'te yazılı.
+
 **Fuzz testi:** Motora rastgele nitelik kombinasyonları (1-20 arası tüm uçlar dahil) verilir; `NaN`, `Infinity`, negatif skor, sonsuz döngü **asla** oluşmamalı.
 
 ## 11.5 Faz Kapanış Komutları
@@ -273,6 +304,7 @@ pnpm typecheck              # 0 hata
 pnpm lint                   # 0 uyarı
 pnpm test --coverage        # eşikleri geçmeli
 pnpm build                  # hatasız
+pnpm test:db                # Faz 3+   entegrasyon: gerçek Postgres (testcontainers)
 pnpm test:e2e               # Faz 17+
 pnpm validate:world         # Faz 11+
 pnpm validate:save          # Faz 12+
@@ -282,6 +314,42 @@ pnpm i18n:check             # Faz 5+   (0 eksik anahtar)
 pnpm perf:budget            # Faz 6+
 pnpm arch:check             # katman bağımlılık ihlali
 ```
+
+### ⚠️ `pnpm format:check` MARKDOWN'A BAKMIYOR — "format ✅" belge değişikliği için hiçbir şey kanıtlamaz (SAPMA-024)
+
+`.prettierignore` `*.md` satırını taşıyor. **Karar bilinçli ve Faz 1'de verildi**
+(commit `1bafb7e`, 2026-08-23 — git geçmişinden ölçüldü, tahmin edilmedi):
+`docs/` altındaki belgeler elle yazılmış spesifikasyonlar, hizalanmış tablolar ve
+kasıtlı satır sarmaları taşıyor; Prettier'ın markdown biçimlendiricisi bunları
+yeniden yazar.
+
+**Eksik olan karar değil, SONUCUYDU.** Kapı, belge ağırlıklı bir commit'te
+**hiçbir değişen dosyaya bakmıyor** ve yine `All matched files use Prettier code
+style!` diyor. Faz 1'den bu yana yazılan raporların bir kısmında o `✅` satırı
+boştu — Faz 2 §5 **D3**'ün (*"bir kapının 'temiz' demesi, baktığını göstermez"*)
+yeni bir örneği, bu kez **denetleyicinin kendisinde değil kapsamında**.
+
+**Ölçülen kapsam (Faz 3.2a, 168 izlenen dosya üzerinde `prettier --file-info`):**
+
+| Durum | Dosya |
+|---|---|
+| **Denetleniyor** | **125** |
+| Yok sayılıyor (`.prettierignore`) | **31** — 29'u `.md`, kalanı `pnpm-lock.yaml` ve `LICENSE` |
+| Desteklenmiyor (ayrıştırıcı yok) | 12 |
+
+Yani izlenen dosyaların **%17'si** bu kapının dışında ve hepsi belge.
+
+**Karar 3.2a'da yeniden değerlendirildi ve KORUNDU — gerekçe ölçüldü:** Markdown
+denetimi açılsaydı **29 dosyanın 29'u** değişirdi, **4.159 satır**. İkisi tek
+başına belirleyici: `PROJECT_MEMORY.md` **append-only bir kütüktür** ve diff
+okunabilirliği onun için doğrudan bir kalite özelliği; `docs/MASTER-SPEC.md`
+**donmuş arşivdir** ve yeniden biçimlendirmek o statüyü ihlal eder.
+
+**Bunun yerine raporlama kuralı:** bir alt görev yalnızca belge değiştirmişse
+rapor `format ✅` yazmaz, **`format — Markdown kapsam dışı, bu commit'te
+denetlenen dosya yok`** yazar. `docs/OUTPUT-FORMAT.md`'nin *"test edilmemiş bir
+kapı test edilmiş gibi yazılmaz"* kuralı buraya da uygulanır: kapı koştu ama
+**bakacak bir şey bulamadıysa** bu bir onay değildir.
 
 **ESLint ile arch:check arasındaki iş bölümü** — hiçbir kural iki yerde denetlenmez.
 Tekrar eden kural, iki yerden birinde gevşetilince sessizce ölür.

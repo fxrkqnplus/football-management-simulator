@@ -1,0 +1,11 @@
+-- 0000_countries_initial — GERİ ALMA (elle yazıldı)
+--
+-- drizzle-kit `down` migration ÜRETMİYOR (Faz 3.0'da ölçüldü, docs/spec/01-database.md §3.0).
+-- Bu dosya elle yazılır; doğruluğunun ölçüldüğü yer `meta/0000_snapshot.json`'ın
+-- BİR ÖNCEKİ hâli — yani boş şema.
+--
+-- ⚠️ Bu geri alma VERİ KAYBEDER: `countries` tablosundaki her satır gider.
+-- Koşucu bunu bir yorum satırından okumaz, ÖLÇER: geri almayı bir işlem içinde
+-- uygular, kaybolan tablo/sütunları ve satır sayılarını sayar, sonra
+-- `allowDataLoss` verilmemişse işlemi geri alır ve reddeder.
+DROP TABLE "countries";

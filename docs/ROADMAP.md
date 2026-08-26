@@ -1102,17 +1102,26 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       **2/3'ünü tutturmuyor** (SAPMA-022, ölçüldü) · `docs/schema/world.md` iskeleti
       açıldı · G-09 yazıldı · **Faz 8 kabul kriterine `unaccent` uyarısı eklendi**
       (düz `pg_trgm` o kriteri sağlamıyor — ölçüldü). **Tablo sayısı 11'de kaldı.**
-- [ ] **3.2a** **Migration koşucusu** — journal okuma, takip tablosu, `up` **ve**
-      `down`, `testcontainers` koşum hattı. Drizzle'ın `migrate()`'i yalnızca ileri
-      gidiyor (3.0'da ölçüldü), `down` için kendi koşucumuz gerekiyor.
-      Entegrasyon testleri **varsayılan `pnpm test`'e girmez** — tek konteyner
-      **5.592 ms** (ölçüldü); ayrı komut, **ve o komut `docs/spec/09` §11.5 faz
-      kapanış listesine yazılır**, yoksa hiç koşulmaz (G-01'in birebir aynısı).
-      ⚠️ **Bu alt görevde karara bağlanacak:** `down` **yalnızca şemayı** mı geri
-      alıyor, yoksa **veri kaybı olan durumlar açıkça REDDEDİLİP** elle müdahale mi
-      isteniyor? Snapshot farkından üretilen `down` şemayı geri getirir ama veriyi
-      getiremez (`spec/01` §3.0'daki asimetri). **Sessizce veri kaybettiren bir
-      `down`, olmayan bir `down`'dan kötüdür** — karar gerekçesiyle raporlanacak.
+- [x] **3.2a** **Migration koşucusu.** `packages/db/src/migrate/` — journal (Zod'lu),
+      planlama, kayıp ölçümü, `SqlExecutor` arayüzü, `postgres.js` uygulaması,
+      dosya kaynağı. Takip tablosu **kendi şemasında** (`fms_meta.migrations`) —
+      tavuk-yumurta çözümü ve 3.2b'nin şema karşılaştırmasını kirletmemesi için.
+      **`pnpm test:db`** kuruldu (`vitest.integration.config.ts`), `docs/spec/09`
+      §11.5 faz kapanış listesine **ve CI'a ayrı iş olarak** yazıldı (amd64+arm64).
+      Sürücü **`postgres@3.4.9`** seçildi (SAPMA-025 — davranış `pg` ile birebir
+      aynı, fark 13:1 paket).
+      ⚠️ **`down`un veri kaybı politikası — KARAR:** migration başına `lossy`
+      etiketi **elendi**; sayınca neredeyse her geri alma kayıplı çıkıyor, etiket
+      hep `lossy` olur, izin bayrağı her koşuda yazılır ve kapı gürültüye döner
+      (`spec/09` §11.5'in *"bir yol yanlış tarafa düşerse hangi test kırılır?"*
+      testini geçemez). **Yerine kayıp ÖLÇÜLÜYOR:** geri alma bir işlemde
+      uygulanır, şemanın öncesi/sonrası karşılaştırılır, kaybolan tablo/sütunlar
+      ve **kaç satırı** etkilediği sayılır; `allowDataLoss` verilmemişse işlem
+      **geri alınır ve reddedilir**. Etiket bir *iddiadır*, bu bir *ölçümdür* —
+      ve boş bir tabloyu düşüren `down` haklı olarak engellenmez.
+      **`--dry-run`** aynı mekanizmayı kullanıyor: gerçekten uygular, ölçer,
+      `RollbackSignal` ile geri alır. Gerekçe `packages/db/src/migrate/loss.ts`
+      başlığında.
 - [ ] **3.2b** **Round-trip kanıtı** — **yalnızca `countries`** üzerinde:
       `up` → **veri yaz** → `down` → `up` → şema `meta/NNNN_snapshot.json` ile
       **birebir aynı mı**, gerçek Postgres'te. Negatif test: `down`'ın bir adımı

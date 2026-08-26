@@ -1,11 +1,8 @@
 /**
- * @fms/db — Drizzle şeması, WorldView / WorldMutation.
+ * @fms/db — Drizzle şeması, migration koşucusu, WorldView / WorldMutation.
  *
- * Faz 1 iskeleti: henüz kod yok, içerik Faz 3 (dünya çekirdeği şeması) ile başlar.
- *
- * Bilerek BOŞ. Önceden buradaki yer tutucu sabit, kapsam raporunda test
- * edilmemiş gerçek kod gibi görünüyordu ve packages/engine'i %0'a çekiyordu.
- * Kapsam kapısının doğru şeyi ölçmesi için var olmayan kodun raporda da
- * olmaması gerekir.
+ * Faz 3.2a'da migration katmanı açıldı. Şema tabloları 3.4–3.6'da,
+ * `WorldView`/`WorldMutation` Faz 12'de gelecek.
  */
-export {};
+export * from './migrate/index.js';
+export * from './schema/index.js';

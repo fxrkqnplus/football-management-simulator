@@ -51,21 +51,25 @@ export default tseslint.config(
           // Bunlar olmadan projectService "was not found by the project
           // service" hatası verir. Glob `**` içermemeli.
           //
-          // İkinci giriş (Faz 3.0): `packages/db/drizzle.config.ts`. Paket
-          // kökünde yaşıyor, `src/` altında değil.
+          // ⚠️ BU LİSTE 3.2a'DA GERİ DARALTILDI — ve bu bir düzeltme.
           //
-          // ⚠️ ÖNCE DOĞRU ÇÖZÜM DENENDİ VE ELENDİ. `apps/web` emsali
-          // (`tsconfig.json` → `include: [..., "vite.config.ts"]`) burada
-          // çalışmıyor: `apps/web`i Vite derliyor, `packages/db`yi `tsc` ve
-          // onun `rootDir: "src"` kısıtı var. Denendi, ölçüldü:
+          // 3.0'da `packages/db/drizzle.config.ts` buraya eklenmişti, çünkü
+          // `apps/web` emsali (tsconfig `include`) `rootDir: "src"` yüzünden
+          // TS6059 veriyordu. O geçici çözümün gizli bedeli 3.2a'da ölçüldü:
+          // `packages/db/integration/` de aynı sebeple tip denetiminden
+          // KAÇIYORDU (`tsc --listFiles` → 0 dosya) ve lint aynı hatayı
+          // veriyordu.
           //
-          //   error TS6059: File '.../drizzle.config.ts' is not under
-          //   'rootDir' '.../src'. 'rootDir' is expected to contain all
-          //   source files.
+          // Gerçek çözüm `rootDir`i EMİT EDEN yapılandırmaya taşımaktı
+          // (`packages/db/tsconfig.build.json`); `apps/web`in kendi yorumu
+          // zaten bunu söylüyordu: *"rootDir tanımlıysa yapılandırma dosyası
+          // tip denetiminden kaçar."* Taşındıktan sonra iki dosya da paketin
+          // kendi tsconfig'ine girdi ve bu istisnaya gerek kalmadı.
           //
-          // `rootDir`i gevşetmek `dist/` düzenini değiştirirdi — bir araç
-          // yapılandırma dosyası için ödenecek bedel değil.
-          allowDefaultProject: ['*.config.ts', 'packages/db/drizzle.config.ts'],
+          // **Ders:** `allowDefaultProject`e bir satır eklemek, o dosyayı tip
+          // denetiminin dışında bırakan asıl sebebi GİZLER — ve aynı sebep
+          // bir sonraki dosyada sessizce tekrarlar.
+          allowDefaultProject: ['*.config.ts'],
         },
         tsconfigRootDir: import.meta.dirname,
       },

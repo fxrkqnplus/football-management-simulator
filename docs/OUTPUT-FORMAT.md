@@ -58,6 +58,14 @@ Yukarıdaki özet bu bölüm olmadan da anlaşılır olmalı.]
   içindeki blok her alt görev sonunda yeniden yazılır.
 - **Kanıtlar bölümünde test edilmemiş bir kapı test edilmiş gibi yazılmaz.**
   "test edilmedi" yazmak, yanlış "✅"den iyidir.
+- **Bir kapı koştu ama BAKACAK BİR ŞEY BULAMADIYSA bu onay değildir** (Faz 3.2a,
+  SAPMA-024). Somut vaka: `.prettierignore` `*.md` taşıyor, yani belge ağırlıklı
+  bir alt görevde `pnpm format:check` **değişen hiçbir dosyaya bakmadan**
+  `All matched files use Prettier code style!` diyor. Ölçüldü: 168 izlenen
+  dosyanın **31'i** yok sayılıyor, 29'u Markdown. Böyle bir commit'te rapor
+  `format ✅` değil, **`format — Markdown kapsam dışı, bu commit'te denetlenen
+  dosya yok`** yazar. Aynı soru her kapı için sorulur: *"bu kapı benim
+  DEĞİŞTİRDİĞİM dosyalara baktı mı?"*
 - Bir alt görev 🟢 ise ve kullanıcı "devam" derse sıradakine geçilir — tekrar
   plan sunulmaz, plan zaten `docs/ROADMAP.md`'de onaylıdır.
 

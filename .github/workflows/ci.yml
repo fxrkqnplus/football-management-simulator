@@ -89,6 +89,57 @@ jobs:
       - name: Mimari denetimi
         run: pnpm arch:check
 
+  # Entegrasyon testleri AYRI iş — Faz 3.2a.
+  #
+  # `pnpm test`e katılmıyorlar çünkü `testcontainers` ile tek konteyner açılışı
+  # 5.592 ms (Faz 3.0'da ölçüldü) ve kapı zinciri dakikalara çıkardı. Ama ayrı
+  # komut yazmak yetmez — KOŞULDUĞU YER de yazılmalı, yoksa hiç koşulmaz
+  # (docs/SPEC-COVERAGE-GAPS.md G-01'in birebir aynı hatası). Burası o yer.
+  #
+  # `quality`ye BAĞLI DEĞİL: tip/lint hatası varken bile migration sözleşmesinin
+  # kırılıp kırılmadığını bilmek istiyoruz, ve iki iş paralel koşarak toplam
+  # süreyi uzatmıyor.
+  #
+  # ⚠️ arm64 dahil: geliştirme makinesinde Docker Desktop windows/amd64 (ADR-0004
+  # §5), yani `testcontainers`in ARM64 uyumu yerelde NATIVE kanıtlanamıyor. Bu iş
+  # o boşluğu kapatan tek yer.
+  integration:
+    name: Entegrasyon — gerçek Postgres (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v7
+
+      - name: Node kur (.nvmrc tek kaynak)
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: pnpm etkinleştir
+        run: corepack enable
+
+      - name: Bağımlılıkları kur
+        run: pnpm install --frozen-lockfile
+
+      # Testin kendisi de bu etiketi kullanıyor; önceden çekmek, konteyner
+      # açılış süresini imaj indirmesinden ayırıyor. Etiket `docker-compose.yml`
+      # ile AYNI majör olmalı — koşucuyu başka bir sürüme karşı kanıtlamak,
+      # kanıtı başka bir yere yazmak olur.
+      - name: Postgres imajını önceden çek
+        run: docker pull postgres:18
+
+      - name: Migration koşucusu — gerçek Postgres'e karşı
+        run: pnpm test:db
+
   image:
     name: İmaj (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}

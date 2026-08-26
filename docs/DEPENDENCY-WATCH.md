@@ -20,6 +20,7 @@
 | `@sentry/node`, `@sentry/react` | 10.70.0 | ~~Faz 2~~ ✅ **2.0'da ele alındı, sürüm sabitlendi** | Kurulum 2.5'te. Sonuç aşağıda. |
 | `drizzle-orm` / `drizzle-kit` | 0.45.2 / 0.31.10 | ~~Faz 3~~ ✅ **3.0'da ele alındı — KARAR KORUNDU, KURULDU** | 1.0 hâlâ RC. Sonuç aşağıda. |
 | `testcontainers` / `@testcontainers/postgresql` | **12.1.0** | ~~Faz 3~~ ✅ **3.0'da KURULDU, ARM64 denetlendi** | G-03. Sonuç aşağıda. |
+| `postgres` (postgres.js) | **3.4.9** | ~~Faz 3~~ ✅ **3.2a'da SEÇİLDİ ve kuruldu** | `pg` ile karşılaştırılarak seçildi. Sonuç aşağıda. |
 | `drizzle-kit` 1.0 — **`down` desteği** | — | **1.0 GA çıkınca** | 0.31.10 `down` migration **üretmiyor** (3.0'da ölçüldü) ve bu yüzden elle yazılan bir `down` katmanı kuruluyor. 1.0 GA'da `down` üretimi gelirse o katman **silinebilir**; RC'de kontrol edilmedi (proje RC almıyor). GA günü ilk bakılacak şey budur. |
 | `resend` | 6.22.0 | **Faz 13** | Majör atlama, notlar okunmadı. İlk kullanım e-posta doğrulama. |
 | `ioredis` | 5.11.1 | **Faz 16** | **BORÇ-001** — 6.0.0 mevcut ama kurulum anında 3 haftalıktı. |
@@ -39,6 +40,55 @@
 ## Ele alınmış satırların sonucu
 
 > Kural 3: bump edilen satır silinmez, sonucu buraya yazılır.
+
+### Postgres sürücüsü: **`postgres@3.4.9` (postgres.js)** — Faz 3.2a, 2026-08-26 · `pg` ELENDİ
+
+Karar 3.0'da bilinçli olarak ertelenmişti (`drizzle-kit generate` sürücüsüz
+çalışıyor, seçmek 3.2'nin işine girmek olurdu — K12). 3.2a'da **ikisi de kuruldu
+ve gerçek PostgreSQL 18.6'ya karşı ölçüldü.**
+
+**Davranış — dört boyutta BİREBİR AYNI:**
+
+| Ölçüm | `pg@8.23.0` | `postgres@3.4.9` |
+|---|---|---|
+| `9007199254740993::bigint` | `"9007199254740993"` (string) ✅ | `"9007199254740993"` (string) ✅ |
+| `12345.67::numeric` | `"12345.67"` (string) ✅ | `"12345.67"` (string) ✅ |
+| Çok ifadeli SQL | çalıştı | çalıştı (`unsafe()` ile) |
+| İşlemsel DDL geri alınıyor mu | **EVET** | **EVET** |
+
+`bigint`in dizge dönmesi bu proje için önemliydi: `spec/01` para alanlarını
+(`balance`, `transferBudget`, `weeklyWage`) `bigint` tutuyor ve `Number`'a
+düşürmek sessiz hassasiyet kaybı demekti. **İkisi de bu tuzağı taşımıyor.**
+
+**Davranış eşit olunca karar ölçülen tek gerçek farka düştü — paket sayısı:**
+
+| Sürücü | Kurulan paket |
+|---|---|
+| `pg` | **13** — `pg`, `pg-types`, `pg-int8`, `pg-protocol`, `pg-pool`, `pgpass`, `pg-connection-string`, `pg-cloudflare`, `postgres-array`, `postgres-bytea`, `postgres-date`, `postgres-interval`, `xtend` (+ ayrı `@types/pg`) |
+| **`postgres`** | **1** — kendi tiplerini de taşıyor |
+
+Sayım `node_modules/.pnpm` öncesi/sonrası karşılaştırılarak yapıldı, elle
+sayılmadı. **ARM64 (K14):** ikisinde de derlenmiş `.node`, `binding.gyp` veya
+kurulum betiği **yok** — `pg-native` `pg`nin bağımlılığı değil, ayrı ve opsiyonel
+bir paket.
+
+CLAUDE.md **§1.5** (public repo, sır ve tedarik zinciri yüzeyi) ile **§2.1**'in
+*"lodash'in tamamı yasak, yalnızca gereken fonksiyon `lodash-es`'ten"* ilkesi aynı
+yöne işaret etti.
+
+> ⚠️ **Karşı argüman kaydedilir:** `pg` NestJS ekosisteminde çok daha yaygın ve
+> `apps/api`'nin DI yaşam döngüsüne bağlanması daha konvansiyoneldir. Bu gerçek bir
+> maliyet ama **ölçülebilir değil**; ölçülebilen fark 13:1'di.
+>
+> **Geri dönüş maliyeti bilinçli olarak düşük tutuldu:** koşucu `SqlExecutor`
+> arayüzünü görüyor, sürücüyü değil. `pg`'ye dönmek tek bir dosyayı
+> (`packages/db/src/migrate/postgres-executor.ts`) değiştirmek demek — koşucuya,
+> testlere veya şemaya dokunulmaz. `jsdom` kararındaki asimetriden farkı bu:
+> orada geri dönüş Faz 6'dan sonra pahalılaşıyordu, burada sabit kalıyor.
+>
+> **Yeniden değerlendirme koşulu:** `apps/api` veritabanına bağlandığında
+> (Faz 12+). O gün bağlantı yaşam döngüsünün NestJS'e bağlanması sorun çıkarırsa
+> bu satır yeniden açılır.
 
 ### `postgres` (Docker) 16 → **18** — Faz 3.0, 2026-08-26 · **BUMP EDİLDİ**
 
