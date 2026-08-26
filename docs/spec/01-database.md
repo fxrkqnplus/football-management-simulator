@@ -62,6 +62,66 @@ yazılır, ama karşılaştırılacağı bir **doğruluk kaynağı** vardır.
 
 Bu tablolar tüm kayıtlar tarafından paylaşılır. **Asla kullanıcı işlemiyle değiştirilmez** (K4).
 
+### 3.1.0 Veri paketi sütunları — Faz 3.1'de eklendi (SAPMA-023)
+
+`docs/spec/12-data-packs.md` §17.1 *"her varlık kaydında `source` alanı tutulur"*
+diyor ve §17.3 eşleme için `key` (slug) ile `externalIds` istiyor. Aşağıdaki tablo
+tanımlarının **hiçbirinde üçü de yoktu**. Sonradan eklemek on bir tabloya
+`ALTER TABLE` + seed'in yeniden yazımı demekti, o yüzden Faz 3'te ekleniyor.
+
+**Her tabloda tekrarlanmıyor; sözleşme burada.**
+
+| Sütun | Tip | Kural |
+|---|---|---|
+| `key` | `text NOT NULL` | Paket eşleme anahtarı (slug). **Benzersizlik TABLO BAŞINA** — `UNIQUE (key)`, global değil |
+| `source` | `text NOT NULL` | **CHECK kısıtlı**, serbest metin değil: `pack \| api \| wikidata \| openfootball \| procedural` |
+| `externalIds` | `jsonb NOT NULL DEFAULT '{}'` | Zod ile doğrulanır. Alanlar `spec/12` §17.3: `wikidata`, `apiFootball`, `transfermarkt` |
+
+**Bu üç sütunu TAŞIYAN tablolar** — pakette **kendi kaydı olarak görünen** varlıklar:
+`countries` · `competitions` · `clubs` · `stadiums` · `referees`
+
+**TAŞIMAYAN tablolar** — bir sahibine 1:1 bağlı uydular; kimlikleri sahiplerinin
+kimliğidir ve onlara `clubId` üzerinden erişilir:
+`club_facilities` · `club_finances_base` · `club_kits` · `rivalries` · `federations` · `kit_templates`
+
+> `kit_templates` bilerek dışarıda: pakette değil, oyunun **kendi** 20 SVG şablonu
+> (`spec/12` §17.4 *"Görsel yoksa `kit_templates` sisteminden üretilir"*). `code`
+> sütunu zaten o rolü görüyor.
+
+**Neden benzersizlik tablo başına, global değil — ölçüldü (Faz 3.1).** `spec/12`
+§17.3'ün slug algoritması birebir çalıştırılıp ROADMAP Faz 8 kapsamındaki **76
+gerçek ad** üzerinde denendi (6 ülke, 23 turnuva, 33 kulüp, 14 stadyum): tablo içi
+çakışma **0**, tablolar arası çakışma **0**. Ama karar bu sayıdan değil, **anlamdan**
+geliyor: arama her zaman *"key'i X olan KULÜBÜ bul"* biçiminde, hiçbir zaman
+*"key'i X olan ŞEYİ bul"* değil — `spec/12` §17.3'ün `explicit` stratejisi anahtarı
+zaten `data/clubs.json` dosyasına, yani varlık türüne **kapsamlıyor**. Global bir
+kısıt, zararsız bir durumu (aynı adı taşıyan bir kulüp ve bir stadyum) yasaklar ve
+karşılığında hiçbir şey kazandırmaz.
+
+> ⚠️ **Ölçüm çakışma bulamadı ama bu benzersizliğin KANITI değil.** Örneklem 76 ad,
+> hedef ~240 varlık. Algoritma kısa ve genel anahtarlar üretebiliyor — ölçülenler:
+> `AC Milan` → **`milan`**, `AS Roma` → **`roma`**, `Athletic Club` → **`athletic`**.
+> Bunlar başka bir varlık türüyle çakışmaya açık. `UNIQUE (key)` kısıtı bu yüzden
+> **veritabanı seviyesinde** duruyor: çakışma olursa ingest **patlar**, sessizce
+> yanlış varlığa bağlanmaz — `spec/12` §17.3'ün *"yanlış eşleşme = Galatasaray
+> armasının Fenerbahçe'de görünmesi"* uyarısının karşılığı budur.
+
+**`key` neden `NOT NULL`:** `DATA_MODE=clean`'de her varlık prosedürel üretiliyor ve
+yine de adreslenebilir olmak zorunda (varlık dosyaları bu anahtarla isimleniyor).
+Prosedürel yol da deterministik bir anahtar üretir — `SeededRng` zaten bunu
+mümkün kılıyor (K2). Kısıtı gevşetmek yerine üretim yolunu zorlamak tercih edildi.
+
+### 3.1.1 Sezon bir TABLO değil, bir `seasonYear` SÜTUNUDUR
+
+`docs/ROADMAP.md` Faz 3'ün ilk hâli bir `competition_seasons` tablosu istiyordu.
+Faz 3.1'de tarandı ve **hiçbir tüketicisi bulunamadı** (SAPMA-021). Bu spesifikasyonun
+tutarlı tercihi sezonu **skaler bir tamsayı** olarak taşımaktır:
+
+`matches.seasonYear` · `card_counters.seasonYear` · `player_stats_history.seasonYear`
+
+Puan durumu da saklanmıyor — `matches` satırlarından **türetiliyor**. Yeni bir
+tablo eklemeden önce bu deseni bozup bozmadığı sorulmalıdır.
+
 ### Coğrafya ve Kurumlar
 
 ```ts

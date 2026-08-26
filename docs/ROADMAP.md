@@ -1020,19 +1020,32 @@ açılışında, tek satır SQL yazılmadan çözüldü. Karar tablosu:
 | `competition_rules` ayrı tablo | `competitions.rules: jsonb` | **spec/01** | 1:1 ve hep birlikte okunuyor; ayrı tablo her sorguya bir JOIN ekler |
 | `club_reputations` ayrı tablo | `clubs.reputation` | **spec/01** | Tek `smallint`. Ayrı tablo yalnızca zaman serisi için anlamlı; itibar değişimi `save_deltas`'a gidiyor (K4) |
 | `club_colors` ayrı tablo | `clubs.color{Primary,Secondary,Tertiary}` | **spec/01** | Üç sabit sütun, 1:1 |
-| `competition_seasons` | — | **3.1'de ölçülecek** | Aşağıya bakınız |
+| `competition_seasons` | — | **spec/01 — TABLO AÇILMIYOR** | 3.1'de ölçüldü, aşağıya bakınız |
 | — | `club_finances_base` | **spec/01** | ROADMAP listesinde eksikti; başlangıç finansalları master (paketten gelir), değişimi delta |
 
-**`competition_seasons` — 3.1'de ölçülecek, ikiye ayrılıyor:**
+**`competition_seasons` — 3.1'de ÖLÇÜLDÜ, hiçbir tüketicisi yok (SAPMA-021).**
 
-- **(a) Aktif sezon örneği** (2026-27 fikstürü, puan durumu, katılımcılar) — kullanıcıya
-  özel, `saveId` taşır, **master değil** → Faz 3 kapsamı dışında. Yeri 3.1'de karara
-  bağlanır (aday: **Faz 12** tanım / **Faz 16** doldurma).
-- **(b) Tarihsel sezon verisi** ("2020-21 şampiyonu X", kulübün sezon sezon performans
-  geçmişi) — **olgusal ve herkes için aynı**, yani **master**. ROADMAP Faz 8 kulüp detay
-  ekranı bunu istiyor, `spec/12` veri paketinden geliyor. **3.1'de ölçülecek:** `spec/01`
-  ve `spec/12` bunu gerçekten istiyor mu, ROADMAP Faz 8 ne diyor, hangi tablo taşıyacak,
-  Faz 3'te mi Faz 8'de mi.
+Tablo ikiye ayrılarak incelendi; **ikisi de Faz 3'e tablo getirmiyor:**
+
+- **(a) Aktif sezon örneği** (fikstür, puan durumu, katılımcılar) — save'e özel, master
+  değil. **Ama başka bir faza da taşınmıyor:** `spec/01` §3.2 sezonu **skaler** taşıyor
+  (`matches.seasonYear`, `card_counters.seasonYear`) ve **puan durumu saklanmıyor,
+  `matches`'tan türetiliyor**. Aktif sezon için bir varlık tablosuna ihtiyaç yok.
+- **(b) Tarihsel sezon verisi** — **istendiği varsayımı ölçümle çürütüldü.** Tarama
+  sonuçları:
+
+| Nerede arandı | Bulunan |
+|---|---|
+| `spec/01` sezon atıfları | Yalnızca **skaler `seasonYear`** sütunları. Tek tarihsel master tablo `player_stats_history` (Faz 4) ve o **oyuncu** istatistiği, yarışma geçmişi değil — tüketicisi Faz 10 nitelik türetimi |
+| `spec/12` veri paketi formatı | `pack.json` içinde yalnızca `"season": 2026` (paketin hangi sezonu tarif ettiği). `clubs.json`/`players.json`'da tarihsel sezon dizisi **yok** |
+| ROADMAP **Faz 8** kapsamı | Tamamen **güncel durum** verisi. "sezon sezon performans geçmişi" **geçmiyor** |
+| ROADMAP "kulüp detay ekranı" | **Böyle bir ekran ROADMAP'te hiç yok** |
+| ROADMAP "kupa vitrini" | **Faz 47**, ve **menajer** profilinde — kaynağı `manager_career` (Faz 4) |
+| ROADMAP **Faz 46** rollover | Adım 12: *"sezon istatistikleri arşivleme, kupa müzesi güncelleme"* — **oyun içinde üretiliyor**, paketten gelmiyor. Depolamasına Faz 46 kendi karar verir |
+
+**Sonuç:** master tarihsel sezon verisi v1'de **hiçbir ekranın, spec'in veya fazın
+ihtiyacı değil**. Faz 3'te açılmıyor, başka bir faza da atanmıyor. Ürün fikri olarak
+makul olduğu için `docs/V2-BACKLOG.md`'ye yazıldı (K12).
 
 **İleri yabancı anahtarlar — sütun Faz 3'te YAZILMAZ.** `federations.presidentPersonId`,
 `clubs.chairmanPersonId`, `referees.personId` üçü de `people` tablosuna işaret ediyor ve
@@ -1049,9 +1062,12 @@ yer Faz 26).
 
 | Alan | Tip | Hangi tablolarda | Not |
 |---|---|---|---|
-| `key` | `text` | Pakette **görünen** varlıklar: `countries`, `competitions`, `clubs`, `stadiums`, `referees` | 1:1 uydu tablolara (`club_facilities`, `club_finances_base`, `club_kits`) **konmaz** — onlara `clubId` üzerinden erişiliyor. Benzersizliğin **global mi tablo başına mı** olduğu 3.1'de ölçülüp karara bağlanır (`spec/12` §17.3 slug algoritması `galatasaray`'ı kulüp, stadyum ve yarışma için aynı anda üretebilir mi?) |
+| `key` | `text NOT NULL` | Pakette **görünen** varlıklar: `countries`, `competitions`, `clubs`, `stadiums`, `referees` | Uydu tablolara (`club_facilities`, `club_finances_base`, `club_kits`, `rivalries`, `federations`, `kit_templates`) **konmaz**. ✅ **3.1'de karara bağlandı: benzersizlik TABLO BAŞINA** (`UNIQUE (key)`), global değil — gerekçe ve ölçüm `spec/01` §3.1.0 |
 | `source` | `text` + **CHECK** | `key` taşıyan her tablo | Serbest metin **değil**: `pack \| api \| wikidata \| openfootball \| procedural` |
 | `externalIds` | `jsonb` + Zod | `key` taşıyan her tablo | Alanlar `spec/12` §17.3'te (`wikidata`, `apiFootball`, `transfermarkt`) |
+
+Sözleşmenin tamamı ve gerekçesi **`docs/spec/01-database.md` §3.1.0**'a yazıldı —
+3.4/3.5/3.6 şemayı oradan okur.
 
 **`asset_index` Faz 3'te AÇILMAZ.** `spec/12` §17.5 adım 7 bu tabloyu istiyor ama
 `spec/01`'de ve ROADMAP'in hiçbir fazında yok → **G-09** olarak `docs/SPEC-COVERAGE-GAPS.md`'ye
@@ -1078,15 +1094,32 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       davranışı ③ `drizzle-orm`/`drizzle-kit` 1.0 GA oldu mu ④ `testcontainers` ARM64
       uyumu (paket denetimi: `.node` ikilisi · `binding.gyp` · `install`/`postinstall`)
       ⑤ **collation kararı** ⑥ `docs/DEPENDENCY-WATCH.md` üç satırının sonucu yazılır
-- [ ] **3.1** Şema kapsam mutabakatı — yukarıdaki envanterin açık kalan üç ölçümü
-      (`competition_seasons` (b), `key` benzersizliği, ileri FK etkisi), `docs/schema/world.md`
-      iskeleti, SAPMA kayıtları, G-09
-- [ ] **3.2** İlk migration + `testcontainers` koşum hattı — **yalnızca `countries`**.
-      `up` → veri yaz → `down` → `up` → şema **birebir aynı mı**, gerçek Postgres'te.
-      Entegrasyon testleri **varsayılan `pnpm test`'e girmez** (kapı koşusu dakikalara
-      çıkardı) → ayrı komut, **ve o komut faz kapanış listesine yazılır** yoksa hiç
-      koşulmaz (G-01'in birebir aynısı). **Kabul kriteri 1 burada kanıtlanır ve sonraki
-      her migration bu hattı miras alır**
+- [x] **3.1** Şema kapsam mutabakatı. **SONUÇ:** `competition_seasons` **açılmıyor,
+      başka faza da taşınmıyor** — hiçbir tüketicisi bulunamadı (SAPMA-021, ölçüm
+      tablosu yukarıda) · `key` benzersizliği **tablo başına** karara bağlandı,
+      sözleşme `spec/01` §3.1.0'a yazıldı (SAPMA-023) · ileri FK zorunluluğu **Faz 4
+      maddesine** işlendi · `spec/12` §17.3 slug algoritması kendi örneklerinin
+      **2/3'ünü tutturmuyor** (SAPMA-022, ölçüldü) · `docs/schema/world.md` iskeleti
+      açıldı · G-09 yazıldı · **Faz 8 kabul kriterine `unaccent` uyarısı eklendi**
+      (düz `pg_trgm` o kriteri sağlamıyor — ölçüldü). **Tablo sayısı 11'de kaldı.**
+- [ ] **3.2a** **Migration koşucusu** — journal okuma, takip tablosu, `up` **ve**
+      `down`, `testcontainers` koşum hattı. Drizzle'ın `migrate()`'i yalnızca ileri
+      gidiyor (3.0'da ölçüldü), `down` için kendi koşucumuz gerekiyor.
+      Entegrasyon testleri **varsayılan `pnpm test`'e girmez** — tek konteyner
+      **5.592 ms** (ölçüldü); ayrı komut, **ve o komut `docs/spec/09` §11.5 faz
+      kapanış listesine yazılır**, yoksa hiç koşulmaz (G-01'in birebir aynısı).
+      ⚠️ **Bu alt görevde karara bağlanacak:** `down` **yalnızca şemayı** mı geri
+      alıyor, yoksa **veri kaybı olan durumlar açıkça REDDEDİLİP** elle müdahale mi
+      isteniyor? Snapshot farkından üretilen `down` şemayı geri getirir ama veriyi
+      getiremez (`spec/01` §3.0'daki asimetri). **Sessizce veri kaybettiren bir
+      `down`, olmayan bir `down`'dan kötüdür** — karar gerekçesiyle raporlanacak.
+- [ ] **3.2b** **Round-trip kanıtı** — **yalnızca `countries`** üzerinde:
+      `up` → **veri yaz** → `down` → `up` → şema `meta/NNNN_snapshot.json` ile
+      **birebir aynı mı**, gerçek Postgres'te. Negatif test: `down`'ın bir adımı
+      bilerek bozulur, testin **kırıldığı** görülür. **Kabul kriteri 1 burada
+      kanıtlanır ve sonraki her migration bu hattı miras alır.**
+      Ayrı alt görev olmasının sebebi: koşucu ve kanıtı aynı commit'te olsaydı bir
+      aksaklıkta *"koşucu mu bozuk, `down` mu?"* sorusu doğardı
 - [ ] **3.3** K4 — Master World salt-okunurluğu **tip seviyesinde**. `db.master` istemcisi,
       `DeepReadonly` dönüşler, denetim kuralı. **Negatif test: master tabloya yazma
       girişimi DERLENMEZ.** 11 tablodan **önce** geliyor: sonra takılsaydı ve farklı bir
@@ -1096,7 +1129,13 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 - [ ] **3.5** Kulüp çekirdeği — `clubs`, `club_facilities`, `club_finances_base`,
       `stadiums`, `rivalries`
 - [ ] **3.6** Görsel varlıklar ve hakemler — `kit_templates`, `club_kits`, `referees`
-- [ ] **3.7** İndeksler + `pg_trgm` GIN + `CREATE EXTENSION` migration'ı
+- [ ] **3.7** İndeksler + `pg_trgm` GIN + `CREATE EXTENSION` migration'ı.
+      ⚠️ **3.1'de ölçülen kısıt:** düz `pg_trgm` Türkçe aramayı sağlamıyor
+      (`'Beşiktaş' % 'besiktas'` → **`f`**, benzerlik 0,286 · eşik 0,3) çünkü Türkçe
+      harf içeren trigramlar hash'leniyor. **`unaccent` gerekiyor** (mevcut, 1.1;
+      benzerlik 1,0'a çıkıyor) ama `STABLE` olduğu için indeks ifadesinde doğrudan
+      **kullanılamıyor** — `IMMUTABLE` sarmalayıcı şart. Bu, Faz 8'in kabul
+      kriterinin dayanağı
 - [ ] **3.8** Seed betiği (`tools/data-cli/seed.ts`) — 6 ülke + 6 lig + 5 kupa,
       **deterministik** (K2), **idempotent** (iki kez koşulur)
 - [ ] **3.9** `EXPLAIN ANALYZE` ölçümü (< 20 ms) seed verisiyle + FK/`ON DELETE`
@@ -1121,9 +1160,17 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 - `player_attributes` tasarımı: **tek satır, 47 sütun** (JSONB değil — sorgu ve filtre performansı için kritik, transfer arama bunun üzerinde çalışacak)
 - İndeksler: transfer aramasında kullanılacak kompozit indeksler (`position`, `age`, `current_ability`, `value`)
 - Bölümleme (partitioning) değerlendirmesi: `player_career_history` yıla göre
+- ⚠️ **FAZ 3'TEN DEVREDİLEN ZORUNLULUK — üç ileri yabancı anahtar.** Faz 3, `people`
+  tablosu burada geldiği için şu **üç sütunu hiç yazmadı**:
+  `federations.presidentPersonId` · `clubs.chairmanPersonId` · `referees.personId`
+  **Bu fazın migration'ı sütunu VE yabancı anahtarı BİRLİKTE eklemek zorunda.**
+  Yalnızca sütunu eklemek, Faz 3'ün *"tüm yabancı anahtarlar tanımlı"* kriterini
+  görünürde sağlayıp gerçekte delerdi — kararın gerekçesi Faz 3 tablo envanterinde.
+  Bu tamamlanana kadar hakemlerin **adı yok** (ilk görüntülendikleri yer Faz 26).
 
 **Kabul kriterleri:**
 - [ ] 5.000 sahte oyuncu seed → şema tutarlı
+- [ ] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri)
 - [ ] "20–24 yaş, sağ bek, CA>120, değer<15M" sorgusu < 50 ms
 - [ ] Tüm nitelikler 1–20 aralığında CHECK kısıtıyla korunuyor
 - [ ] CA/PA ilişkisi CHECK ile korunuyor (`CA <= PA`)
@@ -1275,6 +1322,16 @@ docs/glossary.md
 - [ ] Her ligin kural seti JSON şemasına uygun ve doğrulanmış
 - [ ] Derbi tablosu en az 30 rekabet içeriyor
 - [ ] Kulüp arama (pg_trgm) Türkçe karakterle çalışıyor ("besiktas" → "Beşiktaş")
+      ⚠️ **DÜZ `pg_trgm` BUNU SAĞLAMIYOR — Faz 3.1'de ölçüldü.** Gerçek veritabanında
+      (PG 18.6, `builtin`/`C.UTF-8`): `similarity('Beşiktaş','besiktas')` = **0,286**,
+      varsayılan eşik **0,3**, yani `'Beşiktaş' % 'besiktas'` → **`f`**. `show_trgm`
+      sebebi gösteriyor: Türkçe harf içeren trigramlar **hash'leniyor**
+      (`0xc41c44`…) ve ASCII sorguyla kesişmiyor. Çözüm **`unaccent`** (mevcut, 1.1):
+      `similarity(unaccent(…), unaccent(…))` = **1,0**, eşik geçiliyor.
+      ⚠️ **TUZAK:** `unaccent` `STABLE`, `IMMUTABLE` değil — indeks ifadesinde
+      doğrudan kullanılamaz (`ERROR: functions in index expression must be marked
+      IMMUTABLE`, ölçüldü). `IMMUTABLE` sarmalayıcı gerekiyor. Faz 3.7 indeksi
+      buna göre kuracak.
 
 **Bağımlılık:** Faz 7
 
