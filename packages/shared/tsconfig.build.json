@@ -3,5 +3,12 @@
   // Tip denetimi (tsconfig.json) testleri KAPSAR — sadece emit dışında tutulur.
   // Faz 1.5'te Vitest yapılandırılırken bu desen diğer paketlere de yayılır.
   "extends": "./tsconfig.json",
-  "exclude": ["dist", "node_modules", "src/**/*.test.ts"]
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.test.mts",
+    "src/**/*.test.cts"
+  ]
 }

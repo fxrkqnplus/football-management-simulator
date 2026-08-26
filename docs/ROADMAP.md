@@ -280,28 +280,700 @@ docs/ADR/0001-monorepo-secimi.md
 - `assertInvariant(condition, message, context)` yardımcısı — geliştirmede fırlatır, üretimde loglar
 - Performans ölçüm sarmalayıcısı: `measure('matchSim', fn)` → bütçe aşımında uyarı
 
+**Alt görevler** (onaylanan bölüm — her biri kendi commit'iyle kapanır):
+
+- [x] **2.0** Faz açılışı — kapsam kapısı onarımı · bayat kayıt düzeltmeleri · bağımlılık kararları · spec boşluk taraması.
+      **Sonuç:** yedi işin yedisi yapıldı. Kapsam kapısı artık doğru ölçüyor **ama kırmızı** —
+      `.tsx` eklenince gerçek durum ortaya çıktı ve K10 eşiğinin altında kaldık (**SORUN-001**,
+      satır %69,72 · fonksiyon %66,66). Eşik düşürülmedi, dosya dışlanmadı; kalan boşluk
+      1 satır + 1 fonksiyon ve kapanması **DOM test ortamı kararı** gerektiriyor.
+      Yeni kayıtlar: SORUN-001 · SAPMA-007 (kapsam uzantısı) · SAPMA-008 (spec boşlukları).
+      Yedi iş: (a) ANLIK DURUM tazeleme + iki kayıt düzeltmesi (blok "PR #1 açık" derken PR merge edilmiş;
+      Faz 1 kaydı başlıkta 19, §3'te 18 commit diyor); (b) `vitest.config.ts` `coverage.include` yalnızca
+      `*.ts` görüyor — `.tsx`/`.mts`/`.cts` eklenir, **negatif testle** kanıtlanır; (c) kapsam yeniden ölçümü
+      (Faz 1 kaydındaki rakam gerçeği yansıtmıyor); (d) üç bağımlılık kararı — `pino` **KAL**, `@sentry/*`
+      **KUR**, `pnpm` 11.22.0 → **11.23.0**; (e) SAPMA kütüğüne `tür` sütunu (`karar` | `düzeltme`), geriye
+      dönük doldurulur; (f) `docs/SPEC-COVERAGE-GAPS.md` — spec istiyor ama hiçbir faza atanmamış maddeler;
+      (g) `docs/spec/11`'e iki kural: ANLIK DURUM'u yazan commit fazın SON commit'i olmalı, ve §7 performans
+      rakamları faz kapanışında yeniden ölçülür.
+      **Karar 8:** Sentry kota uyarısı Faz 2'de YAPILMAZ; Faz 47 (panel uyarısı) ve Faz 50 (admin e-postası)
+      kapsamlarına madde eklenir.
+- [x] **2.0b** DOM test ortamı — *(2.0'ın SORUN-001 bulgusu üzerine eklendi; plan dışıydı)*
+      `jsdom@30` (kök) + `@testing-library/react@16` (`apps/web`). **`happy-dom` DEĞİL** —
+      asıl tüketici Faz 6 (Radix/shadcn, odak yönetimi) ve orada uyumluluk hızdan önce gelir;
+      gerekçe ve geri dönüş maliyeti `docs/DEPENDENCY-WATCH.md`'de.
+      **Ortam proje başına ayrılır:** `web` + `ui` → `jsdom`, geri kalan her şey → `node`.
+      Motoru DOM'a sokmak K3 saflığını bulandırır; ayrım `packages/engine/src/no-dom.test.ts`
+      ile kalıcı sınanır. **Negatif test:** `web` geçici olarak `node`'a alındığında 8/8 test
+      `ReferenceError: document is not defined` ile kırıldı.
+      **Sonuç:** SORUN-001 kapandı — kapsam satır **%87,15** · fonksiyon **%87,5**.
+      Eşik değiştirilmedi, hiçbir dosya dışlanmadı.
+      **Yan bulgu:** aynı uzantı körlüğü beş yerde birden çıktı (kapsam `include`/`exclude`,
+      vitest proje `include`'ları, ESLint muafiyeti, yedi `tsconfig.build.json`) ve
+      TypeScript'in glob dilinin süslü parantez desteklemediği ölçümle bulundu (**SAPMA-009**).
+      **Kapsam sınırı:** yalnızca ortam kuruldu. `ErrorBoundary` yazılmadı — o 2.6.
+- [x] **2.1** Tipli hata sınıfları — `DomainError`, `ValidationError`, `EngineError`, `DataProviderError`,
+      `NotFoundError`, `ForbiddenError` + soyut taban `AppError`. **Saf, Node'suz** — motor da kullanıyor (K3),
+      bu yüzden `errors.ts` kökte kalır. `base-path.ts`'teki `TypeError` borcu kapandı.
+      **Alan şeması:** `kind` + `code` + `context` + `message` + `cause`.
+      **SAPMA-010 — `httpStatus` sınıfa KONULMADI.** Planda vardı; HTTP bir taşıma kaygısı ve motor HTTP
+      bilmiyor, aynı hata kuyruğa/SSE/CLI'a da gidebiliyor. Eşleme 2.4'teki filter'a taşındı ve sürüklenme
+      riski tip seviyesinde kapatılıyor: `Record<ErrorKind, number>` eksik bırakılırsa **derleme kırılır**.
+      **Kullanıcı metni sınıfta üretilmiyor:** sözleşme `code` + `context`. `code` zaten i18n anahtarı
+      biçiminde (`alan.olay`), böylece Faz 5 bir eşleme tablosu yazmaya iner, fırlatma yerlerini gezmeye değil.
+      `message` geliştirici içindir (log/Sentry), çevrilmez.
+      **`context` dar tipli** (JSON-güvenli ilkeller + sığ dizi, iç içe nesne YOK) — sır sızdırma yüzeyini
+      daraltır; anahtar adına göre redaksiyon ikinci hat olarak 2.2'de logger ile birlikte gelir.
+      **Motor kanıtı:** `packages/engine/src/errors-from-engine.test.ts` — sınıfların motorun kısıtları
+      altında (`types: []`, `lib: ES2024`) gerçekten çalıştığını gösterir.
+      **Yan bulgu:** `arch:check` 12 katman bağına izin veriyor ama `package.json`'da yalnızca 2'si tanımlıydı;
+      `packages/engine → @fms/shared` hiç çözümlenemiyordu. Motorunki bağlandı, kalan boşluk için kural 2.2'ye.
+      **Glob taraması** (uzantı körlüğü sınıfı): altıncı örnek `arch:check`'te bulundu ve düzeltildi.
+- [x] **2.2a** Alt yol sınırı — *(2.2 ikiye bölündü; gerekçe aşağıda)*
+      **SONUÇ — kontrol deneyi ÜÇ VARSAYIMI ÇÜRÜTTÜ.** `App.tsx`'e kasıtlı
+      `import { loadEnv } from '@fms/shared/server'` konup **gerçekten çağrıldı**:
+      `typecheck` **GEÇTİ** (defans ① çalışmıyor: `loadEnv(): Env` imzasında Node tipi yok, `.d.ts`
+      tarayıcı tsconfig'iyle sorunsuz derleniyor) · `vite build` **BAŞARILI** · paket
+      **229.320 → 299.370 bayt** (+%30) · tarayıcı paketinde `zod` **318**, `DATABASE_URL` **7**,
+      `POSTGRES_PASSWORD` **3**, `JWT_SECRET` **2** eşleşme — `sideEffects: false` AÇIKKEN.
+      **Yalnızca `arch:check` yakaladı.** Yani Faz 1.8'in çözümü gerçekten bir paketleyici
+      optimizasyonuymuş ve tek başına sınır değilmiş — Karar 1 rakamla doğrulandı.
+      **Dört değil İKİ çalışan hat var:** `arch:check` (önleme) + paket dize taraması (doğrulama).
+      `types: []` başka bir şeyi (Node globallerinin tarayıcı koduna girmesini) koruyor, alt yol
+      sınırını değil. `spec/09` ve `ROADMAP` metinleri buna göre düzeltildi.
+      **Yan bulgu 1 — SAPMA-011:** turbo `build` çıktısını (`dist/**`) önbelleğe alıyor; bir kaynak
+      dosya taşındığında önbellek isabetinde **silinmiş çıktı geri geliyor**. `env.ts` taşındıktan
+      sonra `dist/env.js` `>>> FULL TURBO` ile diriltildi. Dahası kontrol deneyinin kirli paketi
+      (`index-DV5Sgexl.js`, içinde `JWT_SECRET`) temiz paketin **yanında** kaldı ve sızıntı taraması
+      yanlış cevap verdi — kanıtın kendisi bozuldu. `scripts/clean-dist.mjs` sekiz pakete de bağlandı.
+      **Yan bulgu 2:** `env.ts` taşınınca ESLint `no-hardcoded-path` muafiyet yolu sessizce eşleşmeyi
+      bıraktı (2 yanlış pozitif).
+      **2.1'in (b) bulgusu kapandı:** kök barrel artık yalnızca `base-path` + `errors` yeniden dışa
+      aktarıyor, hiçbiri üçüncü taraf import etmiyor → **motor Zod çekmiyor**.
+      **2.2b için taban:** 229.320 bayt, tek varlık, `pino`/`async_hooks`/`zod` → 0.
+      **Kapsam:** `packages/shared` `exports` haritası (`.` + `./server`) · `env.ts` → `src/server/env.ts` ·
+      `arch:check`'e **üç kural** · kontrol deneyi. **pino YOK, logger YOK** — onlar 2.2b.
+      **Neden bölündü:** 2.2 dört devreden iş + altı yeni nokta taşıyordu ve R3 (alt yol + `NodeNext` +
+      Vite çözümlemesi) fazın en somut riski. Aynı commit'te hem modül çözümlemesi hem pino olsaydı, bir
+      hata çıktığında "bu çözümleme mi, kütüphane mi?" sorusu doğardı — BORÇ-001/002'nin kaçındığı
+      belirsizliğin ta kendisi. 2.2a sınırı **zaten var olan ve zaten test edilmiş** kodla (`env`) kanıtlar.
+      **`env.ts` sunucuya taşınıyor — gerekçe:** `loadEnv()` `process.env` okuyor (tarayıcıda `process` yok)
+      ve `envSchema` sistemdeki **her sırrın adını sayıyor** (`JWT_SECRET`, `DATABASE_URL`, `R2_SECRET_*`…).
+      Faz 1 hata #11 tam olarak bunu yakalamıştı ve çözüm `sideEffects: false` — bir **paketleyici
+      optimizasyonu** olmuştu. Alt yol bunu **yapısal** sınıra çevirir. Ölçüldü: tek üretim tüketicisi
+      `apps/api/src/main.ts`.
+      **Yan kazanç — 2.1'in (b) bulgusu kapanıyor:** `env` kök barrel'dan çıkınca barrel'da üçüncü taraf
+      import kalmıyor, yani `@fms/shared` **Zod'u motora çekmeyi bırakıyor**.
+      **Üç `arch:check` kuralı:**
+      (i) **Alt yol farkındalığı** — `isImportAllowed` tam eşleşme yapıyor, `@fms/shared/server` importu
+          `@fms/shared` listesiyle eşleşmiyor ve **sahte katman ihlali** üretiyor (2.0'da ölçüldü).
+          Belirteçten temel paket çıkarılıp öyle eşleştirilir.
+      (ii) **Bildirilmemiş katman bağı KIRAR** — 2.1'de ölçüldü: gate 12 bağa izin veriyor, `package.json`'da
+          2'si bildirilmişti; `engine → @fms/shared` "izinli" görünüp **hiç çözümlenemiyordu** (yanlış
+          NEGATİF). Kural: bir dosya `@fms/X` import ediyorsa o paketin `package.json`'ında bildirilmiş olmalı.
+          Spekülatif bildirim gerekmez; boşluk ilk gerçek import'ta yakalanır.
+      (iii) **Kısıtlı alt yol** — `@fms/shared/server`'ı `apps/web`, `packages/ui` ve `packages/engine`
+          göremez. Sınır **iki yönlü**: sunucu kodu tarayıcıya girmesin **ve** Node/IO kodu motora girmesin.
+      **Kontrol deneyi:** `App.tsx`'e kasıtlı `@fms/shared/server` importu konur ve **gerçekten
+      çağrılır**. Yalnızca import etmek YETMEZ — ağaç sarsma kullanılmayan importu siler, paket
+      bayt bayt aynı kalır ve deney hiçbir şey kanıtlamaz (2.2a'da ölçüldü: `void loadEnv;` ile
+      paket değişmedi). Beklenti: `arch:check` kırılır, paket şişer, sızıntı taramasında sırlar görünür.
+- [x] **2.2b** Logger — **Karar 1 uygulandı:** kökte `Logger` **arayüzü** (izomorfik), pino uygulaması
+      `@fms/shared/server` alt yolunda. **Savunma modeli 2.2a'da düzeltildi** (SAPMA-012): `types: []`
+      ve `sideEffects: false` bu sınırı korumuyor; çalışan iki hat `arch:check` (önler) ve paket dize
+      taraması (doğrular).
+      Kökte kalan (izomorfik): `Logger` arayüzü, `LogContext`, `normalizeLogArgs`, hata sınıfları,
+      **redaksiyon**. `server/`'da: pino sarmalayıcısı ve `env`. `apps/web` aynı arayüzü `console`
+      üzerinde uygulayan kendi logger'ını aldı.
+      **Redaksiyon KÖKTE, `server/`'da değil** — plandan sapma, gerekçesi: iki logger da onu kullanmak
+      zorunda; `server/`'a konsaydı tarayıcı kendi kopyasını yazardı ve iki kopya ayrışırdı
+      (`spec/09` §11.5 disiplini). pino'nun kendi `redact` seçeneği **tam yol** sözdizimi istediği için
+      alt dize kuralımızı ifade edemiyor — redaksiyon pino'ya verilmeden önce uygulanıyor.
+      **Uyarı sırası sorunu (SAPMA-013):** `env.ts`'teki `process.stderr.write` doğrudan `logger.warn`a
+      çevrilemedi çünkü **logger'ın kendisi env'den doğuyor**. Doğrulayıcı saf kaldı ve teşhis **döndürür**
+      (`collectEnvWarnings`); çağıran taraf logger'ı kurduktan sonra basar.
+      **Ölçümler:** paket **229.320 bayt — 2.2a tabanıyla bayt bayt aynı**; `pino`/`async_hooks`/
+      `thread-stream`/`zod` → **0**. Gerçek çalıştırmada iki biçim de doğrulandı (JSON + `pretty`).
+      **`arch:check` meta-testi** eklendi (kanarya deposu + tablo bütünlüğü) — tek savunma hattı
+      olmanın bedeli.
+      **Ön koşul:** 2.2a'nın üç `arch:check` kuralı ve `exports` haritası.
+      **Karar 5:** ESLint'te `apps/**` + `packages/**` için `process.stdout/stderr.write` YASAK;
+      `scripts/**` + `tools/**` serbest. `arch:check` bu kuralı **tekrarlamaz** (`spec/09` §11.5).
+      Ürün kodundaki iki yazım (`server/env.ts`, `apps/api/src/main.ts`) logger'a taşınır.
+      **Negatif test:** yasak yola bir yazım konur, lint'in kırıldığı gösterilir.
+      **Redaksiyon:** `context` 2.1'de dar tiplendi ama anahtar ADLARI serbest. Blocklist
+      **büyük/küçük harf duyarsız, ALT DİZE eşleşmesi** — `userPassword`, `passwordHash`, `refreshToken`
+      hepsi yakalanmalı; tam eşleşme hiçbirini yakalamaz. Yanlış pozitif maliyeti bir log alanı,
+      yanlış negatif maliyeti sızmış bir sır — asimetri fazla redaksiyondan yana.
+      **pino yapılandırması:** dev'de `pino-pretty`, üretimde JSON — karar **`NODE_ENV` KOKLAMAYARAK**,
+      açık bir bayrakla verilir (Faz 1 hata #10 dersi). Seviye `LOG_LEVEL`'dan.
+      **Motor loglamaz:** `Logger` arayüzü kökte kalır (yalnızca tip), ama motor bir **uygulama** alamaz
+      çünkü uygulama `server/` altında ve 2.2a'nın (iii) kuralı motoru oradan men ediyor. Motor iz
+      (`debugTrace`) döndürür, log yazmaz — yapısal sınır bu tasarım kuralını arkadan destekler.
+      **Bundle yeniden ölçümü:** 2.2a sonu tabanı ile karşılaştırılır; `pino`/`async_hooks` → 0 beklenir.
+- [x] **2.3a** `correlationId` — sunucu içi zincir *(2.3 ikiye bölündü; gerekçe: bağlam sınırı ve
+      iki parçanın bağımsız doğrulanabilir olması)*
+      **Sonuç:** zincir gerçek HTTP üzerinden üç senaryoda da doğrulandı (başlıksız → üretilir,
+      geçerli → korunur, geçersiz → yenisi üretilir + `warn`). Sekiz **paralel** istek kimliklerini
+      karıştırmadı. uuid v7 bağımlılıksız yazıldı (RFC 9562, `crypto.getRandomValues`).
+      **SAPMA-014 — dairesel import:** `LOGGER` belirteci `app.module.ts`'te tanımlıydı ve middleware
+      onu oradan alıyordu; `@Inject(LOGGER)` dekoratörü modül gövdesi değerlendirilirken çalıştığı için
+      `ReferenceError: Cannot access 'LOGGER' before initialization` doğdu. **`typecheck`, `lint` ve
+      birim testleri üçü de sessiz kaldı** — yakalayan tek şey derlenmiş çıktının çalıştırılması oldu.
+      Belirteç hiçbir şey import etmeyen `common/tokens.ts`'e taşındı.
+      **`arch:check`'e yedinci kural:** `engine-forbidden-import` — motorun `@fms/shared`'dan belirli
+      **adları** almasını yasaklar (modül düzeyinde ifade edilemeyen yasak). Meta-teste ve kanaryaya eklendi.
+      **Kapsam:** uuid v7 üreteci (izomorfik, bağımlılıksız) · `AsyncLocalStorage` bağlamı
+      (`@fms/shared/server`) · NestJS middleware · `X-Correlation-Id` gidiş-dönüş · logger'ın
+      **otomatik** bağlanması (elle geçirme yok) · `arch:check`'e motor için **adlandırılmış import yasağı**.
+      **K2 sınırı:** uuid v7 **oyun rastgeleliği DEĞİL** — `SeededRng` kapsamına girmez, `Math.random()`
+      yasağı da onu ilgilendirmez; `crypto.getRandomValues` kullanır. Ama motor onu import
+      **edememeli**: yeni `arch:check` kuralı `packages/engine`'in `@fms/shared`'dan belirli adları
+      almasını yasaklar. Bu kural 2.7'de `measure` için de kullanılacak (Karar 6).
+      **Geçersiz başlık kararı:** gelen `X-Correlation-Id` **dış girdidir**, doğrulanır.
+      ⚠️ **Zod ile DEĞİL, regex koruyucusuyla** (`isAcceptableCorrelationId`) — bu satır
+      önce "Zod ile doğrulanır" diyordu, uygulama farklı çıktı ve sapma 2.3c'ye kadar
+      kayıtsız kaldı → **SAPMA-015** (gerekçesi orada; özeti: doğrulanan şey tek bir
+      dizgenin biçimi, ve Zod'lu sürüm izomorfik kök girişe `zod` çekerdi).
+      Geçersizse istek **reddedilmez** — sunucu kendi id'sini üretir ve durumu `warn` seviyesinde,
+      gelen değeri **kısaltarak** loglar. Gerekçe: bozuk bir izleme başlığı kullanıcının işlemini
+      düşürmemeli; ama sınırsız/biçimsiz bir değer de log satırına ham girmemeli.
+      **Negatif testler:** (a) başlıksız istek → sunucu üretir · (b) geçersiz başlık → yeni üretilir,
+      uyarı basılır · (c) **eşzamanlılık** — iki paralel istek, ALS bağlamları karışmıyor (seri test
+      bunu yakalamaz) · (d) motora uuid importu → `arch:check` kırar.
+- [x] **2.3b** `correlationId` — süreç ve tarayıcı sınırı
+      **Sonuç:** dört işin dördü yapıldı. Zarf **bölündü** (Karar 9, aşağıda), alt süreç testi
+      gerçek `spawnSync` sınırında koşuyor, tarayıcı zinciri gerçek tarayıcıda kanıtlandı,
+      paket **229.320 → 232.413 ham bayt (+3.093, %1,35)**. `zod`/`pino`/`async_hooks` → **0**.
+      **Kapanmayan tek şey:** 2. kabul kriteri — sunucu mutlu yolda hiç log satırı basmıyor,
+      eşleşecek "backend logu" yok → **G-08**, kullanıcı kararı bekliyor. Kriter `[ ]` kaldı.
+      **Kapsam:** taşınabilir zarf (`serializeLogContext` / `deserializeLogContext` + Zod) ·
+      **gerçek alt süreç** testi · tarayıcı tarafı üretimi (`apps/web/src/lib/api.ts`) · paket ölçümü.
+      **Karar 9 — ZARF BÖLÜNDÜ: üretici kökte, çözücü `server/`de.** Plan zarfın tamamını
+      kök girişe koyuyordu; ölçüm çelişki gösterdi. Üretmek bağımlılık istemiyor (izomorfik
+      kalabilir), **çözmek bir dış girdi ayrıştırıyor** ve CLAUDE.md §1.3 gereği Zod istiyor —
+      ama `zod` kök barrel'a giremez: 2.1'de ölçüldü ki barrel üzerinden gelen her import Zod'u
+      **motora** da çekiyordu (2.2a'da `server/` alt yoluna taşınarak düzeltilmişti). Zarfın
+      tamamı köke konsaydı o düzeltme geri alınırdı. Bölünmenin bedeli **ayrışma riski**; üç
+      bağla kapatıldı: ① sürüm sabiti yalnızca kökte tanımlı, şema onu `z.literal()` içine
+      oradan alıyor · ② şema çıktısının kanonik tipe atanabilirliği **tip düzeyinde iddia
+      ediliyor** (`Assert<... extends ... ? true : false>`) — iki ayrı kayma denendi, ikisi de
+      `TS2344` verdi · ③ gidiş-dönüş testi iki yarıyı birlikte koşturuyor.
+      **Karar 10 — alt süreç testi `dist`i kendisi tazeliyor.** Çocuk düz `node` ile başlıyor,
+      Vitest'in çözümleyicisi orada yok; Node 24 tip soyması `.js` belirtecini `.ts`ye
+      **çevirmiyor** (ölçüldü), yani kaynak ağacı çalıştırılamıyor. CI `test`i `build`den önce
+      koştuğu için "önce derle" hatası CI'da hep kırmızı olurdu. Test `src` ↔ `dist` mtime
+      karşılaştırıp gerekirse `tsc`yi doğrudan çağırıyor — bayat `dist` yeşil yalanı da böylece
+      kapanıyor (kanıt: sürüm sabiti 1→2 yapıldı, test kendiliğinden yeniden derleyip geçti).
+      **Karar 2:** sahte kuyruk KULLANILMAZ — aynı süreçte ALS zaten sızar, test "geçer" ve hiçbir şey
+      kanıtlanmaz. Zincir **gerçek süreç sınırı** üzerinden test edilir: alt süreç başlatılır, zarf argümanla
+      geçilir, çocuk kendi ALS'ini zarftan kurar, `correlationId` eşleşmesi doğrulanır. BullMQ'ya özgü
+      kablolama `[ ]` kalır → **BORÇ-004**, Faz 16.
+      **Paket:** tarayıcı logger'ı 2.2b'de yazıldı ama hiçbir yerden import edilmiyordu, bu yüzden ağaç
+      sarsmayla paketten çıkıyordu. `api.ts` onu kullanınca paket **büyüyecek** — taban **229.320 bayt**,
+      artış soğuk derlemeyle ölçülüp gerekçesi yazılır.
+- [x] **2.3c** İstek loglaması — zincirin dördüncü halkası (**G-08**)
+      **Sonuç:** yapıldı, **2. kabul kriteri kapandı** (aşağıda `[x]`). Tarayıcı paketi
+      **değişmedi** — 232.413 ham bayt, içerik hash'i bile aynı (`index-Bbvu0kTr.js`).
+      **Ölçülen tuzak — ALS `finish` anında kaybolabiliyor:** iki ölçüm yapıldı.
+      Sentetik `EventEmitter`'da dinleyici bağlam **içinde** kayıtlı olmasına rağmen
+      `emit()` bağlam dışından geldiği için `getStore()` → **undefined**; gerçek
+      `node:http` sunucusunda (`res.end()` bağlam içinde) bağlam **korunuyor**. Yani
+      bugün çalışıyor ama çalışmasının sebebi middleware'in kontrol ettiği bir şey değil.
+      Çözüm: bağlam istek **başlarken senkron** okunup kapatılıyor, `finish` anında
+      **açıkça** loglanıyor. Testte kontrol deneyi var — aynı anda ortam bağlamının
+      gerçekten boş olduğu ayrıca doğrulanıyor (günlük #16'nın dersi).
+      **Ölçülen sınır:** `GET /fms/api/yok` → 404 **loglanıyor** (`warn`, kimlikli);
+      `GET /api/health` (global ön ek **dışı**) → 404 ama **loglanmıyor**, çünkü
+      `forRoutes('*splat')` ön ek kapsamına giriyor. Üretimde `/fms/api/*` dışı API'ye
+      ulaşmıyor ve CI bu sınırı zaten iddia ediyor; yine de yazıldı.
+      **Neden ayrı alt görev:** 2.4 exception filter yazıyor — **hata yolu**. Bu madde **mutlu yol**.
+      İkisi aynı commit'te olsaydı bir aksaklıkta "filter mı, istek loglayıcı mı?" sorusu doğardı;
+      BORÇ-001/002'nin kaçındığı belirsizlik sınıfı. Ayrıca Faz 2'nin **2. kabul kriteri** burada
+      kapanıyor ve kriterin hangi alt görevde kapandığı izlenebilir olmalı.
+      **Kapsam:** istek başına tek log satırı — metot · yol · durum kodu · süre (ms) ·
+      `correlationId` (ALS'ten **otomatik**, elle geçirilmez). Gövde, başlık, sorgu dizesi
+      **loglanmaz**.
+      **Karar 11 — seviye durum sınıfına göre:** `2xx/3xx → info` · `4xx → warn` · `5xx → error`.
+      Başarılı istek neden `debug` DEĞİL: kapatılmaya çalışılan delik tam olarak bu.
+      `LOG_LEVEL=info` üretim varsayılanı; başarılı istek `debug` olsaydı mutlu yolda **yine hiç
+      satır olmazdı**. `spec/09` §11.1'in senaryosu geriye dönük (*"5. sezonda transferim
+      kayboldu"*) ve `debug` sonradan açılamaz. Hacim endişesi ölçümle karşılanmıyor: tur tabanlı
+      oyun, 1–5 kullanıcı (tavan 200), zamanlanmış yoklama yok.
+      **`/health` hariç TUTULMUYOR** — ölçüldü: API için Docker `HEALTHCHECK` yok, `spec/10`
+      yoklama tanımlamıyor, CI yalnızca tek seferlik duman testi yapıyor. Var olmayan bir gürültü
+      için filtre yazmak kör nokta üretir (K12). Koşul adlandırıldı: dağıtımda zamanlanmış yoklama
+      eklenirse (Faz 13/47/50) yeniden değerlendirilir.
+      **Karar 12 — ayrı middleware, interceptor DEĞİL:** interceptor Nest boru hattının içinde
+      çalışır ve **404'leri kaçırır** (eşleşen rota yoksa hiç tetiklenmez) — oysa "istediğim uç
+      nokta yok" teşhisin en çok istendiği durum. `res.on('finish')` middleware'de 404 dahil her
+      yanıtı görür. `CorrelationMiddleware`'e eklenmiyor: kimlik ile işlem kaydı ayrı
+      sorumluluklar. **Ölçülecek risk:** `finish` dinleyicisi ALS bağlamını görüyor mu —
+      varsayılmaz, test edilir.
+      **Sorgu dizesi loglanmaz:** `?token=…` gibi bir değer redaksiyondan geçmeden satıra girerdi.
+      **Negatif testler:** (a) log satırında `correlationId` var mı · (b) yanıt başlığındaki id ile
+      log satırındaki id **aynı** mı · (c) hata durumunda (404, 500) da satır çıkıyor mu.
+      **Paket:** sunucu tarafı — tarayıcı paketi **değişmemeli**, taban **232.413 ham bayt**.
+- [x] **2.4** NestJS global exception filter — hata sınıfı → HTTP durumu + Türkçe gövde + `correlationId`.
+      Bilinmeyen hata → 500, ayrıntı **yalnızca** logda. **Negatif test:** `Error` olmayan fırlatma
+      (`throw 'metin'`) da yakalanmalı.
+      **Sonuç:** yapıldı. Tarayıcı paketi **değişmedi** (232.413 bayt, hash aynı — sunucu tarafı).
+      **SAPMA-010 ÖLÇÜMLE DOĞRULANDI.** `httpStatus`ın hata sınıflarından çıkarılmasının tek
+      gerekçesi "ayrı tablo unutulmaz, çünkü derleme kırılır" idi. Sınandı: `ERROR_KINDS`'a sahte
+      bir `suspended` eklendi → **`TS2741`**, hem `STATUS_BY_KIND` hem `MESSAGE_BY_KIND` için.
+      Kapı gerçekten ötüyor. Çalışma zamanı ikinci hattı da yazıldı (tablo `Partial` yapılırsa test kırılır).
+      **Eşleme:** `validation` 400 (şekil) · `domain` **409** (durum çakışması — 422 elendi, `validation`
+      ile bulanıklaşırdı) · `notFound` 404 · `forbidden` 403 · `engine` 500 · `dataProvider` **502**
+      (yukarı akış; istemcinin yeniden denemesi anlamlı, 500'den ayrılması bu yüzden değerli).
+      **Karar 13 — çift loglama YOK, İŞ BÖLÜMÜ VAR.** İki satır farklı sorulara cevap veriyor ve
+      **farklı `code`** taşıyor: `http.request` (middleware, 2.3c) = **ne oldu** (metot·yol·durum·süre,
+      her istekte tam bir tane) · `http.exception` (filter) = **neden** (kind·code·redakte context·
+      yığın izi). Kodların ayrı olması sayımı kurtarıyor: *"kaç istek düştü?"* → `http.request` +
+      `status>=500`, tek satır sayılır. Gerçek HTTP'de doğrulandı: tek 404 için iki satır, aynı
+      `correlationId`, farklı `code`. **Yığın izi yalnızca 5xx'te** — 4xx beklenen durum, orada
+      yığın izi hem gürültü hem dosya yolu sızıntısı.
+      **Gövde sözleşmesi:** bilinen `AppError` → `{status, code, message, context, correlationId}`;
+      bilinmeyen → `{status:500, code:'error.unexpected', message, correlationId}` — **context yok,
+      yığın izi yok, iç mesaj yok.** `context`in bilinen hatalarda gövdede olması bilinçli: 2.1'in
+      sözleşmesi `code`+`context` ve Faz 5 istemcide `t('errors:'+code, context)` yapacak; gövdede
+      dönmezse o cümle kurulamaz. Gövdeye giden context de **redaksiyondan geçiyor**.
+      **K5 borcu — BORÇ-005:** `AppError.message` geliştirici mesajıdır (`errors.ts`: *"çevrilmez,
+      kullanıcıya gösterilmesi hedeflenmez"*), dolayısıyla gövdedeki Türkçe metin ondan gelemez.
+      `ErrorKind` başına genel Türkçe yedek tablosu koda gömüldü → Faz 5'te `t()` ile değişecek.
+      **Kablolama ayrıca kanıtlandı** (`spec/09` §11.5 kuralı): birim testleri filtrenin `catch()`ini
+      doğrudan çağırıyor ve `APP_FILTER` kaydı silinse bile **hepsi yeşil kalırdı**. Bu yüzden ayrı
+      bir **gerçek HTTP** testi var (gerçek Nest, gerçek port, gövde tel üzerinden). Mutasyon:
+      `APP_FILTER` kaldırıldı → **6 entegrasyon testi kırıldı**, birim testlerin hepsi geçti.
+      **Bilinen sınır:** 5xx yolu üretim kablolamasıyla duman testi yapılamadı — üretim yüzeyine
+      kasıtlı fırlatan rota **eklenmedi** (her istekte 500 üreten kalıcı uç nokta saldırı yüzeyi
+      olurdu). 5xx gerçek HTTP üzerinden **test modülüyle** kanıtlandı; üretim kablolaması 404 ile
+      duman testi edildi (`{"status":404,"code":"http.404","correlationId":"…"}`).
+- [x] **2.5** Sentry — **2.5a / 2.5b olarak BÖLÜNDÜ** (ikisi de bitti). Bölme gerekçesi: iki ayrı risk
+      profili. 2.5a ESM `--import` sırası + Dockerfile + konteyner doğrulaması (R1, fazın en somut
+      riski); 2.5b tarayıcı SDK'sı + paket ağırlığı. Aynı commit'te olsalardı bir aksaklıkta
+      "ESM sırası mı, paketleyici mi?" sorusu doğardı — 2.3c'nin 2.4'ten ayrılmasıyla aynı ilke.
+      Aşağıdaki Karar 4 / Karar 7 / Risk R1 **her iki alt göreve de** uygulanır.
+      **Karar 4:** üretimde `tracesSampleRate: 0` (1–5 kullanıcı için performans izleme kotaya değmez;
+      `measure()` zaten var), `sampleRate: 1.0` (hataların hepsi). `beforeSend`: beklenen
+      `ValidationError`/`DomainError` **gönderilmez** (kullanıcı hatası, sistem hatası değil) ·
+      `denyUrls` ile eklenti hataları · `ignoreErrors` ile `ResizeObserver loop…` gürültüsü ·
+      aynı parmak izi N dakikada tekrarlarsa düşürülür. DSN boşsa SDK kapalı.
+      **Karar 7:** kaynak haritası Faz 2'de yalnızca `sourcemap: true` + `release` adlandırması;
+      CI yükleme adımı **Faz 50'ye** ertelenir (BORÇ). İlgili kabul kriteri gerekçesiyle `[ ]` kalır.
+      **Risk R1:** `apps/api` saf ESM — SDK enstrümante edilecek modüllerden ÖNCE yüklenmeli;
+      `node --import ./dist/instrument.js dist/main.js` gerekir. Dockerfile + çalıştırma komutu birlikte,
+      konteynerde duman testi.
+- [x] **2.5a** Sentry — **API tarafı** · ESM `--import` · konteyner doğrulaması
+      **Sonuç:** yapıldı. Tarayıcı paketi **değişmedi** (232.413 bayt, hash aynı — sunucu tarafı).
+      **R1 ÖLÇÜLDÜ, ÜÇ DURUM:** `--import` YOK → `"sentry":false` · `--import` VAR + DSN dolu →
+      `"sentry":true` · `--import` VAR + DSN boş → `"sentry":false`. Açılış logundaki `sentry`
+      alanı bu yüzden var: `--import` unutulduğunda **tek belirti** odur, uygulama yine açılır.
+      **KARAR 14 — OTURUM İZLEME KAPATILDI (ölçümle bulunan yan kanal).** `release` ayarlanınca
+      SDK, hata zarfının yanında bir `session` zarfı daha gönderiyor (release health). Ölçüm:
+      release yok → 1 zarf `["event"]` · release var → **2 zarf** `["session","event"]` ·
+      `ProcessSession` entegrasyonu çıkarıldı → 1 zarf `["event"]`. `release`ı Karar 7 için
+      koyduk; release health hiçbir yerde istenmedi ve Karar 4'ün gerekçesi kota disiplini —
+      ölçülmemiş, istenmemiş bir giden kanal o kararla çelişirdi. **`autoSessionTracking: false`
+      v10'da ETKİSİZ** (ölçüldü; seçenek kaldırılmış, sessizce yok sayılıyor).
+      **İmaj boyutu (⑦):** `node_modules` imaj içinde **29 MB → 81 MB (+52 MB)**; `docker images`
+      ölçüsüyle **361 MB → 423 MB (+62 MB, %17)**. Kabul edilebilir: Oracle disk sınırı 200 GB
+      (`spec/10` §13.5) ve bu bir defalık imaj maliyeti. En büyük kalemler `@sentry/core` (12 MB),
+      `@sentry/node` (7 MB), `@opentelemetry/semantic-conventions` (7 MB).
+      ⚠️ `docker image inspect .Size` **farklı bir şey ölçüyor** (79→86 MB) ve iki ölçü
+      karıştırılmamalı — SAPMA-004'ün gzip dersinin aynısı: **ölçüm kaynağı değişmişse rakam
+      karşılaştırılamaz.**
+      **CI sözleşmesi korundu:** eksik env → konteyner açılmıyor, `main.ts`'in teşhisi
+      (`DATABASE_URL`, `tanımlı değil`) hâlâ görünüyor ve Sentry hiç konuşmuyor.
+      **Kabul kriteri 1 — YARIM.** (a) yerel yakalama sunucusuyla zarfın `correlationId`,
+      `errorKind`, `release`, `environment` taşıdığı **kanıtlandı**; `beforeSend`in gerçekten
+      kablolu olduğu da (ValidationError/DomainError → 0 zarf, kontrol deneyiyle birlikte).
+      (b) gerçek projeye tek sefer gönderim **YAPILMADI** — `SENTRY_DSN` boş, ortada proje yok
+      ve hesap açmak kullanıcının işi. Kriter `[ ]` kalıyor.
+      **Kapsam:** `@sentry/node@10.70.0` · `apps/api/src/instrument.ts` (init + `beforeSend`) ·
+      `--import` ile Dockerfile ve çalıştırma komutu · exception filter'dan `captureException` +
+      `correlationId` etiketi · **yerel yakalama sunucusuyla** zarf doğrulaması · konteyner duman
+      testi · imaj boyutu ölçümü.
+      **Sürüm:** 10.70.0 kalıyor. 2.5 açılışında yeniden bakıldı: en yeni kararlı sürüm hâlâ
+      **10.71.0 (2026-08-24)** ve bugün 2026-08-25 — takvim aynı gün olduğu için yaş değişmedi
+      (**1 günlük**). BORÇ-001/002'nin ilkesi geçerli.
+      **`instrument.ts` env doğrulamasını ÜSTLENMEZ:** `envSchema.safeParse` ile bakar, geçersizse
+      Sentry'yi hiç kurmaz ve sessizce çekilir. Gerekçe CI'da yazılı bir sözleşme — *"Eksik ortam
+      değişkeniyle API AÇILMAMALI"* testi `main.ts`'in biçimlendirilmiş hatasını (`DATABASE_URL`,
+      `tanımlı değil`) arıyor. **Enstrümantasyon, uygulamanın açılıp açılmayacağına karar vermemeli.**
+      **Tek karar noktası:** filter yakaladığı HER hatayı `captureException`a verir; neyin
+      gönderilmeyeceğine **yalnızca** `beforeSend` karar verir. İki yerde filtreleme, kaçınılmaz
+      olarak ayrışır (SAPMA-013'ün dersi).
+      **Negatif testler:** (a) `--import` olmadan çalıştır → enstrümantasyonun kurulmadığını göster ·
+      (b) `ValidationError`/`DomainError` fırlat → zarfın Sentry'ye **gitmediğini** kanıtla ·
+      (c) DSN boşken hata fırlat → ağ isteği **gitmediğini** gör.
+      **Kabul kriteri 1'in yarısı burada:** yerel yakalama sunucusuyla zarfın `correlationId`
+      taşıdığı assert edilir. Gerçek projeye tek sefer gönderim **kullanıcı işi** (DSN yok).
+- [x] **2.5b** Sentry — **web tarafı** · paket ölçümü
+      **Sonuç:** yapıldı. **1. kabul kriteri kapandı** (aşağıda `[x]`).
+      **PAKET: 232.413 → 319.091 ham bayt (+86.678, %37,3)** — soğuk derlemeyle.
+      **Kontrol deneyi (2.3b deseni):** import var ama KULLANILMIYORken paket **232.754**
+      (tabandan yalnızca +341, o da deneyin kendi `void` satırları). Yani artışın
+      **86.337 baytı gerçek kullanıma ait**, ağaç sarsma çalışıyor. Eşiğin (%40) altında
+      kaldığı için lazy loading/dar entegrasyon seti **değerlendirilmedi** — spekülatif
+      optimizasyon yapılmadı. Sızıntı taraması: `JWT_SECRET`/`DATABASE_URL`/`pino`/
+      `async_hooks`/`loadEnv` → **0**.
+      **KARAR 15 — ortak kural `@fms/shared`'a taşındı.** `USER_FAULT_ERROR_KINDS` +
+      `isUserFaultError` 2.5a'da `apps/api/src/instrument.ts`'teydi; `apps/web` `apps/api`'yi
+      import EDEMEZ (§2.4), yani tek seçenek kopyalamak ya da taşımaktı. Taşındı — bu bir
+      **alan gerçeği** ("hangi hata kullanıcı hatasıdır"), Sentry ayarı değil.
+      **KARAR 16 — parmak izi kısıtlaması (Karar 4'ün son maddesi) EKLENDİ.** 2.5a'da
+      yapılmamıştı. `createEventThrottle` saf ve izomorfik (`@fms/shared`), **iki tarafta da**
+      kullanılıyor. Tarayıcıda daha akut: bir render döngüsü saniyede yüzlerce özdeş hata
+      üretip aylık kotayı dakikalar içinde yakabilir. Sentry'nin `dedupeIntegration`ı bunu
+      çözmez — o yalnızca art arda gelen birebir aynı olayı eler, zaman penceresi tutmaz.
+      **KARAR 17 — `sendDefaultPii` BIRAKILDI, açık toplama politikası kondu.** Ölçüldü:
+      `sendDefaultPii: false` ile seçeneği **hiç vermemek birebir aynı** sonucu üretiyor ve
+      o sonuç "hiçbir şey toplama" DEĞİL — `cookies`, `httpHeaders`, `urlQueryParams`
+      toplanıyor (yalnızca IP'yle ilgili birkaç anahtar eleniyor). Çerez Faz 13'ten itibaren
+      **oturum jetonu** taşıyacak; sorgu dizesi 2.3c'de zaten loglardan çıkarılmıştı.
+      Ayrıca seçenek v10'da kullanımdan kaldırıldı, v11'de silinecek ve o an varsayılanlar
+      yürürlüğe girerdi. Politika `@fms/shared/telemetry-policy.ts`'te, **iki tarafta da**
+      açıkça `false`. Testler `getDataCollectionOptions()` ile **etkin** değeri doğruluyor —
+      "seçeneği verdik" demek yetmiyor.
+      **`api.ts` HATA MODELLEMESİ DÜZELTİLDİ.** 2.3b'de her başarısız yanıt `DomainError`dı;
+      `DomainError` kullanıcı hatası sayıldığı için `beforeSend` **her 500'ü sessizce
+      düşürürdü** — belirtisi olmayan bir kayıp. Artık 5xx ve ağ hatası `DataProviderError`
+      (yukarı akış arızası), 4xx `DomainError`. Hata 2.5b'de filtreleme kuralı yazılırken
+      ortaya çıktı.
+      **`BrowserSession` ≠ `ProcessSession`** — tarayıcıda oturum entegrasyonunun adı farklı,
+      **ölçülerek** bulundu. Sunucudaki sabit kopyalansaydı filtre sessizce hiçbir şeyi
+      kaldırmaz ve Karar 14 yalnızca sunucuda geçerli olurdu.
+      **`sourcemap: true`** (Karar 7). Normalde sızıntı endişesidir; **bu projede değil** —
+      repo AGPL-3.0 ile zaten açık (CLAUDE.md §1.5). Yükleme adımı → BORÇ-006, Faz 50.
+      **Kapsam:** `@sentry/react` · `apps/web/src/lib/sentry.ts` · `denyUrls` (eklenti hataları) ·
+      `ignoreErrors` (`ResizeObserver loop…`) · `sourcemap: true` + `release` adlandırması (Karar 7).
+      **Paket:** taban **232.413 ham bayt**; `@sentry/react` ilk kez import edilince büyüyecek.
+      Soğuk derlemeyle ölçülüp artış gerekçelendirilir. Kontrol deneyi (2.3b deseni): import
+      yazılıp **kullanılmazsa** paket değişmemeli.
+- [x] **2.6** `ErrorBoundary` hiyerarşisi — kök / ekran / bileşen + "Hata bildir" (`correlationId` ile).
+      **Sonuç:** yapıldı. Paket **319.091 → 320.641 ham bayt (+1.550, %0,49)** — sınır küçük,
+      beklendiği gibi.
+      **GERÇEK TARAYICIDA UÇTAN UCA KANITLANDI.** API'ye `status` alanını **nesne** döndüren
+      sahte bir sunucu kondu; React render sırasında patladı ve:
+      ① **bileşen** sınırı yakaladı ("Bu alan gösterilemedi") · ② tablonun **geri kalanı
+      ayakta kaldı** (base, çerez, correlationId satırları render edilmeye devam etti) —
+      hiyerarşinin bütün değeri bu · ③ ekrandaki **hata kodu**
+      `01a03aa5-6f0b-78bc-ad9d-4b827b88acab`, son isteğin `correlationId`'siyle **birebir
+      aynı** (Karar 19 çalışıyor) · ④ **tek** zarf gerçek Sentry'ye gitti, **HTTP 200** ·
+      ⑤ ekranda yığın izi **yok**.
+      **Karar 20 ÜRETİM PAKETİNDE ÖLÇÜLDÜ:** `error-stack` **0** · `whiteSpace:"pre-wrap"`
+      **0** · `error.stack` **0** eşleşme. Dev dalı derlemede tamamen elendi. Sınırın diğer
+      parçaları yerinde (`error-boundary-` 1, `Tekrar dene` 1, `react-render` 1, `crash` 3).
+      ⚠️ Bu, **sahtelenerek kanıtlanamayacak** bir iddiaydı: `__FMS_DEV__` derlemeye gömülü,
+      testte `false` yapmak yalnızca testi yeşile boyardı. Gerçek kanıt dize taraması.
+      **Kendi sınıfımız yazıldı, `@sentry/react`'inki kullanılmadı** — üç şart onun
+      sözleşmesinin dışında: `crash` etiketi (Karar 18), `correlationId` gösterimi (Karar 19),
+      yığın izinin dev/prod ayrımı (Karar 20). Sarmalasaydık iki katman `componentDidCatch`
+      çalıştırır ve hangisinin ne raporladığı belirsizleşirdi.
+      **`vitest.config.ts` web projesine `define` eklendi:** 2.6'dan sonra sınır ağacın
+      içinde, yani `App.test.tsx`/`main.test.tsx` dahil `ErrorBoundary` render eden HER test
+      `__FMS_DEV__` olmadan `ReferenceError` ile kırılıyordu.
+      **⚠️ KALAN DOLAYLI KANIT (2.5b'den devam):** tarayıcı zarfının **içindeki** etiket hâlâ
+      doğrudan gözlenmedi — gövde ikili ve kısıtlayıcı (Karar 16) aynı parmak izli ikinci
+      denemeyi bilinçli olarak engelliyor. Etiketin varlığı birim testleriyle ve sunucuda
+      **aynı etiket şeklinin** gerçek Sentry olayından okunmasıyla destekleniyor.
+      **Negatif test:** kayıtsız bir `ErrorBoundary`'nin hatası köke tırmanıyor mu.
+      Metinler Türkçe sabit; i18n Faz 5'te → **BORÇ-003**.
+      **Karar 18 — ÇÖKME, "kullanıcı hatası" elemesini AŞAR.** 2.5b'nin dersi burada tekrar
+      ediyor: bir bileşen `DomainError` fırlatırsa `isUserFaultError` onu kullanıcı hatası
+      sayıp Sentry'den **düşürürdü**. Oysa arayüzü yıkan bir `DomainError` tam olarak bir
+      hatadır — bileşen onu işlemeliydi. Sınıflandırma **API sözleşmesinden akan işlenmiş**
+      hatalar için geçerli, kaçıp render'ı çökertenler için değil. Boundary yakaladığını
+      `crash` etiketiyle veriyor; `shouldReport` kullanıcı-hatası elemesinden **önce** ona
+      bakıyor. Tarayıcıya özgü asimetri (`denyUrls` gibi), sunucuda karşılığı yok.
+      **Karar 19 — "Hata bildir" SON İSTEK kimliğini taşır.** Render hatasının HTTP isteği
+      yok. Çıplak yeni kimlik üretmek zinciri koparırdı: çökme çoğu zaman başarısız bir
+      istekten SONRA gelir ve asıl değer ikisini bağlamakta. `api.ts` her istekte son kimliği
+      kaydeder; çökme anında varsa o kullanılır, hiç istek olmadıysa taze üretilir —
+      **hiçbir durumda kimliksiz kalınmaz**.
+      **Karar 20 — dev/prod ayrımı `__FMS_DEV__`, Vite `mode`'undan.** `NODE_ENV`
+      **koklanmıyor**: değer derleme zamanında Vite'ın açık `mode` girdisinden türetilip
+      `define` ile gömülüyor. Faz 1 hata #9'un tuzağı çalışma zamanında
+      `process.env.NODE_ENV` okumaktı; bu onun tersi. Yığın izi **yalnızca** dev'de ekranda.
+      **Ölçülecek:** (a) üç katman ayrı ayrı yakalıyor mu · (b) kayıtsız hata köke tırmanıyor
+      mu · (c) fallback'in kendisi patlarsa ne oluyor · (d) üretim derlemesinde yığın izi
+      ekranda YOK · (e) çökme Sentry'ye gerçekten gidiyor mu.
+- [x] **2.7** `debugTrace` + `assertInvariant` + `measure` (K7). İlk ikisi **saf** — motor kullanacak.
+      **Sonuç:** üçü de kuruldu, **4. ve 5. kabul kriteri kapandı**. Test 438 → **486**
+      (31 → 35 dosya), kapsam satır %93,59 → **%94,40**, fonksiyon %95 → **%95,68**.
+      Paket 320.641 → **321.483 ham bayt (+842, %0,26)**.
+      **Karar 6 — UYGULANDI, ama kural düzeyinde değil GİRDİ düzeyinde.** `perf.ts` kökte
+      kaldı (izomorfik, `performance.now()`); yeni bir `arch:check` kuralı **eklenmedi** çünkü
+      2.3a'nın `engine-forbidden-import` kuralı zaten tam bu işi yapıyor. `measure` ve
+      `configureAssertions` `ENGINE_FORBIDDEN_SHARED_EXPORTS` tablosuna girdi.
+      Kural sayısı **7'de kaldı**, tablo girdisi 1 → **3** oldu.
+      **Kanarya bir kademe aşağı indi:** her girdi için ayrı fixture + "yasaklı ÜÇ adın
+      HER BİRİ ayrı ayrı ötüyor" testi. İki mutasyonla ölçüldü —
+      **(a)** `measure` fixture'ı devre dışı bırakıldı: yalnızca yeni test kırıldı (1/44),
+      "YEDİ kural" ve tablo bütünlüğü testleri **yeşil kaldı** → yeni testin kapsadığı
+      boşluk gerçek. **(b)** tablo anahtarı `measure` → `measured` diye yanlış yazıldı:
+      iki test kırıldı ama **`pnpm arch:check` "✓ temiz" dedi** — kapının sessizce
+      körelmesinin tam örneği.
+      **Negatif test:** `packages/engine`'e `measure` + `configureAssertions` importu kondu,
+      `arch:check` **2 ihlalle kırıldı**, geri alındı.
+      **`assertInvariant` dev/prod ayrımı `NODE_ENV` KOKLAMIYOR** — değer `__FMS_DEV__`
+      derleme zamanı sabitinden (Vite `define`) geliyor. Varsayılan **`throw`**; yalnızca
+      tarayıcı üretim derlemesi `report`a çeviriyor. **Sunucuya bayrak EKLENMEDİ** →
+      SAPMA-017 (tüketici yok, K12; env değişkeni çalışma zamanı ayarıdır, "prod build"
+      değil).
+      **Çağrı yeri:** `apps/web/src/lib/api.ts`'teki mevcut `correlationId` uyumsuzluğu
+      kontrolü `logger.warn`dan `assertInvariant`a çevrildi → SAPMA-018. 2.3b'nin
+      "iş düşürülmez" kararı **üretimde aynen geçerli**, yalnızca dev'de fırlatıyor.
+      **`debugTrace.input` `ErrorContext`'e daraltıldı** (spec §11.2 `Record<string, unknown>`
+      diyordu) → SAPMA-016. `output` serbest kaldı ve loglanmıyor; tip sistemi ikinci kilit.
+      **Redaksiyon uçtan uca kanıtlandı:** iz GERÇEK pino logger'ından geçirildi,
+      `input.password` ve `input.refreshToken` → `[REDACTED]`, `input.userId` → 7.
+      Köprü (`traceToLogContext`) düzleştiriyor, redaksiyonu **logger** yapıyor (§11.5).
+      **Motor kanıtı:** `packages/engine/src/observability-from-engine.test.ts` —
+      `types: []` + `lib: ["ES2024"]` altında iz üretiliyor ve `assertInvariant` fırlatıyor.
+      **⚠️ `measure`in henüz ürün çağrı yeri YOK** ve bu ölçüldü: paket taramasında
+      `perf.asyncNotSupported` · `debugTrace.summaryRequired` · `debug.trace` → **0**.
+      Ağaç sarsma ikisini de tamamen siliyor (günlük #19'un aynı dersi); +842 baytın
+      tamamı `assert.ts` + `main.tsx` kablolamasından geliyor.
+      Sızıntı taraması temiz: `pino` · `async_hooks` · `zod` · `JWT_SECRET` ·
+      `DATABASE_URL` · `thread-stream` → **0**.
+- [x] **2.8** Geliştirici Hata Ayıklama Paneli (`Ctrl+Shift+D`), 4 sekme.
+      **Sonuç:** panel kuruldu, **3. kabul kriteri kapandı** — Faz 2'nin beş kriterinin beşi de tamam.
+      Test 486 → **520** (35 → 37 dosya), kapsam satır %94,40 → **%94,92**, ifade %94,96,
+      dal %90,37, fonksiyon %95,68 → **%96,17**. Paket 321.483 → **321.495** (+12; dökümü aşağıda).
+      **Karar 3 — UYGULANDI VE İKİ YÖNLÜ ÖLÇÜLDÜ.** Nöbetçi `__FMS_DEV_PANEL__`
+      (`DebugPanel.tsx` → `DEV_PANEL_SENTINEL`), `grep -F` ile aranıyor.
+      | Koruma | Paket | Nöbetçi | `DebugPanel` (kaynak haritası) | `log-buffer` |
+      |---|---|---|---|---|
+      | `__FMS_DEV__` (üretim) | **321.495** | **0** | **YOK** | **YOK** |
+      | kaldırıldı (`true`) | **325.509** | **1** | **VAR** | **VAR** |
+      Panelin gerçek ağırlığı **4.014 bayt** ve üretimde tamamı düşüyor.
+      **⚠️ DAHA GÜÇLÜ BİR ÖLÇÜM ARACI BULUNDU: kaynak haritasının `sources` listesi.**
+      Dize nöbetçisi "bu dizge yok" der; `sources` **"bu modül pakette yok"** der. `log-buffer.ts`
+      hiç dize literali taşımadığı için nöbetçiyle kanıtlanamazdı — harita ikisini birden
+      doğrudan gösterdi. (`sourcemap: true` 2.5b Karar 7'den beri açık; yan faydası bugün çıktı.)
+      **⚠️ ÜRETİM PAKETİ 0 DEĞİL +12 BAYT ARTTI — ve sebebi ölçüldü, varsayılmadı:**
+      | Yapılandırma | Paket | Fark |
+      |---|---|---|
+      | 2.7 tabanı | 321.483 | — |
+      | `logger.ts` değişikliği var, panel dalı yok | 321.487 | **+4** |
+      | `logger.ts` değişikliği yok, panel dalı var | 321.491 | **+8** |
+      | ikisi de var (2.8) | 321.495 | **+12** |
+      +4 = `logger.ts`'de yerel `redacted` değişkeni · +8 = `main.tsx`'teki koşullu dalın
+      **`null` kalıntısı** (JSX çocukları tek eleman yerine diziye dönüyor). **Hiçbiri panelin
+      kendisi değil** — koşullu bir dalın kaçınılmaz bedeli, dışlamanın başarısızlığı değil.
+      **③ Canlı log akışı — `console` YAMALANMADI.** Halka tampon (`lib/log-buffer.ts`, 50 satır)
+      `createBrowserLogger`'ın içinden besleniyor. Gerekçe: yama bizim olmayan her satırı da
+      yakalar (Sentry SDK'sı, React uyarıları, eklentiler); K8 `console`u tek dosyaya hapsetmiş
+      ve ikinci dokunuş o sınırı delerdi; logger zaten tek huni.
+      ⚠️ Tampona **redakte edilmiş** bağlam yazılıyor — panel logu ekrana basıyor ve ham bağlam
+      yazılsaydı sır konsolda `[REDACTED]` görünürken panelde okunurdu.
+      **④ Performans Sayaçları sekmesi BOŞ** — `measure`in ürün çağrı yeri yok (2.7'de ölçüldü).
+      Üreticisi olmayan bir tampon yazmak BORÇ-004'ün aynı hatası olurdu; sekme "Faz 6'da
+      (`perf:budget`) dolacak" diyor.
+      **⑤ `Ctrl+Shift+D` ÇAKIŞMADI** — gerçek tarayıcıda, gerçek OS düzeyi tuş basımıyla panel
+      açıldı. Ölçüm sırasında bulunan tuzak: dinleyici `event.code`'a **bakmamalı** (sentetik
+      olayda boş geliyor) ve `key` Shift'le `'d'`/`'D'` olabiliyor; ikisi de kabul ediliyor.
+      **⑥ Panel KÖK SINIRIN DIŞINDA, kendi sınırında** — mutasyonla ölçüldü: panel bilerek
+      patlatıldığında panel sınırı yakaladı (`error-boundary-hata-ayiklama-paneli`), **kök sınır
+      tetiklenmedi**, uygulama tablosunun 10 satırı ayakta kaldı.
+      **Gerçek tarayıcı kanıtı:** panel `Ctrl+Shift+D` ile açıldı · sayaç `2` · kip `throw` ·
+      satırlar `api.ts`'ten gerçek `correlationId` (`01a03b9e-9195-…`) ile geldi
+      (`api.request` info, `api.requestFailed` error) · en yeni en üstte · dört sekme de yerinde.
+      **Dürüstlük notu:** "Kayıt Durumu" ve "RNG Tohum Görüntüleyici" sekmelerinin verisi henüz yok
+      (kayıtlar Faz 12, `SeededRng` Faz 22). Kabukları kurulur, "Faz 12'de dolacak" yazılır —
+      **sahte veri gösterilmez.** ✅ Üçü de kabuk olarak kuruldu ve metinleri **hangi fazda**
+      dolacağını söylüyor ("yakında" demek, sonraki oturumun bunu eksik iş sanmasına yol açardı).
+      **`arch:check`'e SEKİZİNCİ KURAL — `forbidden-export-exists` (2.7'nin açık bıraktığı sessizlik).**
+      2.7 mutasyon (b)'sinde tablo anahtarı `measure` → `measured` yanlış yazılınca iki meta-test
+      kırılmış ama **`pnpm arch:check` "✓ temiz" demişti** — yasak gate tarafında sessizce
+      kalkıyordu. Yeni kural `@fms/shared` barrel'ını TS ayrıştırıcısıyla okuyup
+      `ENGINE_FORBIDDEN_SHARED_EXPORTS`'un her anahtarının gerçekten dışa aktarıldığını
+      denetliyor. **Aynı mutasyon şimdi `pnpm arch:check`'i kırıyor (exit 1).**
+      Barrel okunamıyorsa kural **atlanıyor** — "doğrulanamıyor" ile "ihlal var" ayrı şeyler;
+      kanaryanın temiz depo testi bu sayede yanlış pozitif almıyor. Kural sayısı **7 → 8**.
+- [x] **2.9** Faz kapanışı — 5 kabul kriteri kanıtla · bundle yeniden ölçümü
+      (`grep pino|async_hooks apps/web/dist/assets/*.js` → 0, ARTI kontrol deneyi: `App.tsx`'e kasıtlı
+      `@fms/shared/server` importu konur ve typecheck **ile** arch:check'in İKİSİNİN BİRDEN kırıldığı
+      gösterilir) · `CHANGELOG.md` · ROADMAP · faz kaydı (11 başlık) · PR.
+
+      ⚠️ **BU MADDENİN KENDİSİ YANLIŞTI VE ÖLÇÜMLE ÇÜRÜTÜLDÜ — satır bilerek
+      düzeltilmedi, altına yazıldı.** *"typecheck İLE arch:check'in İKİSİNİN BİRDEN
+      kırıldığı"* iddiası SAPMA-012 ile **çelişiyordu**: 2.2a'da ölçülmüştü ki
+      `typecheck` bu sızıntıyı **görmüyor**. SAPMA-012 kaydı ROADMAP'in 2.2a
+      maddesini güncellemiş ama 2.9 maddesine **dokunmamıştı** — sapma kaydının
+      "spec güncellendi mi" sütunu eksik kalmıştı (günlük #60).
+
+      **Kontrol deneyi bugün (2026-08-26) yeniden koşuldu.** `App.tsx`'e
+      `import { loadEnv } from '@fms/shared/server'` kondu ve `loadEnv()`
+      **gerçekten çağrıldı** (günlük #16: kullanılmayan import sıfır bayt eder):
+
+      | Kapı | Beklenen (ROADMAP) | **Ölçülen** |
+      |---|---|---|
+      | `pnpm typecheck` | kırılır | ❌ **GEÇTİ** (exit 0, 9/9) |
+      | `vite build` | — | ✅ **BAŞARILI** |
+      | `pnpm arch:check` | kırılır | ✅ **KIRILDI** — `restricted-subpath`, exit 1 |
+
+      Paket **321.495 → 391.657 bayt (+70.162, %21,8)**. Sızıntı taraması:
+      `JWT_SECRET` **2** · `DATABASE_URL` **6** · `POSTGRES_PASSWORD` **3** ·
+      `zod` **318**. Kaynak haritası `sources`: `server/env` **VAR**, `zod`
+      **18 modül**, toplam modül **160 → 179**.
+      İmport geri alındı; paket bayt bayt **321.495**'e döndü ve `dist/` tek
+      paket taşıyor (SAPMA-011 kanıt bozulması tekrarlanmadı).
+
+      **Sonuç: `arch:check` bu sınırın TEK önleyici hattıdır** — SAPMA-012
+      bugünkü rakamlarla yeniden doğrulandı.
+
+      **Temiz paket sızıntı taraması (üretim derlemesi):** `pino` · `async_hooks` ·
+      `thread-stream` · `zod` · `JWT_SECRET` · `DATABASE_URL` · `POSTGRES_PASSWORD` ·
+      `__FMS_DEV_PANEL__` → **hepsi 0**. Girmesi beklenenler: `REDACTED` 1 ·
+      `x-correlation-id` 1 · `api.request` 3.
+
+      **Üretim konteyneri gerçekten koşuldu (SAPMA-014):** `docker run` →
+      `/fms/api/health` **200** `{"status":"ok",…}` · ön ek dışı `/api/health`
+      **404** · açılış logu `{"port":3001,"apiPrefix":"/fms/api","sentry":false,…}` ·
+      `Config.Cmd` **`node --import ./dist/instrument.js dist/main.js`** (bayrak
+      yerinde; `sentry:false` yalnızca DSN boş olduğu için) · gönderilen
+      `X-Correlation-Id` **aynen geri döndü** ve sunucu logunda **1 eşleşme**.
+
 **Ana dosyalar:**
 ```
-packages/shared/src/logger.ts
-packages/shared/src/errors.ts
-packages/shared/src/debug-trace.ts
-packages/shared/src/assert.ts
-packages/shared/src/perf.ts
-apps/api/src/common/filters/global-exception.filter.ts
-apps/api/src/common/middleware/correlation.middleware.ts
-apps/web/src/components/dev/DebugPanel.tsx
-apps/web/src/components/ErrorBoundary.tsx
+packages/shared/src/errors.ts                            [2.1]
+packages/shared/src/logger.ts                            [2.2] Logger ARAYÜZÜ — izomorfik
+packages/shared/src/server/logger.ts                     [2.2] pino uygulaması — alt yol
+packages/shared/src/server/context.ts                    [2.3] AsyncLocalStorage
+packages/shared/src/log-context.ts                       [2.3] taşınabilir zarf (Zod)
+packages/shared/src/debug-trace.ts                       [2.7] SAF — iz üretir, LOGLAMAZ
+packages/shared/src/assert.ts                            [2.7] SAF — varsayılan kip `throw`
+packages/shared/src/perf.ts                              [2.7] izomorfik ama MOTORA YASAK
+packages/engine/src/observability-from-engine.test.ts    [2.7] motorun K3 altında kullanabildiğinin kanıtı
+apps/api/src/instrument.ts                               [2.5] Sentry — main'den ÖNCE yüklenir
+apps/api/src/common/filters/global-exception.filter.ts   [2.4]
+apps/api/src/common/middleware/correlation.middleware.ts [2.3]
+apps/web/src/lib/sentry.ts                               [2.5]
+apps/web/src/lib/api.ts                                  [2.3] X-Correlation-Id gönderimi
+apps/web/src/components/ErrorBoundary.tsx                [2.6]
+apps/web/src/components/dev/DebugPanel.tsx               [2.8] dev-only, nöbetçili
+apps/web/src/lib/log-buffer.ts                           [2.8] halka tampon (50) — üretimde YOK
+tools/arch-check/index.mjs                               [2.2, 2.7] alt yol kuralı + motor yasaklı ad tablosu (1 → 3 girdi)
+eslint.config.js                                         [2.2] process.stdout/stderr yasağı
+vitest.config.ts                                         [2.0] coverage.include .tsx
+docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk envanteri
 ```
 
 **Kabul kriterleri:**
-- [ ] Kasıtlı bir hata fırlat → Sentry'de `correlationId` ile görünüyor
-- [ ] Aynı `correlationId` ile frontend ve backend logları eşleşiyor
-- [ ] Debug paneli açılıyor ve canlı log akışı gösteriyor
-- [ ] `assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor
-- [ ] Performans sarmalayıcısı bütçe aşımında uyarı basıyor
+- [x] Kasıtlı bir hata fırlat → Sentry'de `correlationId` ile görünüyor — *doğrulama: önce yerel yakalama sunucusuna DSN + zarfın etiketi taşıdığını assert eden test, sonra gerçek projeye TEK SEFER gönderim*
+      **✅ İKİ YOL DA KOŞULDU.**
+      **(a) Yerel yakalama sunucusu (2.5a, tekrarlanabilir, CI'da koşuyor):** gerçek bir HTTP
+      sunucusuna DSN verildi; zarfın `correlationId`, `errorKind`, `release`, `environment`
+      taşıdığı **ham gövde üzerinde** assert edildi. `beforeSend`in kablolu olduğu ayrıca
+      kanıtlandı: `ValidationError`/`DomainError` → **0 zarf**, kontrol deneyiyle
+      (`EngineError` → 1 zarf).
+      **(b) Gerçek Sentry projesine gönderim — İKİ OLAY, TEK SEFER HER BİRİ:**
+      ① **Sunucu (2.5b):** üretimdeki `dist/instrument.js` `--import` ile yüklendi,
+         `EngineError` yakalandı. `event_id` `6995813e6c244248bfed1e438697b156`,
+         **ingest HTTP 200**, etiketler doğrudan olaydan okundu:
+         `correlationId=01a03966-5b00-7000-8000-2b5babcdef01`, `errorKind=engine`.
+         Üretim yapılandırması da doğrulandı: `ProcessSession` entegrasyonu **YOK** (Karar 14).
+      ② **Tarayıcı (2.5b, gerçek tarayıcı):** kimlik `01a03a8f-24c1-7422-a88a-d27fb5e5523f`
+         üretildi, konsola loglandı, API kapalıyken istek 502 döndü → `DataProviderError` →
+         `captureException`. `performance` kaydı **tam bir** zarfın gerçek EU ingest'e
+         gittiğini ve **HTTP 200** aldığını gösterdi (`sentry.javascript.react/10.70.0`).
+         Tek zarf olması Karar 14'ün tarayıcıda da tuttuğunun kanıtı.
+      **⚠️ DOĞRUDAN GÖZLENMEYEN TEK ŞEY:** tarayıcı zarfının İÇİNDEKİ etiket. İstek gövdesi
+      ikili/sıkıştırılmış ve dışarıdan okunamadı; ikinci bir olay yakmamak için zorlanmadı.
+      Etiketin varlığı (i) `reportToSentry` birim testleriyle ve (ii) sunucu tarafında **aynı
+      etiket şeklinin** gerçek Sentry olayından doğrudan okunmasıyla dolaylı olarak sağlanıyor.
+      Sentry arayüzünde gözle doğrulama kullanıcının bir tıklık işi: yukarıdaki `event_id`
+      veya `correlationId` aranır.
+- [x] Aynı `correlationId` ile frontend ve backend logları eşleşiyor — *doğrulama: tarayıcıda tıkla → `X-Correlation-Id` → sunucu logu. **Negatif:** başlıksız istek → sunucu kendi üretir. **Eşzamanlılık:** iki paralel istek → ALS bağlamları karışmıyor*
+      **✅ 2.3c'de KAPANDI — dört halkanın dördü, gerçek tarayıcı + derlenmiş API ile:**
+      ① Tarayıcı `01a0397a-6170-7b67-b523-34ba8a7a8d6f` üretti (uuid v7).
+      ② Tarayıcı konsolunda **iki satır** o kimliği taşıdı (`api.request`, `api.response`).
+      ③ `X-Correlation-Id` ile gönderildi; sunucu **aynı kimliği yanıt başlığında geri verdi**
+         — ekranda `zincir kapandı = evet` (kod içinde assert edilen karşılaştırma).
+      ④ **Sunucu logunda aynı kimlikle satır:**
+         `{"correlationId":"01a0397a-6170-…","code":"http.request","method":"GET",`
+         `"path":"/fms/api/health","status":304,"durationMs":0.8,"msg":"İstek tamamlandı"}`
+      **Negatif:** başlıksız istek → sunucu kendi üretir (2.3a, hâlâ yeşil) · geçersiz başlık →
+      `warn` + yeni kimlik · 404 → satır çıkıyor (`warn`) · 500 → satır çıkıyor (`error`).
+      **Eşzamanlılık:** 2.3a'daki paralel istek testi yeşil.
+      2.3b'de üç halka vardı, dördüncüsü (sunucu log satırı) **yoktu** → G-08, 2.3c'de kapandı.
+- [x] Debug paneli açılıyor ve canlı log akışı gösteriyor — *doğrulama: `Ctrl+Shift+D` + üretim paketinde YOKLUĞUNUN kanıtı (dize nöbetçisi, Karar 3)*
+      **✅ 2.8'DE KAPANDI — İKİ YARISI DA GERÇEK ÖLÇÜMLE.**
+      **(a) Açılıyor ve akıyor:** geliştirme derlemesi `vite preview` ile koşuldu, gerçek
+      tarayıcıda **gerçek OS düzeyi `Ctrl+Shift+D`** basıldı → `panelAcik: true`, sayaç `2`,
+      değişmez kipi `throw`. Satırlar sahte değil, `apps/web/src/lib/api.ts`'ten gerçek
+      zincirle geldi:
+      `info API isteği gönderiliyor {correlationId: 01a03b9e-9195-7170-…, code: api.request}`
+      `error API isteği başarısız döndü {… code: api.requestFailed, status: 502}`
+      En yeni en üstte; dört sekme de yerinde; üç boş sekme hangi fazda dolacağını yazıyor.
+      **(b) Üretimde YOK — iki yönlü:**
+      | Koruma | Paket | Nöbetçi `__FMS_DEV_PANEL__` | `DebugPanel` (harita) | `log-buffer` (harita) |
+      |---|---|---|---|---|
+      | `__FMS_DEV__` | 321.495 | **0** | **YOK** | **YOK** |
+      | kaldırıldı | 325.509 | **1** | **VAR** | **VAR** |
+      Tek yönlü "0 çıktı, demek ki yok" kanıt sayılmadı (günlük #53).
+      **⚠️ ÖLÇÜM SIRASINDA BULUNAN TUZAK:** ilk denemelerde `Ctrl+Shift+D` sayfaya **hiç
+      ulaşmadı** ve panel açılmadı. Sebep uygulamada değildi — **Browser pane görüntülenmiyordu**,
+      dolayısıyla sentetik OS tuş girdisi hiç iletilmiyordu (ekran görüntüsü de aynı sebeple
+      zaman aşımına uğruyordu). Pane yeniden açılınca ilk denemede çalıştı. Bu, günlük #53'ün
+      (ölçüm aracının kendisi yanlış cevap üretir) dördüncü örneği ve en tehlikelisi: burada
+      araç "başarısız" diyordu, yani **yanlış negatif**.
+- [x] `assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor — *doğrulama: İKİ AYRI DERLEME alınır ve ikisi de çalıştırılır; `NODE_ENV` koklanmaz*
+      **✅ 2.7'DE KAPANDI — İKİ DERLEME ALINDI, İKİSİ DE GERÇEK TARAYICIDA KOŞULDU.**
+      Sahte API (`:3001`) gelen `X-Correlation-Id`'yi bilerek farklı bir değerle geri
+      verdi (2.6 tekniği); `vite preview` ile aynı ekran iki derlemede açıldı.
+
+      | Gözlem | **Üretim derlemesi** | **Geliştirme derlemesi** |
+      |---|---|---|
+      | `API durumu` | `ok` — veri geldi | `Sunucu farklı bir correlationId döndürdü — zincir kopuk` |
+      | `correlationId` | `01a03b7b-0f27-…` | `bekleniyor` — hiç set edilmedi |
+      | `zincir kapandı mı` | `HAYIR` | `bekleniyor` |
+      | Konsol | `api.request` → **`[warn]` zincir kopuk** → `api.response` | `api.request` → **hiçbir şey**, akış durdu |
+      | Konsol `[error]` | — | **0** (Sentry'ye gitmedi) |
+      | ErrorBoundary yedeği | yok | **yok** — 10 tablo satırının 10'u ayakta |
+
+      **Ölçülen ve önceden bilinmeyen bulgu:** fırlatma bir **promise zincirinin**
+      içinde olduğu için ErrorBoundary onu YAKALAMIYOR (React sınırları yalnızca
+      render/lifecycle hatalarını yakalar). Yakalayan, `App.tsx`teki kendi `.catch()`i.
+      Bu yüzden dev'de de yığın izi ekrana çıkmıyor, Sentry'ye de bir şey gitmiyor —
+      `crash` etiketi (Karar 18) bu yolda hiç devreye girmiyor.
+
+      **Statik kanıt (aynı yöntem, aynı `grep -F` deseni, iki paket):**
+      | Nöbetçi | Üretim | Geliştirme |
+      |---|---|---|
+      | `mode:b.report` | **1** | **0** |
+      | `code:e.code,correlationId` | **1** | **0** |
+
+      Bootstrap çağrısının kendisi: üretimde
+      `te({mode:b.report,report:e=>{Af.warn({...e.context,code:e.code,correlationId:cf()},e.message)})`,
+      geliştirmede `te({mode:b.throw})`. **Tek üçlü ifade, derleme zamanında iki farklı
+      dala katlanmış** — çalışma zamanında `process.env` okunmuyor.
+      ⚠️ İlk denemede nöbetçi olarak çift tırnaklı `"report"` arandı ve iki pakette de 0
+      çıktı: küçültücü dizeleri **ters tırnakla** yazıyor, yani o desen ayırt edici
+      değildi. Ölçüm `grep -F` ile yeniden alındı (günlük #50).
+- [x] Performans sarmalayıcısı bütçe aşımında uyarı basıyor — *doğrulama: 1 ms bütçe / 50 ms fonksiyon → uyarı; 500 ms bütçe → sessiz*
+      **✅ 2.7'DE KAPANDI — sayısal senaryonun ikisi de test edildi.**
+      1 ms bütçe / ~50 ms meşgul bekleme → `onExceeded` **1 kez** çağrıldı,
+      `exceeded: true`, `durationMs > 1`. 500 ms bütçe / aynı iş → `onExceeded`
+      **hiç çağrılmadı**, `exceeded: false`.
+      Uyarı GERÇEK pino logger'ından geçirildi (K8): satır `level: 40` (warn),
+      `code: perf.budgetExceeded`, `metric: tur.atlama`.
+      **Sahte zamanlayıcı KULLANILMADI** — `performance.now`u sahtelemek ölçümün
+      kendisini sahtelemek olurdu; meşgul bekleme ile gerçek süre harcandı.
+      **Bildiricisiz çağrıda da ihlal kaybolmuyor:** `exceeded` bayrağı her zaman dönüyor.
 
 **Bağımlılık:** Faz 1
-**Risk:** Aşırı loglama performansı düşürür → log seviyesi ortam değişkeniyle kontrol edilsin.
+
+**Riskler:**
+- **R1** — `apps/api` saf ESM; `import` yükseltmesi Sentry `init()`'ini geç bırakır. `node --import` gerekiyor (2.5).
+- **R2** — Kapsam kapısı ısıracak. Bilinçli tercih, erken ısırsın. **Eşik DÜŞÜRÜLMEZ.** Fonksiyon kapsamı 2.0'da eşiğin yalnızca ~3,7 puan üstünde ölçüldü; Faz 2 on yeni dosya ekliyor.
+- **R3** — `@fms/shared/server` + `NodeNext` + Vite çözümlemesi: 8 pakette typecheck + gerçek `vite build` + kasıtlı import denemesi (kırılmalı).
+- **R4** — Sentry kotası: dev'de DSN boş → `enabled: false`. Testler yerel yakalama sunucusuna. Gerçek gönderim TEK SEFER.
+- **R5** — `ErrorBoundary` metinleri Türkçe sabit, i18n Faz 5'te → **BORÇ-003**.
+- **R6** — uuid v7 Web Crypto kullanır (`crypto.getRandomValues`). Bu **oyun rastgeleliği değildir**, `SeededRng` kapsamına girmez (K2). Motor bunu import edemesin diye `arch:check` kuralı.
+- Aşırı loglama performansı düşürür → log seviyesi ortam değişkeniyle kontrol edilir (`LOG_LEVEL`).
 
 ---
 
@@ -316,9 +988,14 @@ apps/web/src/components/ErrorBoundary.tsx
 - İndeksler: `clubs(competition_id)`, `competitions(country_id)`, arama için `pg_trgm` GIN indeksi
 - Seed betiği iskeleti (`tools/data-cli/seed.ts`)
 - ER diyagramı → `docs/schema/world.md` (mermaid)
+- **Entegrasyon test katmanı: Vitest + `testcontainers`** *(G-03, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.4 "Gerçek Postgres ile uçtan uca modül" satırını tanımlıyor ama
+  `testcontainers` ROADMAP'in hiçbir yerinde geçmiyordu. İlk migration burada yazıldığı
+  için kurulum buraya düşüyor: "`up`/`down` çalışıyor" iddiası ancak gerçek bir Postgres
+  örneğine karşı doğrulanabilir. **ARM64 uyumu kurulumda doğrulanır (K14).**
 
 **Kabul kriterleri:**
-- [ ] Migration ileri ve geri çalışıyor (`up` / `down`)
+- [ ] Migration ileri ve geri çalışıyor (`up` / `down`) — *gerçek Postgres'e karşı, `testcontainers` ile (G-03)*
 - [ ] 6 ülke + 6 lig + 5 UEFA/yerel kupa örnek verisiyle seed başarılı
 - [ ] Tüm yabancı anahtarlar ve `ON DELETE` davranışları tanımlı
 - [ ] `EXPLAIN ANALYZE` ile temel sorgular < 20 ms
@@ -398,9 +1075,16 @@ docs/glossary.md
 - **DataTable motoru:** TanStack Table + sanallaştırma (TanStack Virtual), sütun seçimi, sıralama, filtre, kaydedilebilir görünüm, mobilde kart moduna dönüşüm
 - Erişilebilirlik: renk körlüğü modu (3 tip), font boyutu ayarı (%90–130), tam klavye navigasyonu, WCAG AA kontrast
 - **Storybook** kurulumu — her bileşen için hikaye
+- **`pnpm perf:budget` — performans bütçesi ölçüm kapısı** *(G-01, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.5 bu komutu "Faz 6'dan sonra" her faz kapanışında koşulacak diye
+  listeliyor ve §0.4 "ihlal = faz kapanmaz" diyor, ama hiçbir faz onu **kurmuyordu** —
+  `arch:check` ile birebir aynı boşluk (Faz 1 Ç3). Burada ilk ölçülebilir ekran doğduğu
+  için kurulumu buraya düşüyor. Faz 6'da ölçülebilen alt küme: DataTable render, ekran
+  geçişi, üretim paketi boyutu. Kalan metrikler ilgili fazlarda eklenir; Faz 49 genişletir.
 
 **Kabul kriterleri:**
 - [ ] Storybook'ta 30+ bileşen, her biri koyu/açık temada çalışıyor
+- [ ] `pnpm perf:budget` çalışıyor ve **bütçe aşımında kırıyor** (negatif testle kanıtlanır) *(G-01)*
 - [ ] DataTable 10.000 satırda 55+ fps kaydırma
 - [ ] DataTable 375px genişlikte kart moduna geçiyor
 - [ ] Renk körlüğü modunda nitelik renkleri ayırt edilebiliyor
@@ -868,9 +1552,17 @@ docs/glossary.md
 - Bildirim sistemi (toast + rozet)
 - Ekran geçiş animasyonları (ölçülü, "hareketi azalt" ayarına saygılı)
 - Yükleme durumları (skeleton)
+- **Playwright kurulumu + `pnpm test:e2e` ilk akışı** *(G-02, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.5 `pnpm test:e2e`'yi "Faz 17'den sonra" her faz kapanışında koşulacak
+  diye listeliyor, ama ROADMAP'te Playwright yalnızca yığın listesinde ve **Faz 50**'nin tam
+  senaryo paketinde geçiyordu — yani kurulum 33 faz geç kalıyordu. Oyunun ilk gezilebilir
+  hale geldiği faz burası, kurulum buraya düşüyor. Kapsam: Playwright yapılandırması
+  (masaüstü + 375px mobil projeleri), CI adımı, ve **tek** kritik akış (giriş → ana kabuk →
+  bölüm gezinme). Tam senaryo paketi Faz 50'de kalır.
 
 **Kabul kriterleri:**
 - [ ] 12 bölüm arasında gezinme masaüstü ve mobilde sorunsuz
+- [ ] `pnpm test:e2e` çalışıyor; ilk kritik akış hem masaüstü hem 375px projesinde yeşil, CI'da koşuyor *(G-02)*
 - [ ] Inbox 500 mesajda akıcı, filtre < 100 ms
 - [ ] Arama "besiktas" yazınca "Beşiktaş" buluyor, sonuç < 150 ms
 - [ ] Tüm klavye kısayolları çalışıyor
@@ -1944,8 +2636,13 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - Disk kullanımı (200 GB sınırına göre yüzde), veritabanı boyutu, tablo bazlı döküm
 - R2 kullanımı (10 GB sınırına göre), aylık işlem sayacı
 - Resend e-posta kotası (3.000/ay sınırına göre)
+- **Sentry olay kotası (5.000 olay/ay sınırına göre)** *(G-06, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/10` §13.5 sınır tablosunda Sentry satırı var (uyarı eşiği 4.000) ama bu telemetri
+  listesinde yoktu — yani "%80 eşiğinde uyarı" kabul kriteri Sentry'yi hiç kapsamadan da
+  işaretlenebilirdi. Faz 2 Karar 4 kotayı **korumaya** yönelik (`tracesSampleRate: 0`,
+  `beforeSend` filtresi); bu satır kotayı **izler**. İkisi ayrı iş.
 - CPU / RAM / kuyruk metrikleri, son 24 saat grafiği
-- **Ücretsiz kademe uyarı eşikleri:** herhangi bir sınırın %80'ine gelince panelde ve e-postayla uyarı
+- **Ücretsiz kademe uyarı eşikleri:** `spec/10` §13.5'teki **altı** sınırın herhangi biri %80'ine gelince panelde ve e-postayla uyarı
 
 **Moderasyon ve Denetim**
 - Şikâyet kuyruğu (uygunsuz isim bildirimleri)
@@ -1975,7 +2672,7 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] Kayıt dışa aktar / geri yükle tam döngü çalışıyor
 - [ ] Mod anahtarı panelden değiştirilince anında etkili oluyor
 - [ ] "Mevcut IP'mi ekle" doğru IP'yi (`CF-Connecting-IP`) ekliyor
-- [ ] Telemetri gerçek değerleri gösteriyor; %80 eşiğinde uyarı tetikleniyor
+- [ ] Telemetri gerçek değerleri gösteriyor; `spec/10` §13.5'teki **altı** sınırın (Sentry dahil) her biri için %80 eşiğinde uyarı tetikleniyor *(G-06)*
 - [ ] Admin eylemleri audit log'da görünüyor
 - [ ] Panel mobilde kullanılabilir
 
@@ -2055,9 +2752,17 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   - "Hareketi azalt" ayarı tüm animasyonları etkiler
 - **Bellek denetimi:** 2 saatlik oyun oturumunda sızıntı testi
 - **Ses denetimi:** mobil autoplay kısıtı, sessiz mod, arka plan davranışı
+- **Görsel regresyon testi (Playwright snapshot)** *(G-05, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.4 "Görsel / Playwright / Ekranlar / Anlık görüntü karşılaştırma
+  (mobil + masaüstü)" katmanını tanımlıyor ama ROADMAP'te karşılığı **hiç yoktu**. Bu faz
+  her ekranı tek tek elden geçirdiği için taban görüntülerin alınacağı doğru yer burası.
+  Faz 17'de kurulan Playwright altyapısına (G-02) bağımlı.
+- **`pnpm perf:budget` genişletmesi** — Faz 6'da kurulan kapıya (G-01) bu fazda ölçülebilir
+  hale gelen metrikler eklenir: LCP, 2D oynatıcı fps, bellek, Lighthouse.
 
 **Kabul kriterleri:**
 - [ ] Her ekran 360px'de yatay taşma olmadan kullanılabilir
+- [ ] Görsel regresyon paketi masaüstü + mobilde taban görüntülerle çalışıyor; kasıtlı bir düzen bozulması yakalanıyor *(G-05)*
 - [ ] PWA yüklenebiliyor ve offline kabuk açılıyor
 - [ ] Lighthouse: Performance ≥ 90, Accessibility ≥ 95
 - [ ] axe-core: 0 kritik ihlal
@@ -2085,8 +2790,17 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   - Sakatlık/kart/gol oranları hâlâ hedef aralıkta
 - **Denge ayar turu:** yukarıdaki testlerden çıkan sapmaların düzeltilmesi
 - **Uçtan uca test paketi (Playwright):** kayıt → menajer oluştur → kulüp seç → transfer yap → maç oyna → sezon bitir → yeni sezon — tam senaryo otomatik
-- **Yük testi:** eşzamanlı 5 kayıt, 100 tur atlama
+- **Yük testi (`k6`):** eşzamanlı 5 kayıt, 100 tur atlama *(G-04, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/09` §11.4 yük katmanını "`k6` / API / 20 eşzamanlı kullanıcı, tur atlama" diye
+  tanımlıyor ama `k6` ROADMAP'in hiçbir yerinde geçmiyordu — aşağıdaki "20 kullanıcı
+  eşzamanlı" kabul kriterinin ölçüm aracı yoktu. Araç burada kurulur; senaryo spec'teki
+  **20 eşzamanlı kullanıcı** hedefini de kapsar.
 - **Hata denetimi:** Sentry'de biriken tüm hataların temizlenmesi
+- **Sentry kaynak haritası yükleme** — Faz 2'den devreden borç (Karar 7): Faz 2 yalnızca
+  `sourcemap: true` + `release` adlandırması yaptı; CI yükleme adımı buraya bırakıldı.
+- **Ücretsiz kademe uyarı zinciri — admin e-postası** *(G-06)*: `docs/spec/10` §13.5'teki
+  altı sınırın **tamamı** (Sentry dahil) eşiğe gelince admin e-postası gider. Panel uyarısı
+  Faz 47'de kurulur; e-posta kanalı burada bağlanır.
 - **Güvenlik denetimi:** bağımlılık taraması (`pnpm audit`), OWASP kontrol listesi, SQL enjeksiyon testi, XSS testi, auth bypass testi
 - **Veri denetimi:** tüm görsel varlıkların bütünlüğü, eksik varlık raporu
 - **i18n denetimi:** 0 eksik anahtar, 0 sabit kodlanmış metin
@@ -2140,8 +2854,10 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] Sunucu sağlamlaştırma tamamlanmış (SSH anahtar-only, ufw, fail2ban, iptables kalıcı)
 - [ ] Günlük yedek R2'ye gidiyor
 - [ ] **Geri yükleme tatbikatı yapılmış** — sıfır sunucudan tam geri yükleme başarılı, süresi belgelenmiş
-- [ ] Dengeli modda 20 kullanıcı eşzamanlı oynarken sistem stabil (CPU < %80, kuyruk < 20 sn)
+- [ ] Dengeli modda 20 kullanıcı eşzamanlı oynarken sistem stabil (CPU < %80, kuyruk < 20 sn) — *`k6` senaryosuyla ölçülür (G-04)*
 - [ ] Aylık maliyet **$0** — tüm servisler ücretsiz kademede, hiçbir sınır aşılmıyor
+- [ ] `spec/10` §13.5'teki **altı** sınırın hepsi (Sentry dahil) izleniyor; eşiğe gelince admin e-postası gidiyor *(G-06)*
+- [ ] Sentry kaynak haritaları yükleniyor; üretimde bir hatanın yığın izi **okunabilir satır numarası** gösteriyor *(Faz 2 Karar 7 borcu)*
 - [ ] `DATA_MODE=full` ile gerçek armalar, portreler, formalar, logolar görünüyor
 - [ ] (Public modda) Yasal sayfalar yayında, "hesabımı sil" ve "verilerimi indir" çalışıyor
 - [ ] Özel modda izin listesi dışındaki hesap oyunu başlatamıyor

@@ -61,6 +61,28 @@ Yukarıdaki özet bu bölüm olmadan da anlaşılır olmalı.]
 - Bir alt görev 🟢 ise ve kullanıcı "devam" derse sıradakine geçilir — tekrar
   plan sunulmaz, plan zaten `docs/ROADMAP.md`'de onaylıdır.
 
+### Bağlam yüzdesi (Faz 2.6 sonunda eklendi)
+
+Raporun sonundaki bağlam yüzdesi **`/context` çıktısındaki TOPLAM kullanım
+oranıdır** (`Tokens: X / Y (Z%)` satırı). Tahminle yazılmaz ve bir **alt
+kalemden** (`Messages`, `System tools`, …) alınmaz.
+
+**`/context` çıktısı elde YOKSA yüzde YAZILMAZ.** Bunun yerine tek satır:
+*"bağlam yüzdesi ölçülemedi — `/context` çıktısı bu turda mevcut değil"*.
+
+> ⚠️ **Bu kural ödenmiş bir bedelden doğdu (2.6).** `/context` bir **yerel
+> slash komutudur**: çıktısı kullanıcının terminaline gider ve modele ancak
+> kullanıcı onu çalıştırdığında ulaşır. 2.5b ve 2.6 raporlarında okunacak bir
+> satır **yokken** yüzde yine yazıldı — yani ölçülmedi, **uyduruldu**: iki
+> raporda "%42" ve "%46" denirken gerçek değer **%81**'di. Fark kritikti;
+> devam edilseydi oturum ortasında bağlam duvarına toslanacaktı.
+>
+> Bu, Faz 2 günlük #9'un (uydurulmuş CI koşu numarası) birebir tekrarı ve o
+> vakadan doğan kural (`spec/11` §12.3, *"ölçüm sonucu alanları tahminle
+> doldurulmaz"*) zaten yazılıydı. **Ders: bir kuralın yazılı olması, onun
+> yeni bir alanda hatırlanacağı anlamına gelmiyor** — bu yüzden kural, ihlal
+> edildiği yerin yanına ikinci kez yazıldı.
+
 ## Faz sonu eki
 
 Fazın son alt görevinde (X.10 gibi) yukarıdakine **ek olarak**:

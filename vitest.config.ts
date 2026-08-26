@@ -12,6 +12,14 @@ import { defineConfig } from 'vitest/config';
  * bir dosya hesaba hiç girmez ve %85 eşiği sessizce yalan söyler — kapsam
  * raporu "her şey yolunda" derken kodun yarısı test edilmemiş olabilir.
  * K10'un geçerliliği doğrudan bu ayara bağlıdır (docs/spec/09 §11.4).
+ *
+ * ⚠️ ORTAM AYRIMI (Faz 2.0b).
+ * Yalnızca `web` ve `ui` DOM ortamında koşar. `engine`, `api`, `worker`,
+ * `shared`, `db`, `data-cli` **node** ortamında kalır ve bu bilinçlidir:
+ * motoru DOM'a sokmak K3 saflığını bulandırır (motor tarayıcı varsaymamalı)
+ * ve her test dosyası için gereksiz bir jsdom örneği kurulur.
+ * Ayrım `packages/engine/src/no-dom.test.ts` ile kalıcı olarak sınanır —
+ * biri motoru DOM ortamına taşırsa o test kırılır.
  */
 export default defineConfig({
   test: {
@@ -28,7 +36,7 @@ export default defineConfig({
           name: 'shared',
           root: './packages/shared',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -36,7 +44,7 @@ export default defineConfig({
           name: 'engine',
           root: './packages/engine',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -44,15 +52,19 @@ export default defineConfig({
           name: 'db',
           root: './packages/db',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
         test: {
           name: 'ui',
           root: './packages/ui',
-          environment: 'node',
-          include: ['src/**/*.test.ts'],
+          // DOM — tasarım sistemi paketi. Faz 2.0b'de henüz testi YOK; ortam
+          // burada şimdiden bildirildi çünkü Faz 6'da yüzlerce bileşen testi
+          // buraya gelecek ve o gün "neden web'de var ui'da yok" sorusu
+          // sorulmasın. Testsiz bir proje ortamı bedava.
+          environment: 'jsdom',
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -60,7 +72,7 @@ export default defineConfig({
           name: 'api',
           root: './apps/api',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -68,15 +80,46 @@ export default defineConfig({
           name: 'worker',
           root: './apps/worker',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
+        /**
+         * ⚠️ `define` — derleme zamanı sabitleri testlerde de gerekli.
+         *
+         * `vite.config.ts` bunları üretim paketine gömüyor; Vitest o
+         * yapılandırmayı kullanmadığı için burada ayrıca verilmesi gerekiyor.
+         * Aksi hâlde `ErrorBoundary` render edilen HER test
+         * `ReferenceError: __FMS_DEV__ is not defined` ile kırılır — ve bu
+         * `App.test.tsx`/`main.test.tsx` dahil, çünkü 2.6'dan sonra sınır
+         * ağacın içinde.
+         *
+         * `true` seçildi: testler geliştirme davranışını (yığın izi görünür)
+         * sınıyor. **Üretimdeki YOKLUĞU burada sahtelenerek kanıtlanamaz** —
+         * değer derlemeye gömülü olduğu için sahtelemek yalnızca testi yeşile
+         * boyardı. Gerçek kanıt üretim paketinde dize taramasıyla alınıyor
+         * (2.6 duman testi).
+         *
+         * Yalnızca `__FMS_DEV__` burada: diğer sabitleri
+         * (`__FMS_BASE_PATH__`, `__FMS_SENTRY_*`) ilgili testler `vi.stubGlobal`
+         * ile **senaryo başına** veriyor, çünkü değerleri testten teste değişiyor.
+         */
+        define: {
+          __FMS_DEV__: 'true',
+        },
         test: {
           name: 'web',
           root: './apps/web',
-          environment: 'node',
-          include: ['src/**/*.test.ts'],
+          // DOM — React bileşenleri. jsdom seçildi, happy-dom değil: gerekçe
+          // ve geri dönüş maliyeti docs/DEPENDENCY-WATCH.md'de.
+          environment: 'jsdom',
+          include: ['src/**/*.test.{ts,tsx}'],
+          // `globals` KAPALI olduğu için React Testing Library'nin kendi
+          // otomatik temizliği DEVREYE GİRMEZ — RTL onu global bir afterEach
+          // kaydederek yapar. Temizlik yapılmazsa bir testin DOM'u diğerine
+          // sızar ve `getByTestId` "found multiple elements" der. Bu yüzden
+          // cleanup açıkça bu setup dosyasında çağrılır.
+          setupFiles: ['./vitest.setup.ts'],
         },
       },
       {
@@ -84,7 +127,7 @@ export default defineConfig({
           name: 'data-cli',
           root: './tools/data-cli',
           environment: 'node',
-          include: ['src/**/*.test.ts'],
+          include: ['src/**/*.test.{ts,tsx}'],
         },
       },
       {
@@ -113,10 +156,24 @@ export default defineConfig({
       reportsDirectory: './coverage',
 
       // ── ZORUNLU ── Test edilmemiş dosyalar da rapora girsin.
-      include: ['packages/*/src/**/*.ts', 'apps/*/src/**/*.ts', 'tools/*/src/**/*.ts'],
+      //
+      // ⚠️ UZANTI LİSTESİ EKSİK BIRAKILMAZ (Faz 2.0 düzeltmesi).
+      // İlk yazımda desen yalnızca `*.ts` idi. `apps/web/src/App.tsx` ve
+      // `main.tsx` kapsam raporuna HİÇ girmiyordu: rapor 13 dosya sayarken
+      // diskte 15 vardı. Faz 1'de bu iki dosya, Faz 6'da yüzlerce bileşen
+      // demek — yani `coverage.include` yazılmış olmasına rağmen eşik gene
+      // sessizce yalan söyleyecekti. Kapsam kapısının kör noktası dosyanın
+      // olmaması değil, UZANTININ desende olmamasıydı.
+      // Negatif test (2.0): `.tsx` eklendiğinde test edilmemiş iki dosya
+      // rapora girdi ve yüzde düştü — desen gerçekten ısırıyor.
+      include: [
+        'packages/*/src/**/*.{ts,tsx,mts,cts}',
+        'apps/*/src/**/*.{ts,tsx,mts,cts}',
+        'tools/*/src/**/*.{ts,tsx,mts,cts}',
+      ],
 
       exclude: [
-        '**/*.test.ts',
+        '**/*.test.{ts,tsx,mts,cts}',
         '**/*.d.ts',
         '**/dist/**',
         '**/node_modules/**',

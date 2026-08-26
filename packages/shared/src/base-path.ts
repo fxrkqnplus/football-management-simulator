@@ -6,6 +6,7 @@
  * kapsamı, PWA manifest) ve her biri ayrı ayrı sessizce kırılabilir. Bu yüzden
  * hiçbir yerde elle yazılmaz; hepsi buradan türetilir.
  */
+import { ValidationError } from './errors.js';
 
 /**
  * Uygulama içi yol. Baştaki eğik çizgi TİP SEVİYESİNDE zorunludur:
@@ -61,22 +62,36 @@ export function normalizeBasePath(raw: string | undefined | null): string {
  * fırlatılan hata sebebi doğrudan gösterir. Üçü de programcı hatasıdır,
  * kullanıcı girdisi değildir.
  *
- * TODO(Faz 2): `TypeError` yerine `ValidationError` (packages/shared/errors.ts).
+ * Faz 2.1: `TypeError` yerine `ValidationError`. Üç fırlatmanın da `code`'u
+ * var, yani log/Sentry tarafında "hangi alt yol hatası" sorusu dizgi eşleştirme
+ * yapmadan cevaplanabiliyor; sayısal/adsal ayrıntılar `context`'te yapısal
+ * duruyor. Mesajlar geliştiriciye yöneliktir ve öyle kalır — bunlar kullanıcı
+ * girdisi hataları değil, programcı hatalarıdır.
  */
 export function joinBasePath(base: string, path: string): string {
   if (!path.startsWith('/')) {
-    throw new TypeError(
-      `Uygulama yolu '/' ile başlamalı. Alınan: '${path}'. ` + `Doğrusu: basePath('/${path}')`,
-    );
+    throw new ValidationError({
+      code: 'basePath.mustStartWithSlash',
+      message:
+        `Uygulama yolu '/' ile başlamalı. Alınan: '${path}'. ` + `Doğrusu: basePath('/${path}')`,
+      context: { path, base },
+    });
   }
   if (path.includes('//')) {
-    throw new TypeError(`Uygulama yolunda çift eğik çizgi var: '${path}'`);
+    throw new ValidationError({
+      code: 'basePath.doubleSlash',
+      message: `Uygulama yolunda çift eğik çizgi var: '${path}'`,
+      context: { path, base },
+    });
   }
   if (base !== '' && (path === base || path.startsWith(`${base}/`))) {
-    throw new TypeError(
-      `Alt yol ön eki iki kez uygulanıyor. Alınan: '${path}', taban zaten '${base}'. ` +
+    throw new ValidationError({
+      code: 'basePath.duplicatePrefix',
+      message:
+        `Alt yol ön eki iki kez uygulanıyor. Alınan: '${path}', taban zaten '${base}'. ` +
         `Doğrusu: basePath('${path.slice(base.length) || '/'}')`,
-    );
+      context: { path, base, suggestion: path.slice(base.length) || '/' },
+    });
   }
   return base === '' ? path : `${base}${path}`;
 }

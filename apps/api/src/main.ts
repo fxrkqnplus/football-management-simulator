@@ -1,22 +1,54 @@
 import 'reflect-metadata';
 
-import { basePathConfig, configureBasePath, loadEnv } from '@fms/shared';
+import { basePathConfig, configureBasePath } from '@fms/shared';
+// Ortam doğrulaması SUNUCU ALT YOLUNDAN gelir: `process.env` okuyor ve şema
+// sistemdeki her sırrın adını sayıyor, bu yüzden izomorfik kök girişte durmamalı
+// (Faz 2.2a). Tarayıcı bu modülü import etmeye kalkarsa derleme kırılır.
+import { collectEnvWarnings, createServerLogger, getLogContext, loadEnv } from '@fms/shared/server';
 import { NestFactory } from '@nestjs/core';
+// ⚠️ `@sentry/node` BURADA KURULMUYOR, yalnızca DURUMU okunuyor. Kurulum
+// `instrument.ts`'te ve o dosya `--import` ile bu modülden ÖNCE yükleniyor
+// (Risk R1): ESM import yükseltmesi yüzünden buraya yazılan bir `init()`
+// zaten geç kalırdı.
+import { isInitialized } from '@sentry/node';
 
 import { AppModule } from './app.module.js';
 
 /**
  * API önyüklemesi — Faz 1.8 alt yol kanıtı.
  *
- * Sıra önemli: önce ortam doğrulanır (eksik değişkenle uygulama AÇILMAZ),
- * sonra alt yol tek kaynaktan yapılandırılır, sonra Nest ayağa kalkar.
+ * Sıra önemli ve 2.2b'de bir halka daha kazandı:
+ *   1. Ortam doğrulanır — eksik değişkenle uygulama AÇILMAZ.
+ *   2. Logger **doğrulanmış** env'den kurulur (`LOG_LEVEL`, `LOG_FORMAT`).
+ *   3. Ölümcül olmayan yapılandırma uyarıları basılır.
+ *   4. Alt yol tek kaynaktan yapılandırılır, Nest ayağa kalkar.
+ *
+ * 2. adım 3. adımdan ÖNCE gelmek zorunda: logger'ın kendisi env'den doğuyor,
+ * bu yüzden `parseEnv` uyarıyı basamaz, yalnızca **döndürebilir**
+ * (`collectEnvWarnings`). K8 ile bu sıralamayı uzlaştıran şey bu.
  */
 async function bootstrap(): Promise<void> {
   const env = loadEnv();
+
+  const logger = createServerLogger({
+    level: env.LOG_LEVEL,
+    format: env.LOG_FORMAT,
+    name: 'api',
+    // Gözlemlenebilirlik zincirinin bağlandığı TEK yer: logger her satırda
+    // AsyncLocalStorage'ı okuyor, böylece correlationId elle geçirilmiyor.
+    // Bağlantı burada kuruluyor çünkü logger ALS'i BİLMİYOR — yalnızca bir
+    // fonksiyon çağırıyor (docs/spec/09 §11.1).
+    contextProvider: getLogContext,
+  });
+
+  for (const warning of collectEnvWarnings(env)) {
+    logger.warn({ code: warning.code, ...warning.context }, warning.message);
+  }
+
   configureBasePath(env.PUBLIC_BASE_PATH);
   const config = basePathConfig();
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  const app = await NestFactory.create(AppModule.forRoot(logger), { bufferLogs: false });
 
   // Tek kaynak: '/fms/api'. Elle yazılmaz, base-path'ten türetilir (K6).
   app.setGlobalPrefix(config.apiPrefix);
@@ -31,8 +63,19 @@ async function bootstrap(): Promise<void> {
   });
 
   await app.listen(env.API_PORT);
-  process.stdout.write(
-    `API hazır: http://localhost:${String(env.API_PORT)}${config.apiPrefix}/health\n`,
+  logger.info(
+    {
+      port: env.API_PORT,
+      apiPrefix: config.apiPrefix,
+      serverMode: env.SERVER_MODE,
+      // ⚠️ `--import ./dist/instrument.js` UNUTULURSA BUNUN TEK BELİRTİSİ BUDUR.
+      // Sentry geç kurulduğunda uygulama çalışmaya devam eder ve hiçbir kapı
+      // ötmez — enstrümantasyon sessizce eksik kalır (Risk R1). Açılış satırı
+      // durumu görünür kılıyor: `false` görülüyorsa ya DSN boştur ya da
+      // çalıştırma komutu `--import` taşımıyordur.
+      sentry: isInitialized(),
+    },
+    'API hazır',
   );
 }
 

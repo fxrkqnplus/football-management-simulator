@@ -58,8 +58,42 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     // Alt yol değeri istemciye derleme zamanında gömülür; main.tsx bunu
     // configureBasePath()'e verir.
+    //
+    // ⚠️ SENTRY DSN'İ PAKETE GİRİYOR VE BU BEKLENEN. Tarayıcı DSN'i
+    // **yalnızca yazma** yetkisi olan açık bir anahtardır — Sentry'nin tarayıcı
+    // SDK'sı zaten böyle çalışır ve okuma/yönetim yetkisi taşımaz. Sunucu
+    // sırları (`JWT_SECRET`, `DATABASE_URL`) buraya ASLA girmez; onlar
+    // `@fms/shared/server` sınırının ötesinde durur (SAPMA-012).
     define: {
       __FMS_BASE_PATH__: JSON.stringify(config.base),
+      __FMS_SENTRY_DSN__: JSON.stringify(env['SENTRY_DSN'] ?? ''),
+      __FMS_SENTRY_RELEASE__: JSON.stringify(env['SENTRY_RELEASE'] ?? ''),
+      __FMS_SERVER_MODE__: JSON.stringify(env['SERVER_MODE'] ?? 'private'),
+      /**
+       * Geliştirme mi? — Karar 20 (2.6). Yığın izinin ekranda gösterilip
+       * gösterilmeyeceğini bu belirliyor.
+       *
+       * ⚠️ `NODE_ENV` KOKLANMIYOR. Değer Vite'ın **açık `mode` girdisinden**
+       * geliyor (`vite build` varsayılanı `production`, `vite dev` ise
+       * `development`) ve derleme zamanında pakete gömülüyor. Faz 1 hata
+       * #9'un tuzağı bunun TERSİYDİ: çalışma zamanında `process.env.NODE_ENV`
+       * okunuyordu ve Vite onu derleme sırasında kendisi değiştirdiği için
+       * kapı yanlış şeyi ölçüyordu.
+       */
+      __FMS_DEV__: JSON.stringify(mode !== 'production'),
+    },
+    build: {
+      /**
+       * Kaynak haritası ÜRETİLİR (Karar 7). CI'a **yükleme** adımı Faz 50'ye
+       * ertelendi → BORÇ-006; bugün yalnızca üretim + `release` adlandırması.
+       *
+       * ⚠️ Normalde `sourcemap: true` bir sızıntı endişesidir: `.map` dosyaları
+       * yayınlanırsa herkes kaynak kodu okuyabilir. **Bu projede endişe değil** —
+       * repo AGPL-3.0 ile zaten herkese açık (CLAUDE.md §1.5). Yani harita
+       * kimseye bilmediği bir şey vermiyor, buna karşılık üretimdeki bir
+       * yığın izini okunur kılıyor. Bu denge özel bir repoda TERSİNE dönerdi.
+       */
+      sourcemap: true,
     },
     server: {
       port: Number(env['WEB_PORT'] ?? '3000'),

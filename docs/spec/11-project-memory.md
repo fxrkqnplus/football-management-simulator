@@ -25,6 +25,22 @@ Kayıt yazılmadan faz kapanmış sayılmaz (K15).
 > ortasında oturum koptuğunda yeni oturum yapılan işi göremez. Commit'ler
 > "ne yapıldı"yı taşır, ANLIK DURUM "şu anda neredeyiz"i taşır.
 
+> **EK KURAL (SAPMA-004'e, Faz 2.0'da eklendi): ANLIK DURUM'u yazan commit,
+> fazın SON commit'i olmalıdır.**
+>
+> Kuralın ilk hâli "her alt görev sonunda" diyordu ve delik tam da buradaydı:
+> **faz kapanış commit'leri alt görev sayılmıyor.** Faz 1'de ölçüldü — blok
+> `docs(memory): Faz 1 kaydı ve kapanış` commit'inde yazıldı, ardından iki commit
+> daha geldi (`docs(memory): faz kaydına PR #1 numarasını işle` ve PR birleştirme).
+> Sonuç: yeni oturum bloğu okuduğunda "PR #1 açık" yazıyordu, oysa PR **merge
+> edilmişti**. Blok tam da tasarlandığı işte — devir teslimde — yanlış bilgi verdi.
+>
+> Pratikte: faz kapanışında ROADMAP, CHANGELOG ve faz kaydı önce yazılır; ANLIK
+> DURUM **en sonda**, PR'ı açan/kapatan hamleyi de bilerek güncellenir. PR
+> numarası yazma anında bilinmiyorsa alan `PR açılacak` bırakılır — sonradan
+> "PR #N açık" yazıp orada unutmaktan iyidir, çünkü ikincisi **yanlış**, birincisi
+> yalnızca **eksik**.
+
 **Değişmezlik:**
 - Dosya **append-only**'dir. Eski faz kayıtları geriye dönük **silinmez ve değiştirilmez**.
 - Bir hata sonradan fark edilirse, eski kayıt düzenlenmez; yeni kayda `> ⚠️ DÜZELTME (Faz XX): Faz YY'deki "..." ifadesi yanlıştı, doğrusu "..."` satırı eklenir.
@@ -32,18 +48,57 @@ Kayıt yazılmadan faz kapanmış sayılmaz (K15).
 
 **Sıralama:** En yeni faz kaydı **en üstte** (ANLIK DURUM'un hemen altında). Yeni oturum aşağı kaydırmadan güncel durumu görür.
 
+**Ölçüm sonucu alanları tahminle doldurulmaz** (Faz 2.0b'de eklendi).
+CI koşu numarası, kapsam yüzdesi, süre, imaj boyutu, test sayısı — bunların
+hepsi **ölçülmüş** değerlerdir. Ölçüm yapılmadan alan **boş bırakılır** veya
+`ölçülmedi` yazılır; makul bir değer uydurulmaz.
+
+Gerekçe ampirik: 2.0b'de ANLIK DURUM'a CI koşu numarası, koşu **daha
+başlamadan** yazıldı ve numara gerçek çıkmadı. Bu, §12.3'teki "hash değil
+başlık" gerekçesinin aynısıdır — commit başlığı **seçilebilir** bir şeydir,
+koşu numarası **ölçülen** bir şey. Eksik bir alan okuyanı ölçmeye gönderir;
+yanlış bir alan okuyanı yanlış yere gönderir ve yanlış olduğu anlaşılmaz.
+
 **Dürüstlük kuralı:** Yapılmayan şey "yapıldı" diye yazılmaz. Atlanan kabul kriteri açıkça `[ ]` bırakılır ve gerekçesi yazılır. Bu dosyanın değeri doğruluğundan gelir.
 
 ## 12.2 Dosya Yapısı
 
 ```
 PROJECT_MEMORY.md
-├── ⚡ ANLIK DURUM              ← her faz tamamen yeniden yazılır
+├── ⚡ ANLIK DURUM              ← her ALT GÖREV tamamen yeniden yazılır
 ├── 🔴 AÇIK SORUNLAR KÜTÜĞÜ     ← kümülatif, çözülünce kapatılır
 ├── 🟡 TEKNİK BORÇ KÜTÜĞÜ       ← kümülatif
 ├── 🔵 SPESİFİKASYON SAPMALARI  ← kümülatif, asla silinmez
+├── 🧪 FAZ [XX] ÇALIŞMA GÜNLÜĞÜ ← faz boyunca dolar, faz sonunda BOŞALIR
 └── 📋 FAZ KAYITLARI            ← append-only, en yeni üstte
 ```
+
+### 🧪 Çalışma günlüğü — kalıcı yapı, geçici içerik
+
+**Bu bölüm silinmez, boşaltılır.** (Faz 2.0b'de açıldı, 2.1'de kurallaştı.)
+
+**Neden var:** Faz protokolü *"karşılaştığın her hatayı ANINDA not al — faz
+kaydına gireceksin"* diyor ama notun duracağı bir yer tanımlamıyordu. ANLIK
+DURUM her alt görevde **tamamen yeniden yazıldığı** için oraya düşülen not bir
+sonraki alt görevde siliniyor. Sonuç: faz kaydının §5 hata tablosu, faz sonunda
+**geriye dönük hatırlanarak** yazılıyor — yani en değerli ayrıntı (kök neden,
+hangi kapının yakaladığı, hangi varsayımın çürüdüğü) tam da kaybolan şey oluyor.
+
+**Yaşam döngüsü:**
+
+| Ne zaman | Ne yapılır |
+|---|---|
+| Faz açılışında | Başlık `🧪 FAZ [XX] ÇALIŞMA GÜNLÜĞÜ` olarak güncellenir, tablo boşaltılır |
+| Faz boyunca | Her hata **oluştuğu anda** satır olarak eklenir (alt görev · belirti · kök neden · çözüm · tekrar önleme) |
+| Faz kapanışında | Satırlar faz kaydının **§5** tablosuna işlenir, tablo boşaltılır, **başlık kalır** |
+
+Başlığın kalması bilinçli: aksi halde her faz aynı ihtiyacı yeniden keşfeder ve
+bölümü yeniden icat eder.
+
+**Ne yazılır:** ölçümle çürütülen varsayımlar, sessiz kalan kapılar, kendi
+çıkardığın regresyonlar. **Ne yazılmaz:** yazım hatası düzeltmeleri, tek
+seferlik lint uyarıları — günlük hata *sınıflarının* kaydıdır, her tuş
+darbesinin değil.
 
 ## 12.3 ANLIK DURUM Bloğu
 
@@ -68,6 +123,48 @@ Her **alt görev** sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyu
 > yazılır; o commit'in hash'i yazma anında henüz yoktur ve `--amend` ile
 > doldurulmaya çalışılırsa hash yeniden değişir. Commit başlığı kararlıdır ve
 > `git log --oneline --grep` ile hash'e bir adımda ulaşılır.
+
+> **"Son commit" alanı, BULUNDUĞU commit'i adlandırır** — bir öncekini değil.
+> (Faz 2.0b'de eklendi.)
+>
+> Bu, yukarıdaki "neden başlık" kuralının doğrudan sonucu ama kendiliğinden
+> anlaşılmıyor: alan blokla **aynı** commit'te yazıldığı için değeri, yazılmakta
+> olan commit'in mesajıyla **birlikte** kararlaştırılır. Önce commit mesajı
+> seçilir, sonra alana o başlık yazılır.
+>
+> Kuralın buraya yazılma sebebi ampirik: Faz 2.0'da bu bölüme "ANLIK DURUM'u
+> yazan commit fazın SON commit'i olmalı" kuralını **ekleyen oturum**, aynı gün
+> art arda iki commit'te alanı bir öncekini gösterir hâlde bıraktı. Yani kural
+> yazmak, kurala uymaya yetmiyor — kolay ihlal edilebilir olduğu için ayrıca
+> yazılıyor. Alan bir öncekini gösteriyorsa blok en az bir commit bayattır.
+
+> **ANLIK DURUM'da KALICI BÖLÜM: savunma hatlarının KAPSAMI yazılır.**
+> (Faz 2.3b'de eklendi.)
+>
+> Blok her alt görevde tamamen yeniden yazılır — ama projenin **tek savunma
+> hattı** olan mekanizmaların kapsamı bu silinen kısımda **durmaz**. Ayrı,
+> kalıcı bir alt bölümde tutulur ve yalnızca **kapsam değişince** güncellenir.
+>
+> **Ne yazılır:** ne denetliyor, **kaç kural** (adlarıyla), hangi **uzantılar**,
+> hangi dizinler atlanıyor, tabloların büyüklüğü — ve rakamlar **ölçülerek**,
+> elle sayılmadan.
+>
+> **Gerekçe:** kapsamı yazılı olmayan bir gate sessizce daralabilir ve yeni
+> oturum bunu fark edemez. Bir denetleyicinin `✓ temiz` çıktısı, dosyaya
+> **bakıldığını** söylemez. Ampirik: Faz 2.1'de `arch:check`'in taradığı uzantı
+> listesinden `.cts` eksikti; bir `.cts` dosyası denetimden tamamen kaçıyordu ve
+> kapı yine "temiz" diyordu. Elle, tesadüfen bulundu.
+>
+> **Kapsam bloğu mekanizmanın kendisiyle ayrışmamalı.** Kural eklendiğinde
+> güncellenecek yerler blokta **numaralı olarak** sayılır; blok kendi
+> bakımının tarifini taşır.
+>
+> **Meta-test iki katmanlıdır ve birincisi yetmez** (2.3b'de ölçüldü):
+> *tablo bütünlüğü* sabit listelerin boşalmadığını görür ama kuralın
+> **kablolaması** koptuğunda sessiz kalır; bunu ancak her kuralın ihlalini
+> içeren bir **kanarya deposu** yakalar. Kanarya kural listesinin tamamını
+> kapsamıyorsa eksik kalan kural, birim testleri yeşilken körelebilir —
+> saf fonksiyonun birim testi **kablolamayı kanıtlamaz.**
 
 **Sıradaki oturumda ilk yapılacak:**
 1. `docs/spec/08-admin-panel.md` ve `docs/spec/10-deployment.md` oku
@@ -164,6 +261,14 @@ Sapma yoksa: "Sapma yok."
 | Snapshot sıkıştırma | < 300 ms | 4.200 ms | ❌ → SORUN-004 |
 
 Bu fazda ölçülecek performans metriği yoksa: "Bu fazda performans bütçesi yok."
+
+⚠️ **§7 rakamları faz kapanışında YENİDEN ölçülür — ara ölçümlerden kopyalanmaz.**
+Faz ortasında alınan bir ölçüm, kendisinden sonra gelen alt görevlerin etkisini
+göremez. Faz 1'de kapsam rakamı böyle bayatladı: kayda giren yüzdeler 1.8'de
+`apps/api/src/*` eklenmeden önce ölçülmüştü ve gerçek durumdan **17 puan**
+sapıyordu (kayıt: satır %92,7 · fonksiyon %85,7 — aynı ağaçta yeniden ölçüm:
+satır %75,5 · fonksiyon %73,7). Bayat bir performans rakamı, hiç rakam
+olmamasından daha kötüdür: sonraki faz onu karşılaştırma tabanı sanır.
 
 #### 8. Kabul Kriterleri Doğrulaması
 ROADMAP'teki kabul kriterleri tek tek:

@@ -32,7 +32,7 @@ Her kapı Linux'ta da (CI) doğrulanır.
 
 ```
 Node.js    24.19.0   — nvm-windows ile kurulu, sistem PATH'inde
-pnpm       11.22.0   — corepack üzerinden (packageManager alanından okunur)
+pnpm       11.23.0   — corepack üzerinden (packageManager alanından okunur; Faz 2.0'da 11.22.0'dan yükseltildi)
 PowerShell 7.6.5     — Windows Terminal varsayılanı
 Docker     Desktop 4.87.0 + WSL2 motoru, Compose v5.4.0
 git        core.longpaths = true

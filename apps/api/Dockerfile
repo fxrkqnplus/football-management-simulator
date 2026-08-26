@@ -43,4 +43,14 @@ COPY --from=builder --chown=node:node /prod/api ./
 ENV NODE_ENV=production
 USER node
 EXPOSE 3001
-CMD ["node", "dist/main.js"]
+
+# ⚠️ `--import` ZORUNLU, SÜS DEĞİL (Faz 2.5a, Risk R1).
+# `apps/api` saf ESM ve ESM import deyimleri yükseltiliyor: `main.ts`'in ilk
+# satırına `Sentry.init()` yazılsa bile, `main.ts`'in import ettiği her modül
+# init'ten ÖNCE değerlendirilir ve enstrümantasyon SESSİZCE eksik kalır.
+# `--import` modülü ana giriş çözümlenmeden yükler.
+#
+# Bu satır değiştirilirse `PROJECT_MEMORY.md`'deki elle çalıştırma komutu da
+# değişmeli — ikisi aynı sözleşmenin iki kopyası.
+# Doğrulama: açılış logundaki `"sentry": true/false` alanı.
+CMD ["node", "--import", "./dist/instrument.js", "dist/main.js"]
