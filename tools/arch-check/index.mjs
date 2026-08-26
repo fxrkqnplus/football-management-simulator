@@ -4,7 +4,7 @@
  * ESLint İLE İŞ BÖLÜMÜ (tekrar yok):
  *   ESLint yapar      → `console.log` (K8), kaynak kodda mutlak yol (K6),
  *                       tip farkında kurallar, biçim.
- *   arch:check yapar  → ESLint'in göremediği veya beceremediği YEDİ şey.
+ *   arch:check yapar  → ESLint'in göremediği veya beceremediği SEKİZ şey.
  *
  * KURAL LİSTESİ — bu yorum kapsam beyanıdır, kod ile AYRIŞMAMALI.
  * (Adı geçen her belirteç aşağıda `rule:` alanı olarak basılır.)
@@ -18,6 +18,9 @@
  *   ⑥ undeclared-dependency  import edilen `@fms/X` package.json'da bildirilmiş mi — Faz 2.2a
  *   ⑦ engine-forbidden-import motorun alamayacağı adlandırılmış dışa aktarımlar — Faz 2.3a
  *                             (3 giriş: createCorrelationId · measure · configureAssertions)
+ *   ⑧ forbidden-export-exists ⑦'nin tablosundaki her adın `@fms/shared` barrel'ında
+ *                             GERÇEKTEN dışa aktarıldığı — Faz 2.8 (yanlış yazım kuralı
+ *                             köreltiyordu ve gate sessiz kalıyordu; 2.7 mutasyon ölçümü)
  *
  * ⚠️ BU LİSTE DEĞİŞTİRİLİRSE ÜÇ YER BİRDEN GÜNCELLENİR (Faz 2.3b'de kurallaştı):
  *   1. burada,
@@ -233,6 +236,44 @@ export function isDependencyDeclared(readPackageJson, layer, spec) {
   return Object.prototype.hasOwnProperty.call(declared, basePackageOf(spec));
 }
 
+/**
+ * `@fms/shared` kök barrel'ının dışa aktardığı adlar — Faz 2.8.
+ *
+ * NEDEN GEREKLİ (2.7'de ÖLÇÜLDÜ): `ENGINE_FORBIDDEN_SHARED_EXPORTS` bir dize
+ * kümesi ve yazımı hiçbir yerde denetlenmiyordu. Mutasyon deneyinde anahtar
+ * `measure` → `measured` diye yanlış yazıldı; iki **meta-test** kırıldı ama
+ * `pnpm arch:check` **"✓ temiz" dedi.** Yani gate tarafında yasak sessizce
+ * kalkmıştı. Bu fonksiyon o sessizliği kapatıyor: tablodaki her ad, barrel'ın
+ * gerçekten dışa aktardığı bir ada karşılık gelmeli.
+ *
+ * `export { a, b } from './x.js'` ve `export type { T }` biçimlerinin ikisi de
+ * toplanıyor. Tip dışa aktarımını da saymak bilinçli: bir yasağın hedefi bir
+ * gün tipe dönüşürse kural yanlış alarm vermesin, yalnızca **var olmayan** ad
+ * ötsün.
+ *
+ * @returns adlar kümesi; dosya okunamıyorsa `null` (denetlenemiyor demek)
+ */
+export function sharedBarrelExports(root) {
+  const file = join(root, 'packages', 'shared', 'src', 'index.ts');
+  let text;
+  try {
+    text = readFileSync(file, 'utf8');
+  } catch {
+    return null;
+  }
+
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.ESNext, true);
+  const names = new Set();
+  for (const statement of sf.statements) {
+    if (!ts.isExportDeclaration(statement)) continue;
+    const clause = statement.exportClause;
+    if (clause !== undefined && ts.isNamedExports(clause)) {
+      for (const element of clause.elements) names.add(element.name.getText(sf));
+    }
+  }
+  return names;
+}
+
 /** Modül belirteci motorda yasak mı? */
 export function isForbiddenEngineModule(spec) {
   if (spec === '@fms/db') return true;
@@ -442,6 +483,33 @@ export function runArchCheck(root) {
     }
     return packageJsonCache.get(layer);
   };
+
+  // ⑧ Yasak listesindeki adlar GERÇEKTEN var mı? — Faz 2.8.
+  //
+  // Dosya başına değil, depo başına bir kez çalışır: denetlenen şey bir dosya
+  // değil, denetleyicinin KENDİ tablosunun geçerliliği. 2.7'de ölçüldü ki
+  // yanlış yazılmış bir anahtar gate tarafında tamamen sessiz kalıyor.
+  //
+  // Barrel okunamıyorsa kural ATLANIR — "doğrulanamıyor" ile "ihlal var" iki
+  // ayrı şey. (Kanaryanın temiz depo testi bu sayede yanlış pozitif almıyor.)
+  const barrelExports = sharedBarrelExports(root);
+  if (barrelExports !== null) {
+    for (const name of Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS)) {
+      if (!barrelExports.has(name)) {
+        violations.push({
+          file: 'tools/arch-check/index.mjs',
+          line: 1,
+          rule: 'forbidden-export-exists',
+          message:
+            `ENGINE_FORBIDDEN_SHARED_EXPORTS '${name}' adını yasaklıyor ama ` +
+            `'@fms/shared' barrel'ı böyle bir ad dışa aktarmıyor. Yasak SESSİZCE ` +
+            `hiçbir şey yapmıyor: yanlış yazılmış bir anahtar (örn. 'measured') ` +
+            `kuralı körelttir ve gate yine "temiz" der (Faz 2.7 mutasyon ölçümü). ` +
+            `Adı düzelt ya da yasağı kaldır.`,
+        });
+      }
+    }
+  }
 
   for (const top of roots) {
     for (const abs of walk(join(root, top))) {

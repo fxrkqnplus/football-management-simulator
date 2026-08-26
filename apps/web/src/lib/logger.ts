@@ -20,6 +20,14 @@ import {
   redactContext,
 } from '@fms/shared';
 
+import { publishLogEntry } from './log-buffer.js';
+
+/**
+ * Derleme zamanında Vite tarafından yerine konur (`vite.config.ts` `define`).
+ * `NODE_ENV` KOKLANMIYOR — 2.6/2.7'deki aynı desen.
+ */
+declare const __FMS_DEV__: boolean;
+
 /**
  * `Logger` arayüzünün tarayıcı uygulaması.
  *
@@ -80,7 +88,19 @@ export function createBrowserLogger(options: BrowserLoggerOptions): Logger {
     const write = (first: LogContext | string, second?: string): void => {
       if (LEVEL_WEIGHT[level] < threshold) return;
       const { context, message } = normalizeLogArgs(first, second);
-      WRITERS[level](message, redactContext({ ...bindings, ...context }));
+      const redacted = redactContext({ ...bindings, ...context });
+      WRITERS[level](message, redacted);
+
+      // ⚠️ HATA AYIKLAMA PANELİ YAYINI — YALNIZCA GELİŞTİRME (2.8).
+      // `__FMS_DEV__` derleme zamanı sabiti; üretimde dal ölüyor,
+      // `publishLogEntry` kullanılmaz hale geliyor ve ağaç sarsma
+      // `log-buffer.js`'i paketten tamamen siliyor (paket ölçümüyle doğrulanır).
+      //
+      // Yayınlanan bağlam **redakte edilmiş** olan: panel bu satırları ekrana
+      // basıyor ve ham bağlam yayınlansaydı redaksiyon (2.2b) delinirdi.
+      if (__FMS_DEV__) {
+        publishLogEntry({ at: Date.now(), level, message, context: redacted });
+      }
     };
     return write;
   };

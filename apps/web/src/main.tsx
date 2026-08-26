@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 
 import { App } from './App.js';
+import { DebugPanel } from './components/dev/DebugPanel.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { currentCorrelationId } from './lib/correlation-context.js';
 import { createBrowserLogger } from './lib/logger.js';
@@ -86,5 +87,20 @@ createRoot(container).render(
         <App />
       </BrowserRouter>
     </ErrorBoundary>
+
+    {/* ⚠️ HATA AYIKLAMA PANELİ — KÖK SINIRIN İÇİNDE DEĞİL, KARDEŞİ (2.8).
+        İçeride olsaydı panelin çökmesi kök sınırı tetikler ve bir hata ayıklama
+        aracı bütün uygulamayı yedek arayüze düşürürdü — aracın amacının tam
+        tersi. Kendi sınırı var; panel çökse bile uygulama ayakta kalıyor.
+
+        `__FMS_DEV__` derleme zamanı sabiti: üretimde dal ölüyor, `DebugPanel`
+        importu kullanılmaz hale geliyor ve ağaç sarsma paneli paketten
+        tamamen siliyor. Kanıtı grep DEĞİL, panelin içindeki dize nöbetçisi
+        (`__FMS_DEV_PANEL__`) — Karar 3, günlük #53. */}
+    {__FMS_DEV__ ? (
+      <ErrorBoundary name="hata-ayiklama-paneli" title="Hata ayıklama paneli çöktü">
+        <DebugPanel />
+      </ErrorBoundary>
+    ) : null}
   </StrictMode>,
 );

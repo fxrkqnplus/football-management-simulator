@@ -737,14 +737,61 @@ docs/ADR/0001-monorepo-secimi.md
       tamamı `assert.ts` + `main.tsx` kablolamasından geliyor.
       Sızıntı taraması temiz: `pino` · `async_hooks` · `zod` · `JWT_SECRET` ·
       `DATABASE_URL` · `thread-stream` → **0**.
-- [ ] **2.8** Geliştirici Hata Ayıklama Paneli (`Ctrl+Shift+D`), 4 sekme.
-      **Karar 3:** üretimden dışlama **grep ile kanıtlanamaz** — küçültme tanımlayıcıları değiştirir,
-      `grep "DebugPanel"` kod pakette dururken bile 0 döner. Panelin içine küçültmeden sağ çıkan bir
-      **dize nöbetçisi** (`__FMS_DEV_PANEL__`) konur ve o aranır. Kontrol derlemesi: koruma kaldırılınca
-      nöbetçi GÖRÜNMELİ, geri konunca KAYBOLMALI.
+- [x] **2.8** Geliştirici Hata Ayıklama Paneli (`Ctrl+Shift+D`), 4 sekme.
+      **Sonuç:** panel kuruldu, **3. kabul kriteri kapandı** — Faz 2'nin beş kriterinin beşi de tamam.
+      Test 486 → **520** (35 → 37 dosya), kapsam satır %94,40 → **%94,92**, ifade %94,96,
+      dal %90,37, fonksiyon %95,68 → **%96,17**. Paket 321.483 → **321.495** (+12; dökümü aşağıda).
+      **Karar 3 — UYGULANDI VE İKİ YÖNLÜ ÖLÇÜLDÜ.** Nöbetçi `__FMS_DEV_PANEL__`
+      (`DebugPanel.tsx` → `DEV_PANEL_SENTINEL`), `grep -F` ile aranıyor.
+      | Koruma | Paket | Nöbetçi | `DebugPanel` (kaynak haritası) | `log-buffer` |
+      |---|---|---|---|---|
+      | `__FMS_DEV__` (üretim) | **321.495** | **0** | **YOK** | **YOK** |
+      | kaldırıldı (`true`) | **325.509** | **1** | **VAR** | **VAR** |
+      Panelin gerçek ağırlığı **4.014 bayt** ve üretimde tamamı düşüyor.
+      **⚠️ DAHA GÜÇLÜ BİR ÖLÇÜM ARACI BULUNDU: kaynak haritasının `sources` listesi.**
+      Dize nöbetçisi "bu dizge yok" der; `sources` **"bu modül pakette yok"** der. `log-buffer.ts`
+      hiç dize literali taşımadığı için nöbetçiyle kanıtlanamazdı — harita ikisini birden
+      doğrudan gösterdi. (`sourcemap: true` 2.5b Karar 7'den beri açık; yan faydası bugün çıktı.)
+      **⚠️ ÜRETİM PAKETİ 0 DEĞİL +12 BAYT ARTTI — ve sebebi ölçüldü, varsayılmadı:**
+      | Yapılandırma | Paket | Fark |
+      |---|---|---|
+      | 2.7 tabanı | 321.483 | — |
+      | `logger.ts` değişikliği var, panel dalı yok | 321.487 | **+4** |
+      | `logger.ts` değişikliği yok, panel dalı var | 321.491 | **+8** |
+      | ikisi de var (2.8) | 321.495 | **+12** |
+      +4 = `logger.ts`'de yerel `redacted` değişkeni · +8 = `main.tsx`'teki koşullu dalın
+      **`null` kalıntısı** (JSX çocukları tek eleman yerine diziye dönüyor). **Hiçbiri panelin
+      kendisi değil** — koşullu bir dalın kaçınılmaz bedeli, dışlamanın başarısızlığı değil.
+      **③ Canlı log akışı — `console` YAMALANMADI.** Halka tampon (`lib/log-buffer.ts`, 50 satır)
+      `createBrowserLogger`'ın içinden besleniyor. Gerekçe: yama bizim olmayan her satırı da
+      yakalar (Sentry SDK'sı, React uyarıları, eklentiler); K8 `console`u tek dosyaya hapsetmiş
+      ve ikinci dokunuş o sınırı delerdi; logger zaten tek huni.
+      ⚠️ Tampona **redakte edilmiş** bağlam yazılıyor — panel logu ekrana basıyor ve ham bağlam
+      yazılsaydı sır konsolda `[REDACTED]` görünürken panelde okunurdu.
+      **④ Performans Sayaçları sekmesi BOŞ** — `measure`in ürün çağrı yeri yok (2.7'de ölçüldü).
+      Üreticisi olmayan bir tampon yazmak BORÇ-004'ün aynı hatası olurdu; sekme "Faz 6'da
+      (`perf:budget`) dolacak" diyor.
+      **⑤ `Ctrl+Shift+D` ÇAKIŞMADI** — gerçek tarayıcıda, gerçek OS düzeyi tuş basımıyla panel
+      açıldı. Ölçüm sırasında bulunan tuzak: dinleyici `event.code`'a **bakmamalı** (sentetik
+      olayda boş geliyor) ve `key` Shift'le `'d'`/`'D'` olabiliyor; ikisi de kabul ediliyor.
+      **⑥ Panel KÖK SINIRIN DIŞINDA, kendi sınırında** — mutasyonla ölçüldü: panel bilerek
+      patlatıldığında panel sınırı yakaladı (`error-boundary-hata-ayiklama-paneli`), **kök sınır
+      tetiklenmedi**, uygulama tablosunun 10 satırı ayakta kaldı.
+      **Gerçek tarayıcı kanıtı:** panel `Ctrl+Shift+D` ile açıldı · sayaç `2` · kip `throw` ·
+      satırlar `api.ts`'ten gerçek `correlationId` (`01a03b9e-9195-…`) ile geldi
+      (`api.request` info, `api.requestFailed` error) · en yeni en üstte · dört sekme de yerinde.
       **Dürüstlük notu:** "Kayıt Durumu" ve "RNG Tohum Görüntüleyici" sekmelerinin verisi henüz yok
       (kayıtlar Faz 12, `SeededRng` Faz 22). Kabukları kurulur, "Faz 12'de dolacak" yazılır —
-      **sahte veri gösterilmez.**
+      **sahte veri gösterilmez.** ✅ Üçü de kabuk olarak kuruldu ve metinleri **hangi fazda**
+      dolacağını söylüyor ("yakında" demek, sonraki oturumun bunu eksik iş sanmasına yol açardı).
+      **`arch:check`'e SEKİZİNCİ KURAL — `forbidden-export-exists` (2.7'nin açık bıraktığı sessizlik).**
+      2.7 mutasyon (b)'sinde tablo anahtarı `measure` → `measured` yanlış yazılınca iki meta-test
+      kırılmış ama **`pnpm arch:check` "✓ temiz" demişti** — yasak gate tarafında sessizce
+      kalkıyordu. Yeni kural `@fms/shared` barrel'ını TS ayrıştırıcısıyla okuyup
+      `ENGINE_FORBIDDEN_SHARED_EXPORTS`'un her anahtarının gerçekten dışa aktarıldığını
+      denetliyor. **Aynı mutasyon şimdi `pnpm arch:check`'i kırıyor (exit 1).**
+      Barrel okunamıyorsa kural **atlanıyor** — "doğrulanamıyor" ile "ihlal var" ayrı şeyler;
+      kanaryanın temiz depo testi bu sayede yanlış pozitif almıyor. Kural sayısı **7 → 8**.
 - [ ] **2.9** Faz kapanışı — 5 kabul kriteri kanıtla · bundle yeniden ölçümü
       (`grep pino|async_hooks apps/web/dist/assets/*.js` → 0, ARTI kontrol deneyi: `App.tsx`'e kasıtlı
       `@fms/shared/server` importu konur ve typecheck **ile** arch:check'in İKİSİNİN BİRDEN kırıldığı
@@ -767,7 +814,8 @@ apps/api/src/common/middleware/correlation.middleware.ts [2.3]
 apps/web/src/lib/sentry.ts                               [2.5]
 apps/web/src/lib/api.ts                                  [2.3] X-Correlation-Id gönderimi
 apps/web/src/components/ErrorBoundary.tsx                [2.6]
-apps/web/src/components/dev/DebugPanel.tsx               [2.8]
+apps/web/src/components/dev/DebugPanel.tsx               [2.8] dev-only, nöbetçili
+apps/web/src/lib/log-buffer.ts                           [2.8] halka tampon (50) — üretimde YOK
 tools/arch-check/index.mjs                               [2.2, 2.7] alt yol kuralı + motor yasaklı ad tablosu (1 → 3 girdi)
 eslint.config.js                                         [2.2] process.stdout/stderr yasağı
 vitest.config.ts                                         [2.0] coverage.include .tsx
@@ -812,7 +860,27 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
       `warn` + yeni kimlik · 404 → satır çıkıyor (`warn`) · 500 → satır çıkıyor (`error`).
       **Eşzamanlılık:** 2.3a'daki paralel istek testi yeşil.
       2.3b'de üç halka vardı, dördüncüsü (sunucu log satırı) **yoktu** → G-08, 2.3c'de kapandı.
-- [ ] Debug paneli açılıyor ve canlı log akışı gösteriyor — *doğrulama: `Ctrl+Shift+D` + üretim paketinde YOKLUĞUNUN kanıtı (dize nöbetçisi, Karar 3)*
+- [x] Debug paneli açılıyor ve canlı log akışı gösteriyor — *doğrulama: `Ctrl+Shift+D` + üretim paketinde YOKLUĞUNUN kanıtı (dize nöbetçisi, Karar 3)*
+      **✅ 2.8'DE KAPANDI — İKİ YARISI DA GERÇEK ÖLÇÜMLE.**
+      **(a) Açılıyor ve akıyor:** geliştirme derlemesi `vite preview` ile koşuldu, gerçek
+      tarayıcıda **gerçek OS düzeyi `Ctrl+Shift+D`** basıldı → `panelAcik: true`, sayaç `2`,
+      değişmez kipi `throw`. Satırlar sahte değil, `apps/web/src/lib/api.ts`'ten gerçek
+      zincirle geldi:
+      `info API isteği gönderiliyor {correlationId: 01a03b9e-9195-7170-…, code: api.request}`
+      `error API isteği başarısız döndü {… code: api.requestFailed, status: 502}`
+      En yeni en üstte; dört sekme de yerinde; üç boş sekme hangi fazda dolacağını yazıyor.
+      **(b) Üretimde YOK — iki yönlü:**
+      | Koruma | Paket | Nöbetçi `__FMS_DEV_PANEL__` | `DebugPanel` (harita) | `log-buffer` (harita) |
+      |---|---|---|---|---|
+      | `__FMS_DEV__` | 321.495 | **0** | **YOK** | **YOK** |
+      | kaldırıldı | 325.509 | **1** | **VAR** | **VAR** |
+      Tek yönlü "0 çıktı, demek ki yok" kanıt sayılmadı (günlük #53).
+      **⚠️ ÖLÇÜM SIRASINDA BULUNAN TUZAK:** ilk denemelerde `Ctrl+Shift+D` sayfaya **hiç
+      ulaşmadı** ve panel açılmadı. Sebep uygulamada değildi — **Browser pane görüntülenmiyordu**,
+      dolayısıyla sentetik OS tuş girdisi hiç iletilmiyordu (ekran görüntüsü de aynı sebeple
+      zaman aşımına uğruyordu). Pane yeniden açılınca ilk denemede çalıştı. Bu, günlük #53'ün
+      (ölçüm aracının kendisi yanlış cevap üretir) dördüncü örneği ve en tehlikelisi: burada
+      araç "başarısız" diyordu, yani **yanlış negatif**.
 - [x] `assertInvariant` dev'de fırlatıyor, prod build'de loglayıp devam ediyor — *doğrulama: İKİ AYRI DERLEME alınır ve ikisi de çalıştırılır; `NODE_ENV` koklanmaz*
       **✅ 2.7'DE KAPANDI — İKİ DERLEME ALINDI, İKİSİ DE GERÇEK TARAYICIDA KOŞULDU.**
       Sahte API (`:3001`) gelen `X-Correlation-Id`'yi bilerek farklı bir değerle geri

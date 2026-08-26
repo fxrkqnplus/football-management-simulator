@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -20,8 +21,17 @@ import {
   runArchCheck,
   SCANNED_EXTENSIONS,
   scanSource,
+  sharedBarrelExports,
   subpathRestrictionFor,
 } from './index.mjs';
+
+/**
+ * Deponun kökü — `tools/arch-check/` iki seviye altında.
+ *
+ * Sabit yol yazılmıyor: dosyanın kendi konumundan türetiliyor, böylece test
+ * hangi çalışma dizininden koşulursa koşulsun aynı kökü buluyor.
+ */
+const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 describe('resolveLayer', () => {
   it('dosya yolundan katmanı bulur', () => {
@@ -342,6 +352,17 @@ describe('META: arch:check kural tabloları boşalmadı', () => {
     expect(names).toContain('configureAssertions');
   });
 
+  it('yasak listesindeki adların hepsi GERÇEK barrel dışa aktarımı (2.8)', () => {
+    // ⚠️ Bu test `pnpm arch:check`in ⑧ numaralı kuralının BİRİM yüzü; kuralın
+    // KABLOLANDIĞINI kanarya kanıtlıyor. İkisi birlikte, 2.7'de ölçülen açığı
+    // kapatıyor: yanlış yazılmış bir anahtar gate tarafında sessiz kalıyordu.
+    const barrel = sharedBarrelExports(REPO_ROOT);
+    expect(barrel).not.toBeNull();
+    for (const name of Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS)) {
+      expect(barrel.has(name)).toBe(true);
+    }
+  });
+
   it('sunucu alt yolu ÜÇ katmana birden kapalı — biri düşerse sınır delinir', () => {
     const rule = RESTRICTED_SUBPATHS['@fms/shared/server'];
     expect(rule).toBeDefined();
@@ -429,13 +450,23 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
     write('packages/ui/package.json', JSON.stringify({ dependencies: {} }));
     write('packages/ui/src/Widget.ts', 'export const w = 1;\n');
     write('packages/ui/src/consumer.ts', "import { w } from './widget.js';\nexport const f = w;\n");
+
+    // Kural 8 — yasak listesindeki ad barrel'da YOK (Faz 2.8'de EKLENDİ).
+    //
+    // NEDEN: 2.7'de ölçüldü ki tablo anahtarı yanlış yazılınca (`measure` →
+    // `measured`) iki meta-test kırılıyor ama `pnpm arch:check` "temiz" diyor.
+    // Yani yasak gate tarafında sessizce kalkıyordu. Bu fixture'ın barrel'ı
+    // yasaklı adların HİÇBİRİNİ dışa aktarmıyor, dolayısıyla kural ötmeli.
+    write('packages/shared/package.json', JSON.stringify({ dependencies: {} }));
+    write('packages/shared/src/index.ts', "export { bambaska } from './bambaska.js';\n");
+    write('packages/shared/src/bambaska.ts', 'export const bambaska = 1;\n');
   });
 
   afterAll(() => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('YEDİ kuralın hepsi ihlal bildiriyor', () => {
+  it('SEKİZ kuralın hepsi ihlal bildiriyor', () => {
     const rules = runArchCheck(root).map((v) => v.rule);
     // Bu liste `index.mjs` başlığındaki kural listesiyle BİREBİR aynı olmalı.
     // Oraya yeni bir kural eklenip buraya eklenmezse kanarya onu görmez ve
@@ -448,6 +479,7 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
       'restricted-subpath',
       'undeclared-dependency',
       'engine-forbidden-import',
+      'forbidden-export-exists',
     ]) {
       expect(rules).toContain(rule);
     }
@@ -471,9 +503,39 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
       mkdirSync(join(clean, 'packages/shared/src'), { recursive: true });
       writeFileSync(join(clean, 'packages/shared/package.json'), JSON.stringify({}), 'utf8');
       writeFileSync(join(clean, 'packages/shared/src/ok.ts'), 'export const a = 1;\n', 'utf8');
+      // ⚠️ Burada `index.ts` BİLEREK YOK. `forbidden-export-exists` barrel'ı
+      // okuyamadığında ATLIYOR — "doğrulanamıyor" ile "ihlal var" iki ayrı şey.
+      // Kural atlamasaydı bu test yanlış pozitifle kırılırdı.
       expect(runArchCheck(clean)).toEqual([]);
     } finally {
       rmSync(clean, { recursive: true, force: true });
+    }
+  });
+
+  it('⑧ barrel adları DOĞRU olduğunda susuyor — kural yanlış pozitif vermiyor', () => {
+    // Kontrol deneyi: yukarıdaki kanarya kuralın ÖTTÜĞÜNÜ gösteriyor, bu test
+    // SUSTUĞUNU. Tek yönlü kanıt yeterli değil (günlük #53).
+    const ok = mkdtempSync(join(tmpdir(), 'fms-arch-barrel-'));
+    try {
+      mkdirSync(join(ok, 'packages/shared/src'), { recursive: true });
+      writeFileSync(join(ok, 'packages/shared/package.json'), JSON.stringify({}), 'utf8');
+      const names = Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS).join(', ');
+      writeFileSync(
+        join(ok, 'packages/shared/src/index.ts'),
+        `export { ${names} } from './x.js';\n`,
+        'utf8',
+      );
+      writeFileSync(
+        join(ok, 'packages/shared/src/x.ts'),
+        Object.keys(ENGINE_FORBIDDEN_SHARED_EXPORTS)
+          .map((n) => `export const ${n} = 1;`)
+          .join('\n') + '\n',
+        'utf8',
+      );
+      const rules = runArchCheck(ok).map((v) => v.rule);
+      expect(rules).not.toContain('forbidden-export-exists');
+    } finally {
+      rmSync(ok, { recursive: true, force: true });
     }
   });
 });

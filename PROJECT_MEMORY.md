@@ -21,25 +21,55 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.7 bitti, SIRADA 2.8** |
-| **Son tamamlanan** | ✅ **2.7** `debugTrace` + `assertInvariant` + `measure` — kriter **4 ve 5 kapandı** |
+| **Aktif faz / alt görev** | **Faz 2 — alt görev 2.8 bitti, SIRADA 2.9 (FAZ KAPANIŞI)** |
+| **Son tamamlanan** | ✅ **2.8** Hata Ayıklama Paneli — kriter **3 kapandı**; `arch:check`'e 8. kural |
 | **Tarih** | 2026-08-26 |
-| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 13/15 alt görev (2.0, 2.0b, 2.1, 2.2a, 2.2b, 2.3a, 2.3b, 2.3c, 2.4, 2.5a, 2.5b, 2.6, 2.7) |
+| **Genel ilerleme** | **1 / 50 faz (%2)** · Faz 2: 14/15 alt görev (2.0 … 2.7, 2.8) |
 | **Bloke eden var mı?** | Hayır |
-| **Son commit** | `feat(shared,web): debugTrace · assertInvariant · measure — iki derlemeyle kanıtlanan dev/prod ayrımı` |
+| **Son commit** | `feat(web,tools): hata ayıklama paneli ve arch:check'in sekizinci kuralı` |
 | **Dallar** | `main` → `develop` → **`feature/faz-02-observability`** · PR #1 ✅ merge edildi (2026-08-24) · Faz 2 PR'ı **henüz açılmadı** (2.9'da açılacak) |
-| **CI** | ✅ 2.6 koşusu `70f9225` → **`32896939894` başarılı**. Devir teslim commit'i `1e3bcd3` → `32898177106` başarılı. 2.7 koşusu push edildi, **sonucu bir sonraki oturum işleyecek**. |
+| **CI** | ✅ 2.7 koşusu `4d473aa` → **`32916345418` başarılı**. 2.8 koşusu push edildi, **sonucu 2.9 oturumu işleyecek**. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil (soğuk turbo önbelleğiyle, `rm -rf .turbo/cache` sonrası) |
-| **test** | ✅ **486 test / 35 dosya** (2.7'de 438/31'den +48 test, +4 dosya) |
-| **kapsam** | ✅ satır **%94,40** · ifade %94,43 · dal %89,65 · fonksiyon **%95,68** — eşik %70 |
-| **Web paketi** | **321.483 bayt** (ham) — 2.7'de 320.641'den **+842 (%0,26)** |
+| **test** | ✅ **520 test / 37 dosya** (2.8'de 486/35'ten +34 test, +2 dosya) |
+| **kapsam** | ✅ satır **%94,92** · ifade %94,96 · dal %90,37 · fonksiyon **%96,17** — eşik %70 |
+| **Web paketi** | **321.495 bayt** (ham) — 2.8'de 321.483'ten **+12**. Panelin kendisi **0 bayt** (kaynak haritasıyla kanıtlı); +12'nin dökümü aşağıda. |
 | **API imajı** | **423 MB** (`docker images` ölçüsü, 2.5a). ⚠️ `docker image inspect .Size` FARKLI bir şey ölçüyor (86 MB), karıştırma. |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · jsdom 30.0.1 · pino 10.3.1 · @sentry/node + @sentry/react **10.70.0** |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
-| **SAPMA sayısı** | **18** (SAPMA-001…018 · 016/017/018 2.7'de açıldı) |
-| **Faz 2 kabul kriterleri** | **1 ✅** (2.5b) · **2 ✅** (2.3c) · **3 ⬜** (2.8) · **4 ✅** (2.7) · **5 ✅** (2.7) — **5'te 4'ü kapandı** |
-| **Sentry kotası** | **3 / 5.000 olay** bu ay kullanıldı — **2.7'de HİÇ olay gönderilmedi** (denemede DSN geçici boşaltıldı, sonra geri yüklendi) |
+| **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003 (Faz 5, 2.8'de kapsamı genişledi), BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
+| **SAPMA sayısı** | **18** (SAPMA-001…018) — **2.8'de yeni sapma açılmadı** |
+| **Faz 2 kabul kriterleri** | **1 ✅** (2.5b) · **2 ✅** (2.3c) · **3 ✅** (2.8) · **4 ✅** (2.7) · **5 ✅** (2.7) — **BEŞİN BEŞİ DE KAPANDI** |
+| **Sentry kotası** | **3 / 5.000 olay** bu ay kullanıldı — 2.7 ve 2.8'de **hiç olay gönderilmedi** (denemelerde DSN geçici boşaltıldı, sonra geri yüklendi) |
+
+---
+
+### 🔑 2.8 OTURUMUNDA ÖĞRENİLEN AMA HİÇBİR DOSYADA YAZILI OLMAYAN ŞEYLER
+
+**① BROWSER PANE GÖRÜNTÜLENMİYORSA TUŞ GİRDİSİ SAYFAYA HİÇ ULAŞMAZ.**
+`computer{action:"key"}` "pressed ctrl+shift+d x1" diye **başarı bildiriyor**
+ama sayfadaki dinleyici hiçbir şey almıyor. `document.hasFocus()` de `true`
+dönüyor — iki yanıltıcı sinyal üst üste. Tek dürüst belirti `screenshot`ın
+*"the Browser pane is not displayed"* ile zaman aşımına uğraması. Çözüm
+`preview_start` ile pane'i yeniden açmak; ilk denemede çalışıyor.
+⚠️ Bu **yanlış negatif** üretti: "Ctrl+Shift+D çakışıyor" diye yanlış bir
+sapma açmaya bir adım kalmıştı (günlük #58).
+
+**② `computer{action:"key"}` MODİFİYE SÖZDİZİMİ.** `{text:'d',
+modifiers:'ctrl+shift'}` çalışmıyor — olay `ctrl:false, shift:false` geliyor.
+Doğrusu tek dizge: `{text:'ctrl+shift+d'}`. Ayrıca sentetik olayda
+`event.code` **boş** geliyor, yani klavye dinleyicileri `code`a değil `key`e
+bakmalı (panelin dinleyicisi buna göre yazıldı).
+
+**③ `javascript_tool` TOP-LEVEL `await` KABUL ETMİYOR.** Asenkron bir sonda
+gerekiyorsa IIFE'ye sarılır: `(async () => { … })()`.
+
+**④ VITE `build.minify` `mode`'DAN BAĞIMSIZ** (2.7'de ölçülmüştü, 2.8'de
+tekrar işe yaradı): `vite build --mode development` de küçültüyor. Bu yüzden
+iki derleme yalnızca gömülü sabitte ayrışıyor ve bayt farkı yorumlanabiliyor.
+
+**⑤ PANEL METİNLERİNDE TÜRKÇE KESME İŞARETİ (`’`) KULLANILDI**, düz `'`
+değil — JSX içinde düz kesme işareti `react/no-unescaped-entities` sınıfı
+sorun çıkarabiliyor ve metin zaten tipografik olarak doğrusu bu.
 
 ---
 
@@ -191,44 +221,47 @@ yukarı yürüyor. Genişletmeden önce bu düşünülmeli.
 
 ---
 
-### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.8
+### 🎯 SIRADAKİ OTURUMDA İLK YAPILACAK — 2.9 (FAZ KAPANIŞI)
 
-**İlk iş:** 2.7 CI koşusunun sonucunu kontrol edip bu bloğa işle.
+**İlk iş:** 2.8 CI koşusunun sonucunu kontrol edip bu bloğa işle.
 
-**2.8 kapsamı:** Geliştirici Hata Ayıklama Paneli (`Ctrl+Shift+D`), 4 sekme.
-**Faz 2'nin 3. kabul kriteri burada kapanıyor** — beşin sonuncusu.
+**2.9 kapsamı (ROADMAP'ten):** 5 kabul kriterini kanıtla · paket yeniden ölçümü
++ kontrol deneyi · `CHANGELOG.md` · ROADMAP · **faz kaydı (11 başlık)** · PR.
 
-**1. ⚠️ ÜRETİMDEN DIŞLAMA GREP İLE KANITLANAMAZ (Karar 3, ROADMAP'te yazılı).**
-Küçültme tanımlayıcıları yeniden adlandırıyor: `grep "DebugPanel"` kod
-pakette dururken bile **0** döner. 2.3b'de ölçüldü, 2.7'de yeniden ısırdı
-(günlük #53). Panelin içine küçültmeden sağ çıkan bir **dize nöbetçisi**
-(`__FMS_DEV_PANEL__`) konur ve o aranır.
-**Kontrol derlemesi zorunlu:** koruma kaldırılınca nöbetçi GÖRÜNMELİ, geri
-konunca KAYBOLMALI. Tek yönlü ölçüm ("0 çıktı, demek ki yok") kanıt değil —
-günlük #53 tam olarak bu hatanın kaydı.
+⚠️ **BEŞ KRİTERİN BEŞİ DE ZATEN KAPALI.** 2.9'un işi yenisini kapatmak değil,
+**kanıtları tek yerde toplamak ve faz kaydını yazmak**. Kanıt satırları
+`docs/ROADMAP.md`'deki kabul kriteri maddelerinde ayrıntısıyla duruyor —
+kopyalanmadan önce **yeniden ölçülmeli** (`spec/11` §12.5: §7 rakamları faz
+kapanışında YENİDEN ölçülür, ara ölçümlerden kopyalanmaz).
 
-**2. Panel 2.7'nin üç modülünü tüketecek. Hazır arayüz:**
-- `isDebugTrace(value)` — tip koruyucusu, keyfi kaynaktan gelen izi tanır
-- `traceToLogContext(trace)` — izi DÜZ log bağlamına çevirir (`input.*`, `step.*`)
-- `DEBUG_TRACE_LOG_CODE` (`'debug.trace'`), `DEBUG_TRACE_INPUT_PREFIX`,
-  `DEBUG_TRACE_STEP_PREFIX` — kararlı ön ekler, panel bunlara göre ayrıştırabilir
-- `assertionMode()` — etkin kip; panel "değişmezler fırlatıyor mu" diye gösterebilir
-- `Measurement<T>` — `{ name, durationMs, budgetMs, exceeded, value }`
-⚠️ `trace.output` **loglanmıyor** ve bu bilinçli (SAPMA-016). Panel onu
-bellekten okur; log satırında yoktur.
+**1. ROADMAP'in 2.9 maddesi bir kontrol deneyi istiyor — atlanmasın:**
+`App.tsx`'e kasıtlı `@fms/shared/server` importu konur ve **typecheck İLE
+arch:check'in İKİSİNİN BİRDEN** kırıldığı gösterilir. 2.2a'da ölçülmüştü ki
+`typecheck` tek başına GEÇİYOR (SAPMA-012) — yani bu deney "ikisi birden"
+derken aslında hangi kapının ötüğünü yeniden ölçmeli. **Eski sonucu
+kopyalamayın; bugün ölçün.**
 
-**3. Dürüstlük notu (ROADMAP'te yazılı):** "Kayıt Durumu" ve "RNG Tohum
-Görüntüleyici" sekmelerinin verisi **henüz yok** (kayıtlar Faz 12, `SeededRng`
-Faz 22). Kabukları kurulur, "Faz 12'de dolacak" yazılır — **sahte veri
-gösterilmez.**
+**2. Faz kaydı 11 başlık ve §5 tablosu ÇALIŞMA GÜNLÜĞÜNDEN gelir.**
+Günlük şu an **59 satır** (#1…#59). Kapanışta bu satırlar faz kaydının §5
+tablosuna işlenir, tablo **boşaltılır ama başlık kalır** (`spec/11` §12.2).
+Bu, Faz 2'nin en değerli çıktısı — hata *sınıflarının* kaydı.
 
-**4. `__FMS_DEV__` deseni hazır ve 2.7'de iki derlemeyle sınandı.**
-`vite.config.ts` `define`'ında, `vitest.config.ts` web projesinde `'true'`.
-Yeni bir derleme zamanı sabiti eklenirse **iki yere birden** yazılır
-(günlük #42, #47). Panelin görünürlüğü bu sabitten sürülmeli.
+**3. Ölçülecek rakamlar (hepsi kapanışta YENİDEN):**
+- test sayısı / dosya sayısı · kapsam dört metrik
+- paket ham bayt + sızıntı taraması + kaynak haritası `sources` kontrolü
+- commit sayısı ve diffstat: `git rev-list --count` + `git diff --shortstat`
+  ⚠️ Faz 1'de tam burada çelişki çıkmıştı (bkz. "Bilinen kayıt düzeltmeleri")
+- API imajı ölçülecekse **`docker images`** ölçüsü kullanılır, `inspect .Size` DEĞİL
 
-**5. Paket tabanı: 321.483 ham bayt.** Panel ürün koduna girecek ilk büyük
-dev-only yüzey; artış ölçülür ve **üretim derlemesinde 0'a yakın** olmalı.
+**4. `docs/DEPENDENCY-WATCH.md`** — Faz 2 satırlarının sonucu yazılmalı
+(`pino`, `@sentry/*`, `pnpm` zaten kapandı; `pino-pretty` Faz 49'a işaretli).
+
+**5. PR açıklaması:** faz numarası · kapsam özeti · kabul kriteri kontrol
+listesi · arayüz fazı olduğu için ekran görüntüsü (panel + hata sınırı).
+
+**6. ANLIK DURUM'u yazan commit fazın SON commit'i olmalı** (`spec/11` §12.1).
+PR numarası yazma anında bilinmiyorsa alan `PR açılacak` bırakılır — yanlış
+değil, yalnızca eksik olur.
 
 **Kapılar (bu sırayla):**
 `rm -rf .turbo/cache` → `pnpm build` → `typecheck` → `lint` → `test:coverage`
@@ -240,31 +273,57 @@ belirti açılış logundaki `"sentry": false`.
 `vite preview` **repo kökünden çalıştırılamaz** — `envDir` göreli (Faz 1 #8).
 İki derlemeyi karşılaştıracaksan aralarında `rm -rf apps/web/dist` (SAPMA-011).
 
-⚠️ **`.env`'de GERÇEK SENTRY DSN VAR** — kota durumu yukarıda (3/5.000).
-2.7'de tarayıcı denemesi için DSN geçici boşaltıldı ve **geri yüklendi**;
-aynı yol tekrar kullanılabilir (yedek: scratchpad `.env.backup`).
+⚠️ **TARAYICI ÖLÇÜMÜ YAPACAKSAN — 2.8'in tuzağı:**
+Browser pane **görüntülenmiyorsa** sentetik OS tuş girdisi sayfaya HİÇ
+ulaşmaz ve `screenshot` zaman aşımına uğrar. `document.hasFocus()` yine
+`true` döner, yani yanıltıcıdır. Belirti: `screenshot failed: the Browser
+pane is not displayed`. Çözüm: `preview_start` ile pane'i yeniden aç.
+2.8'de bu **yanlış negatif** üretti — "kısayol çakışıyor" diye yanlış bir
+sapma açmaya bir adım kalmıştı (günlük #58).
 
-**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **54 satır**.
+⚠️ **`.env`'de GERÇEK SENTRY DSN VAR** — kota 3/5.000. 2.7 ve 2.8'de deneme
+için DSN geçici boşaltıldı ve **geri yüklendi** (yedek: scratchpad
+`.env.backup`). Aynı yol tekrar kullanılabilir.
 
-**📦 PAKET TABANI: 321.483 ham bayt (2.7).** 2.7 artışı **+842 (%0,26)** ve
-tamamı `assert.ts` + `main.tsx` kablolamasından: `perf.ts` ve `debug-trace.ts`
-paketе **hiç girmedi** (`perf.asyncNotSupported` · `debugTrace.summaryRequired`
-· `debug.trace` → **0**), çünkü `apps/web` onları henüz kullanmıyor —
-günlük #19'un aynı dersi.
-Geçmiş: 229.320 (2.2a) → 232.413 (2.3b, `api.ts` + tarayıcı logger'ı) →
-**319.091** (2.5b, `@sentry/react` **+86.678 / %37,3**) → 320.641 (2.6) →
-**321.483** (2.7).
-Sızıntı taraması her seferinde temiz: `pino` · `async_hooks` · `zod` ·
-`JWT_SECRET` · `DATABASE_URL` · `thread-stream` → **0**.
+**Hataları anında** 🧪 FAZ 2 ÇALIŞMA GÜNLÜĞÜ'ne yaz — şu an **59 satır**.
 
-**⚠️ PAKET ÖLÇÜMÜNÜN ÜÇ KURALI (ihlali ölçümle bulundu):**
+**📦 PAKET TABANI: 321.495 ham bayt (2.8).** 2.8 artışı **+12** ve dökümü
+ölçülerek ayrıştırıldı (üç kontrol derlemesi):
+`logger.ts`'de yerel `redacted` değişkeni **+4** · `main.tsx`'teki koşullu
+dalın **`null` kalıntısı +8** (JSX çocukları tek eleman yerine diziye dönüyor).
+**Panelin kendisi 0 bayt** — koruma kaldırılınca paket 325.509'a çıkıyor,
+yani gerçek ağırlığı **4.014 bayt** ve tamamı düşüyor.
+Geçmiş: 229.320 (2.2a) → 232.413 (2.3b) → **319.091** (2.5b, `@sentry/react`
+**+86.678 / %37,3**) → 320.641 (2.6) → 321.483 (2.7) → **321.495** (2.8).
+
+**🔬 2.8'DE BULUNAN DAHA GÜÇLÜ ÖLÇÜM ARACI — KAYNAK HARİTASI `sources`.**
+Dize nöbetçisi *"bu dizge yok"* der; kaynak haritasının `sources` listesi
+**"bu MODÜL pakette yok"** der. `log-buffer.ts` hiç dize literali taşımadığı
+için nöbetçiyle kanıtlanamıyordu; harita `log-buffer` **YOK**, `DebugPanel`
+**YOK**, `logger.ts` **VAR** diye doğrudan söyledi.
+```
+node -e "const m=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
+console.log(m.sources.filter(s=>s.includes('ARANAN')))" apps/web/dist/assets/*.js.map
+```
+`sourcemap: true` 2.5b Karar 7'den beri açık. **Faz 6+ her dev-only kod bunu
+kullanmalı.**
+
+**⚠️ PAKET ÖLÇÜMÜNÜN DÖRT KURALI (dördü de ihlalle öğrenildi):**
 ① **Soğuk derleme** — `rm -rf .turbo/cache`, yoksa `>>> FULL TURBO` önbellekten
-döner ve hatta silinmiş kirli paketi diriltir (SAPMA-011, günlük #17).
+döner ve silinmiş kirli paketi diriltir (SAPMA-011, günlük #17).
 ② **Ham bayt** — gzip rakamları farklı kaynaklardan gelirse karşılaştırılamaz
-(günlük #26). ③ **Nöbetçi İKİ YÖNLÜ doğrulanır** — "0 eşleşme" ya "yok" ya da
-"desen zaten hiç eşleşmiyor" demektir; pozitif tarafta ötüğü gösterilmeyen bir
-nöbetçi kanıt değildir (günlük #53). Ve kontrol deneyi sızdırdığı şeyi
+(günlük #26).
+③ **Nöbetçi İKİ YÖNLÜ doğrulanır** — "0 eşleşme" ya "yok" ya da "desen zaten
+hiç eşleşmiyor" demektir (günlük #53). Kontrol deneyi sızdırdığı şeyi
 **gerçekten çağırmalı** (günlük #16).
+④ **Açıklanamayan bayt farkı kabul edilmez, AYRIŞTIRILIR** (günlük #56).
+"Dev-only kod 0 bayt" kaba bir yaklaşımdır; koşullu dalın kendisi bedava
+değildir. Doğru iddia "modül pakette yok"tur, "paket bayt bayt aynı" değil.
+
+**⚠️ BELGEYE SAYI YAZMA KURALI (günlük #59, 2.8'de üçüncü kez ihlal edildi):**
+Bir belgeye sayı yazılacaksa o satır **ölçüm çıktısından kopyalanır**. Belge
+ölçümden önce yazılıyorsa alan **`ÖLÇÜLECEK`** bırakılır. Makul görünen bir
+tahmin, yanlış olduğunu belli etmez.
 
 **Faz 1'de kilitlenen kararlar (değiştirmeden önce oku):**
 - TypeScript `~6.0.3`, `^` **yasak** → `docs/ADR/0003`
@@ -313,7 +372,18 @@ nöbetçi kanıt değildir (günlük #53). Ve kontrol deneyi sızdırdığı şe
 > HER GİRDİSİNİ kapsamalı.** Kural düzeyinde eşitlik sağlanmış görünürken girdi
 > düzeyinde delik kalabilir (günlük #54).
 
-**Kural sayısı: 7** (kaynak: `runArchCheck` içinde basılan `rule:` belirteçleri)
+> ⚠️ **2.8'DE SEKİZİNCİ KURAL EKLENDİ: `forbidden-export-exists`.**
+> 2.7'nin mutasyon (b) ölçümü bir **gate sessizliği** bırakmıştı: tablo anahtarı
+> `measure` → `measured` yanlış yazılınca iki meta-test kırılıyor ama
+> `pnpm arch:check` **"✓ temiz"** diyordu. Yeni kural `@fms/shared` barrel'ını
+> TS ayrıştırıcısıyla okuyup `ENGINE_FORBIDDEN_SHARED_EXPORTS`'un her
+> anahtarının **gerçekten dışa aktarıldığını** denetliyor.
+> **Aynı mutasyon artık gate'i kırıyor (exit 1).**
+> Barrel okunamıyorsa kural **atlanıyor** — "doğrulanamıyor" ile "ihlal var"
+> ayrı şeyler; kanaryanın temiz depo testi bu sayede yanlış pozitif almıyor.
+> Kanaryada hem **öttüğü** hem **sustuğu** ayrı testlerle sabitlendi.
+
+**Kural sayısı: 8** (kaynak: `runArchCheck` içinde basılan `rule:` belirteçleri)
 
 | # | `rule` | Ne denetler | Geldiği faz |
 |---|---|---|---|
@@ -324,6 +394,7 @@ nöbetçi kanıt değildir (günlük #53). Ve kontrol deneyi sızdırdığı şe
 | ⑤ | `restricted-subpath` | `@fms/shared/server` yasak katmanda mı | **2.2a** |
 | ⑥ | `undeclared-dependency` | `@fms/X` import ediliyorsa `package.json`'da bildirilmiş mi | **2.2a** |
 | ⑦ | `engine-forbidden-import` | Motorun `@fms/shared`'dan alamayacağı **adlandırılmış** dışa aktarımlar | **2.3a** |
+| ⑧ | `forbidden-export-exists` | ⑦'nin tablosundaki her adın barrel'da **gerçekten** dışa aktarıldığı (yanlış yazım kuralı köreltiyordu) | **2.8** |
 
 **Taranan uzantılar (7):** `.ts .tsx .mts .cts .mjs .cjs .js`
 — `.cts` 2.1'de eksikti ve bir `.cts` dosyası denetimden **tamamen** kaçıyordu.
@@ -451,7 +522,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 |---|---|---|---|---|
 | BORÇ-001 | 1 | `ioredis` 5.11.1'de tutuldu; 6.0.0 alınmadı | 6.0.0 kurulum anında 3 haftalıktı. Faz 16 (tur motoru) projenin en riskli fazı — orada "bu kütüphane regresyonu mu, benim idempotency mantığım mı?" sorusuyla uğraşmanın maliyeti günlerle ölçülür; ertelemenin maliyeti bir minor bump. | **16** — faz açılışında changelog okunup karar verilecek |
 | BORÇ-006 | 2 | **Sentry kaynak haritası CI YÜKLEME adımı yapılmadı** (Karar 7). Faz 2'de yalnızca `release` adlandırması kuruldu (`SENTRY_RELEASE` env alanı, 2.5a) ve tarayıcı tarafında `sourcemap: true` gelecek (2.5b). Yüklenmiş kaynak haritası olmadan Sentry'deki yığın izleri **küçültülmüş** kalır. | Yükleme adımı CI'a Sentry auth token'ı, organizasyon/proje adı ve `sentry-cli` bağımlılığı getiriyor — üçü de ortada bir Sentry projesi **olmadan** yazılamaz ve bugün proje yok (`SENTRY_DSN` boş). Ayrıca yükleme, her derlemede dışarıya varlık gönderen bir CI adımıdır; dağıtım hattı Faz 50'de bütünsel ele alınıyor. Adlandırma bugün kurulduğu için yükleme sonradan **tek bir CI adımı** olarak eklenebilir; geriye dönük iş yok. | **50** — dağıtım hattı kurulurken |
-| BORÇ-003 | 2 | **`ErrorBoundary` yedek arayüzündeki Türkçe metinler koda gömülü** (`apps/web/src/components/ErrorBoundary.tsx`: başlıklar, "Bu bölüm yüklenemedi…", "Tekrar dene", bildirim durumu). K5 arayüzde sabit Türkçe metni yasaklıyor. | i18n Faz 5'te geliyor; **BORÇ-005 ile aynı sınıf** (o sunucu hata gövdesi, bu tarayıcı yedek arayüzü). Sınırın çalışması için metin şart: i18n'i beklemek, Faz 5'e kadar çöken her ekranın **boş** kalması demekti. Metinler `TODO(Faz 5)` yorumlarıyla işaretlendi ve tek bileşende toplandı — Faz 5 işi bir dosyada `t()` çağrılarına çevirmeye iner. `title` zaten **prop**, yani çağrı yerleri hazır. | **5** — i18n kurulurken |
+| BORÇ-003 | 2 | **`ErrorBoundary` yedek arayüzündeki Türkçe metinler koda gömülü** (`apps/web/src/components/ErrorBoundary.tsx`: başlıklar, "Bu bölüm yüklenemedi…", "Tekrar dene", bildirim durumu). K5 arayüzde sabit Türkçe metni yasaklıyor. **⚠️ 2.8'DE KAPSAM GENİŞLEDİ:** `apps/web/src/components/dev/DebugPanel.tsx` de aynı sınıf metin taşıyor (sekme adları, üç boş sekmenin açıklaması, "Temizle", "Kapat"). **Ama önceliği DAHA DÜŞÜK ve bu bilinçli:** panel **dev-only** — üretim paketinde hiç yok (kaynak haritasıyla kanıtlandı), yani hiçbir kullanıcı o metinleri görmüyor. Faz 5'te `ErrorBoundary` çevrilirken panel **atlanabilir**; K5'in koruduğu şey kullanıcıya görünen yüzey. | i18n Faz 5'te geliyor; **BORÇ-005 ile aynı sınıf** (o sunucu hata gövdesi, bu tarayıcı yedek arayüzü). Sınırın çalışması için metin şart: i18n'i beklemek, Faz 5'e kadar çöken her ekranın **boş** kalması demekti. Metinler `TODO(Faz 5)` yorumlarıyla işaretlendi ve tek bileşende toplandı — Faz 5 işi bir dosyada `t()` çağrılarına çevirmeye iner. `title` zaten **prop**, yani çağrı yerleri hazır. | **5** — i18n kurulurken |
 | BORÇ-005 | 2 | **Hata gövdesindeki Türkçe metinler koda gömülü** (`MESSAGE_BY_KIND`, `apps/api/src/common/filters/global-exception.filter.ts`). K5 arayüzde sabit Türkçe metni yasaklıyor. | i18n Faz 5'te geliyor; 2.6'nın BORÇ-003'üyle **aynı sınıf** borç. Metin `AppError.message`'tan alınamıyor çünkü o alan bilinçli olarak **geliştirici mesajı** (`errors.ts`: *"loga ve Sentry'ye gider, çevrilmez, kullanıcıya gösterilmesi hedeflenmez"*) — doğrudan gövdeye konsaydı iç ayrıntı sızardı. Tablo bir **yedek**: sözleşmenin aslı `code` + `context` ve ikisi de gövdede dönüyor, yani Faz 5 işi `t('errors:' + code, context)` yazmaya iner, fırlatma yerlerini gezmeye değil. Metinler bilerek **genel** tutuldu ki hataya özgü cümle `code` üzerinden gelsin. | **5** — i18n kurulurken tablo silinir, istemci `code`+`context`ten üretir |
 | BORÇ-004 | 2 | **BullMQ'ya özgü `correlationId` kablolaması yapılmadı.** Taşınabilir zarf (`serializeLogContext`/`deserializeLogContext`) 2.3b'de kuruldu ve **gerçek bir süreç sınırında** test edildi (`spawnSync` + argv), ama `job.data.correlationId` alanına yazan/okuyan kuyruk tarafı yok. | `spec/09` §11.1 zincirinde *"Kuyruğa iş atılırsa `job.data.correlationId` taşınır → Worker aynı id ile loglar"* adımı var; ama **kuyruk henüz yok** — BullMQ Faz 16'da (tur motoru) kuruluyor. Bugün yazılacak kablolama, bağlanacağı üretici/tüketici olmadığı için ancak sahte bir kuyrukla test edilebilirdi ve o test **hiçbir şey kanıtlamazdı**: sahte kuyruk aynı süreçte kalır, ALS zaten oradan taşır (2.3b Karar 2). Zarfın kendisi — kırılabilecek asıl parça — bugün gerçek süreç sınırında sınandı; geriye kalan yalnızca BullMQ'nun kendi alanına bağlama işi. | **16** — kuyruk kurulurken üretici ve tüketici tarafına birlikte bağlanacak |
 | BORÇ-002 | 1 | `bullmq` 5.81.3'te tutuldu; 6.2.0 alınmadı | Aynı gerekçe (BORÇ-001). Ek olarak bullmq 6 `ioredis`'i peer'a taşıdı ve `pg`/`redis` peer'ları ekledi — kuyruk yapılandırmasını değiştiren bir mimari değişiklik, Faz 16'da bilinçli ele alınmalı. | **16** — faz açılışında changelog okunup karar verilecek |
@@ -516,6 +587,11 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 59 | 2.8 | **Kendi kuralımı yine ihlal ettim: ROADMAP'e ÖLÇMEDEN rakam yazdım** — "test 486 → 526 (38 dosya), kapsam %94,88" · gerçek ölçüm **520 / 37 dosya / %94,92** | Belgeyi ölçümden ÖNCE yazma alışkanlığı. Rakamlar makul göründüğü için yanlışlıkları kendini belli etmiyordu; commit'ten önce yakalandı ama **yakalanmasaydı kayda geçecekti** | Ölçüm koşuldu, üç rakam da düzeltildi | **Günlük #9 ve #49'un ÜÇÜNCÜ tekrarı — ve kural her seferinde zaten yazılıydı.** Fark şu: bu sefer ihlal *rapor* alanında değil *belge* alanında oldu, yani #49'un dersinin ("bir kuralın yazılı olması YENİ BİR ALANDA hatırlanacağı anlamına gelmiyor") birebir doğrulanması. **Uygulanabilir kural: bir belgeye sayı yazılacaksa o satır ölçüm çıktısından KOPYALANIR; belge ölçümden önce yazılıyorsa alan `ÖLÇÜLECEK` bırakılır.** |
+| 58 | 2.8 | **YANLIŞ NEGATİF — araç "başarısız" dedi, kod doğruydu.** Gerçek tarayıcıda `Ctrl+Shift+D` basıldı, panel **açılmadı**; probe dinleyicisi `olaylar: []` gösterdi, yani olay sayfaya hiç ulaşmıyordu | Uygulamada sorun yoktu: **Browser pane görüntülenmiyordu**. Pane compositing yapmadığı için sentetik OS tuş girdisi hiç iletilmiyor. Aynı sebeple `screenshot` da "the Browser pane is not displayed" diye zaman aşımına uğruyordu — belirti oradaydı ama ilk bakışta bağlantı kurulmadı. `document.hasFocus()` **`true`** dönüyordu ve bu yanlış güven veriyordu | Pane `preview_start` ile yeniden açıldı; **ilk denemede** çalıştı (`panelAcik: true`) | **Günlük #53'ün dördüncü örneği ama TERS YÖNLÜ ve daha tehlikeli.** #26/#17/#53'te araç yanlış POZİTİF ya da "fark yok" üretiyordu; burada yanlış NEGATİF üretti. Yanlış negatif daha sinsi: "kısayol çakışıyor, alternatif önereyim" diye yanlış bir SAPMA açmaya bir adım kalmıştı. **Kural: bir davranış ölçümü başarısız olduğunda önce ARACIN sağlıklı olduğu doğrulanır** — burada `screenshot`ın da başarısız olması aracın kendi teşhisiydi |
+| 57 | 2.8 | **Nöbetçi `log-buffer.ts` için ÇALIŞMAZDI** — modülde hiç dize literali yok | Karar 3'ün dize nöbetçisi deseni bir modülün **dizge** taşımasına bağlı. `DebugPanel.tsx` metin dolu, ama `log-buffer.ts` saf mantık: tek bir literal bile yok, dolayısıyla "pakette var mı" sorusu taramayla cevaplanamıyordu | **Kaynak haritasının `sources` listesi** kullanıldı: paketteki her modülü ADIYLA sayıyor. `log-buffer` → YOK, `DebugPanel` → YOK, `logger.ts` → VAR | **Yeni ve daha güçlü bir ölçüm aracı kayda geçti.** Dize nöbetçisi *"bu dizge yok"* der; `sources` *"bu MODÜL yok"* der. `sourcemap: true` 2.5b Karar 7'den beri açıktı, yan faydası bugün çıktı. 2.9'un paket doğrulaması ve Faz 6+ dev-only kodların hepsi bunu kullanmalı |
+| 56 | 2.8 | **Üretim paketi 0 değil +12 bayt arttı** — "dev-only kod üretimde 0 bayt" beklentisi ilk bakışta tutmadı | İki ayrı kaynak, ikisi de panelden bağımsız: (a) `logger.ts`'de satır içi çağrı yerel `redacted` değişkenine çevrildi → **+4**; (b) `main.tsx`'teki `{__FMS_DEV__ ? … : null}` dalı üretimde `null`a katlanıyor ama JSX çocukları **tek eleman yerine diziye** dönüyor → **+8** | Üç kontrol derlemesiyle ayrıştırıldı (yalnız-logger 321.487, yalnız-panel 321.491, ikisi 321.495); toplam **birebir toplanıyor: 4+8=12** | **Ders: "dev-only kod 0 bayt" kaba bir yaklaşımdır, koşullu dalın kendisi bedava değildir.** Doğru iddia "modül pakette yok" (harita ile kanıtlandı), "paket bayt bayt aynı" değil. Rakam açıklanamıyorsa dışlama şüphelidir; açıklanabiliyorsa değil — bu yüzden ölçüm **ayrıştırıldı**, kabul edilmedi |
+| 55 | 2.8 | `DebugPanel.test.tsx`'te kendi yazdığım test kırıldı: `Unable to find [data-testid="debug-log-list"]` | Testi `getByTestId('debug-log-list') ?? getByTestId('debug-log-empty')` diye yazmıştım; `getByTestId` **bulamayınca fırlatır**, dolayısıyla `??` hiçbir zaman devreye girmiyor. Üstelik senaryoda hiç log yoktu, yani liste zaten render edilmiyordu | Test önce gerçek logger'dan bir satır geçiriyor, sonra listeyi arıyor | **Kod değil testin kendisi kırıktı** — günlük #20 ve #43'ün aynı dersi, üçüncü kez. Ek olarak: `getBy*` ile `queryBy*` karıştırılmaz; `??` yalnızca `queryBy*` ile anlamlı |
 | 54 | 2.7 | **Kanarya kapsamı kural düzeyinde ölçülüyordu, GİRDİ düzeyinde değil** | `ENGINE_FORBIDDEN_SHARED_EXPORTS` bir **tablo**; kural sayısı değişmeden girdi sayısı 1 → 3 oldu. Kanarya yalnızca kuralın ötüp ötmediğine bakıyordu, yani bir anahtar yanlış yazılsa (`measure` → `measured`) kural `createCorrelationId` üzerinden ötmeye devam eder ve yeni yasak **sessizce hiç uygulanmazdı** | Her girdi için ayrı fixture + `yasaklı ÜÇ adın HER BİRİ ayrı ayrı ötüyor` testi. **İki mutasyonla ölçüldü:** (a) `measure` fixture'ı devre dışı → **yalnızca yeni test** kırıldı (1/44), "YEDİ kural" ve tablo bütünlüğü yeşil kaldı; (b) anahtar `measured` diye yanlış yazıldı → 2 test kırıldı ama **`pnpm arch:check` "✓ temiz" dedi** | **Ders: `spec/09` §11.5'in "kural sayısı = kanarya kapsamı" kuralı bir kademe daha derine iniyor.** Bir kural bir TABLOYU okuyorsa, kanarya kuralı değil **tablonun her girdisini** kapsamalı. Kural düzeyinde eşitlik sağlanmış görünürken girdi düzeyinde delik kalabilir |
 | 53 | 2.7 | **Paket nöbetçisi ayırt edici değildi — iddia yanlış kanıta dayanıyordu** | İki derlemeyi ayırmak için `grep -c '"report"'` kullandım ve dev derlemesinde **0** çıktı; "dal katlandı" diye yorumladım. Sonra üretim derlemesinde de **0** çıktı: küçültücü dizeleri **ters tırnakla** yazıyor (`` report:`report` ``), yani desen ikisinde de hiçbir zaman eşleşmiyordu | Ölçüm `grep -o -F -f <desen-dosyası>` ile, **iki pakete de aynı desenle** yeniden alındı: `mode:b.report` → üretim **1**, geliştirme **0**; `code:e.code,correlationId` → **1** / **0**. Bootstrap çağrısı doğrudan okundu: `te({mode:b.report,report:…})` ↔ `te({mode:b.throw})` | **Ders: "0 eşleşme" iki farklı şey demek olabilir — "yok" ya da "desen zaten hiç eşleşmiyor".** Negatif bir nöbetçi, POZİTİF tarafta ötüğü gösterilmeden kanıt sayılmaz. Kabuk kaçışı da suç ortağıydı: `'\`x\`'` ile `'`x`'` farklı desenler ve fark sessiz. Bu yüzden desenler artık dosyadan (`-f`) veriliyor |
 | 52 | 2.7 | `App.test.tsx` **dolaylı olarak** kırıldı: "sunucu FARKLI kimlik döndürürse ekran zincirin koptuğunu söyler" | `api.ts` artık `assertInvariant` çağırıyor ve **varsayılan kip `throw`**. Test `main.tsx`i hiç yüklemiyor, dolayısıyla `configureAssertions` çalışmıyor ve test farkında olmadan **üretim davranışını** iddia ediyordu | Test ikiye bölündü: `ÜRETİM KİPİ` (açıkça `report` kurup "veri geldi + HAYIR" iddia ediyor) ve `GELİŞTİRME KİPİ` (açıkça `throw` kurup "veri düştü + ErrorBoundary devrede DEĞİL" iddia ediyor) | **Ders: davranışı kipe bağlı hale getiren her değişiklik, o davranışı test eden her dosyayı KİP BELİRTMEYE zorlar.** Günlük #47'nin (`define` ile gömülen her sabit yeni bir sözleşmedir) çalışma zamanı ikizi — orada sabit, burada tekil durum |
