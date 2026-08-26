@@ -792,10 +792,49 @@ docs/ADR/0001-monorepo-secimi.md
       denetliyor. **Aynı mutasyon şimdi `pnpm arch:check`'i kırıyor (exit 1).**
       Barrel okunamıyorsa kural **atlanıyor** — "doğrulanamıyor" ile "ihlal var" ayrı şeyler;
       kanaryanın temiz depo testi bu sayede yanlış pozitif almıyor. Kural sayısı **7 → 8**.
-- [ ] **2.9** Faz kapanışı — 5 kabul kriteri kanıtla · bundle yeniden ölçümü
+- [x] **2.9** Faz kapanışı — 5 kabul kriteri kanıtla · bundle yeniden ölçümü
       (`grep pino|async_hooks apps/web/dist/assets/*.js` → 0, ARTI kontrol deneyi: `App.tsx`'e kasıtlı
       `@fms/shared/server` importu konur ve typecheck **ile** arch:check'in İKİSİNİN BİRDEN kırıldığı
       gösterilir) · `CHANGELOG.md` · ROADMAP · faz kaydı (11 başlık) · PR.
+
+      ⚠️ **BU MADDENİN KENDİSİ YANLIŞTI VE ÖLÇÜMLE ÇÜRÜTÜLDÜ — satır bilerek
+      düzeltilmedi, altına yazıldı.** *"typecheck İLE arch:check'in İKİSİNİN BİRDEN
+      kırıldığı"* iddiası SAPMA-012 ile **çelişiyordu**: 2.2a'da ölçülmüştü ki
+      `typecheck` bu sızıntıyı **görmüyor**. SAPMA-012 kaydı ROADMAP'in 2.2a
+      maddesini güncellemiş ama 2.9 maddesine **dokunmamıştı** — sapma kaydının
+      "spec güncellendi mi" sütunu eksik kalmıştı (günlük #60).
+
+      **Kontrol deneyi bugün (2026-08-26) yeniden koşuldu.** `App.tsx`'e
+      `import { loadEnv } from '@fms/shared/server'` kondu ve `loadEnv()`
+      **gerçekten çağrıldı** (günlük #16: kullanılmayan import sıfır bayt eder):
+
+      | Kapı | Beklenen (ROADMAP) | **Ölçülen** |
+      |---|---|---|
+      | `pnpm typecheck` | kırılır | ❌ **GEÇTİ** (exit 0, 9/9) |
+      | `vite build` | — | ✅ **BAŞARILI** |
+      | `pnpm arch:check` | kırılır | ✅ **KIRILDI** — `restricted-subpath`, exit 1 |
+
+      Paket **321.495 → 391.657 bayt (+70.162, %21,8)**. Sızıntı taraması:
+      `JWT_SECRET` **2** · `DATABASE_URL` **6** · `POSTGRES_PASSWORD` **3** ·
+      `zod` **318**. Kaynak haritası `sources`: `server/env` **VAR**, `zod`
+      **18 modül**, toplam modül **160 → 179**.
+      İmport geri alındı; paket bayt bayt **321.495**'e döndü ve `dist/` tek
+      paket taşıyor (SAPMA-011 kanıt bozulması tekrarlanmadı).
+
+      **Sonuç: `arch:check` bu sınırın TEK önleyici hattıdır** — SAPMA-012
+      bugünkü rakamlarla yeniden doğrulandı.
+
+      **Temiz paket sızıntı taraması (üretim derlemesi):** `pino` · `async_hooks` ·
+      `thread-stream` · `zod` · `JWT_SECRET` · `DATABASE_URL` · `POSTGRES_PASSWORD` ·
+      `__FMS_DEV_PANEL__` → **hepsi 0**. Girmesi beklenenler: `REDACTED` 1 ·
+      `x-correlation-id` 1 · `api.request` 3.
+
+      **Üretim konteyneri gerçekten koşuldu (SAPMA-014):** `docker run` →
+      `/fms/api/health` **200** `{"status":"ok",…}` · ön ek dışı `/api/health`
+      **404** · açılış logu `{"port":3001,"apiPrefix":"/fms/api","sentry":false,…}` ·
+      `Config.Cmd` **`node --import ./dist/instrument.js dist/main.js`** (bayrak
+      yerinde; `sentry:false` yalnızca DSN boş olduğu için) · gönderilen
+      `X-Correlation-Id` **aynen geri döndü** ve sunucu logunda **1 eşleşme**.
 
 **Ana dosyalar:**
 ```

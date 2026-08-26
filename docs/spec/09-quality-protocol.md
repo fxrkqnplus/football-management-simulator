@@ -469,6 +469,56 @@ optimizasyonuydu**, yapısal bir sınır değil.
 > paketin yanında kaldı ve tarama hâlâ `JWT_SECRET` buldu — **kanıtın kendisi
 > bozuldu.** Her `build` betiği `scripts/clean-dist.mjs` ile başlar.
 
+### ⚠️ DIŞLAMA KANITININ ÜÇ ARACI — ve hangisi ne zaman geçerli (Faz 2.8)
+
+Bir kodun üretim paketinde **olmadığını** kanıtlamanın üç yolu var ve üçü
+farklı şeyler söylüyor. Karıştırılırsa "kanıt" yanlış olur.
+
+| Araç | Ne söyler | Ne zaman GEÇERSİZ |
+|---|---|---|
+| **Tanımlayıcı araması** (`grep DebugPanel`) | **hiçbir şey** | **Her zaman.** Küçültme tanımlayıcıları yeniden adlandırır; kod pakette dururken bile 0 döner |
+| **Dize nöbetçisi** (`grep -F '__FMS_DEV_PANEL__'`) | o **dizge** pakette yok | Modül hiç dize literali taşımıyorsa. Desen yanlışsa da sessizce 0 döner |
+| **Kaynak haritası `sources` listesi** | o **MODÜL** pakette yok | Yalnızca `sourcemap: true` ise |
+
+**KURAL — dev-only kod dışlamasının kanıtı için nöbetçi ve kaynak haritası
+`sources` listesi BİRLİKTE kullanılır. Nöbetçisi olamayan modüller için
+kaynak haritası tek geçerli yöntemdir.**
+
+**Ölçüm (Faz 2.8).** Hata ayıklama paneli iki modülden oluşuyordu:
+`DebugPanel.tsx` (metin dolu) ve `log-buffer.ts` (**tek bir dize literali
+yok** — saf mantık). İkincisi için nöbetçi deseni **kurulamıyordu**; "0
+eşleşme" sonucu hiçbir şey söylemezdi. Kaynak haritası ikisini birden
+doğrudan gösterdi:
+
+```
+node -e "const m=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
+console.log(m.sources.filter(s => s.includes('ARANAN')))" apps/web/dist/assets/*.js.map
+```
+
+| Koruma | Paket | Nöbetçi | `DebugPanel` | `log-buffer` |
+|---|---|---|---|---|
+| `__FMS_DEV__` (üretim) | 321.495 | 0 | **YOK** | **YOK** |
+| kaldırıldı | 325.509 | 1 | **VAR** | **VAR** |
+
+**Kontrol derlemesi İKİ YÖNLÜ olmalı:** koruma kaldırılınca kanıt
+**görünmeli**, geri konunca **kaybolmalı**. Tek yönlü *"0 çıktı, demek ki
+yok"* kanıt değildir — desen zaten hiç eşleşmiyor olabilir (Faz 2.7'de
+küçültücünün dizeleri **ters tırnakla** yazması yüzünden tam bu oldu).
+
+### ⚠️ "DEV-ONLY KOD ÜRETİMDE 0 BAYT" KABA BİR YAKLAŞIMDIR (Faz 2.8)
+
+Doğru iddia *"modül pakette yok"*tur, *"paket bayt bayt aynı"* değil.
+Koşullu dalın kendisi bedava değil: `{__FMS_DEV__ ? <Panel/> : null}` üretimde
+`null`a katlanır ama JSX çocukları **tek eleman yerine diziye** dönüşür.
+
+Ölçüm (2.8, üç kontrol derlemesi): panelin **kendisi 0 bayt** (kaynak
+haritasıyla kanıtlı), ama paket yine de **+12 bayt** büyüdü — `+8` koşullu
+dalın `null` kalıntısı, `+4` ilgisiz bir yerel değişken. Toplam **birebir
+toplanıyor**.
+
+**KURAL: açıklanamayan bayt farkı kabul edilmez, AYRIŞTIRILIR.** Rakam
+açıklanabiliyorsa dışlama çalışıyordur; açıklanamıyorsa şüphelidir.
+
 ## 11.6 Performans Bütçesi
 
 | Metrik | Bütçe |
