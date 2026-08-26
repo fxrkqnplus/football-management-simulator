@@ -201,10 +201,43 @@ Her **alt görev** sonunda **tamamen** yeniden yazılır. Yeni oturum bunu okuyu
 Spesifikasyondan (`docs/spec/`) veya yol haritasından (`docs/ROADMAP.md`) sapılan her nokta.
 **Asla silinmez.** Sapma tespit edilirse önce burada kayda geçer, sonra spesifikasyon güncellenir.
 
-| ID | Faz | Sapma | Gerekçe | Spec güncellendi mi |
-|---|---|---|---|---|
-| SAPMA-001 | — | Gizli nitelik sayısı 8 → 10 (`adaptability`, `temperament` eklendi) | Faz 34 uyum süreci ve Faz 44 diyalog motoru bunlar olmadan kurulamıyor | ✅ Bölüm 4.1 |
+| ID | Tür | Faz | Sapma | Gerekçe | Spec/ROADMAP güncellendi mi |
+|---|---|---|---|---|---|
+| SAPMA-001 | `karar` | — | Gizli nitelik sayısı 8 → 10 (`adaptability`, `temperament` eklendi) | Faz 34 uyum süreci ve Faz 44 diyalog motoru bunlar olmadan kurulamıyor | ✅ `docs/spec/02` Bölüm 4.1 · ✅ `docs/ROADMAP.md` Faz 4, Faz 10 |
 ```
+
+### ⚠️ BİR SAPMA, ÇÜRÜTTÜĞÜ İDDİANIN GEÇTİĞİ **HER** YERİ GÜNCELLER (Faz 3.0)
+
+**Kural:** Bir SAPMA, `docs/ROADMAP.md`'de veya bir `docs/spec/` dosyasında
+**yazılı bir iddiayı** çürütüyorsa, o metin de **AYNI alt görevde** güncellenir.
+Kütüğe kayıt yeterli **değildir** — sonraki oturum kütüğü değil, **ROADMAP'i
+okuyup iş yapar.**
+
+Bu yüzden sütunun adı `Spec güncellendi mi` değil **`Spec/ROADMAP güncellendi
+mi`**dir. İlk adı ROADMAP'i kütüğün görüş alanının dışında bırakıyordu ve bedeli
+iki kez ödendi:
+
+| Vaka | Ne oldu | Maliyet |
+|---|---|---|
+| **Günlük #60 (Faz 2.9)** | SAPMA-012 ROADMAP'in **2.2a** maddesini güncelledi, aynı iddiayı taşıyan **2.9** maddesine dokunmadı | 2.9 oturumu çürütülmüş bir iddiayla karşılaştı ve gerçeği **yeniden ölçmek** zorunda kaldı |
+| **Faz 3.0 denetimi** | SAPMA-001 (gizli nitelik 8 → 10) `docs/spec/02`'yi güncellemişti; ROADMAP **iki yerde** hâlâ "8 gizli" diyordu — Faz 4 tablo listesi ve Faz 10 türetme listesi (sekiz nitelik **adıyla** sayılmış) | Faz 4 **bir sonraki fazdı**; yanlış tablo genişliği doğrudan şemaya girecekti |
+
+**İşleyiş — sapma kaydı açılırken üç soru:**
+
+1. Bu iddia `docs/spec/` altında **nerede** yazılı? → güncelle
+2. Bu iddia `docs/ROADMAP.md`'de **kaç fazda** geçiyor? → `grep` ile ara,
+   **hepsini** güncelle (bir tanesini bulmak yetmez — #60 tam olarak buydu)
+3. Kodda gerekçe yorumu gerekiyor mu? → yaz
+
+Sonra sütuna **her üçünün** sonucu yazılır. `✅ spec` yazıp ROADMAP'i boş
+bırakmak, kaydı okuyan sonraki oturuma "ROADMAP temiz" der — **yanlış** bilgidir,
+oysa eksik bırakmak yalnızca **eksiktir** (§12.1'deki `PR açılacak` kuralının
+aynı mantığı).
+
+> **Neden `grep` şart:** bir iddia ROADMAP'te tek yerde geçiyor gibi görünür ama
+> 50 fazlık bir belgede aynı sayı/terim başka bir fazın kapsam listesinde de
+> durur. SAPMA-001'de iki yer vardı ve ikincisi (Faz 10) niteliği **adıyla**
+> sayıyordu — sayıyı arayan bir taramanın kaçırabileceği bir biçim.
 
 ## 12.5 Faz Kaydı Şablonu
 

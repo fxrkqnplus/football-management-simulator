@@ -1010,7 +1010,7 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
 **Hedef:** Oyunun canlı varlıklarının şeması + delta kayıt için hazırlık.
 
 **Kapsam:**
-- **Tablolar:** `people` (oyuncu/personel/menajer ortak kimlik), `players`, `player_attributes` (47 görünür), `player_hidden_attributes` (8 gizli), `player_positions` (mevki yetkinlik matrisi), `player_traits`, `player_personalities`, `player_relationships`, `player_career_history`, `player_injuries`, `injury_types`, `contracts`, `contract_clauses`, `staff`, `staff_attributes`, `staff_roles`, `managers`, `manager_attributes`, `manager_career`
+- **Tablolar:** `people` (oyuncu/personel/menajer ortak kimlik), `players`, `player_attributes` (47 görünür), `player_hidden_attributes` (**10 gizli** — SAPMA-001), `player_positions` (mevki yetkinlik matrisi), `player_traits`, `player_personalities`, `player_relationships`, `player_career_history`, `player_injuries`, `injury_types`, `contracts`, `contract_clauses`, `staff`, `staff_attributes`, `staff_roles`, `managers`, `manager_attributes`, `manager_career`
 - CA/PA alanları: `current_ability` (1–200), `potential_ability` (1–200), `pa_range_min/max` (belirsizlik için)
 - `player_attributes` tasarımı: **tek satır, 47 sütun** (JSONB değil — sorgu ve filtre performansı için kritik, transfer arama bunun üzerinde çalışacak)
 - İndeksler: transfer aramasında kullanılacak kompozit indeksler (`position`, `age`, `current_ability`, `value`)
@@ -1222,7 +1222,8 @@ docs/glossary.md
   - Kaleci 11 niteliği ← kurtarış oranı, xGA farkı, penaltı, hava topu çıkışı, ayak kullanımı
   - (Tam 47 nitelik eşleme tablosu `docs/attribute-derivation.md`'de)
 - **CA bütçe dağıtımı:** türetilen nitelikler mevki ağırlıklarıyla CA'ya normalize edilir — toplam CA tutarlılığı korunur
-- **8 gizli nitelik:** Tutarlılık, Önemli Maç, Sakatlığa Yatkınlık, Kirli Oyun, Baskı Altında, Profesyonellik, Hırs, Sadakat — kariyer geçmişi + disiplin + kulüp değiştirme sıklığı + sakatlık geçmişinden türetilir
+- **10 gizli nitelik:** Tutarlılık, Önemli Maç, Sakatlığa Yatkınlık, Kirli Oyun, Baskı Altında, Profesyonellik, Hırs, Sadakat, **Uyum Yeteneği (`adaptability`)**, **Mizaç (`temperament`)** — kariyer geçmişi + disiplin + kulüp değiştirme sıklığı + sakatlık geçmişinden türetilir.
+  ⚠️ **SAPMA-001:** bu liste Faz 3.0'a kadar **sekiz** nitelik sayıyordu. `adaptability` ve `temperament` spec yazımı sırasında eklenmişti (`docs/spec/02-attributes.md` Bölüm 4.1: *"10 gizli nitelik"*) ama ROADMAP güncellenmemişti. Türetme kaynakları `spec/02` §4.3'te: `adaptability` ← yabancı lig sayısı + oralarda ilk sezon performansı · `temperament` ← kırmızı kart + disiplin olayları (ters).
 - **Kişilik türetimi:** gizli niteliklerden 25+ kişilik etiketi (kural tabanlı eşleme matrisi)
 - **Mevki yetkinlik matrisi:** oynanan dakikalardan Doğal/Yetkin/Kabul Edilebilir/Zayıf/Yabancı
 - **Özel yetenekler (traits/PPM):** ~30 özellik, istatistik desenlerinden ("uzaktan şut dener" ← ceza sahası dışı şut oranı)
