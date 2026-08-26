@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-26 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. Plan revizyonu **onaylandı**: 3.2 → **3.2a** (koşucu) / **3.2b** (round-trip kanıtı), liste 11 → **12** alt görev |
-| **Son commit** | `fix(ci): entegrasyon işine derleme adımı — testler dist üzerinden çözüyor` |
+| **Son commit** | `docs(memory): 3.2a CI sonucunu işle — entegrasyon işi arm64'te de yeşil` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ 3.1 koşusu `32972852318` dört iş de yeşil. ⚠️ **3.2a ilk koşusu `33001368015` KIRILDI** — yeni `Entegrasyon` işi iki mimaride birden: testler `@fms/*`'ı derlenmiş `dist/` üzerinden çözüyor ve işte `pnpm build` adımı yoktu (`quality` onu `typecheck`in `^build` yan etkisinden alıyor). Kök neden yerelde tekrar üretildi, düzeltme aynı sırayla doğrulandı. **Düzeltme koşusunun sonucu 3.2b'de işlenecek.** |
+| **CI** | ✅ **3.2a düzeltme koşusu `33001816073` — ALTI İŞ DE YEŞİL**, yeni *Entegrasyon — gerçek Postgres* işi **arm64 dahil**. Bu, bu makinede (Windows/amd64) native kanıtlanamayan K14 doğrulaması: `testcontainers` gerçek bir ARM64 runner'da PG18 konteyneri açıp 8 testi geçti. ⚠️ İlk koşu `33001368015` **kutu kutuya kırılmıştı** (işte `pnpm build` yoktu, günlük #15) — kayıt korunuyor: yeni bir CI işi mevcut işlerin örtük adımlarını miras almaz. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
 | **test** | ✅ **567 test / 41 dosya** (`pnpm test`) — 3.2a **+47 test / +4 dosya**. Ayrıca ✅ **`pnpm test:db` 8 test / 1 dosya**, gerçek PG18 konteyneriyle (varsayılan `pnpm test`'e GİRMEZ) |
