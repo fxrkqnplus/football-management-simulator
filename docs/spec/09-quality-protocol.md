@@ -285,6 +285,47 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > Hatırlanmasaydı iki sessiz bozulma birden olurdu ve ikisi de "kapı temiz"
 > derken sürerdi.
 >
+> #### Faz 3.3 kapanışında TAM denetim — iki bulgu daha
+>
+> İlk düzeltme yalnızca `packages/db`ye bakmıştı. Kapanışta envanterin **on
+> satırı da** `.test-d.ts` karşısında tek tek ölçüldü ve iki şey daha çıktı:
+>
+> **① `tsconfig.build.json` satırı SEKİZ dosyayı temsil ediyor, biri değil.**
+> `.test-d.ts` dışlaması yalnızca `packages/db`ye eklenmişti; **canlı olarak
+> kullanılan diğer altı dosyada yoktu.** Bugün zararsızdı (öyle bir dosya başka
+> pakette yok) ama yarın sessizdi. Altısına da eklendi.
+>
+> **② `apps/web/tsconfig.build.json` HİÇBİR YERDE KULLANILMIYOR.** Ölçüldü:
+> `apps/web`in `build` betiği `vite build` çağırıyor, `tsc -p tsconfig.build.json`
+> değil. Yani o dosyanın eksik dışlama listesi bir hata değil — **ölü
+> yapılandırma**. Ve bu daha sinsi: envanteri denetleyen biri onu "düzeltir",
+> hiçbir şey kazanmaz ve o dosyaya güvenmeye başlar. Dosyanın akıbeti
+> (silinecek mi, ölü olduğu yazılacak mı) ayrı bir kararla verilmeli.
+>
+> #### ÖNERİ — envanterin kendisi makineyle denetlenebilir (yazılmadı)
+>
+> Bu tur envanter **hatırlandı** ve yine de dört yerin ikisi bozuktu; kapanış
+> denetiminde iki bulgu daha çıktı. Yani "listeye bak" disiplini yetmiyor.
+>
+> Önerilen mekanizma: **tek bir sonek kayıt defteri** (`.test.ts`, `.test-d.ts`,
+> `.itest.ts` ve her birinin beklenen davranışı: *lint edilir mi · tip denetlenir
+> mi · `dist`e girer mi · kapsam paydasına girer mi · Vitest koşar mı*), ve o
+> defteri okuyup **her yeri gerçekten sınayan** bir meta-test. Sınama sentetik
+> olmalı: geçici bir dizine her sonekten birer dosya yazılır, ilgili araç
+> çalıştırılır, sonuç beklenen davranışla karşılaştırılır — `arch:check`
+> kanaryasının yaptığı şeyin aynısı, farklı bir alanda.
+>
+> Böylece envanter bir **belge** olmaktan çıkıp bir **kapı** olur ve
+> *"kapsamı yazılı olmayan bir kapı sessizce daralabilir"* uyarısı envanterin
+> kendisi için de geçerli olmaktan çıkar.
+>
+> **Bu fazda YAZILMADI (K12):** Faz 3'ün kapsamı veritabanı şeması, araç
+> altyapısı değil. Önerinin doğal yeri, üçüncü bir sonek eklendiği veya bu
+> sınıftan üçüncü bir hata görüldüğü gündür — *"iki tesadüf desendir"*
+> ölçütü (`docs/SPEC-COVERAGE-GAPS.md` başlığı) bu sınıf için henüz
+> dolmadı: `.cts` (2.1), `{ts,tsx}` (2.0b) ve `.test-d.ts` (3.3) üç ayrı
+> tetikleyici ama üçü de **aynı** tabloyla yakalandı.
+>
 > **Ölçülmüş ders (2.1):** 7. satırdaki listede `.cts` eksikti ve sonuç sessizdi —
 > ihlal içeren bir `.cts` dosyası konulduğunda `arch:check` **"temiz"** dedi
 > (negatif testle kanıtlandı: eski listeyle `✓ temiz`, yeni listeyle

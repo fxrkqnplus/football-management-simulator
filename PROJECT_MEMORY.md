@@ -21,27 +21,112 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **FAZ 3 — Veritabanı Şeması I: Dünya Çekirdeği · 3.3 BİTTİ** (12 alt görevden 5'i) |
+| **Aktif faz / alt görev** | **FAZ 3 · SIRADAKİ: 3.4 — Coğrafya ve kurumlar** (12 alt görevden 5'i bitti) |
 | **Son tamamlanan** | ✅ **3.3 — K4 Master World salt-okunurluğu.** Tip seviyesi zorlama + kontrol deneyi + `arch:check` ⑨. Sözleşme `spec/01` §3.4.1'de |
-| **Tarih** | 2026-08-26 |
+| **Tarih** | 2026-08-27 (oturum devri) |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
-| **Bloke eden var mı?** | Hayır. Plan revizyonu **onaylandı**: 3.2 → **3.2a** (koşucu) / **3.2b** (round-trip kanıtı), liste 11 → **12** alt görev |
-| **Son commit** | `docs(memory): 3.3 CI sonucunu işle — amd64 yarışı kapandı` |
+| **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** var ama bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama kapanmış SAYILMIYOR, aşağıdaki kalıcı bloğa bak. |
+| **Son commit** | `docs(memory): 3.3 kapanışı ve 3.4 devir teslimi` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
 | **CI** | ✅ **3.3 düzeltme koşusu `33028319414` — ALTI İŞ DE YEŞİL.** ⚠️ İlk koşu `33027936236` **yalnızca amd64'te** kırılmıştı (arm64 geçti): 598 testin hepsi geçerken Vitest "2 unhandled errors" bildirdi — `main.tsx` React kökünü tutmuyordu, jsdom yıkıldıktan sonra zamanlayıcı işi `window` yokken çalışıyordu (günlük #22). **Yerelde beş koşuda hiç tekrar üretilemedi**; ölçüm aracı burada CI oldu. ⚠️ Dürüstlük notu: tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz, ama mekanizma gerekçesi sağlam (sökme sonrası bekleyen iş kalmıyor) ve hata ilk amd64 koşusunda çıkmıştı. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **oturum devrinde SOĞUK yeniden ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 · lint 0 · format 0 · build 8/8 · **arch 9 kural**, 295 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
-| **test** | ✅ **598 test / 43 dosya** (`pnpm test`) — 3.3 **+8 test**. Ayrıca ✅ **`pnpm test:db` 23 test / 3 dosya** (3.3 **+7**), gerçek PG18 konteyneriyle |
-| **kapsam** | ✅ satır **%89,10** · ifade %89,01 · dal %87,82 · fonksiyon **%82,81** — eşik %70, eşik DÜŞÜRÜLMEDİ. ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor. ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ** — I/O sınırı dosyaları (`file-source.ts`, `postgres-executor.ts`, `introspect.ts`, `world-db.ts`) raporda %0 ama entegrasyon testiyle gerçek Postgres'e karşı koşuyorlar. ⚠️ **`.test-d.ts` kapsam paydasından ÇIKARILDI (3.3):** tip-seviyesi kontrol deneyleri ürün kodu değil; paydaya girdiklerinde eşiği **yanlış yönde** bozuyorlardı (%89,75 → %87,20 gösteriyordu, SAPMA-007'nin tersi) |
+| **test** | ✅ **598 test / 43 dosya** (`pnpm test`, 0 hata) · ✅ **`pnpm test:db` 23 test / 3 dosya** gerçek PG18 konteyneriyle. ⚠️ `test:db` varsayılan `pnpm test`'e **girmez** — ayrı komut, `spec/09` §11.5 faz kapanış listesinde ve CI'da ayrı iş |
+| **kapsam** | ✅ satır **%89,11** · ifade %89,02 · dal %87,82 · fonksiyon **%82,81** — eşik %70, eşik DÜŞÜRÜLMEDİ. ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor (Faz 22'de anlam kazanır). ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ** — I/O sınırı dosyaları (`file-source.ts`, `postgres-executor.ts`, `introspect.ts`, `world-db.ts`) raporda **%0** ama dördü de entegrasyon testiyle gerçek Postgres'e karşı koşuyor. ⚠️ **`.test-d.ts` paydadan ÇIKARILDI (3.3):** ürün kodu değil; paydaya girdiklerinde eşiği **yanlış yönde** bozuyorlardı (%89,75 → %87,20, SAPMA-007'nin tersi) |
 | **Veritabanı** | **PostgreSQL 18.6** (16.15'ten yükseltildi, SAPMA-019) · `builtin`/`C.UTF-8` locale (SAPMA-020) · bağlama noktası `pgdata:/var/lib/postgresql` (18'de **değişti**) · `pg_trgm` 1.6 mevcut · `docker compose up -d` → **healthy**, işlevsel olarak doğrulandı |
-| **Web paketi** | **321.495 bayt** (ham) — 3.0'da değişmedi (tarayıcı kodu eklenmedi) |
-| **API imajı** | **423 MB** — Faz 2 kapanış ölçümü, 3.0'da yeniden ölçülmedi (`apps/api` değişmedi) |
+| **Web paketi** | **321.495 bayt** (ham) — 3.3'te `main.tsx` değişti ama paket **bayt bayt aynı** kaldı (aynı hash `index-BNdQN1Bb.js`): `export const root` hiçbir yerden import edilmiyor, ağaç sarsma siliyor |
+| **API imajı** | **423 MB** — Faz 2 kapanış ölçümü. **3.0–3.3'te yeniden ÖLÇÜLMEDİ.** `apps/api/src` hiç değişmedi; tek dokunuş `tsconfig.build.json`ın dışlama satırı (3.3 devri) ve o emit çıktısını değiştirmiyor. Faz kapanışında yeniden ölçülecek (`spec/11` §12.5). |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · **drizzle-orm 0.45.2 + drizzle-kit 0.31.10** (tam sürüm, `^` yok) · **testcontainers + @testcontainers/postgresql 12.1.0** · jsdom 30.0.1 · pino 10.3.1 · @sentry/* 10.70.0 |
 | **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | **7** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · **BORÇ-007 (Faz 12, master salt-okunurluk ikinci hattı)** · BORÇ-006 (Faz 50) |
-| **SAPMA sayısı** | **25** (SAPMA-001…025) — 3.0'da iki, 3.1'de üç, **3.2a'da iki**: 024 (`format:check` Markdown'a bakmıyor) · 025 (sürücü `postgres.js`) |
+| **SAPMA sayısı** | **25** (SAPMA-001…025) — 3.0'da iki (019 Postgres 18, 020 collation), 3.1'de üç (021 tablo envanteri, 022 slug, 023 veri paketi sütunları), 3.2a'da iki (024 `format:check` Markdown'a bakmıyor, 025 sürücü `postgres.js`). **3.2b ve 3.3 yeni sapma açmadı.** |
 | **Faz 3 kabul kriterleri** | **1 ✅ (3.2b)** · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **1/5**. Kriter 1: çevrim sonrası **89 olgu, fark yok**; çok adımlı zincirde **48 olgu, fark yok** |
-| **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, panodan yeniden ölçülmedi. 3.0'da hiç olay gönderilmedi. |
+| **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, **panodan yeniden ölçülmedi**. 3.0–3.3'te hiç olay gönderilmedi (Faz 3 tarayıcı kodu yazmadı). |
+
+---
+
+### ⚠️ AÇIK RİSK — `main.test.tsx` jsdom yıkım yarışı (3.3'te düzeltildi, KAPANMADI)
+
+> **Bu blok silinmez. Bir sonraki oturum aynı hatayı "yeni bir sorun" sanmasın.**
+
+**Belirti:** `pnpm test` **598 testin hepsini geçirir** ama Vitest
+`Errors 2 errors` bildirir ve koşu **exit 1** olur:
+
+```
+ReferenceError: window is not defined
+  react-dom-client.development.js
+  Immediate.performWorkUntilDeadline (scheduler)
+  processImmediate
+This error originated in "apps/web/src/main.test.tsx"
+```
+
+**Kök neden:** `main.tsx` modül düzeyinde `createRoot().render()` çağırıyor.
+Test dosyası bittikten sonra Vitest jsdom ortamını yıkıyor; React'in
+zamanlayıcısında bekleyen iş `window` yokken çalışıyor.
+
+**Düzeltme:** commit **`1c93890`** — `main.tsx` kökü **dışa aktarıyor**
+(`export const root`), `main.test.tsx` `afterEach`te söküyor. Üretim paketi
+**bayt bayt aynı** kaldı (321.495).
+
+**⚠️ NEDEN KAPANMADI SAYILIYOR:**
+
+- Yarış **makine hızına bağlı**. CI'da **amd64 kırıldı, arm64 geçti** (`33027936236`).
+- **Yerelde beş koşuda hiç tekrar üretilemedi** — yani yerel yeşil bir kanıt değil.
+- Düzeltme **yerelde kanıtlanamadı**; ölçüm aracı CI oldu (`33028319414` yeşil).
+- **Tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz.**
+
+**Yeniden ortaya çıkarsa ne yapılacak:**
+
+1. **Panik yok, bu yeni bir sorun değil** — önce bu bloğu ve `1c93890`'ı oku.
+2. Belirtiyi doğrula: testler geçiyor ama `Errors` satırı var mı? Öyleyse
+   aynı sınıf.
+3. `main.test.tsx`teki `mountedRoots` sökme kancasının hâlâ **her** import
+   yolunu kapsadığını denetle — yeni bir `it()` `importMain()` yerine düz
+   `import('./main.js')` çağırdıysa o kök sökülmez ve yarış geri gelir.
+4. Yeni bir React kökü kuran **başka** bir test eklendiyse (Faz 6 tasarım
+   sistemi bunu yapacak) aynı kancayı ona da bağla.
+5. Kanca yeterliyse ve yarış sürüyorsa, sıradaki adım Vitest'in
+   `environmentOptions`/teardown sırasını incelemek — **"yeniden koş" bir
+   çözüm değildir.**
+
+**Neden yeniden ortaya çıkabilir:** Faz 6 (tasarım sistemi) yüzlerce bileşen
+testi getiriyor ve her biri bir React ağacı monte edecek. RTL kendi
+`cleanup()`ünü çalıştırıyor ama **RTL'in kurmadığı** kökler (bizimki gibi)
+onun kapsamında değil.
+
+---
+
+### 🔍 BU OTURUMDA ÖĞRENİLEN AMA HİÇBİR DOSYADA YAZILI OLMAYAN — 3.3 kapanışı
+
+> Faz 2 kapanışında bu soru altı madde çıkarmıştı. 3.3 kapanışında **üç** çıktı;
+> üçü de burada yazılı hâle getirildi, yani artık "yazılı olmayan" değiller.
+> Dürüstlük notu: dördüncü bir madde aranıp **bulunamadı**.
+
+**① Bash aracının tırnaklı heredoc'u ters bölü kaçışlarını İŞLİYOR.**
+`<<'PY'` kullanılmasına rağmen `\n` Python'a **gerçek satır sonu** olarak ulaştı
+ve üretilen JS/MD dosyalarına gerçek satır sonu yazıldı — üç kez `SyntaxError`,
+bir kez de backtick'ler **komut ikamesi** sanılıp metin sessizce boşaldı.
+**Aynı alt görevde DÖRT kez ısırdı.** ORTAM TUZAKLARI ⑤ ("çok katmanlı kaçış
+yerine doğrudan düzenleme") bunu zaten söylüyordu ama *somut belirtisi* yazılı
+değildi. → Günlük #19'a ve aşağıdaki tuzak bloğuna işlendi.
+**Kural:** kaçış veya backtick içeren metin heredoc'tan **geçirilmez**;
+`Edit` aracıyla doğrudan yazılır ya da `String.fromCharCode(10)` gibi kaçışsız
+üretilir.
+
+**② `apps/web/tsconfig.build.json` ÖLÜ YAPILANDIRMA.**
+`apps/web`in `build` betiği `vite build` çağırıyor, `tsc -p tsconfig.build.json`
+değil — dosya hiçbir yerde kullanılmıyor. Eksik dışlama listesi bir hata değil,
+**anlamsız**. Bu, envanter denetleyen birinin onu "düzeltip" hiçbir şey
+kazanmamasına yol açacak bir tuzak. → `spec/09` §11.4'e yazıldı.
+**Açık karar:** dosya silinecek mi, yoksa ölü olduğu dosyanın içine mi
+yazılacak? Bu turda **verilmedi** — kapsam dışı, ama unutulmasın.
+
+**③ Kontrol deneyinin KAPSAMI, korumanın kapsamı DEĞİLDİR.**
+`masterTable` sarması kaldırılınca kontrol deneyi öttü ve bu bir an "koruma
+çalışıyor" gibi göründü. Gerçekte ötme sebebi, o dosyanın `countries`i **adıyla
+anması**ydı. Yeni bir tablo için hiçbir şey ötmezdi. → `arch:check` ⑨'un varlık
+sebebi bu; `spec/01` §3.4.1'e ve arch:check kapsam bloğuna yazıldı.
+**Genel biçim:** *"öttü mü?"* değil, **"hangi durumlar için öter?"**
 
 ---
 
@@ -87,6 +172,49 @@ denetliyor — unutulursa gate kırılır.
 **⚠️ `competitions.rules` bir `jsonb`** ve `CompetitionRules` iç içe
 (`squadRegistration`, `continentalSpots`, `transferWindows[]`). Zod şeması
 `spec/01` §3.1'deki tanımdan türetilir; tip `z.infer` ile alınır (CLAUDE.md §1.3).
+
+#### Üretilecek dosyalar (somut)
+
+```
+packages/db/src/schema/countries.ts       [DEĞİŞTİ]  eksik sütunlar eklenir
+packages/db/src/schema/federations.ts     [YENİ]     masterTable(...) ile
+packages/db/src/schema/competitions.ts    [YENİ]     masterTable(...) ile
+packages/db/src/schema/competition-rules.ts [YENİ]   CompetitionRules Zod şeması + z.infer tipi
+packages/db/src/schema/index.ts           [DEĞİŞTİ]  barrel
+packages/db/drizzle/0001_<ad>.sql         [ÜRETİLİR] drizzle-kit generate
+packages/db/drizzle/down/0001_<ad>.sql    [ELLE]     ⚠️ unutulursa koşucu durur
+packages/db/drizzle/meta/0001_snapshot.json [ÜRETİLİR]
+packages/db/integration/round-trip.itest.ts [DEĞİŞTİ] yeni tablolar için it() bloğu
+```
+
+**`CompetitionRules` Zod şeması nereye:** `src/schema/competition-rules.ts` —
+tablo tanımının **yanında**, `packages/shared`da değil. Gerekçe: şema yalnızca
+bu sütunu doğruluyor ve `@fms/shared`ın kök barrel'ına `zod` çekmek 2.1'de
+ölçülüp 2.2a'da düzeltilen sızıntının aynısı olurdu (SAPMA-015'in gerekçesi).
+Tip `export type CompetitionRules = z.infer<typeof competitionRulesSchema>`.
+
+#### `countries`in bugünkü hâli (3.2a'da bilerek minimal)
+
+Var olan: `id` · `key` (UNIQUE) · `code` (varchar 3, UNIQUE) · `name_key` ·
+`created_at` · `updated_at`.
+`spec/01` §3.1'e göre **eksik olanlar**: `confederation` · `flag_asset_id` ·
+`football_level` · `uefa_coefficient` · `currency_code` · `work_permit_rule_key`
+— artı §3.1.0'ın `source` (CHECK'li) ve `external_ids` sütunları.
+Dosyanın kendi başlığı bu listeyi zaten taşıyor.
+
+#### Round-trip testi nasıl genişleyecek
+
+`round-trip.itest.ts`teki desen hazır: `up` → **veri yaz** → `down` → `up` →
+`compareSchemas`. Yeni tablolar için yapılacak tek şey, mevcut `it()` bloğundaki
+`INSERT`e yeni tabloların satırlarını eklemek **ve** `comparedFacts` alt sınırını
+yükseltmek (bugün `countries` tek başına **89 olgu**; üç tablo belirgin şekilde
+artıracak). Alt sınır yükseltilmezse test "fark yok" der ama **kaç şeye baktığı**
+sabitlenmemiş olur — D3.
+
+⚠️ **`0001`in `down`u `countries` için `ALTER TABLE ... DROP COLUMN`, yeni iki
+tablo için `DROP TABLE` olacak.** Yani bu, koşucunun **kayıp ölçümünün** ilk
+gerçek karışık vakası: sütun düşürme + tablo düşürme aynı migration'da.
+`allowDataLoss` olmadan reddedilmesi beklenir.
 
 ---
 
@@ -231,6 +359,19 @@ hazır olması beklenir (~30 sn).
 **⑤ Çok katmanlı kaçış (kabuk → node → dosya) YERİNE doğrudan düzenleme.**
 Faz 2'de iki kez ısırdı: heredoc içindeki ters tırnaklar bash tarafından komut
 ikamesi sanıldı ve metin sessizce bozuldu.
+
+> ⚠️ **Faz 3.3: AYNI TUZAK DÖRT KEZ, ve TIRNAKLI heredoc bile korumadı.**
+> `<<'PY'` yazılmasına rağmen `\n` Python'a **gerçek satır sonu** olarak ulaştı.
+> Somut belirtiler:
+> - `tools/arch-check/index.mjs` → `text.split('` + gerçek satır sonu → `SyntaxError`
+> - `arch-check.test.mjs` → aynı hata, Vite `import-analysis` ile patladı
+> - `PROJECT_MEMORY.md` → backtick'ler **komut ikamesi** sanıldı,
+>   `` `packages/db` `` metni "Is a directory" hatasıyla **sessizce boşaldı**
+>
+> **Kural (somut):** kaçış dizisi (`\n`, `\r`, `\t`) veya **backtick** içeren
+> metin heredoc'tan **geçirilmez**. İki yol var: ① `Edit` aracıyla doğrudan yaz
+> ② kaçışsız üret — `String.fromCharCode(10)`, `/\r?\n/` regex literal'i.
+> "Bu sefer tırnakladım, sorun olmaz" **çalışmıyor**.
 
 **⑥ `vite preview` repo kökünden çalıştırılamaz** — `envDir` göreli.
 İki derlemeyi karşılaştırırken aralarında `rm -rf apps/web/dist` (SAPMA-011).
@@ -384,6 +525,24 @@ alınır.
 | ⑧ | `forbidden-export-exists` | ⑦'nin tablosundaki her adın barrel'da **gerçekten** dışa aktarıldığı (yanlış yazım kuralı köreltiyordu) | **2.8** |
 | ⑨ | `master-table-marking` | `packages/db/src/schema/` altındaki her `pgTable(...)` `masterTable(...)` ile sarılı ya da `arch:save-scoped` ile **açıkça** muaf (K4 — tip sistemi "işaretlemeyi unutmayı" göremez) | **3.3** |
 
+> ⚠️ **3.3'TE DOKUZUNCU KURAL EKLENDİ: `master-table-marking`.**
+> Ölçüm şunu gösterdi: tip sistemi *"master tabloya yazma girişimini"* yakalıyor
+> ama *"işaretlemeyi UNUTMAYI"* **yakalayamıyor** — göreceği bir marka yoktur.
+> `countries`ten `masterTable(...)` sarması kaldırılınca kontrol deneyi öttü,
+> **ama yalnızca o dosya `countries`i adıyla andığı için.** 3.4'te eklenecek yeni
+> bir tablo sarmayı unutursa hiçbir şey ötmez.
+>
+> Kural `packages/db/src/schema/` altındaki her `pgTable(...)` çağrısının ya
+> `masterTable(...)` ile sarılı ya da **`arch:save-scoped`** yorumuyla açıkça
+> muaf olmasını istiyor. Muafiyet **varsayılan değil**: sessiz bir varsayılan
+> "unuttum" ile "bilerek" arasındaki farkı yok ederdi.
+>
+> **Kanarya mutasyonla doğrulandı:** kablolama susturulunca **54 testin 1'i**
+> kırılıyor (`DOKUZ kuralın hepsi ihlal bildiriyor`) ama `pnpm arch:check`
+> **"✓ temiz"** diyor — 2.7'nin dersinin birebir tekrarı, bu kez yeni kuralda.
+> Saf fonksiyonun (`findUnmarkedTables`) sekiz birim testi de var; birim testi
+> kablolamayı kanıtlamadığı için ikisi birlikte duruyor.
+
 **Taranan uzantılar (7):** `.ts .tsx .mts .cts .mjs .cjs .js`
 — `.cts` 2.1'de eksikti ve bir `.cts` dosyası denetimden **tamamen** kaçıyordu.
 **Varlık uzantıları (3):** `.html .json .css` — yalnızca `/src/` altında.
@@ -395,6 +554,14 @@ alınır.
 `packages/engine` 1 · `packages/ui` 1 · `packages/shared` **0** ·
 `tools/data-cli` 2 · `scripts` **0**
 *(Günlük #13'teki "12 bağ" 2.1 ölçümüdür; bugünkü ölçüm **13**.)*
+
+**3.3'te eklenen sabitler (⑨ için):** `SCHEMA_DIR_PREFIX` = `packages/db/src/schema/` ·
+`MASTER_TABLE_WRAPPER` = `masterTable(` · `SAVE_SCOPED_MARKER` = `arch:save-scoped` ·
+muafiyet penceresi **3 satır** (yorum ile `pgTable(` arası).
+Rakamlar `tools/arch-check/index.mjs` üzerinden **ölçüldü** (3.3 kapanışı), elle sayılmadı:
+9 kural · 9 katman / 13 bağ · 7 taranan uzantı · 3 varlık uzantısı ·
+11 motor yasaklı modül · 3 motor yasaklı çağrı · 3 yasaklı `@fms/shared` dışa aktarımı ·
+6 varlık yolu ön eki · 1 kısıtlı alt yol.
 
 **Diğer sabit tablolar:** motor yasaklı modül öneki **11** · motor yasaklı çağrı
 **3** (`Math.random`, `Date.now`, `performance.now`) · motorun alamayacağı
@@ -593,6 +760,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | #   | Alt görev | Hata (belirti)                                                                                                                                                                                                | Kök neden                                                                                                                                                                            | Çözüm                                                                                                                                                    | Tekrar önleme                                                                                                                                                        |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 23  | 3.3 devri | `spec/09` §11.4 envanterinin TAMAMI denetlendi ve **iki bulgu daha** çıktı: ① `.test-d.ts` dışlaması **canlı 6 `tsconfig.build.json`'da eksikti** (yalnızca `packages/db`ye eklenmişti) ② `apps/web/tsconfig.build.json` **hiçbir yerde kullanılmıyor** — `vite build` derliyor | İlk düzeltme yalnızca hatanın **görüldüğü** pakete bakmıştı. Ve "8 tsconfig" satırı tek bir dosya gibi okunuyordu | Altı canlı dosyaya dışlama eklendi; ölü dosyaya **dokunulmadı** ve durumu `spec/09`'a yazıldı | **Bir düzeltme, hatanın görüldüğü yeri değil SINIFININ geçtiği HER yeri kapsamalı** — SAPMA kuralının (`spec/11` §12.4) yapılandırma dosyalarındaki karşılığı. Ayrıca: ölü bir yapılandırmayı "düzeltmek" hiçbir şey kazandırmaz, ona güvenmeye yol açar |
 | 22  | 3.3       | CI **yalnızca amd64'te** kırıldı, arm64 geçti: `ReferenceError: window is not defined`. **598 testin hepsi GEÇMİŞTİ** — kırılma Vitest'in "2 unhandled errors" satırından geldi                                    | `main.tsx` modül düzeyinde `createRoot().render()` çağırıyor ama kökü **tutmuyor**; test hiç `unmount` etmiyordu. Dosya bitip Vitest jsdom'u yıkınca React'in zamanlayıcısında bekleyen iş (`setImmediate`) `window` yokken çalışıyor | `main.tsx` kökü **dışa aktarıyor**, test `afterEach`te söküyor. Üretim çıktısı **bayt bayt aynı** (321.495, aynı hash) — değişiklik yalnızca teste etki ediyor | **D6:** kırmızı olan kod değil **testti** — gerçek bir tarayıcı `window`u yıkmaz. Yerelde **beş koşuda hiç tekrar üretilemedi**: yarış makine hızına bağlı, o yüzden "yeniden koş" bir çözüm değil, sökme kancası olmalı. Ayrıca: **3.3 `apps/web`e hiç dokunmamıştı** — gizli yarışı ortaya çıkaran şey yeni testlerin zamanlamayı değiştirmesiydi |
 | 21  | 3.3       | `createWorldDb` yazıldı ama **hiçbir test onu çağırmıyordu** — tip koruması kanıtlıydı, fabrikanın çalıştığı değil                                                                                                | Tip seviyesi kanıtı yalnızca DERLEME zamanına ait; çalışma zamanında bağlantı kurup sorgu döndürdüğünü göstermiyor                                                                     | Entegrasyon testine iki `it()` eklendi: her iki istemci de gerçek konteynerde `select` koşuyor                                                          | **D5.** Tüketicisi olmayan bir fabrika, hiç koşulmamış koddur. "Tipi doğru" ile "çalışıyor" ayrı iddialar                                                                |
 | 20  | 3.3       | `.test-d.ts` dosyaları **`dist/`e sızdı** (4 dosya) ve kapsam paydasına %0 ile girip global kapsamı **%89,75 → %87,20** düşürdü                                                                                  | `*.test.ts` deseni `.test-d.ts` ile **EŞLEŞMEZ**. Yeni bir dosya soneki repoya girdi, desen taşıyan yerler güncellenmedi                                                                | `tsconfig.build.json` `exclude` + `vitest.config.ts` `coverage.exclude` düzeltildi; `spec/09` §11.4 envanterine 10. satır ve denetim tablosu eklendi     | **SAPMA-009'un sınıfı.** Envanter tam da bunun için vardı ve **işe yaradı** — dört yerin ikisi bozuktu. Kapsam bozulması SAPMA-007'nin TERS yönü: ürün olmayan kod paydaya giriyordu |
