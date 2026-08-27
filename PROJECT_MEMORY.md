@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-26 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. Plan revizyonu **onaylandı**: 3.2 → **3.2a** (koşucu) / **3.2b** (round-trip kanıtı), liste 11 → **12** alt görev |
-| **Son commit** | `feat(db): K4 tip seviyesinde — master tabloya yazma DERLENMİYOR` |
+| **Son commit** | `docs(memory): 3.3 CI sonucunu işle — amd64 yarışı kapandı` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ **3.2b koşusu `33016109348` — ALTI İŞ DE YEŞİL**, *Entegrasyon* işi **arm64 dahil**: round-trip kanıtı gerçek bir ARM64 runner'ında da koştu. ⚠️ Kalıcı ders (günlük #15, `spec/09` §11.5): yeni bir CI işi, mevcut işlerin **örtük hazırlık adımlarını** miras almaz — `Entegrasyon` işi `pnpm build` olmadan `33001368015`'te iki mimaride birden kırılmıştı. |
+| **CI** | ✅ **3.3 düzeltme koşusu `33028319414` — ALTI İŞ DE YEŞİL.** ⚠️ İlk koşu `33027936236` **yalnızca amd64'te** kırılmıştı (arm64 geçti): 598 testin hepsi geçerken Vitest "2 unhandled errors" bildirdi — `main.tsx` React kökünü tutmuyordu, jsdom yıkıldıktan sonra zamanlayıcı işi `window` yokken çalışıyordu (günlük #22). **Yerelde beş koşuda hiç tekrar üretilemedi**; ölçüm aracı burada CI oldu. ⚠️ Dürüstlük notu: tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz, ama mekanizma gerekçesi sağlam (sökme sonrası bekleyen iş kalmıyor) ve hata ilk amd64 koşusunda çıkmıştı. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
 | **test** | ✅ **598 test / 43 dosya** (`pnpm test`) — 3.3 **+8 test**. Ayrıca ✅ **`pnpm test:db` 23 test / 3 dosya** (3.3 **+7**), gerçek PG18 konteyneriyle |
@@ -87,8 +87,6 @@ denetliyor — unutulursa gate kırılır.
 **⚠️ `competitions.rules` bir `jsonb`** ve `CompetitionRules` iç içe
 (`squadRegistration`, `continentalSpots`, `transferWindows[]`). Zod şeması
 `spec/01` §3.1'deki tanımdan türetilir; tip `z.infer` ile alınır (CLAUDE.md §1.3).
-
-**İlk iş:** 3.3 CI koşusunun sonucunu ANLIK DURUM'a işle.
 
 ---
 
