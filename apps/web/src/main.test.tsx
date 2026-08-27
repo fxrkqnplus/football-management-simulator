@@ -29,6 +29,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const BASE_PATH = '/fms';
 const basePathConfig = deriveBasePathConfig(BASE_PATH);
 
+/**
+ * Monte edilen React köklerini SÖKMEK için tutuyoruz.
+ *
+ * ⚠️ Faz 3.3'te ölçülen sebep: kök sökülmezse test dosyası bittikten sonra
+ * React'in zamanlayıcısı hâlâ iş planlamış oluyor. Vitest jsdom ortamını
+ * yıkınca o iş `window` yokken çalışıyor ve
+ * **`ReferenceError: window is not defined`** fırlatıyor. Vitest bunu
+ * "unhandled error" sayıp koşuyu exit 1 yapıyor — 598 testin hepsi geçerken.
+ *
+ * Yarış makine hızına bağlıydı: CI'da amd64 kırıldı, arm64 geçti, yerelde beş
+ * koşuda hiç tekrar üretilemedi. Bu yüzden çözüm "yeniden koş" değil,
+ * **deterministik sökme**.
+ *
+ * Her senaryo `vi.resetModules()` sonrası YENİ bir modül örneği import ediyor,
+ * yani her biri kendi kökünü kuruyor — liste bu yüzden dizi.
+ */
+const mountedRoots: { unmount: () => void }[] = [];
+
+async function importMain(): Promise<void> {
+  const mod = (await import('./main.js')) as { root?: { unmount: () => void } };
+  if (mod.root) mountedRoots.push(mod.root);
+}
+
 describe('main.tsx — önyükleme', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -52,6 +75,9 @@ describe('main.tsx — önyükleme', () => {
   });
 
   afterEach(() => {
+    // Sökme ÖNCE: React'in bekleyen işi kalmasın ki ortam yıkılırken
+    // `window`a dokunan bir geri çağrı çalışmasın.
+    while (mountedRoots.length > 0) mountedRoots.pop()?.unmount();
     vi.unstubAllGlobals();
     resetBasePathForTests();
     document.body.innerHTML = '';
@@ -62,7 +88,7 @@ describe('main.tsx — önyükleme', () => {
     root.id = 'root';
     document.body.appendChild(root);
 
-    await import('./main.js');
+    await importMain();
 
     // `await import(...)` yalnızca MODÜLÜN yüklenmesini bekler. React 19'da
     // `createRoot().render()` senkron değil — iş planlar, DOM hemen dolmaz
@@ -101,7 +127,7 @@ describe('main.tsx — önyükleme', () => {
     root.id = 'root';
     document.body.appendChild(root);
 
-    await import('./main.js');
+    await importMain();
     const { assertInvariant, assertionMode, ASSERTION_MODES, resetAssertionsForTests } =
       await import('@fms/shared');
 

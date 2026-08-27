@@ -77,7 +77,27 @@ if (container === null) {
   throw new Error('#root bulunamadı — index.html bozulmuş olabilir.');
 }
 
-createRoot(container).render(
+/**
+ * Kök React kökü — DIŞA AKTARILIYOR.
+ *
+ * ⚠️ Gerekçe Faz 3.3'te ÖLÇÜLDÜ. Kök tutulmayınca `main.test.tsx` monte ettiği
+ * ağacı hiçbir zaman söküyordu değildi; test dosyası bitip Vitest jsdom ortamını
+ * yıkınca React'in zamanlayıcısında bekleyen iş (`performWorkUntilDeadline`,
+ * `setImmediate` üzerinden) `window` yokken çalışıyor ve
+ * **`ReferenceError: window is not defined`** fırlatıyordu.
+ *
+ * Vitest bunu "unhandled error" sayıp koşuyu **exit 1** yapıyor — 598 testin
+ * hepsi geçerken. Yarış makine hızına bağlı: CI'da **amd64 kırıldı, arm64 geçti**
+ * ve yerelde beş koşuda hiç tekrar üretilemedi. Yani "yeniden koş" bir çözüm
+ * değil; sökme kancası olmalı.
+ *
+ * Üretimde bu değer kullanılmıyor — gerçek bir tarayıcı `window`u yıkmaz.
+ * Dışa aktarmanın maliyeti sıfır: modül zaten yan etkili, kök yalnızca artık
+ * çöpe atılmıyor.
+ */
+export const root = createRoot(container);
+
+root.render(
   <StrictMode>
     {/* basename tek kaynaktan; elle '/fms' yazılmaz (K6). */}
     {/* KÖK sınır — buraya kadar tırmanan hiçbir şey beyaz ekrana dönüşmesin.
