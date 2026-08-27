@@ -249,10 +249,10 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > | 3 | `vitest.config.ts` → `projects[].test.include` | Test keşfi | süslü parantez ✅ |
 > | 4 | `eslint.config.js` → tip-farkında blok `files` | Hangi dosyalar lint'lenir | ayrı girdiler |
 > | 5 | `eslint.config.js` → `no-hardcoded-path` muafiyeti | Test dosyaları muaf | ayrı girdiler |
-> | 6 | 7 × `tsconfig.build.json` → `exclude` | Testler `dist`'e girmesin | **parantez YOK** |
+> | 6 | **7** × `tsconfig.build.json` → `exclude` | Testler `dist`'e girmesin | **parantez YOK** |
 > | 7 | `tools/arch-check/index.mjs` → taranan uzantılar | Hangi dosyalar denetlenir | düz dizi |
 > | 8 | `tools/arch-check/index.mjs` → `checkImportCasing` adayları | `.js→.ts`, `.mjs→.mts`, `.cjs→.cts` | düz dizi |
-> | 10 | 8 × `tsconfig.build.json` → `exclude` (`.test-d.ts` satırı) | Tip-seviyesi kontrol deneyleri `dist`e girmesin — Faz 3.3 | **parantez YOK** |
+> | 10 | **7** × `tsconfig.build.json` → `exclude` (`.test-d.ts` satırı) | Tip-seviyesi kontrol deneyleri `dist`e girmesin — Faz 3.3 | **parantez YOK** |
 > | 9 | `vitest.integration.config.ts` → `test.include` | Entegrasyon testi keşfi (`integration/**/*.itest.ts`) | süslü parantez ✅ |
 >
 > **9. satır Faz 3.2a'da eklendi** ve bu, listenin kendi kuralının işlemesidir:
@@ -294,13 +294,23 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > `.test-d.ts` dışlaması yalnızca `packages/db`ye eklenmişti; **canlı olarak
 > kullanılan diğer altı dosyada yoktu.** Bugün zararsızdı (öyle bir dosya başka
 > pakette yok) ama yarın sessizdi. Altısına da eklendi.
+> *(Faz 3.4'te sekizincisi — `apps/web`inki — silindi; sayı artık **yedi**.)*
 >
-> **② `apps/web/tsconfig.build.json` HİÇBİR YERDE KULLANILMIYOR.** Ölçüldü:
-> `apps/web`in `build` betiği `vite build` çağırıyor, `tsc -p tsconfig.build.json`
-> değil. Yani o dosyanın eksik dışlama listesi bir hata değil — **ölü
-> yapılandırma**. Ve bu daha sinsi: envanteri denetleyen biri onu "düzeltir",
-> hiçbir şey kazanmaz ve o dosyaya güvenmeye başlar. Dosyanın akıbeti
-> (silinecek mi, ölü olduğu yazılacak mı) ayrı bir kararla verilmeli.
+> **② `apps/web/tsconfig.build.json` HİÇBİR YERDE KULLANILMIYORDU → Faz 3.4'te
+> SİLİNDİ.** Ölçüldü: `apps/web`in `build` betiği `vite build` çağırıyor,
+> `tsc -p tsconfig.build.json` değil; `typecheck` ise `tsconfig.json` kullanıyor.
+> Repo genelinde tek atıf `eslint.config.js`'teki bir **yorumdu** ve o
+> `packages/db`nin dosyasından bahsediyordu. Yani o dosyanın eksik dışlama
+> listesi bir hata değil — **ölü yapılandırmaydı**. Üstelik `noEmit: true` taşıyan
+> bir tsconfig'i genişletiyordu: kullanılsaydı bile hiçbir şey emit etmezdi.
+>
+> **Karar: silmek, "ölü" notu düşmek değil (Faz 3.4).** Not düşmek dosyayı
+> envanterde **canlıymış gibi** tutar ve bu bölümün kendi uyardığı tuzağı sürdürür
+> — envanteri denetleyen biri onu "düzeltir", hiçbir şey kazanmaz ve o dosyaya
+> güvenmeye başlar. Var olmayan bir dosya bu hatayı **mümkün kılmaz**; bir yorum
+> satırı yalnızca *daha az olası* kılar. Ölçüldü: silindikten sonra `pnpm build`,
+> `pnpm typecheck` ve `pnpm lint` üçü de yeşil kaldı, `apps/web/dist` **bayt bayt
+> aynı**. Aşağıdaki envanterin 6. ve 10. satırları **8 → 7**'ye indi.
 >
 > #### ÖNERİ — envanterin kendisi makineyle denetlenebilir (yazılmadı)
 >

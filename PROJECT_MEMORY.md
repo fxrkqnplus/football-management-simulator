@@ -26,7 +26,8 @@
 | **Tarih** | 2026-08-27 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** var ama bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama kapanmış SAYILMIYOR, aşağıdaki kalıcı bloğa bak. |
-| **Son commit** | `feat(db): coğrafya ve kurumlar — countries tamamlandı, federations + competitions` |
+| **Son commit** | `chore(web): ölü tsconfig.build.json'ı sil — 3.3'ten devreden açık karar` (3.4'ün şema commit'i bir öncesi) |
+| **Devreden açık karar** | ✅ **KAPANDI.** `apps/web/tsconfig.build.json` **silindi** (not düşülmedi). Gerekçe ve ölçüm `spec/09` §11.4 ②. Doğrulandı: `apps/web/dist` **bayt bayt aynı** (aynı toplam SHA-256, aynı paket adı `index-BNdQN1Bb.js`, **321.495 bayt**) · dört kapı yeşil · `tsconfig.build.json` sayısı **8 → 7**, envanterin 6. ve 10. satırları güncellendi |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
 | **CI** | ✅ **`33065051088` — altı iş de yeşil** (3.4 öncesi son koşu, commit `a0d7994`). Bu, düzeltmeden sonraki **ÜÇÜNCÜ ardışık yeşil amd64** (`33028319414` · `33064847673` · `33065051088`). ⚠️ İlk 3.3 koşusu `33027936236` **yalnızca amd64'te** kırılmıştı — ayrıntı aşağıdaki **AÇIK RİSK** bloğunda. 3.4 commit'inin koşusu **henüz işlenmedi** (push sonrası bakılacak). |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — build **SOĞUK ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği): typecheck 9/9 · lint 0 · format 0 · build 8/8, 6,16 s · **arch 9 kural, DEĞİŞMEDİ**, 250 ms |
