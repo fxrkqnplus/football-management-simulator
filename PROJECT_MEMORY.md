@@ -26,9 +26,9 @@
 | **Tarih** | 2026-08-27 (oturum devri) |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** var ama bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama kapanmış SAYILMIYOR, aşağıdaki kalıcı bloğa bak. |
-| **Son commit** | `docs(memory): 3.3 kapanışı ve 3.4 devir teslimi` |
+| **Son commit** | `docs(memory): devir CI sonucunu işle — ikinci ardışık yeşil amd64` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ **3.3 düzeltme koşusu `33028319414` — ALTI İŞ DE YEŞİL.** ⚠️ İlk koşu `33027936236` **yalnızca amd64'te** kırılmıştı (arm64 geçti): 598 testin hepsi geçerken Vitest "2 unhandled errors" bildirdi — `main.tsx` React kökünü tutmuyordu, jsdom yıkıldıktan sonra zamanlayıcı işi `window` yokken çalışıyordu (günlük #22). **Yerelde beş koşuda hiç tekrar üretilemedi**; ölçüm aracı burada CI oldu. ⚠️ Dürüstlük notu: tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz, ama mekanizma gerekçesi sağlam (sökme sonrası bekleyen iş kalmıyor) ve hata ilk amd64 koşusunda çıkmıştı. |
+| **CI** | ✅ **Devir koşusu `33064847673` — altı iş de yeşil.** 3.3 düzeltme koşusu `33028319414` de yeşildi, yani düzeltmeden sonra **ikinci ardışık yeşil amd64**. ⚠️ İlk 3.3 koşusu `33027936236` **yalnızca amd64'te** kırılmıştı (arm64 geçti): 598 testin hepsi geçerken Vitest "2 unhandled errors" bildirdi. Ayrıntı ve tekrar görülürse ne yapılacağı: aşağıdaki **AÇIK RİSK** bloğu. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **oturum devrinde SOĞUK yeniden ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 · lint 0 · format 0 · build 8/8 · **arch 9 kural**, 295 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
 | **test** | ✅ **598 test / 43 dosya** (`pnpm test`, 0 hata) · ✅ **`pnpm test:db` 23 test / 3 dosya** gerçek PG18 konteyneriyle. ⚠️ `test:db` varsayılan `pnpm test`'e **girmez** — ayrı komut, `spec/09` §11.5 faz kapanış listesinde ve CI'da ayrı iş |
@@ -74,6 +74,10 @@ zamanlayıcısında bekleyen iş `window` yokken çalışıyor.
 - **Yerelde beş koşuda hiç tekrar üretilemedi** — yani yerel yeşil bir kanıt değil.
 - Düzeltme **yerelde kanıtlanamadı**; ölçüm aracı CI oldu (`33028319414` yeşil).
 - **Tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz.**
+- Devir turunda **ikinci ardışık yeşil amd64 koşusu** görüldü (`33064847673`).
+  Bu iddiayı **güçlendirir, kanıtlamaz** — iki gözlem bir yokluk kanıtı değildir.
+  Sayaç burada tutuluyor: yeni bir yeşil amd64 koşusu görüldükçe bu satır
+  güncellenebilir; **kırmızı görülürse blok yeniden açılır.**
 
 **Yeniden ortaya çıkarsa ne yapılacak:**
 
