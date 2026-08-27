@@ -122,12 +122,16 @@ tutarlı tercihi sezonu **skaler bir tamsayı** olarak taşımaktır:
 Puan durumu da saklanmıyor — `matches` satırlarından **türetiliyor**. Yeni bir
 tablo eklemeden önce bu deseni bozup bozmadığı sorulmalıdır.
 
-### 3.1.2 Şema yazım kuralları — Faz 3.4'te ÖLÇÜLDÜ, 3.5'te genişledi, 3.6 okur
+### 3.1.2 Şema yazım kuralları — 3.4'te ölçüldü, 3.5 ve 3.6'da genişledi
 
-> **Bu bölüm 3.4'te yazıldı, 3.5'te genişletildi.** ①–⑤ 3.4'ün, ⑥–⑦ 3.5'in
-> ölçümü; hepsi gerçek PostgreSQL 18.6'ya karşı alındı. Yazılmasalardı sonraki
-> alt görevler aynı soruları yeniden sorup muhtemelen farklı cevaplar verirdi —
-> ve iki farklı cevap şemada **sessiz** bir tutarsızlık olurdu.
+> **①–⑤ 3.4'ün, ⑥–⑦ 3.5'in, ⑧ 3.6'nın ölçümü** (ayrıca ②'nin dördüncü satırı ve
+> ayraç netleştirmesi 3.6'da eklendi); hepsi gerçek PostgreSQL 18.6'ya karşı
+> alındı. Yazılmasalardı sonraki alt görevler aynı soruları yeniden sorup
+> muhtemelen farklı cevaplar verirdi — ve iki farklı cevap şemada **sessiz** bir
+> tutarsızlık olurdu.
+>
+> **Faz 3'ün şema envanteri 3.6'da kapandı (11/11).** Bu bölüm bundan sonra
+> **Faz 4**'ün (`people`, `players`, sözleşmeler, personel) kaynağıdır.
 >
 > ⚠️ **Düzeltme (3.5):** bu paragrafın 3.4'teki hâli *"aşağıdaki dördü de"*
 > diyordu, oysa kural sayısı o gün de **beşti**. Sayı düzeltildi; kuralların
@@ -155,15 +159,46 @@ Ayrım spec'in kendi yazımından okunur:
 
 | Spec'te nasıl yazılmış | Örnek | Karar |
 |---|---|---|
-| `'a' \| 'b' \| 'c'` — **kapalı** | `type`, `workPermitRuleKey`, `source` | **CHECK** |
+| `'a' \| 'b' \| 'c'` — **kapalı** | `type`, `workPermitRuleKey`, `source`, `kitType` | **CHECK** |
 | `UEFA, CONMEBOL...` — **açık uçlu** | `confederation` | CHECK yok |
-| `// 0-200`, `// 1-100` — **sayısal aralık** | `reputation`, `footballLevel` | CHECK yok |
+| `// 0-200`, `// 1-100` — **sayısal aralık** | `reputation`, `footballLevel`, hakem nitelikleri | CHECK yok |
+| `// 2 veya 3` — **sayısal ama KAPALI** | `kitTemplates.colorSlots` | **CHECK** (Faz 3.6) |
 
 Sayısal aralıklar bilerek dışarıda: bir değer kümesi **sözleşmedir** (`'leauge'`
 yarın da hatalıdır), bir aralık **kalibrasyondur** ve Faz 23/Faz 30 denge ayarı
 onu değiştirebilir. Migration'a çakılmış bir aralık o gün `DROP CONSTRAINT`
 gerektirirdi. Aralık denetiminin yeri **Faz 11 veri doğrulayıcısı**
 (`pnpm validate:world`) — bu bir borç değil, konum kararıdır.
+
+> ⚠️ **DÖRDÜNCÜ SATIR — ayraç "dize mi sayı mı" DEĞİL (Faz 3.6'da ayrıştırıldı).**
+> Kural ilk yazıldığında yalnızca üç satır vardı ve *"sayısal olan CHECK almaz"*
+> diye okunabiliyordu. `kit_templates.color_slots` bu okumayı bozuyor: sayısal
+> ama **aralık değil**, spec onu `// 2 veya 3` diye — bir **sıralama** olarak —
+> yazıyor.
+>
+> **Gerçek ayraç: sözleşme mi, kalibrasyon mu?** Slot sayısı SVG şablon
+> sisteminin **yapısıdır**; dördüncü bir yuva ancak 20 şablonun yeniden
+> çizilmesiyle gelir, bir denge ayarıyla değil. Bu yüzden CHECK aldı.
+> Karşılaştır: aynı migration'daki altı hakem niteliği (1-20) **almadı**, çünkü
+> onlar Faz 26'nın kalibre edeceği ölçekler.
+>
+> **Kural (somut):** *"bu değeri yarın bir denge ayarı değiştirebilir mi?"*
+> Cevap **evet** ise CHECK yok; **hayır, ancak sistem yeniden tasarlanırsa**
+> ise CHECK var.
+
+**⑧ SÖZLÜK TABLOLARI `ON DELETE` İKİLİSİNİN DIŞINDA — RESTRICT (Faz 3.6).**
+③'ün ayrımı (uydu CASCADE / bağımsız varlık RESTRICT) `key` taşıyıp taşımamaya
+dayanıyor ve **üçüncü bir sınıfı görmüyor**: `kit_templates` `key` taşımıyor ama
+hiçbir şeyin uydusu da değil — **sahipsiz bir sözlük tablosu**. ③ körlemesine
+uygulansaydı `club_kits.template_id` CASCADE alırdı ve bir şablon silindiğinde
+kulübün forma satırı **alakasız bir sebeple** yok olurdu.
+
+**Kural:** bir FK'nın hedefi bir sözlük/tanım tablosuysa (`kit_templates` ve
+Faz 4'te gelecek `injury_types`, `staff_roles` aynı sınıf) davranış
+**RESTRICT**'tir: sözlük girdisi silinmeden önce ona bağlı kayıtların ele
+alınması gerekir. Ölçüldü (PG 18.6): kullanılan bir şablonun silinmesi
+`club_kits_template_id_kit_templates_id_fk` ile reddediliyor; kulüp silindiğinde
+formalar gidiyor ama **şablon kalıyor**.
 
 **③ `ON DELETE` — uydu CASCADE, bağımsız varlık RESTRICT.**
 `spec/01` ve ROADMAP `ON DELETE` için hiçbir şey söylemiyordu (arandı, yok) ama

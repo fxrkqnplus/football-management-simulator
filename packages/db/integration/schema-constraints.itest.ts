@@ -1,5 +1,7 @@
 /**
- * ŞEMA KISITLARININ GERÇEK VERİTABANINDA SINANMASI — Faz 3.4, 3.5'te genişledi.
+ * ŞEMA KISITLARININ GERÇEK VERİTABANINDA SINANMASI — 3.4'te açıldı, 3.5 ve
+ * 3.6'da genişledi. **3.6 ile Faz 3'ün 11 tablosu tamamlandı** ve envanter
+ * sayısı burada `information_schema`'dan **ölçülerek** iddia ediliyor.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * NEDEN AYRI BİR DOSYA, `round-trip.itest.ts`E EKLENMEK YERİNE
@@ -44,15 +46,20 @@ import { createFileMigrationSource } from '../src/migrate/file-source.js';
 import { createPostgresExecutor } from '../src/migrate/postgres-executor.js';
 import { migrateUp } from '../src/migrate/runner.js';
 import { clubFinancesBase } from '../src/schema/club-finances-base.js';
+import { KIT_TYPES } from '../src/schema/club-kits.js';
 import { COMPETITION_TYPES } from '../src/schema/competitions.js';
 import { WORK_PERMIT_RULES } from '../src/schema/countries.js';
 import { DATA_SOURCES } from '../src/schema/data-pack-columns.js';
+import { KIT_COLOR_SLOTS } from '../src/schema/kit-templates.js';
 import {
   clubFacilitiesInsertSql,
   clubFinancesInsertSql,
   clubInsertSql,
+  clubKitInsertSql,
   type CountryFixture,
   countryInsertSql,
+  kitTemplateInsertSql,
+  refereeInsertSql,
   rivalryInsertSql,
   stadiumInsertSql,
 } from './fixtures.js';
@@ -234,6 +241,7 @@ describe('⑥ `key` benzersizliği TABLO BAŞINA (spec/01 §3.1.0)', () => {
       'clubs:clubs_key_unique',
       'competitions:competitions_key_unique',
       'countries:countries_key_unique',
+      'referees:referees_key_unique',
       'stadiums:stadiums_key_unique',
     ]);
   });
@@ -246,16 +254,20 @@ describe('⑥ `key` benzersizliği TABLO BAŞINA (spec/01 §3.1.0)', () => {
    * (`referees`) Faz 3.6'da geliyor, o yüzden bugün dört. Liste yazılı olduğu
    * için 3.6 onu güncellemeyi unutamaz: test kırılır.
    */
-  it('`key` sütununu TAM OLARAK dört tablo taşıyor (5. tablo `referees` → 3.6)', async () => {
+  it('`key` sütununu §3.1.0’ın saydığı BEŞ tablonun tamamı taşıyor', async () => {
     const rows = await executor.rows<{ table_name: string }>(`
       SELECT table_name FROM information_schema.columns
        WHERE table_schema = 'public' AND column_name = 'key'
        ORDER BY table_name
     `);
+    // §3.1.0: countries · competitions · clubs · stadiums · referees.
+    // 3.5'te dörttü ve testin başlığı beşincinin 3.6'da geleceğini yazıyordu;
+    // `referees` gelince test **beklendiği gibi kırıldı** ve sayı güncellendi.
     expect(rows.map((row) => row.table_name)).toEqual([
       'clubs',
       'competitions',
       'countries',
+      'referees',
       'stadiums',
     ]);
   });
@@ -295,7 +307,7 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
    * yani Faz 4'ün ekleyeceği `chairman_person_id` FK'sı burayı güncellemeyi
    * unutamaz.
    */
-  it('DOKUZ FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
+  it('ON İKİ FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
     const rows = await executor.rows<{ conname: string; def: string }>(`
       SELECT conname, pg_get_constraintdef(oid) AS def
         FROM pg_constraint
@@ -310,12 +322,19 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       // uydular → CASCADE
       'club_facilities_club_id_clubs_id_fk → CASCADE',
       'club_finances_base_club_id_clubs_id_fk → CASCADE',
+      'club_kits_club_id_clubs_id_fk → CASCADE',
+      // ⚠️ SÖZLÜK TABLOSU → RESTRICT. `kit_templates` ne uydu ne paket varlığı;
+      // §3.1.2 ③'ün ikili ayrımı bu vakayı kapsamıyor. CASCADE, bir şablon
+      // silinince kulübün forma satırını ALAKASIZ bir sebeple yok ederdi.
+      'club_kits_template_id_kit_templates_id_fk → RESTRICT',
       // kulüp bağımsız varlıklara bakıyor → RESTRICT
       'clubs_competition_id_competitions_id_fk → RESTRICT',
       'clubs_country_id_countries_id_fk → RESTRICT',
       'clubs_stadium_id_stadiums_id_fk → RESTRICT',
       'competitions_country_id_countries_id_fk → RESTRICT',
       'federations_country_id_countries_id_fk → CASCADE',
+      // hakem kendi `key`ini taşıyor → bağımsız varlık → RESTRICT
+      'referees_country_id_countries_id_fk → RESTRICT',
       // aynı tabloya İKİ FK — adlar sütundan ayrışıyor, çakışma yok
       'rivalries_club_a_id_clubs_id_fk → CASCADE',
       'rivalries_club_b_id_clubs_id_fk → CASCADE',
@@ -751,5 +770,368 @@ describe('⚠️ `bigint` HASSASİYETİ — mod kararının koşan kanıtı', ()
     // `Number` dönüşümü SESSİZ: hata yok, yalnızca yanlış sayı.
     expect(String(Number(raw))).toBe('9007199254740992');
     expect(String(Number(raw))).not.toBe(raw);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FAZ 3.6 — GÖRSEL VARLIKLAR VE HAKEMLER (şema envanteri 11/11 kapanıyor)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('⑤ KAPALI değer kümeleri — 3.6’nın iki yeni CHECK’i', () => {
+  it('geçersiz `club_kits.kit_type` REDDEDİLİYOR — `Home` yazım hatası sınıfı', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-kit', code: 'KT1' }]));
+    await executor.run(stadiumInsertSql([{ key: 's-kit' }]));
+    await executor.run(
+      clubInsertSql([
+        { key: 'c-kit', countryCode: 'KT1', stadiumKey: 's-kit', abbreviation: 'KIT' },
+      ]),
+    );
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-kit' }]));
+
+    await expect(
+      executor.run(
+        clubKitInsertSql([{ clubKey: 'c-kit', templateCode: 'tpl-kit', kitType: 'Home' }]),
+      ),
+    ).rejects.toThrow(/club_kits_kit_type_check/);
+  });
+
+  it('KARŞI ÖRNEK: üç geçerli `kit_type` da kabul ediliyor', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-kit-ok', code: 'KT2' }]));
+    await executor.run(stadiumInsertSql([{ key: 's-kit-ok' }]));
+    await executor.run(
+      clubInsertSql([
+        { key: 'c-kit-ok', countryCode: 'KT2', stadiumKey: 's-kit-ok', abbreviation: 'KTO' },
+      ]),
+    );
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-kit-ok' }]));
+
+    for (const kitType of KIT_TYPES) {
+      await executor.run(
+        clubKitInsertSql([{ clubKey: 'c-kit-ok', templateCode: 'tpl-kit-ok', kitType }]),
+      );
+    }
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "club_kits"
+       WHERE "club_id" = (SELECT "id" FROM "clubs" WHERE "key" = 'c-kit-ok')
+    `);
+    expect(Number(rows[0]?.n)).toBe(KIT_TYPES.length);
+  });
+
+  /**
+   * ⚠️ SAYISAL AMA ARALIK DEĞİL — §3.1.2 ②'nin sınır vakası.
+   *
+   * `reputation` (0-200) ve `pitch_quality` (1-20) CHECK **almıyor** çünkü
+   * onlar kalibrasyon. `color_slots` alıyor çünkü spec onu `// 2 veya 3` diye,
+   * yani bir **sıralama** olarak yazıyor ve slot sayısı SVG sisteminin yapısı.
+   * Bu test ayrımın gerçek olduğunu gösteriyor.
+   */
+  it('geçersiz `kit_templates.color_slots` (4) REDDEDİLİYOR', async () => {
+    await expect(
+      executor.run(kitTemplateInsertSql([{ code: 'tpl-bad-slots', colorSlots: 4 }])),
+    ).rejects.toThrow(/kit_templates_color_slots_check/);
+  });
+
+  it('KARŞI ÖRNEK: 2 ve 3 kabul ediliyor', async () => {
+    for (const slots of KIT_COLOR_SLOTS) {
+      await executor.run(
+        kitTemplateInsertSql([{ code: `tpl-ok-${String(slots)}`, colorSlots: slots }]),
+      );
+    }
+    const rows = await executor.rows<{ n: number | string }>(
+      `SELECT count(*)::int AS n FROM "kit_templates" WHERE "code" LIKE 'tpl-ok-%'`,
+    );
+    expect(Number(rows[0]?.n)).toBe(KIT_COLOR_SLOTS.length);
+  });
+
+  it('kısıt tanımları sabit tablolarla AYNI değerleri taşıyor', async () => {
+    const kitType = await constraintDefinition('club_kits_kit_type_check');
+    for (const value of KIT_TYPES) expect(kitType).toContain(`'${value}'`);
+    expect(kitType.match(/'[a-z]+'/g)).toHaveLength(KIT_TYPES.length);
+
+    const slots = await constraintDefinition('kit_templates_color_slots_check');
+    for (const value of KIT_COLOR_SLOTS) expect(slots).toContain(String(value));
+
+    const source = await constraintDefinition('referees_source_check');
+    for (const value of DATA_SOURCES) expect(source).toContain(`'${value}'`);
+    expect(source.match(/'[a-z]+'/g)).toHaveLength(DATA_SOURCES.length);
+  });
+
+  it('geçersiz `referees.source` REDDEDİLİYOR', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-ref-src', code: 'RF1' }]));
+    await expect(
+      executor.run(
+        refereeInsertSql([{ key: 'r-bad-source', countryCode: 'RF1', source: 'manual' }]),
+      ),
+    ).rejects.toThrow(/referees_source_check/);
+  });
+});
+
+describe('⑥ TEKLİK KISITLARI — 3.6’da karar YENİDEN verildi', () => {
+  /**
+   * ⚠️ `rivalries` KARARI KOPYALANMADI.
+   *
+   * 3.5'te `rivalries` için teklik Faz 11'e bırakılmıştı; gerekçe kısmi bir
+   * `UNIQUE`in `(B,A)` ters çiftini sessizce geçirmesiydi (D3). **O gerekçe
+   * burada geçersiz:** `kit_type` kapalı bir küme, sıralama belirsizliği yok,
+   * kısıt TAM. Bu test kısıtın gerçekten reddettiğini gösteriyor — kısıtın
+   * `pg_constraint`te görünmesi çalıştığını göstermezdi.
+   */
+  it('aynı kulübe İKİNCİ bir `home` forması yazılamıyor', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-uniq', code: 'UQ1' }]));
+    await executor.run(stadiumInsertSql([{ key: 's-uniq' }]));
+    await executor.run(
+      clubInsertSql([
+        { key: 'c-uniq', countryCode: 'UQ1', stadiumKey: 's-uniq', abbreviation: 'UQA' },
+      ]),
+    );
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-uniq' }]));
+    await executor.run(
+      clubKitInsertSql([{ clubKey: 'c-uniq', templateCode: 'tpl-uniq', kitType: 'home' }]),
+    );
+
+    await expect(
+      executor.run(
+        clubKitInsertSql([{ clubKey: 'c-uniq', templateCode: 'tpl-uniq', kitType: 'home' }]),
+      ),
+    ).rejects.toThrow(/club_kits_club_id_kit_type_unique/);
+  });
+
+  /**
+   * KARŞI ÖRNEK — kısıtın KAPSAMI doğru: kulüp başına, global değil.
+   *
+   * Bu satır olmasaydı *"her `home` reddediliyor"* durumundan ayırt edilemezdi
+   * (nöbetçi iki yönlü).
+   */
+  it('FARKLI kulüpler aynı `kit_type`ı taşıyabiliyor', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-uniq2', code: 'UQ2' }]));
+    await executor.run(stadiumInsertSql([{ key: 's-uniq2' }]));
+    await executor.run(
+      clubInsertSql([
+        { key: 'c-uniq-a', countryCode: 'UQ2', stadiumKey: 's-uniq2', abbreviation: 'UQB' },
+        { key: 'c-uniq-b', countryCode: 'UQ2', stadiumKey: 's-uniq2', abbreviation: 'UQC' },
+      ]),
+    );
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-uniq2' }]));
+    await executor.run(
+      clubKitInsertSql([
+        { clubKey: 'c-uniq-a', templateCode: 'tpl-uniq2', kitType: 'home' },
+        { clubKey: 'c-uniq-b', templateCode: 'tpl-uniq2', kitType: 'home' },
+      ]),
+    );
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "club_kits"
+       WHERE "club_id" IN (SELECT "id" FROM "clubs" WHERE "key" IN ('c-uniq-a','c-uniq-b'))
+    `);
+    expect(Number(rows[0]?.n)).toBe(2);
+  });
+
+  it('`kit_templates.code` benzersiz — `key`in yerine geçiyor', async () => {
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-tekil' }]));
+    await expect(executor.run(kitTemplateInsertSql([{ code: 'tpl-tekil' }]))).rejects.toThrow(
+      /kit_templates_code_unique/,
+    );
+  });
+});
+
+describe('§3.1.0 — 3.6’nın tabloları doğru tarafta', () => {
+  it.each([
+    [
+      'kit_templates',
+      ['id', 'code', 'name_key', 'svg_path', 'color_slots', 'created_at', 'updated_at'],
+    ],
+    [
+      'club_kits',
+      [
+        'id',
+        'club_id',
+        'kit_type',
+        'template_id',
+        'color1',
+        'color2',
+        'color3',
+        'asset_id',
+        'created_at',
+        'updated_at',
+      ],
+    ],
+  ])('%s: key / source / external_ids YOK', async (table, expectedColumns) => {
+    const rows = await executor.rows<{ column_name: string }>(`
+      SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = '${table}'
+       ORDER BY ordinal_position
+    `);
+    const names = rows.map((row) => row.column_name);
+
+    expect(names).toEqual(expectedColumns);
+    expect(names).not.toContain('key');
+    expect(names).not.toContain('source');
+    expect(names).not.toContain('external_ids');
+  });
+
+  it('referees ÜÇÜNÜ DE taşıyor ve `person_id` YOK (Faz 4)', async () => {
+    const rows = await executor.rows<{ column_name: string }>(`
+      SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'referees'
+       ORDER BY ordinal_position
+    `);
+    const names = rows.map((row) => row.column_name);
+
+    expect(names).toContain('key');
+    expect(names).toContain('source');
+    expect(names).toContain('external_ids');
+    // Üçüncü ve son ileri FK — sütun ve FK Faz 4'te BİRLİKTE eklenecek.
+    expect(names).not.toContain('person_id');
+  });
+});
+
+describe('`ON DELETE` — sözlük tablosu vakası', () => {
+  it('RESTRICT: kullanılan bir ŞABLON silinemiyor', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-tpl-del', code: 'TD1' }]));
+    await executor.run(stadiumInsertSql([{ key: 's-tpl-del' }]));
+    await executor.run(
+      clubInsertSql([
+        { key: 'c-tpl-del', countryCode: 'TD1', stadiumKey: 's-tpl-del', abbreviation: 'TDA' },
+      ]),
+    );
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-kullanilan' }]));
+    await executor.run(
+      clubKitInsertSql([{ clubKey: 'c-tpl-del', templateCode: 'tpl-kullanilan' }]),
+    );
+
+    await expect(
+      executor.run(`DELETE FROM "kit_templates" WHERE "code" = 'tpl-kullanilan'`),
+    ).rejects.toThrow(/club_kits_template_id_kit_templates_id_fk/);
+  });
+
+  it('CASCADE: kulüp silinince formaları da gidiyor — şablon KALIYOR', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-kit-casc', code: 'KC1' }]));
+    await executor.run(stadiumInsertSql([{ key: 's-kit-casc' }]));
+    await executor.run(
+      clubInsertSql([
+        { key: 'c-kit-casc', countryCode: 'KC1', stadiumKey: 's-kit-casc', abbreviation: 'KCA' },
+      ]),
+    );
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-casc' }]));
+    await executor.run(clubKitInsertSql([{ clubKey: 'c-kit-casc', templateCode: 'tpl-casc' }]));
+
+    const before = await executor.rows<{ id: number }>(
+      `SELECT "id" FROM "clubs" WHERE "key" = 'c-kit-casc'`,
+    );
+    const clubId = before[0]?.id ?? -1;
+
+    await executor.run(`DELETE FROM "clubs" WHERE "key" = 'c-kit-casc'`);
+
+    const kits = await executor.rows<{ n: number | string }>(
+      `SELECT count(*)::int AS n FROM "club_kits" WHERE "club_id" = ${String(clubId)}`,
+    );
+    expect(Number(kits[0]?.n)).toBe(0);
+
+    // Şablon bir SÖZLÜK girdisi — kulüple birlikte gitmemeli.
+    const template = await executor.rows<{ n: number | string }>(
+      `SELECT count(*)::int AS n FROM "kit_templates" WHERE "code" = 'tpl-casc'`,
+    );
+    expect(Number(template[0]?.n)).toBe(1);
+  });
+
+  it('RESTRICT: hakemi olan bir ÜLKE silinemiyor', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-ref-del', code: 'RD1' }]));
+    await executor.run(refereeInsertSql([{ key: 'r-del', countryCode: 'RD1' }]));
+
+    await expect(executor.run(`DELETE FROM "countries" WHERE "key" = 'k-ref-del'`)).rejects.toThrow(
+      /referees_country_id_countries_id_fk/,
+    );
+  });
+});
+
+describe('`club_kits.asset_id` — iki durumu da temsil edebiliyor', () => {
+  /**
+   * Sütunun VAR OLMA SEBEBİ: `spec/12` §17.4 iki durumu ayırıyor — görsel var /
+   * *"görsel yoksa `kit_templates` sisteminden üretilir"*. Sütun olmadan bu ayrım
+   * şemada ifade edilemezdi (SAPMA-026 EK, 3.6).
+   */
+  it('gerçek görsel ve prosedürel yedek AYNI tabloda yan yana duruyor', async () => {
+    await executor.run(countryInsertSql([{ key: 'k-asset', code: 'AS1' }]));
+    await executor.run(stadiumInsertSql([{ key: 's-asset' }]));
+    await executor.run(
+      clubInsertSql([
+        { key: 'c-asset', countryCode: 'AS1', stadiumKey: 's-asset', abbreviation: 'ASA' },
+      ]),
+    );
+    await executor.run(kitTemplateInsertSql([{ code: 'tpl-asset' }]));
+    await executor.run(
+      clubKitInsertSql([
+        { clubKey: 'c-asset', templateCode: 'tpl-asset', kitType: 'home', assetId: 'kit/real' },
+        { clubKey: 'c-asset', templateCode: 'tpl-asset', kitType: 'away' },
+      ]),
+    );
+
+    const rows = await executor.rows<{ kit_type: string; asset_id: string | null }>(`
+      SELECT "kit_type", "asset_id" FROM "club_kits"
+       WHERE "club_id" = (SELECT "id" FROM "clubs" WHERE "key" = 'c-asset')
+       ORDER BY "kit_type"
+    `);
+    expect(rows.map((row) => [row.kit_type, row.asset_id])).toEqual([
+      ['away', null],
+      ['home', 'kit/real'],
+    ]);
+  });
+
+  /**
+   * KARŞI ÖRNEK — `template_id` NOT NULL kaldı ve bu bir tercih değil.
+   *
+   * K9 gereği prosedürel yedek HER ZAMAN kurulabilir olmalı. İkisi de nullable
+   * olsaydı hiçbir şeyi render edemeyen bir satır temsil edilebilir olurdu.
+   */
+  it('`template_id` hâlâ ZORUNLU — şablonsuz forma satırı yazılamıyor', async () => {
+    await expect(
+      executor.run(`
+        INSERT INTO "club_kits" ("club_id","kit_type","template_id","color1","color2")
+        SELECT "id",'third',NULL,'#000000','#FFFFFF' FROM "clubs" WHERE "key" = 'c-asset'
+      `),
+    ).rejects.toThrow(/null value in column "template_id"/);
+  });
+});
+
+describe('FAZ 3 ŞEMA ENVANTERİ — 11/11, sayı ÖLÇÜLÜYOR', () => {
+  /**
+   * SAPMA-021 envanteri **11**'de mutabakata bağlamıştı; sayı o gün üç ayrı
+   * yerde üç farklı şekilde yazılıydı (ROADMAP 15, `spec/01` 11, Faz 2 kaydı 16).
+   *
+   * Bu test o iddianın kapanışı ve **gözle sayılmıyor**: tablo adları gerçek
+   * `information_schema`'dan okunuyor. `fms_meta` şeması bilerek dışarıda —
+   * migration takip tablosu bir master tablo değil (3.2a'nın tavuk-yumurta
+   * çözümü).
+   */
+  it('public şemasında TAM OLARAK 11 master tablo var', async () => {
+    const rows = await executor.rows<{ table_name: string }>(`
+      SELECT table_name FROM information_schema.tables
+       WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+       ORDER BY table_name
+    `);
+
+    expect(rows.map((row) => row.table_name)).toEqual([
+      'club_facilities',
+      'club_finances_base',
+      'club_kits',
+      'clubs',
+      'competitions',
+      'countries',
+      'federations',
+      'kit_templates',
+      'referees',
+      'rivalries',
+      'stadiums',
+    ]);
+    expect(rows).toHaveLength(11);
+  });
+
+  it('takip tablosu KENDİ şemasında — master sayımını kirletmiyor', async () => {
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM information_schema.tables
+       WHERE table_schema = 'fms_meta'
+    `);
+    expect(Number(rows[0]?.n)).toBe(1);
   });
 });

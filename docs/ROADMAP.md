@@ -1271,7 +1271,49 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       birlikte) · `rivalries` tekrar/kendine-referans kısıtı (Faz 11; kısmi bir
       `UNIQUE` (B,A)'yı sessizce geçirir — D3 sınıfı) · `seated_capacity <=
       capacity` CHECK'i (§3.1.2 ②, içerik denetimi Faz 11)
-- [ ] **3.6** Görsel varlıklar ve hakemler — `kit_templates`, `club_kits`, `referees`
+- [x] **3.6** Görsel varlıklar ve hakemler — `kit_templates`, `club_kits`, `referees`.
+      **SONUÇ:** üçü de `masterTable(...)` ile sarılı · `0003_visual_assets_referees`
+      + **elle yazılmış `down`** · **ŞEMA ENVANTERİ KAPANDI: 11 / 11 master tablo**
+      ve sayı gözle değil `information_schema`'dan **ölçülerek** iddia ediliyor ·
+      **on iki FK** ve hepsinin `ON DELETE` davranışı tam envanter olarak test
+      edilmiş.
+      ⚠️ **`club_kits.asset_id` `spec/01`'DE YOKTU, EKLENDİ.** `spec/12` §17.4
+      her formaya bir `image` yolu veriyor, §17.9'un ilk kabul kriteri *"forma
+      görselleri ekranda görünüyor"* diyor, ve §17.4 iki durumu **ayırıyor**
+      (görsel var / *"yoksa `kit_templates` sisteminden üretilir"*). Sütun
+      olmadan bu ayrım şemada **ifade edilemiyordu**; görsel taşıyan diğer beş
+      tablonun hepsinde bu sütun var. SAPMA-026'nın türetme kuralının **üçüncü**
+      uygulaması (yeni SAPMA açılmadı). `template_id` NOT NULL kaldı — K9 gereği
+      prosedürel yedek **her zaman** kurulabilir olmalı.
+      ⚠️ **`rivalries` KARARI KOPYALANMADI.** 3.5'te teklik Faz 11'e bırakılmıştı
+      (kısmi `UNIQUE` `(B,A)`'yı sessizce geçirir — D3). `club_kits` için gerekçe
+      **geçersiz**: `kit_type` kapalı, sıralama belirsizliği yok, kısıt **tam** →
+      `(club_id, kit_type)` **UNIQUE kondu** ve negatif testle kanıtlandı.
+      ⚠️ **§3.1.2 İKİ KEZ NETLEŞTİRİLDİ:** ②'ye **dördüncü satır** (`// 2 veya 3`
+      → sayısal ama **kapalı küme** → CHECK); gerçek ayraç *"dize mi sayı mı"*
+      değil, *"sözleşme mi kalibrasyon mu"*. Ve **⑧ eklendi**: `kit_templates`
+      gibi **sahipsiz sözlük tabloları** ③'ün ikili ayrımının dışında →
+      **RESTRICT** (Faz 4'ün `injury_types`/`staff_roles`'ü aynı sınıf).
+      **Ölçümler:** `pnpm test` **635 / 46 dosya** (değişmedi — 3.6 birim testi
+      getirmedi, kanıt entegrasyon tarafında) · `pnpm test:db` 77 → **103**
+      (4 dosya) · round-trip `comparedFacts` 1.223 → **1.619** (sınır önce
+      erişilemez bir değere konup gerçek değer testin çıktısından okundu —
+      3.5'in tahmin hatası tekrarlanmadı) · kapsam **%85,12 satır / %75,44
+      fonksiyon** (eşik %70, DÜŞÜRÜLMEDİ, dosya dışlanmadı) · `arch:check`
+      **9 kural, değişmedi** · soğuk build 8/8, **11,79 s**.
+      **Mutasyonla doğrulandı:** ① `referees`ten `masterTable(...)` kaldırıldı →
+      `typecheck` **exit 0**, `pnpm test` **635/635 geçti**, **yalnızca
+      `arch:check` yakaladı** (üçüncü tekrar) ② karşılaştırıcı köreltildi →
+      **103 testin 16'sı** kırıldı. **Seri `spec/09` §11.5'e yazıldı:**
+      %6,3 → %10,0 → %14,3 → **%15,5**.
+      **D5:** derlenmiş `dist/` düz `node` ile gerçek PG18.6'ya karşı — dört
+      migration, **11 tablo**, forma `asset_id`'sinin iki durumu da temsil
+      edildi, ikinci `home` forması **reddedildi**, ters sırada geri alma,
+      0 tablo kaldı.
+      **Bilerek YAPILMAYANLAR:** `referees.person_id` (Faz 4 — üçüncü ve son
+      ileri FK, kabul kriteri zaten yazılı) · `color3` ↔ `colorSlots` tutarlılığı
+      (Faz 11, **G-12**) · `rivalries` teklik kısıtı (Faz 11, **G-11**; fikir
+      değişirse 3.7'de bedelsiz)
 - [ ] **3.7** İndeksler + `pg_trgm` GIN + `CREATE EXTENSION` migration'ı.
       ⚠️ **3.1'de ölçülen kısıt:** düz `pg_trgm` Türkçe aramayı sağlamıyor
       (`'Beşiktaş' % 'besiktas'` → **`f`**, benzerlik 0,286 · eşik 0,3) çünkü Türkçe

@@ -468,6 +468,34 @@ Kırılan tek test, bozuk bir `down`u yakalayan **negatif** testti. **On beş po
 test kör bir karşılaştırıcıyla da geçiyordu** — çünkü hepsi `identical: true`
 bekliyor ve kör bir karşılaştırıcı bunu bedavaya sağlıyor.
 
+### 📈 MUTASYON SERİSİ — dört ölçüm, bir eğilim (Faz 3.2b → 3.6)
+
+Aynı mutasyon (`compareSchemas` → her zaman `identical: true`) her şema alt
+görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; dört rakam bir eğilim:
+
+| Alt görev | Şema | Kırılan / toplam `test:db` | Oran |
+|---|---|---|---|
+| **3.2b** | 1 tablo | **1 / 16** | %6,3 |
+| **3.4** | 3 tablo | **5 / 50** | %10,0 |
+| **3.5** | 8 tablo | **11 / 77** | %14,3 |
+| **3.6** | 11 tablo | **16 / 103** | %15,5 |
+
+**Ne söylüyor:** test tabanı 16'dan 103'e çıkarken kör bir kontrolün yakalandığı
+yer oranı **%6'dan %15,5'e** çıktı. Yani testler yalnızca **çoğalmadı**,
+*derinleşti* — her yeni tablo kendi bozulma testini de getirdiği için körelen
+bir karşılaştırıcı daha çok yerde ötüyor.
+
+**Ne söylemiyor:** oranın büyümesi otomatik değil. 3.5'te ölçülen 11 kırılmanın
+**altısı** o alt görevde **açıkça yazılan** yeni bozulma testleriydi; yazılmasalardı
+sayı 5'te kalır, oran **%6,5'e düşerdi**. Yani eğilim bir kazanım değil, her alt
+görevde **yeniden kazanılan** bir şey.
+
+**Nasıl okunur:** bu seri bir **taban çizgisidir**. Yeni bir şema/karşılaştırma
+alt görevinde oran düşerse, sebebi aranır: ya negatif testler genişletilmemiştir
+ya da yeni pozitif testler kör bir kontrolle de geçiyordur. **Faz 22** (motor
+çekirdeği) determinizm ve snapshot testleriyle bu seriye ilk kez motor tarafından
+bakacak — orada da aynı soru sorulur: *"bu kontrolü sustursam kaç test kırılır?"*
+
 **İki kalıcı kural:**
 
 1. **Bir karşılaştırma/doğrulama yazan her yerde negatif test ZORUNLU.** Pozitif

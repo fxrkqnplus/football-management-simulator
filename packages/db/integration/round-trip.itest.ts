@@ -75,7 +75,10 @@ import {
   clubFacilitiesInsertSql,
   clubFinancesInsertSql,
   clubInsertSql,
+  clubKitInsertSql,
   countryInsertSql,
+  kitTemplateInsertSql,
+  refereeInsertSql,
   rivalryInsertSql,
   stadiumInsertSql,
 } from './fixtures.js';
@@ -84,39 +87,58 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 /** Zincirin son migration'ı — snapshot karşılaştırması bunu okur. */
-const LATEST_SNAPSHOT = '0002_snapshot.json';
+const LATEST_SNAPSHOT = '0003_snapshot.json';
 const CHAIN_TAGS = [
   '0000_countries_initial',
   '0001_geography_institutions',
   '0002_club_core',
+  '0003_visual_assets_referees',
 ] as const;
 
 /** Zincirin tamamını geri almak için gereken adım sayısı. */
 const FULL_CHAIN_STEPS = CHAIN_TAGS.length;
 
-/** Şemanın tam tablo listesi — açıkça yazılıyor, journal'dan okunmuyor (fixtures.ts başlığı). */
+/**
+ * Şemanın tam tablo listesi — açıkça yazılıyor, journal'dan okunmuyor
+ * (`fixtures.ts` başlığındaki ayrım).
+ *
+ * ⚠️ **Faz 3'ün envanteri burada TAMAMLANIYOR: 11 tablo.** Sayı üç ayrı yerde
+ * üç farklı şekilde yazılıydı ve 3.1'de 11'de mutabakata bağlanmıştı
+ * (SAPMA-021). Bu liste o iddianın **koşan** hâli: gerçek veritabanından
+ * okunuyor ve adıyla karşılaştırılıyor.
+ */
 const ALL_TABLES = [
   'club_facilities',
   'club_finances_base',
+  'club_kits',
   'clubs',
   'competitions',
   'countries',
   'federations',
+  'kit_templates',
+  'referees',
   'rivalries',
   'stadiums',
 ] as const;
+
+/** SAPMA-021'in envanter sayısı — listeyle ayrışamaz. */
+const MASTER_TABLE_COUNT = 11;
 
 /**
  * `comparedFacts` ALT SINIRI — D3 önlemi, her migration'da YENİDEN ÖLÇÜLÜR.
  *
  * "Fark yok" ancak gerçekten bir şeye bakıldıysa anlamlı. Sayaç ölçülmüş
  * değerlerden geliyor: 3.2b'de `countries` tek başına **89**, 3.4'te üç tabloda
- * **466**, 3.5'te sekiz tabloda **1.223** (gerçek PG 18.6 koşumundan okundu,
- * tahmin edilmedi — ilk yazılan 1.246 bir tahmindi ve test onu reddetti).
+ * **466**, 3.5'te sekiz tabloda **1.223**, 3.6'da on bir tabloda **1.619**.
  * Sınır yükseltilmezse test "fark yok" demeye devam eder ama **kaç şeye
  * baktığı** sabitlenmemiş olur — D3'ün ta kendisi.
+ *
+ * ⚠️ **Sayı TAHMİN EDİLMEZ.** 3.5'te 1.246 yazıldı, gerçek 1.223 çıktı ve test
+ * onu reddetti (günlük #34). 3.6'da yöntem baştan doğru uygulandı: sınır
+ * kasıtlı olarak erişilemeyecek bir değere (`9_999_999`) konuldu ve gerçek
+ * değer testin reddettiği çıktıdan okundu. **Tahmin hiç yazılmadı.**
  */
-const COMPARED_FACTS_FLOOR = 1_223;
+const COMPARED_FACTS_FLOOR = 1_619;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;
@@ -308,6 +330,36 @@ async function seedAllTables(): Promise<void> {
       },
     ]),
   );
+
+  // 0003 — şablonlar önce: `club_kits.template_id` onlara bakıyor.
+  await executor.run(
+    kitTemplateInsertSql([
+      { code: 'stripes_vertical', colorSlots: 2 },
+      { code: 'sash', colorSlots: 3 },
+    ]),
+  );
+
+  await executor.run(
+    clubKitInsertSql([
+      // Gerçek görseli OLAN forma — `asset_id` dolu.
+      {
+        clubKey: 'galatasaray',
+        templateCode: 'stripes_vertical',
+        kitType: 'home',
+        assetId: 'kit/galatasaray-home',
+      },
+      // Görseli OLMAYAN forma — `asset_id` null, şablondan üretilecek (K9).
+      { clubKey: 'galatasaray', templateCode: 'sash', kitType: 'away', color3: '#FFFFFF' },
+      { clubKey: 'fenerbahce', templateCode: 'stripes_vertical', kitType: 'home' },
+    ]),
+  );
+
+  await executor.run(
+    refereeInsertSql([
+      { key: 'hakem-1', countryCode: 'TUR' },
+      { key: 'hakem-2', countryCode: 'ENG', source: 'pack', strictness: 17 },
+    ]),
+  );
 }
 
 /** Seed'in yazdığı toplam satır sayısı — kayıp ölçümü testlerinin dayanağı. */
@@ -320,6 +372,9 @@ const SEEDED_ROWS = {
   club_facilities: 2,
   club_finances_base: 2,
   rivalries: 1,
+  kit_templates: 2,
+  club_kits: 3,
+  referees: 2,
 } as const;
 
 /**
@@ -365,8 +420,8 @@ async function trackedCount(): Promise<number> {
   return Number(rows[0]?.n ?? 0);
 }
 
-describe('round-trip — gerçek migration zinciri (0000 + 0001 + 0002)', () => {
-  it('up → SEKİZ tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
+describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
+  it('up → ON BİR tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
 
@@ -388,6 +443,47 @@ describe('round-trip — gerçek migration zinciri (0000 + 0001 + 0002)', () => 
     // D3 önlemi — sınır her migration'da yeniden ölçülüyor (bkz. sabitin başlığı).
     expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
     expect(after.tables.map((table) => table.name).sort()).toEqual([...ALL_TABLES]);
+    // SAPMA-021'in envanter sayısı — liste ile ayrı ayrı iddia ediliyor ki
+    // biri güncellenip diğeri unutulduğunda test kırılsın.
+    expect(after.tables).toHaveLength(MASTER_TABLE_COUNT);
+  });
+
+  /**
+   * 0003 TEK BAŞINA — Faz 3'ün SON migration'ının kendi kanıtı.
+   *
+   * 0002'nin testiyle aynı sınıf (yalnızca `CREATE TABLE`, dolayısıyla
+   * `identical: true` beklenir) ama ayrı: tek bir birleşik test 0003'ün
+   * `down`unu 0002'nin arkasında görünmez kılardı — 0002 zaten `club_kits`in
+   * baktığı `clubs`ı düşürüyor.
+   */
+  it('yalnızca 0003 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+    const before = await introspectSchema(executor);
+
+    await migrateDown({ executor, source, logger }, { steps: 1, allowDataLoss: true });
+
+    // Geri alma tam olarak ÜÇ tabloyu düşürdü — 0002'nin sekizi ayakta.
+    const rolledBack = await introspectSchema(executor);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([
+      'club_facilities',
+      'club_finances_base',
+      'clubs',
+      'competitions',
+      'countries',
+      'federations',
+      'rivalries',
+      'stadiums',
+    ]);
+
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const comparison = compareSchemas(before, after);
+
+    expect(summarizeDifferences(comparison)).toMatch(/^fark yok/);
+    expect(comparison.identical).toBe(true);
+    expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
   });
 
   /**
@@ -402,14 +498,15 @@ describe('round-trip — gerçek migration zinciri (0000 + 0001 + 0002)', () => 
    * `down`u 0001'in bilinen sekiz farkının **arkasında** kalırdı: fazla giden
    * bir `down` "zaten fark bekliyorduk" diye okunurdu.
    */
-  it('yalnızca 0002 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+  it('0003+0002 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
     const before = await introspectSchema(executor);
 
-    await migrateDown({ executor, source, logger }, { steps: 1, allowDataLoss: true });
+    // ⚠️ `steps: 2` — 3.6'da zincir uzadı; 0003 önce, 0002 sonra geri alınıyor.
+    await migrateDown({ executor, source, logger }, { steps: 2, allowDataLoss: true });
 
-    // Geri alma gerçekten beş tabloyu düşürdü — 0001'in üçü ayakta.
+    // Geri alma gerçekten sekiz tabloyu düşürdü — 0001'in üçü ayakta.
     const rolledBack = await introspectSchema(executor);
     expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([
       'competitions',
@@ -495,13 +592,14 @@ describe('round-trip — gerçek migration zinciri (0000 + 0001 + 0002)', () => 
    * beklenen sekiz farkın dışında tek bir fark çıkarsa test kırılır, yani
    * fazla giden bir `down` yine yakalanır.
    */
-  it('0002+0001 geri alınınca TEK fark sütun NUMARALARI — başka hiçbir şey', async () => {
+  it('0003+0002+0001 geri alınınca TEK fark sütun NUMARALARI — başka hiçbir şey', async () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
 
-    // ⚠️ `steps: 2` — 3.5'te zincir uzadı. 0002 önce, 0001 sonra geri alınıyor;
-    // `countries` ayakta kalıyor ve `attnum` deliği ölçülebilir hâlde duruyor.
-    await migrateDown({ executor, source, logger }, { steps: 2, allowDataLoss: true });
+    // ⚠️ `steps: 3` — 3.6'da zincir uzadı. 0003 → 0002 → 0001 sırayla geri
+    // alınıyor; `countries` ayakta kalıyor ve `attnum` deliği ölçülebilir
+    // hâlde duruyor.
+    await migrateDown({ executor, source, logger }, { steps: 3, allowDataLoss: true });
 
     const rolledBack = await introspectSchema(executor);
     expect(rolledBack.tables.map((table) => table.name)).toEqual(['countries']);
@@ -584,7 +682,7 @@ describe('round-trip — gerçek migration zinciri (0000 + 0001 + 0002)', () => 
     await migrateUp({ executor, source, logger });
     await seedAllTables();
 
-    await migrateDown({ executor, source, logger }, { steps: 2, allowDataLoss: true });
+    await migrateDown({ executor, source, logger }, { steps: 3, allowDataLoss: true });
 
     // Satırlar duruyor — kaybolan yalnızca sütunlar.
     const remaining = await executor.rows<{ n: number | string }>(
@@ -622,13 +720,16 @@ describe('round-trip — gerçek migration zinciri (0000 + 0001 + 0002)', () => 
 
     // Tanım: birebir aynı — ve karşılaştırma bunu görüyor.
     expect(compareSchemas(schemaBefore, schemaAfter).identical).toBe(true);
-    // ⚠️ ALTI sequence, SEKİZ tablo: `club_facilities` ve `club_finances_base`
+    // ⚠️ DOKUZ sequence, ON BİR tablo: `club_facilities` ve `club_finances_base`
     // `serial id` TAŞIMIYOR (`club_id` hem PK hem FK), yani sequence üretmiyorlar.
     expect(schemaAfter.sequences.map((sequence) => sequence.name).sort()).toEqual([
+      'club_kits_id_seq',
       'clubs_id_seq',
       'competitions_id_seq',
       'countries_id_seq',
       'federations_id_seq',
+      'kit_templates_id_seq',
+      'referees_id_seq',
       'rivalries_id_seq',
       'stadiums_id_seq',
     ]);
@@ -685,6 +786,24 @@ describe('round-trip — gerçek migration zinciri (0000 + 0001 + 0002)', () => 
     ['club_finances_base', 'ALTER TABLE "club_finances_base" DROP COLUMN "balance"', 'balance'],
     ['club_facilities', 'DROP TABLE "club_facilities"', 'club_facilities'],
     ['rivalries', 'DROP TABLE "rivalries"', 'rivalries'],
+    // ── 3.6'nın üç yeni tablosu ────────────────────────────────────────────
+    ['club_kits', 'ALTER TABLE "club_kits" DROP COLUMN "asset_id"', 'asset_id'],
+    [
+      'club_kits',
+      'ALTER TABLE "club_kits" DROP CONSTRAINT "club_kits_club_id_kit_type_unique"',
+      'club_kits_club_id_kit_type_unique',
+    ],
+    [
+      'kit_templates',
+      'ALTER TABLE "kit_templates" DROP CONSTRAINT "kit_templates_color_slots_check"',
+      'kit_templates_color_slots_check',
+    ],
+    ['referees', 'ALTER TABLE "referees" DROP COLUMN "home_bias"', 'home_bias'],
+    [
+      'referees',
+      'ALTER TABLE "referees" DROP CONSTRAINT "referees_country_id_countries_id_fk"',
+      'referees_country_id_countries_id_fk',
+    ],
   ])('%s üzerindeki bozulma yakalanıyor (%s)', async (_table, mutation, needle) => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
@@ -751,13 +870,13 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
     expect(await trackedCount()).toBe(FULL_CHAIN_STEPS);
   });
 
-  it('SÜTUN kaybı ayrı bir kalem olarak görünüyor — 0002+0001 geri alınınca', async () => {
+  it('SÜTUN kaybı ayrı bir kalem olarak görünüyor — 0003+0002+0001 geri alınınca', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
 
     const result = await migrateDown(
       { executor, source, logger },
-      { steps: 2, dryRun: true, allowDataLoss: true },
+      { steps: 3, dryRun: true, allowDataLoss: true },
     );
 
     const byKind = {
@@ -767,14 +886,18 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
         .map((item) => `${item.table}.${item.column ?? '?'}`),
     };
 
-    // YEDİ tablo düşüyor: 0002'nin beşi + 0001'in ikisi. `countries` ayakta
-    // kalıyor, o yüzden sütun kalemleri burada GÖRÜNÜR (yukarıdaki testte değil).
+    // ON tablo düşüyor: 0003'ün üçü + 0002'nin beşi + 0001'in ikisi. `countries`
+    // ayakta kalıyor, o yüzden sütun kalemleri burada GÖRÜNÜR (yukarıdaki testte
+    // değil).
     expect(byKind.table.sort()).toEqual([
       'club_facilities',
       'club_finances_base',
+      'club_kits',
       'clubs',
       'competitions',
       'federations',
+      'kit_templates',
+      'referees',
       'rivalries',
       'stadiums',
     ]);
@@ -790,15 +913,10 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
     ]);
 
     // Sütun kaybında TABLONUN TAMAMI sayılır (`loss.ts`: üst sınır, bilerek).
-    // 7 tablonun satırları + 8 sütun × `countries` satır sayısı.
-    const droppedTableRows =
-      SEEDED_ROWS.club_facilities +
-      SEEDED_ROWS.club_finances_base +
-      SEEDED_ROWS.clubs +
-      SEEDED_ROWS.competitions +
-      SEEDED_ROWS.federations +
-      SEEDED_ROWS.rivalries +
-      SEEDED_ROWS.stadiums;
+    // 10 tablonun satırları + 8 sütun × `countries` satır sayısı.
+    const droppedTableRows = Object.entries(SEEDED_ROWS)
+      .filter(([table]) => table !== 'countries')
+      .reduce((total, [, rows]) => total + rows, 0);
     expect(result.loss.totalRowsAtRisk).toBe(droppedTableRows + 8 * SEEDED_ROWS.countries);
   });
 });
@@ -892,6 +1010,36 @@ describe('snapshot ↔ gerçek şema (ikinci ve ayrı iddia)', () => {
       'supporter_count',
       'supporter_expectation',
       'is_national',
+      'created_at',
+      'updated_at',
+    ]);
+  });
+
+  /**
+   * `referees` FİZİKSEL SÜTUN SIRASI — Faz 4'ün ÜÇÜNCÜ ve son ALTER hedefi.
+   *
+   * `clubs` testiyle aynı gerekçe: Faz 4 buraya `person_id`i `ALTER TABLE ADD
+   * COLUMN` ile ekleyecek ve §3.1.2 ④ gereği sütun TS tanımının da **sonuna**
+   * yazılmalı. Üç ileri FK'nın üçü de (`federations` · `clubs` · `referees`)
+   * aynı sınıf; ikisinin sırası artık burada sabit.
+   */
+  it('referees fiziksel sütun sırası 0003 snapshot’ıyla AYNI — Faz 4 sona ekleyecek', async () => {
+    await migrateUp({ executor, source, logger });
+    const real = await introspectSchema(executor);
+    const refereesTable = real.tables.find((table) => table.name === 'referees');
+
+    expect(refereesTable?.columns.map((column) => column.name)).toEqual([
+      'id',
+      'key',
+      'source',
+      'external_ids',
+      'country_id',
+      'strictness',
+      'foul_tolerance',
+      'home_bias',
+      'consistency',
+      'advantage_play',
+      'big_game_experience',
       'created_at',
       'updated_at',
     ]);

@@ -335,6 +335,116 @@ export function rivalryInsertSql(rows: readonly RivalryFixture[]): string {
   `;
 }
 
+/** `kit_templates` satırı — oyunun kendi şablonu, pakette değil. */
+export interface KitTemplateFixture {
+  readonly code: string;
+  readonly nameKey?: string;
+  readonly svgPath?: string;
+  readonly colorSlots?: number;
+}
+
+export function kitTemplateInsertSql(rows: readonly KitTemplateFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        quote(row.code),
+        quote(row.nameKey ?? `kit.template.${row.code}`),
+        quote(row.svgPath ?? `kits/templates/${row.code}.svg`),
+        String(row.colorSlots ?? 2),
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "kit_templates" ("code","name_key","svg_path","color_slots")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `club_kits` satırı.
+ *
+ * `assetId` **verilmezse `null`** — ve bu bir eksiklik değil: prosedürel yedek
+ * her zaman var (`template_id` NOT NULL), `null` yalnızca *"paket görsel
+ * taşımıyor"* demek (K9).
+ */
+export interface ClubKitFixture {
+  readonly clubKey: string;
+  readonly templateCode: string;
+  readonly kitType?: string;
+  readonly color1?: string;
+  readonly color2?: string;
+  readonly color3?: string | null;
+  readonly assetId?: string | null;
+}
+
+export function clubKitInsertSql(rows: readonly ClubKitFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        idOf('clubs', 'key', row.clubKey),
+        quote(row.kitType ?? 'home'),
+        idOf('kit_templates', 'code', row.templateCode),
+        quote(row.color1 ?? '#A90432'),
+        quote(row.color2 ?? '#FBB800'),
+        textOrNull(row.color3 === undefined ? null : row.color3),
+        textOrNull(row.assetId === undefined ? null : row.assetId),
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "club_kits"
+      ("club_id","kit_type","template_id","color1","color2","color3","asset_id")
+    VALUES
+      (${values})
+  `;
+}
+
+/** `referees` satırı — altı nitelik 1-20, `person_id` YOK (Faz 4). */
+export interface RefereeFixture {
+  readonly key: string;
+  readonly countryCode: string;
+  readonly source?: string;
+  readonly externalIds?: string;
+  readonly strictness?: number;
+  readonly foulTolerance?: number;
+  readonly homeBias?: number;
+  readonly consistency?: number;
+  readonly advantagePlay?: number;
+  readonly bigGameExperience?: number;
+}
+
+export function refereeInsertSql(rows: readonly RefereeFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        quote(row.key),
+        // Hakemler v1'de PROSEDÜREL üretiliyor: pakette `referees.json` yok
+        // (`spec/12` §17.2'de ölçüldü), o yüzden varsayılan köken `procedural`.
+        quote(row.source ?? 'procedural'),
+        `${quote(row.externalIds ?? '{}')}::jsonb`,
+        idOf('countries', 'code', row.countryCode),
+        String(row.strictness ?? 12),
+        String(row.foulTolerance ?? 11),
+        String(row.homeBias ?? 10),
+        String(row.consistency ?? 14),
+        String(row.advantagePlay ?? 13),
+        String(row.bigGameExperience ?? 9),
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "referees"
+      ("key","source","external_ids","country_id","strictness","foul_tolerance",
+       "home_bias","consistency","advantage_play","big_game_experience")
+    VALUES
+      (${values})
+  `;
+}
+
 /**
  * Gerçek migration zincirinin etiketleri — journal'dan **okunuyor**.
  *

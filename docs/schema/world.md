@@ -34,9 +34,17 @@ her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (
 | 6 | `club_finances_base` | 3.5 | — | `clubId` 1:1 · başlangıç değerleri master, değişimi delta · `bigint` **`mode: 'bigint'`** (§3.1.2 ⑥) |
 | 7 | `stadiums` | 3.5 | ✅ | `builtYear`/`assetId` nullable |
 | 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` → ikisi de `clubs`, `CASCADE`. Tekrar/kendine-referans denetimi **Faz 11** |
-| 9 | `kit_templates` | 3.6 | — | Oyunun kendi 20 SVG şablonu, pakette değil — `code` kimliği taşıyor |
-| 10 | `club_kits` | 3.6 | — | `clubId` + `kitType` |
-| 11 | `referees` | 3.6 | ✅ | `personId` **Faz 4'te** → Faz 4'e kadar **isimsiz** |
+| 9 | `kit_templates` | 3.6 | — | Oyunun kendi 20 SVG şablonu, pakette değil (`spec/12` §17.2'de `templates.json` **yok** — ölçüldü) — `code` **UNIQUE**, `key`in rolünü görüyor. `colorSlots` **CHECK (2,3)**: sayısal ama kapalı küme (§3.1.2 ②, 4. satır) |
+| 10 | `club_kits` | 3.6 | — | `(clubId, kitType)` **UNIQUE** · `kitType` CHECK · `templateId` → **RESTRICT** (sözlük tablosu, §3.1.2 ⑧). ⚠️ `assetId` `spec/01`'de **yoktu**, eklendi (SAPMA-026 EK): `spec/12` §17.4 gerçek forma görselini veriyor ve `null` = şablondan üret (K9) |
+| 11 | `referees` | 3.6 | ✅ | `personId` **Faz 4'te** → Faz 4'e kadar **isimsiz**. Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
+
+> ✅ **ENVANTER KAPANDI — 11/11 (Faz 3.6).** Sayı gözle sayılmıyor:
+> `packages/db/integration/schema-constraints.itest.ts` gerçek
+> `information_schema`'dan okuyup tablo adlarını tek tek iddia ediyor ve
+> `round-trip.itest.ts` aynı listeyi çevrimin iki ucunda karşılaştırıyor.
+> Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` ·
+> `0002_club_core` · `0003_visual_assets_referees` — **dördünün de elle yazılmış
+> `down`u var**.
 
 ## Faz 3'te bilerek YAPILMAYANLAR
 

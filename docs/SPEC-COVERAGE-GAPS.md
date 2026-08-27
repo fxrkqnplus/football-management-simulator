@@ -90,6 +90,22 @@ Yöntem: `clubs` tablosunun nullability kararları verilirken ortaya çıkan
 
 ---
 
+## Tarama 5 — Faz 3.6 (2026-08-28)
+
+Yöntem: Faz 3'ün son üç tablosu yazılırken *"bu kuralı kim denetleyecek?"*
+sorusu her koşullu/çapraz kısıt için tekrarlandı.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-11 | `spec/01` §3.1 — `rivalries.clubAId` · `clubBId` | 3.5'te teklik/kendine-referans koruması **bilerek konmadı**: kısmi bir `UNIQUE (a,b)` `(B,A)` ters çiftini sessizce geçirir (D3) ve tam koruma (`CHECK a < b` + `UNIQUE`) Faz 8 ingest'ine hiçbir spec'in istemediği bir **sıralama sözleşmesi** dayatır. Bugün üç hata biçimi denetimsiz: `(A,A)`, `(A,B)` tekrarı, `(B,A)` ters tekrarı. | **Faz 11** (`pnpm validate:world`) | ⏳ ROADMAP'e işlenmedi. ℹ️ **Fikir değişirse doğal yeri 3.7'dir ve BEDELSİZDİR:** `UNIQUE` zaten bir indeks yaratıyor, 3.7 (indeksler + `pg_trgm`) zaten bir migration açıyor — ayrı bir migration maliyeti yok. Karar `packages/db/src/schema/rivalries.ts` başlığında. |
+| G-12 | `spec/01` §3.1 — `club_kits.color3` ↔ `kit_templates.colorSlots` | 3.6'da `color3` **nullable** yazıldı: iki yuvalı bir şablonda üçüncü renk yoktur. Ama *"`colorSlots = 3` ise `color3` dolu olmalı, `= 2` ise boş olmalı"* bir **çapraz tablo** kuralıdır ve sütun kısıtıyla ifade edilemez. Bugün hiçbir şey denetlemiyor. | **Faz 11** — G-10 ile aynı sınıf (koşullu kural → doğrulayıcı) | ⏳ ROADMAP'e işlenmedi. Karar `packages/db/src/schema/club-kits.ts` sütun yorumunda. |
+
+> **G-10, G-11 ve G-12 aynı sınıf ve bu bir desendir:** üçü de *"şema bu kuralı
+> ifade edemez"* dediği için Faz 11'e düşüyor. Faz 11 açılışında bu üçü **birlikte**
+> okunmalı — tek tek karşılaşılırsa her biri ayrı bir sürpriz gibi görünür.
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.
