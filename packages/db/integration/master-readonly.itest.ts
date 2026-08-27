@@ -42,6 +42,7 @@ import { createFileMigrationSource } from '../src/migrate/file-source.js';
 import { createPostgresExecutor } from '../src/migrate/postgres-executor.js';
 import { migrateUp } from '../src/migrate/runner.js';
 import { countries } from '../src/schema/countries.js';
+import { countryInsertSql } from './fixtures.js';
 
 const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
@@ -108,7 +109,7 @@ describe('master salt-okunurluğu — veritabanı rolü (BORÇ-007 mekanizma kan
 
   // ⚠️ ASIL KANIT: tip sistemi burada YOK — bu ham SQL. Yine de reddediliyor.
   it.each([
-    ['INSERT', `INSERT INTO "countries" ("key","code","name_key") VALUES ('x','XXX','c.x')`],
+    ['INSERT', countryInsertSql([{ key: 'x', code: 'XXX' }])],
     ['UPDATE', `UPDATE "countries" SET "name_key" = 'y'`],
     ['DELETE', `DELETE FROM "countries"`],
   ])('uygulama rolü %s yapamaz — ham SQL bile reddediliyor', async (_name, statement) => {
@@ -118,9 +119,7 @@ describe('master salt-okunurluğu — veritabanı rolü (BORÇ-007 mekanizma kan
   // Karşı örnek: reddin ROLE bağlı olduğunu, tabloya değil, gösteriyor.
   // Bu olmadan "hiç kimse yazamıyor" durumundan ayırt edilemezdi (D3, iki yönlü nöbetçi).
   it('SAHİP rol aynı tabloya yazabiliyor — kısıt role bağlı', async () => {
-    await owner.run(
-      `INSERT INTO "countries" ("key","code","name_key") VALUES ('turkiye','TUR','country.tur')`,
-    );
+    await owner.run(countryInsertSql([{ key: 'turkiye', code: 'TUR' }]));
     const rows = await owner.rows<{ n: number | string }>(
       `SELECT count(*)::int AS n FROM "countries"`,
     );

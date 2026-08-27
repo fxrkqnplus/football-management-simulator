@@ -1183,8 +1183,43 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       **Faz 12'ye ölçüm bırakıldı:** `Readonly<T>` **sığdır** — iç nesne ve dizi
       mutasyonu derleniyor (`readonly-depth.test-d.ts`). `competitions.rules` bir
       `jsonb` (3.4) ve iç içe; `WorldView` gerçek bir `DeepReadonly` yazmak zorunda.
-- [ ] **3.4** Coğrafya ve kurumlar — `countries` (tamamlanır), `federations`,
-      `competitions` + `CompetitionRules` Zod şeması
+- [x] **3.4** Coğrafya ve kurumlar — `countries` (tamamlandı), `federations`,
+      `competitions` + `CompetitionRules` Zod şeması.
+      **SONUÇ:** üç tablo `masterTable(...)` ile sarılı (§3.4.1 biçimi) ·
+      `0001_geography_institutions` + **elle yazılmış `down`** · §3.1.0 sütun
+      sözleşmesi tek bir modülde (`data-pack-columns.ts`) ki beş tabloya
+      kopyalanmasın · `CompetitionRules` Zod şeması tablo tanımının **yanında**
+      (`@fms/shared`ın barrel'ına `zod` çekmemek için).
+      **`check()` DESTEKLENİYOR — ölçüldü**, ham SQL'e gerek kalmadı; CHECK
+      ifadesi sabit diziden **türetiliyor** (TS tipi ile veritabanı kısıtı
+      ayrışamıyor, sürüklenme mutasyonuyla doğrulandı: 1 birim + 2 entegrasyon
+      testi kırılıyor). Dört CHECK: `source` × 2, `competitions.type`,
+      `countries.work_permit_rule_key`. **Sayısal aralıklar bilerek CHECK
+      ALMADI** — gerekçe `spec/01` §3.1.2 ②.
+      ⚠️ **KAYIP ÖLÇÜMÜNÜN İLK KARIŞIK VAKASI ölçüldü:** `DROP TABLE` × 2 +
+      `DROP COLUMN` × 8 aynı geri almada. `allowDataLoss` olmadan
+      **reddediliyor** (`migration.downWouldLoseData`, işlem geri alınıyor) ve
+      rapor iki sınıfı **`LossItem.kind` ile ayrı ayrı** gösteriyor.
+      ⚠️ **İKİ YENİ TUZAK ÖLÇÜLDÜ, `spec/01` §3.1.2'ye yazıldı:** ④ `ALTER TABLE`
+      sütunu **sona** ekler ama snapshot **TS sırasını** yazar → tanım fiziksel
+      sıraya hizalandı (kontrolü daraltmak yerine) · ⑤ `ordinal_position` =
+      `attnum` ve `DROP COLUMN` deliği kalıcı → tek adımlık `ALTER` çevriminde
+      `identical: true` **beklenemez**; test farkların **tam listesini** iddia
+      ediyor (fazlası = `down` fazla gidiyor).
+      ⚠️ **`ON DELETE` kuralı karara bağlandı** (spec sessizdi): uydu →
+      `CASCADE`, bağımsız varlık → `RESTRICT`. İkisi de gerçek PG18.6'da
+      ölçüldü. 3.5/3.6 bunu `spec/01` §3.1.2 ③'ten okuyacak.
+      **Ölçümler:** `pnpm test` 598 → **631** (43 → 45 dosya) · `pnpm test:db`
+      23 → **50** (3 → 4 dosya) · round-trip `comparedFacts` 89 → **466**,
+      alt sınır yükseltildi · kapsam **%87,73 satır** (eşik %70, DÜŞÜRÜLMEDİ;
+      düşüşün sebebi üç Drizzle şema dosyasının %0'ı — ROADMAP'in aşağıdaki
+      dürüstlük notu tam olarak bu vaka) · `arch:check` **9 kural, değişmedi**.
+      **Mutasyonla doğrulandı:** ① `competitions`ten `masterTable(...)` sarması
+      kaldırıldı → `typecheck` **exit 0**, `pnpm test` **631/631 geçti**,
+      **yalnızca `arch:check` yakaladı** (kuralın var olma sebebi kanıtlandı)
+      ② karşılaştırıcı köreltildi → **50 testin 5'i** kırıldı (3.2b'de 16'da 1) ve
+      **üçü yeni tabloların** negatif testleri.
+      **D5:** derlenmiş `dist/` düz `node` ile gerçek PG18.6'ya karşı koşturuldu.
 - [ ] **3.5** Kulüp çekirdeği — `clubs`, `club_facilities`, `club_finances_base`,
       `stadiums`, `rivalries`
 - [ ] **3.6** Görsel varlıklar ve hakemler — `kit_templates`, `club_kits`, `referees`

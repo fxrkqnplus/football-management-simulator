@@ -122,6 +122,83 @@ tutarlı tercihi sezonu **skaler bir tamsayı** olarak taşımaktır:
 Puan durumu da saklanmıyor — `matches` satırlarından **türetiliyor**. Yeni bir
 tablo eklemeden önce bu deseni bozup bozmadığı sorulmalıdır.
 
+### 3.1.2 Şema yazım kuralları — Faz 3.4'te ÖLÇÜLDÜ, 3.5/3.6 bunları okur
+
+> **Bu bölüm 3.4'te yazıldı.** Aşağıdaki dördü de o alt görevde *karar* olarak
+> verildi ve gerçek PostgreSQL 18.6'ya karşı **ölçüldü**. Yazılmasalardı 3.5
+> (kulüp çekirdeği) ve 3.6 (görsel varlıklar, hakemler) aynı soruları yeniden
+> sorup muhtemelen farklı cevaplar verirdi — ve iki farklı cevap şemada
+> **sessiz** bir tutarsızlık olurdu.
+
+**① `check()` DESTEKLENİYOR — ham SQL'e gerek yok.**
+`drizzle-orm@0.45.2` `check`'i dışa aktarıyor ve `drizzle-kit@0.31.10` uçtan uca
+üretiyor. Sonda tabloyla ölçüldü, dokümandan okunmadı:
+
+```
+CONSTRAINT "probe_source_check" CHECK ("probe"."source" IN ('pack', 'api', …))
+meta/0000_snapshot.json → checkConstraints: { probe_source_check: { … } }
+```
+
+`ALTER TABLE … ADD CONSTRAINT … CHECK (…)` biçimi de üretiliyor (var olan bir
+tabloya sütun eklenirken). CHECK ifadesi bir **sabit diziden türetilir**
+(`packages/db/src/schema/data-pack-columns.ts`), elle yazılmaz — böylece
+TypeScript tipi ile veritabanı kısıtı ayrışamaz. Ayrışma denemesi ölçüldü:
+diziye altıncı bir değer eklenip migration yeniden üretilmediğinde **birim testi
+1, entegrasyon testi 2 test** kırılıyor.
+
+**② CHECK yalnızca KAPALI değer kümelerine konur.**
+Ayrım spec'in kendi yazımından okunur:
+
+| Spec'te nasıl yazılmış | Örnek | Karar |
+|---|---|---|
+| `'a' \| 'b' \| 'c'` — **kapalı** | `type`, `workPermitRuleKey`, `source` | **CHECK** |
+| `UEFA, CONMEBOL...` — **açık uçlu** | `confederation` | CHECK yok |
+| `// 0-200`, `// 1-100` — **sayısal aralık** | `reputation`, `footballLevel` | CHECK yok |
+
+Sayısal aralıklar bilerek dışarıda: bir değer kümesi **sözleşmedir** (`'leauge'`
+yarın da hatalıdır), bir aralık **kalibrasyondur** ve Faz 23/Faz 30 denge ayarı
+onu değiştirebilir. Migration'a çakılmış bir aralık o gün `DROP CONSTRAINT`
+gerektirirdi. Aralık denetiminin yeri **Faz 11 veri doğrulayıcısı**
+(`pnpm validate:world`) — bu bir borç değil, konum kararıdır.
+
+**③ `ON DELETE` — uydu CASCADE, bağımsız varlık RESTRICT.**
+`spec/01` ve ROADMAP `ON DELETE` için hiçbir şey söylemiyordu (arandı, yok) ama
+Faz 3'ün 3. kabul kriteri *"tanımlı"* olmasını istiyor. Kural §3.1.0'ın zaten
+yaptığı ayrımı takip ediyor:
+
+| Tablo sınıfı | `ON DELETE` | Gerekçe |
+|---|---|---|
+| **Uydu** (`key` taşımayan) | `CASCADE` | Kimliği sahibinin kimliğidir; sahibi gidince tek başına anlamı kalmaz |
+| **Bağımsız varlık** (`key` taşıyan) | `RESTRICT` | Pakette kendi kaydı var; sessizce silinmemeli, silen taraf önce onu ele almalı |
+
+3.4'te ölçüldü: `federations.country_id` → CASCADE (ülke silinince federasyon da
+gitti), `competitions.country_id` → RESTRICT (yarışması olan ülke silinemedi).
+
+**④ ⚠️ SÜTUN SIRASI: TS tanımı FİZİKSEL sırayı izler.**
+`ALTER TABLE ADD COLUMN` sütunu tablonun **sonuna** ekler; `drizzle-kit` ise
+`meta/NNNN_snapshot.json`'a **TS tanımındaki** sırayı yazar. İkisi ayrışırsa
+§3.0'ın *snapshot ↔ gerçek şema* karşılaştırması kırılır — o karşılaştırmanın
+kapsamına **sütun sırası** dahil.
+
+Ölçüldü (PG 18.6): `countries`e sekiz sütun eklendi, fiziksel sıra
+`id · key · code · name_key · created_at · updated_at · source · …` oldu. Sütunlar
+mantıksal sırada yazılsaydı snapshot yalan söylerdi.
+
+**Kural:** var olan bir tabloya sütun eklerken sütun, TS tanımının da **sonuna**
+yazılır — `created_at`/`updated_at` ortada kalsa bile. Bedeli okunabilirlik,
+kazancı **bir değişmez**: şema dosyasındaki sıra tablonun gerçek sırasıdır.
+
+**⑤ ⚠️ `DROP COLUMN` sütun NUMARASINI geri kazanmaz.**
+`information_schema.columns.ordinal_position` PostgreSQL'de `pg_attribute.attnum`
+ile aynıdır ve `DROP COLUMN` delik bırakır. Sekiz sütun düşüp yeniden eklenince
+numaralar **7…14 → 15…22** oluyor; **sıra** değişmiyor.
+
+Sonuç: tek bir `ALTER` migration'ının `down`/`up` çevriminde `identical: true`
+**beklenmez**. Bu bir kusur değil, PostgreSQL'in davranışıdır. Doğru iddia
+biçimi: farkların **tam listesini** sabitlemek (fazlası varsa `down` fazla
+gidiyor demektir) — `packages/db/integration/round-trip.itest.ts`. Tam zincir
+geri alması (tablo düşüp yeniden yaratıldığı için) `identical: true` verir.
+
 ### Coğrafya ve Kurumlar
 
 ```ts

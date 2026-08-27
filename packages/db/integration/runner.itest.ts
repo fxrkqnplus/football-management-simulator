@@ -25,6 +25,7 @@ import type { SqlExecutor } from '../src/migrate/executor.js';
 import { createFileMigrationSource } from '../src/migrate/file-source.js';
 import { createPostgresExecutor } from '../src/migrate/postgres-executor.js';
 import { migrateDown, migrateUp } from '../src/migrate/runner.js';
+import { chainTags, countryInsertSql } from './fixtures.js';
 
 const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
@@ -33,7 +34,20 @@ let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;
 let executor: SqlExecutor;
 
+/**
+ * Gerçek zincirin etiketleri — journal'dan okunuyor, elle yazılmıyor.
+ *
+ * Bu dosya **koşucunun davranışını** sınıyor: "bekleyenleri uygular", "geri
+ * alınca takip satırını siler", "kaybı ölçer". Hiçbiri zincirin İÇERİĞİNE
+ * bağlı değil. Elle yazılmış bir etiket listesi, her yeni migration'da bu
+ * testleri kırardı ve o kırılma hiçbir şey öğretmezdi — nitekim 3.4'te
+ * tam olarak bu oldu (`fixtures.ts` başlığı).
+ */
+let tags: readonly string[] = [];
+
 beforeAll(async () => {
+  tags = await chainTags(DRIZZLE_DIR);
+
   // İmaj etiketi `docker-compose.yml` ile AYNI majör olmalı: koşucuyu 16'ya karşı
   // kanıtlayıp 18'de çalıştırmak, kanıtı başka bir sürüme yazmak olurdu.
   container = await new PostgreSqlContainer('postgres:18')
@@ -77,7 +91,11 @@ describe('migrateUp — gerçek Postgres', () => {
   it('çok ifadeli migration’ı uygular ve takip tablosunu KENDİ şemasında kurar', async () => {
     const result = await migrateUp({ executor, source, logger });
 
-    expect(result.applied).toEqual(['0000_countries_initial']);
+    // Etiket listesi journal'dan OKUNUYOR: bu test koşucunun DAVRANIŞINI
+    // sınıyor, zincirin içeriğini değil (gerekçe `fixtures.ts` başlığı).
+    expect(result.applied).toEqual([...tags]);
+    // D3 önlemi: boş bir zincir de "hepsi uygulandı" derdi.
+    expect(tags.length).toBeGreaterThanOrEqual(2);
     expect(await tableExists('countries')).toBe(true);
 
     // Takip tablosu `public`'te DEĞİL — 3.2b'nin şema karşılaştırmasını
@@ -91,7 +109,7 @@ describe('migrateUp — gerçek Postgres', () => {
     const tracked = await executor.rows<{ tag: string }>(
       `SELECT "tag" FROM "fms_meta"."migrations"`,
     );
-    expect(tracked.map((row) => row.tag)).toEqual(['0000_countries_initial']);
+    expect(tracked.map((row) => row.tag)).toEqual([...tags]);
   });
 
   it('ikinci koşuda hiçbir şey yapmaz (idempotens)', async () => {
@@ -137,11 +155,9 @@ describe('migrateUp — gerçek Postgres', () => {
 describe('migrateDown — gerçek Postgres', () => {
   it('ÖLÇÜLEN veri kaybını izinsiz uygulamaz ve şemayı bırakmaz', async () => {
     await migrateUp({ executor, source, logger });
-    await executor.run(
-      `INSERT INTO "countries" ("key","code","name_key") VALUES ('turkiye','TUR','country.tur')`,
-    );
+    await executor.run(countryInsertSql([{ key: 'turkiye', code: 'TUR' }]));
 
-    await expect(migrateDown({ executor, source, logger }, { steps: 1 })).rejects.toThrow(
+    await expect(migrateDown({ executor, source, logger }, { steps: tags.length })).rejects.toThrow(
       expect.objectContaining({ code: 'migration.downWouldLoseData' }),
     );
 
@@ -156,16 +172,25 @@ describe('migrateDown — gerçek Postgres', () => {
   it('kuru çalıştırma GERÇEK ölçer ama hiçbir şeyi kalıcı yapmaz', async () => {
     await migrateUp({ executor, source, logger });
     await executor.run(
-      `INSERT INTO "countries" ("key","code","name_key") VALUES ('turkiye','TUR','country.tur'), ('ingiltere','ENG','country.eng')`,
+      countryInsertSql([
+        { key: 'turkiye', code: 'TUR' },
+        { key: 'ingiltere', code: 'ENG' },
+      ]),
     );
 
     const result = await migrateDown(
       { executor, source, logger },
-      { steps: 1, dryRun: true, allowDataLoss: true },
+      { steps: tags.length, dryRun: true, allowDataLoss: true },
     );
 
     expect(result.dryRun).toBe(true);
-    expect(result.loss.items).toEqual([{ kind: 'table', table: 'countries', rowsAtRisk: 2 }]);
+    // `countries` iki satırla, diğerleri boş: yapısal kayıp üç tabloda da var,
+    // satır riski yalnızca `countries`te.
+    expect([...result.loss.items].sort((a, b) => a.table.localeCompare(b.table))).toEqual([
+      { kind: 'table', table: 'competitions', rowsAtRisk: 0 },
+      { kind: 'table', table: 'countries', rowsAtRisk: 2 },
+      { kind: 'table', table: 'federations', rowsAtRisk: 0 },
+    ]);
     // Rapor gerçek veriye dayandı — ve tablo hâlâ duruyor.
     expect(await tableExists('countries')).toBe(true);
   });
@@ -175,7 +200,7 @@ describe('migrateDown — gerçek Postgres', () => {
 
     const result = await migrateDown(
       { executor, source, logger },
-      { steps: 1, allowDataLoss: true },
+      { steps: tags.length, allowDataLoss: true },
     );
 
     expect(result.loss.totalRowsAtRisk).toBe(0);
@@ -188,10 +213,11 @@ describe('migrateDown — gerçek Postgres', () => {
 
     const result = await migrateDown(
       { executor, source, logger },
-      { steps: 1, allowDataLoss: true },
+      { steps: tags.length, allowDataLoss: true },
     );
 
-    expect(result.reverted).toEqual(['0000_countries_initial']);
+    // Sıra: en yeniden en eskiye.
+    expect(result.reverted).toEqual([...tags].reverse());
     expect(await tableExists('countries')).toBe(false);
 
     const tracked = await executor.rows<{ n: number | string }>(
@@ -202,11 +228,11 @@ describe('migrateDown — gerçek Postgres', () => {
 
   it('geri alındıktan sonra tekrar uygulanabilir', async () => {
     await migrateUp({ executor, source, logger });
-    await migrateDown({ executor, source, logger }, { steps: 1, allowDataLoss: true });
+    await migrateDown({ executor, source, logger }, { steps: tags.length, allowDataLoss: true });
 
     const again = await migrateUp({ executor, source, logger });
 
-    expect(again.applied).toEqual(['0000_countries_initial']);
+    expect(again.applied).toEqual([...tags]);
     expect(await tableExists('countries')).toBe(true);
   });
 });

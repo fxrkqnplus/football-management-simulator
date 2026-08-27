@@ -21,26 +21,27 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **FAZ 3 · SIRADAKİ: 3.4 — Coğrafya ve kurumlar** (12 alt görevden 5'i bitti) |
-| **Son tamamlanan** | ✅ **3.3 — K4 Master World salt-okunurluğu.** Tip seviyesi zorlama + kontrol deneyi + `arch:check` ⑨. Sözleşme `spec/01` §3.4.1'de |
-| **Tarih** | 2026-08-27 (oturum devri) |
+| **Aktif faz / alt görev** | **FAZ 3 · SIRADAKİ: 3.5 — Kulüp çekirdeği** (12 alt görevden 6'sı bitti) |
+| **Son tamamlanan** | ✅ **3.4 — Coğrafya ve kurumlar.** `countries` tamamlandı · `federations` + `competitions` açıldı · `CompetitionRules` ve `externalIds` Zod şemaları · `0001` migration + elle `down`. Fazın **ilk gerçek şema** alt görevi |
+| **Tarih** | 2026-08-27 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** var ama bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama kapanmış SAYILMIYOR, aşağıdaki kalıcı bloğa bak. |
-| **Son commit** | `docs(memory): devir CI sonucunu işle — ikinci ardışık yeşil amd64` |
+| **Son commit** | `feat(db): coğrafya ve kurumlar — countries tamamlandı, federations + competitions` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ **Devir koşusu `33064847673` — altı iş de yeşil.** 3.3 düzeltme koşusu `33028319414` de yeşildi, yani düzeltmeden sonra **ikinci ardışık yeşil amd64**. ⚠️ İlk 3.3 koşusu `33027936236` **yalnızca amd64'te** kırılmıştı (arm64 geçti): 598 testin hepsi geçerken Vitest "2 unhandled errors" bildirdi. Ayrıntı ve tekrar görülürse ne yapılacağı: aşağıdaki **AÇIK RİSK** bloğu. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **oturum devrinde SOĞUK yeniden ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 · lint 0 · format 0 · build 8/8 · **arch 9 kural**, 295 ms |
-| **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
-| **test** | ✅ **598 test / 43 dosya** (`pnpm test`, 0 hata) · ✅ **`pnpm test:db` 23 test / 3 dosya** gerçek PG18 konteyneriyle. ⚠️ `test:db` varsayılan `pnpm test`'e **girmez** — ayrı komut, `spec/09` §11.5 faz kapanış listesinde ve CI'da ayrı iş |
-| **kapsam** | ✅ satır **%89,11** · ifade %89,02 · dal %87,82 · fonksiyon **%82,81** — eşik %70, eşik DÜŞÜRÜLMEDİ. ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor (Faz 22'de anlam kazanır). ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ** — I/O sınırı dosyaları (`file-source.ts`, `postgres-executor.ts`, `introspect.ts`, `world-db.ts`) raporda **%0** ama dördü de entegrasyon testiyle gerçek Postgres'e karşı koşuyor. ⚠️ **`.test-d.ts` paydadan ÇIKARILDI (3.3):** ürün kodu değil; paydaya girdiklerinde eşiği **yanlış yönde** bozuyorlardı (%89,75 → %87,20, SAPMA-007'nin tersi) |
+| **CI** | ✅ **`33065051088` — altı iş de yeşil** (3.4 öncesi son koşu, commit `a0d7994`). Bu, düzeltmeden sonraki **ÜÇÜNCÜ ardışık yeşil amd64** (`33028319414` · `33064847673` · `33065051088`). ⚠️ İlk 3.3 koşusu `33027936236` **yalnızca amd64'te** kırılmıştı — ayrıntı aşağıdaki **AÇIK RİSK** bloğunda. 3.4 commit'inin koşusu **henüz işlenmedi** (push sonrası bakılacak). |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — build **SOĞUK ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği): typecheck 9/9 · lint 0 · format 0 · build 8/8, 6,16 s · **arch 9 kural, DEĞİŞMEDİ**, 250 ms |
+| **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0). ℹ️ pnpm **11.24.0** çıkmış; kilit 11.23.0'da, karar verilmedi (`DEPENDENCY-WATCH` faz açılışında bakılır) |
+| **test** | ✅ **631 test / 45 dosya** (`pnpm test`, 0 hata — 3.4'te 598/43'ten çıktı) · ✅ **`pnpm test:db` 50 test / 4 dosya** gerçek PG18 konteyneriyle (23/3'ten çıktı). ⚠️ `test:db` varsayılan `pnpm test`'e **girmez** — ayrı komut, `spec/09` §11.5 faz kapanış listesinde ve CI'da ayrı iş |
+| **kapsam** | ✅ satır **%87,73** · ifade %87,66 · dal %87,82 · fonksiyon **%80,00** — eşik %70, eşik DÜŞÜRÜLMEDİ, `pnpm test:coverage` exit 0. ⚠️ **3.4'te %89,11 → %87,73 DÜŞTÜ ve bu beklenen:** üç yeni Drizzle şema dosyası (`countries.ts` · `competitions.ts` · `federations.ts`) raporda **%0** — hiçbir birim test onları *import etmiyor*, yalnızca entegrasyon testi kullanıyor ve o koşum kapsam üretmiyor. **Bir import-testi yazıp %100 yapmak YASAK**: ROADMAP Faz 3 bunu adıyla anıyor (*"bir testin onları import etmesi kapsamı %100 yapar, hiçbir iddia doğrulanmadan"*). ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor (Faz 22'de anlam kazanır). ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ.** ⚠️ **`.test-d.ts` paydadan ÇIKARILDI (3.3)** |
 | **Veritabanı** | **PostgreSQL 18.6** (16.15'ten yükseltildi, SAPMA-019) · `builtin`/`C.UTF-8` locale (SAPMA-020) · bağlama noktası `pgdata:/var/lib/postgresql` (18'de **değişti**) · `pg_trgm` 1.6 mevcut · `docker compose up -d` → **healthy**, işlevsel olarak doğrulandı |
 | **Web paketi** | **321.495 bayt** (ham) — 3.3'te `main.tsx` değişti ama paket **bayt bayt aynı** kaldı (aynı hash `index-BNdQN1Bb.js`): `export const root` hiçbir yerden import edilmiyor, ağaç sarsma siliyor |
 | **API imajı** | **423 MB** — Faz 2 kapanış ölçümü. **3.0–3.3'te yeniden ÖLÇÜLMEDİ.** `apps/api/src` hiç değişmedi; tek dokunuş `tsconfig.build.json`ın dışlama satırı (3.3 devri) ve o emit çıktısını değiştirmiyor. Faz kapanışında yeniden ölçülecek (`spec/11` §12.5). |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · **drizzle-orm 0.45.2 + drizzle-kit 0.31.10** (tam sürüm, `^` yok) · **testcontainers + @testcontainers/postgresql 12.1.0** · jsdom 30.0.1 · pino 10.3.1 · @sentry/* 10.70.0 |
 | **Açık sorun sayısı** | **0** |
 | **Teknik borç sayısı** | **7** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · **BORÇ-007 (Faz 12, master salt-okunurluk ikinci hattı)** · BORÇ-006 (Faz 50) |
-| **SAPMA sayısı** | **25** (SAPMA-001…025) — 3.0'da iki (019 Postgres 18, 020 collation), 3.1'de üç (021 tablo envanteri, 022 slug, 023 veri paketi sütunları), 3.2a'da iki (024 `format:check` Markdown'a bakmıyor, 025 sürücü `postgres.js`). **3.2b ve 3.3 yeni sapma açmadı.** |
-| **Faz 3 kabul kriterleri** | **1 ✅ (3.2b)** · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **1/5**. Kriter 1: çevrim sonrası **89 olgu, fark yok**; çok adımlı zincirde **48 olgu, fark yok** |
+| **SAPMA sayısı** | **26** (SAPMA-001…026) — 3.0'da iki (019 Postgres 18, 020 collation), 3.1'de üç (021 tablo envanteri, 022 slug, 023 veri paketi sütunları), 3.2a'da iki (024 `format:check` Markdown'a bakmıyor, 025 sürücü `postgres.js`), **3.4'te bir (026 nullability türetme kuralı)**. **3.2b ve 3.3 yeni sapma açmadı.** |
+| **Faz 3 kabul kriterleri** | **1 ✅ (3.2b, 3.4'te GENİŞLETİLDİ)** · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **1/5**. Kriter 1 bugün: üç tablolu zincirde **466 olgu, fark yok** (3.2b'de `countries` tek başına 89'du); çok adımlı fixture zincirinde **48 olgu, fark yok** |
+| **Şema durumu** | **3 / 11 master tablo yazıldı** — `countries` · `federations` · `competitions`. Kalan: 3.5 (`clubs`, `club_facilities`, `club_finances_base`, `stadiums`, `rivalries`) · 3.6 (`kit_templates`, `club_kits`, `referees`). Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` (ikisinin de elle yazılmış `down`u var) |
 | **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, **panodan yeniden ölçülmedi**. 3.0–3.3'te hiç olay gönderilmedi (Faz 3 tarayıcı kodu yazmadı). |
 
 ---
@@ -74,10 +75,12 @@ zamanlayıcısında bekleyen iş `window` yokken çalışıyor.
 - **Yerelde beş koşuda hiç tekrar üretilemedi** — yani yerel yeşil bir kanıt değil.
 - Düzeltme **yerelde kanıtlanamadı**; ölçüm aracı CI oldu (`33028319414` yeşil).
 - **Tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz.**
-- Devir turunda **ikinci ardışık yeşil amd64 koşusu** görüldü (`33064847673`).
-  Bu iddiayı **güçlendirir, kanıtlamaz** — iki gözlem bir yokluk kanıtı değildir.
-  Sayaç burada tutuluyor: yeni bir yeşil amd64 koşusu görüldükçe bu satır
-  güncellenebilir; **kırmızı görülürse blok yeniden açılır.**
+- Sayaç: **üç ardışık yeşil amd64 koşusu** (`33028319414` · `33064847673` ·
+  `33065051088`). Her yeni gözlem iddiayı **güçlendirir, kanıtlamaz** — üç
+  gözlem de bir yokluk kanıtı değildir. **Kırmızı görülürse blok yeniden açılır.**
+- ⚠️ **3.4 riski BÜYÜTMEDİ ama azaltmadı da:** alt görev `apps/web`e hiç
+  dokunmadı, yani `main.test.tsx` ve `main.tsx` bayt bayt aynı. Yeni koşulardaki
+  yeşil, kod değişmediği için yalnızca aynı deneyin tekrarıdır.
 
 **Yeniden ortaya çıkarsa ne yapılacak:**
 
@@ -100,37 +103,39 @@ onun kapsamında değil.
 
 ---
 
-### 🔍 BU OTURUMDA ÖĞRENİLEN AMA HİÇBİR DOSYADA YAZILI OLMAYAN — 3.3 kapanışı
+### 🔍 BU OTURUMDA ÖĞRENİLEN AMA HİÇBİR DOSYADA YAZILI OLMAYAN — 3.4 kapanışı
 
-> Faz 2 kapanışında bu soru altı madde çıkarmıştı. 3.3 kapanışında **üç** çıktı;
-> üçü de burada yazılı hâle getirildi, yani artık "yazılı olmayan" değiller.
-> Dürüstlük notu: dördüncü bir madde aranıp **bulunamadı**.
+> 3.3 kapanışında üç madde çıkmıştı; üçü de kalıcı bloklara işlendi ve buradan
+> kaldırıldı (① heredoc kaçışı → ORTAM TUZAKLARI ⑤ · ② `apps/web/tsconfig.build.json`
+> ölü → `spec/09` §11.4 **ve 3.4'te SİLİNDİ** · ③ kontrol deneyinin kapsamı →
+> `spec/01` §3.4.1). 3.4'ten **üç** yeni madde çıktı.
 
-**① Bash aracının tırnaklı heredoc'u ters bölü kaçışlarını İŞLİYOR.**
-`<<'PY'` kullanılmasına rağmen `\n` Python'a **gerçek satır sonu** olarak ulaştı
-ve üretilen JS/MD dosyalarına gerçek satır sonu yazıldı — üç kez `SyntaxError`,
-bir kez de backtick'ler **komut ikamesi** sanılıp metin sessizce boşaldı.
-**Aynı alt görevde DÖRT kez ısırdı.** ORTAM TUZAKLARI ⑤ ("çok katmanlı kaçış
-yerine doğrudan düzenleme") bunu zaten söylüyordu ama *somut belirtisi* yazılı
-değildi. → Günlük #19'a ve aşağıdaki tuzak bloğuna işlendi.
-**Kural:** kaçış veya backtick içeren metin heredoc'tan **geçirilmez**;
-`Edit` aracıyla doğrudan yazılır ya da `String.fromCharCode(10)` gibi kaçışsız
-üretilir.
+**① `arch:check` ⑨'UN GEREKLİLİĞİ ARTIK VARSAYIM DEĞİL, ÖLÇÜM.**
+3.3 bu kuralı *"3.4'te eklenecek yeni bir tablo sarmayı unutursa hiçbir şey
+ötmez"* gerekçesiyle yazmıştı — o zaman bir **tahmindi**, çünkü ortada yeni bir
+tablo yoktu. 3.4'te gerçek tabloyla ölçüldü: `competitions`ten `masterTable(...)`
+sarması kaldırıldığında **`pnpm typecheck` exit 0**, **`pnpm test` 631/631 geçti**,
+`arch:check` **exit 1**. Kuralın hangi boşluğu kapattığı artık kanıtlı.
+**Genel biçim:** bir kural *"gelecekte şu olacak"* diye yazıldıysa, o gelecek
+geldiğinde **ölçülür** — yoksa gerekçesi hep temenni kalır.
 
-**② `apps/web/tsconfig.build.json` ÖLÜ YAPILANDIRMA.**
-`apps/web`in `build` betiği `vite build` çağırıyor, `tsc -p tsconfig.build.json`
-değil — dosya hiçbir yerde kullanılmıyor. Eksik dışlama listesi bir hata değil,
-**anlamsız**. Bu, envanter denetleyen birinin onu "düzeltip" hiçbir şey
-kazanmamasına yol açacak bir tuzak. → `spec/09` §11.4'e yazıldı.
-**Açık karar:** dosya silinecek mi, yoksa ölü olduğu dosyanın içine mi
-yazılacak? Bu turda **verilmedi** — kapsam dışı, ama unutulmasın.
+**② ÖLÇÜM ARACININ KENDİSİ MUTASYONU BOZABİLİR (D2'nin yeni biçimi).**
+①'in ilk denemesi `masterTable(` → `(` diye yapıldı ve `tsc` **TS1109** verdi.
+Bir an *"tip sistemi sarmayı unutmayı yakalıyor"* gibi göründü — oysa hata
+parantezli ifadenin sonundaki **virgüldü** (`(x,)` geçersiz). Gerçek ölçüm ancak
+sözdizimsel olarak geçerli bir mutasyonla (`masterTable` → yerel bir kimlik
+fonksiyonu) alındı ve sonuç **tam tersiydi**. **Kural:** bir mutasyon deneyi
+"kırıldı" dediğinde önce *neyin* kırıldığına bakılır; yanlış sebeple kırılan bir
+kapı, doğru sebeple kırılmış gibi okunur.
 
-**③ Kontrol deneyinin KAPSAMI, korumanın kapsamı DEĞİLDİR.**
-`masterTable` sarması kaldırılınca kontrol deneyi öttü ve bu bir an "koruma
-çalışıyor" gibi göründü. Gerçekte ötme sebebi, o dosyanın `countries`i **adıyla
-anması**ydı. Yeni bir tablo için hiçbir şey ötmezdi. → `arch:check` ⑨'un varlık
-sebebi bu; `spec/01` §3.4.1'e ve arch:check kapsam bloğuna yazıldı.
-**Genel biçim:** *"öttü mü?"* değil, **"hangi durumlar için öter?"**
+**③ BİR MİGRATION'IN ÇEVRİMİ, ŞEMAYI *AYNI* YERE BIRAKMAYABİLİR — VE BU DOĞRUDUR.**
+`DROP COLUMN` PostgreSQL'de `attnum`u geri kazanmıyor; sekiz sütun düşüp yeniden
+eklenince numaralar 7…14 → **15…22** oluyor, sıra değişmiyor. Yani tek adımlık
+bir `ALTER` çevriminde `identical: true` **beklenemez**. Buradaki cazibe
+karşılaştırmadan `position`ı çıkarmaktı — bir kapıyı daraltmak. Bunun yerine
+farkların **tam listesi** iddia edildi ve bu `identical: true`dan **daha güçlü**:
+beklenen sekizin dışında tek bir fark çıkarsa test kırılır.
+→ `spec/01` §3.1.2 ④ ve ⑤'e yazıldı.
 
 ---
 
@@ -148,90 +153,126 @@ sebebi bu; `spec/01` §3.4.1'e ve arch:check kapsam bloğuna yazıldı.
 
 ---
 
-### 🎯 SIRADAKİ ALT GÖREV — 3.4 (Coğrafya ve kurumlar)
+### 🎯 SIRADAKİ ALT GÖREV — 3.5 (Kulüp çekirdeği)
 
-**Ne yapılacak:** `countries` (tamamlanır), `federations`, `competitions` +
-`CompetitionRules` Zod şeması. Faz 3'ün **ilk gerçek şema** alt görevi.
+**Ne yapılacak:** `clubs`, `club_facilities`, `club_finances_base`, `stadiums`,
+`rivalries`. Faz 3'ün **en büyük** şema alt görevi — beş tablo, üçü uydu.
 
-**⚠️ BİÇİM ZORUNLU — `docs/spec/01-database.md` §3.4.1.** Üç adım:
-① tablo `masterTable(...)` ile sarılarak tanımlanır ② save katmanı tablosuysa
-`arch:save-scoped` yorumuyla **açıkça** muaf tutulur ③ `arch:check` ⑨ bunu
-denetliyor — unutulursa gate kırılır.
+**⚠️ 3.4 ZEMİNİ HAZIR — yeniden keşfetme.** Aşağıdakilerin hepsi ölçüldü ve
+`docs/spec/01-database.md` **§3.1.2**'ye yazıldı. Oku, tekrar ölçme:
 
-**Sütun sözleşmesi §3.1.0:** `key` (`text NOT NULL`, **tablo başına** `UNIQUE`) ·
-`source` (**CHECK** kısıtlı: `pack|api|wikidata|openfootball|procedural`) ·
-`externalIds` (`jsonb` + Zod). `countries`, `competitions` üçünü de taşır;
-`federations` taşımaz (uydu).
+| # | Kural |
+|---|---|
+| ① | `check()` **destekleniyor** (drizzle-orm 0.45.2 + drizzle-kit 0.31.10) — ham SQL'e gerek yok |
+| ② | CHECK yalnızca **kapalı** değer kümelerine (`'a'\|'b'\|'c'`); açık uçlu listeye ve **sayısal aralığa** konmaz |
+| ③ | `ON DELETE`: **uydu → CASCADE**, **bağımsız varlık → RESTRICT** |
+| ④ | Var olan tabloya sütun eklerken sütun TS tanımının da **SONUNA** yazılır |
+| ⑤ | Tek adımlık `ALTER` çevriminde `identical: true` **beklenemez** (attnum deliği) |
 
-**Bu alt görevde iki şey ilk kez olacak:**
+**3.5'te kullanılacak hazır parçalar:**
 
-1. **`countries` bir `ALTER TABLE` migration'ı alacak** — 3.2a'da minimal
-   yazılmıştı. Koşucunun ikinci gerçek müşterisi. `drizzle/down/0001_*.sql`
-   **elle yazılacak**; unutulursa koşucu `migration.downScriptMissing` ile
-   veritabanına dokunmadan durur.
-2. **Round-trip testi genişletilecek.** Hat hazır (`src/schema-state/`),
-   maliyeti bir `it()` bloğu. Genişletilmezse yeni tabloların `down`u **hiç
-   sınanmamış** olur ve 3.2b'nin kanıtı yalnızca `countries` için geçerli kalır.
-
-**⚠️ `competitions.rules` bir `jsonb`** ve `CompetitionRules` iç içe
-(`squadRegistration`, `continentalSpots`, `transferWindows[]`). Zod şeması
-`spec/01` §3.1'deki tanımdan türetilir; tip `z.infer` ile alınır (CLAUDE.md §1.3).
+- **`src/schema/data-pack-columns.ts`** — §3.1.0 sözleşmesi. `clubs` ve
+  `stadiums` `...dataPackColumns()` yayar ve `sourceCheck('<tablo>_source_check',
+  table.source)` ekler. `club_facilities`, `club_finances_base`, `rivalries`
+  **uydu**, üçü de bu sütunları **TAŞIMAZ**.
+- **`integration/fixtures.ts`** — `countryInsertSql()` ve `chainTags()`.
+  ⚠️ `clubs` `NOT NULL` sütunlarıyla gelince **aynı sınıf** bir fixture
+  (`clubInsertSql`) oraya yazılır, testlere dağıtılmaz. Sebebi dosyanın
+  başlığında: 3.4'te üç dosyada kopya `INSERT` vardı ve 14 test birden kırıldı.
 
 #### Üretilecek dosyalar (somut)
 
 ```
-packages/db/src/schema/countries.ts       [DEĞİŞTİ]  eksik sütunlar eklenir
-packages/db/src/schema/federations.ts     [YENİ]     masterTable(...) ile
-packages/db/src/schema/competitions.ts    [YENİ]     masterTable(...) ile
-packages/db/src/schema/competition-rules.ts [YENİ]   CompetitionRules Zod şeması + z.infer tipi
-packages/db/src/schema/index.ts           [DEĞİŞTİ]  barrel
-packages/db/drizzle/0001_<ad>.sql         [ÜRETİLİR] drizzle-kit generate
-packages/db/drizzle/down/0001_<ad>.sql    [ELLE]     ⚠️ unutulursa koşucu durur
-packages/db/drizzle/meta/0001_snapshot.json [ÜRETİLİR]
-packages/db/integration/round-trip.itest.ts [DEĞİŞTİ] yeni tablolar için it() bloğu
+packages/db/src/schema/clubs.ts               [YENİ]  masterTable + dataPackColumns
+packages/db/src/schema/club-facilities.ts     [YENİ]  uydu — clubId PK/FK, 6 × smallint
+packages/db/src/schema/club-finances-base.ts  [YENİ]  uydu — bigint alanlar
+packages/db/src/schema/stadiums.ts            [YENİ]  masterTable + dataPackColumns
+packages/db/src/schema/rivalries.ts           [YENİ]  uydu — clubAId / clubBId
+packages/db/src/schema/index.ts               [DEĞİŞTİ] barrel
+packages/db/drizzle/0002_<ad>.sql             [ÜRETİLİR] --name= ile adlandır
+packages/db/drizzle/down/0002_<ad>.sql        [ELLE]   ⚠️ unutulursa koşucu durur
+packages/db/drizzle/meta/0002_snapshot.json   [ÜRETİLİR]
+packages/db/integration/round-trip.itest.ts   [DEĞİŞTİ] LATEST_SNAPSHOT + yeni tablolar
+packages/db/integration/schema-constraints.itest.ts [DEĞİŞTİ] yeni CHECK/FK negatif testleri
+packages/db/integration/fixtures.ts           [DEĞİŞTİ] clubInsertSql
 ```
 
-**`CompetitionRules` Zod şeması nereye:** `src/schema/competition-rules.ts` —
-tablo tanımının **yanında**, `packages/shared`da değil. Gerekçe: şema yalnızca
-bu sütunu doğruluyor ve `@fms/shared`ın kök barrel'ına `zod` çekmek 2.1'de
-ölçülüp 2.2a'da düzeltilen sızıntının aynısı olurdu (SAPMA-015'in gerekçesi).
-Tip `export type CompetitionRules = z.infer<typeof competitionRulesSchema>`.
+#### 3.5'te dikkat edilecek YEDİ nokta
 
-#### `countries`in bugünkü hâli (3.2a'da bilerek minimal)
+**① `clubs.stadiumId` bir FK ve `stadiums` AYNI migration'da.**
+Sıra önemli: `stadiums` `clubs`tan **önce** yaratılmalı. `drizzle-kit` FK'ları
+tablolardan sonra ayrı `ALTER TABLE` ile ekliyor (3.4'te ölçüldü), yani üretilen
+SQL bu sırayı kendi hallediyor — ama `down` **elle** yazılıyor ve orada sıra
+**tersine** kurulmalı.
 
-Var olan: `id` · `key` (UNIQUE) · `code` (varchar 3, UNIQUE) · `name_key` ·
-`created_at` · `updated_at`.
-`spec/01` §3.1'e göre **eksik olanlar**: `confederation` · `flag_asset_id` ·
-`football_level` · `uefa_coefficient` · `currency_code` · `work_permit_rule_key`
-— artı §3.1.0'ın `source` (CHECK'li) ve `external_ids` sütunları.
-Dosyanın kendi başlığı bu listeyi zaten taşıyor.
+**② `clubs.chairmanPersonId` BUGÜN YAZILMAZ — Faz 4.**
+`people` Faz 4'te geliyor. Sütunu kısıtsız yazmak 3. kabul kriterini görünürde
+sağlayıp gerçekte delerdi. Karar ROADMAP Faz 3 tablo envanterinde; `federations`
+için 3.4'te aynısı yapıldı (`presidentPersonId` yok).
 
-#### Round-trip testi nasıl genişleyecek
+**③ `club_finances_base` `bigint` taşıyor — kuruş/cent cinsinden.**
+`postgres.js` `bigint`i **dizge** döndürüyor (3.2a'da ölçüldü) ve bu istenen
+davranış: `Number`'a düşürmek sessiz hassasiyet kaybı olurdu. Drizzle'ın
+`bigint('x', { mode: … })` seçeneği var — **hangi mod dizge döndürüyor, ÖLÇ.**
 
-`round-trip.itest.ts`teki desen hazır: `up` → **veri yaz** → `down` → `up` →
-`compareSchemas`. Yeni tablolar için yapılacak tek şey, mevcut `it()` bloğundaki
-`INSERT`e yeni tabloların satırlarını eklemek **ve** `comparedFacts` alt sınırını
-yükseltmek (bugün `countries` tek başına **89 olgu**; üç tablo belirgin şekilde
-artıracak). Alt sınır yükseltilmezse test "fark yok" der ama **kaç şeye baktığı**
-sabitlenmemiş olur — D3.
+**④ `rivalries` iki FK'yı AYNI tabloya veriyor** (`clubAId`, `clubBId` → `clubs`).
+Drizzle kısıt adını `<tablo>_<sütun>_<hedef>_<hedefsütun>_fk` diye üretiyor, yani
+çakışma beklenmiyor — ama **ölç**, varsayma. Ayrıca `rivalries` uydu olduğu için
+`ON DELETE CASCADE` alır (§3.1.2 ③).
 
-⚠️ **`0001`in `down`u `countries` için `ALTER TABLE ... DROP COLUMN`, yeni iki
-tablo için `DROP TABLE` olacak.** Yani bu, koşucunun **kayıp ölçümünün** ilk
-gerçek karışık vakası: sütun düşürme + tablo düşürme aynı migration'da.
-`allowDataLoss` olmadan reddedilmesi beklenir.
+**⑤ `club_facilities` ve `club_finances_base` `clubId`yi PK olarak taşıyor** —
+`serial id` YOK. `spec/01` §3.1 böyle yazıyor (`clubId PK FK`). 1:1 ilişkinin
+tek doğru gösterimi bu; ayrı bir `id` ikinci bir kimlik yolu açardı.
+
+**⑥ `comparedFacts` alt sınırı YENİDEN ÖLÇÜLÜR.**
+Bugün **466** (üç tablo). Beş tablo daha belirgin artıracak. Sınır yükseltilmezse
+test "fark yok" der ama **kaç şeye baktığı** sabitlenmemiş olur — D3.
+
+**⑦ Negatif testin kapsamı YENİ tabloları kapsamalı.**
+3.4'te ölçüldü: karşılaştırıcı köreltilince **50 testin 5'i** kırılıyor ve üçü
+yeni tabloların negatif testleri. 3.5'te aynı deney tekrarlanır; yeni tablolar
+için bozulma testi (`DROP COLUMN` / `DROP TABLE` → fark yakalanıyor mu)
+eklenmezse sayı artmaz ve pozitif testler kör bir karşılaştırıcıyla geçer.
+
+**KAPSAM SINIRI.** `kit_templates`, `club_kits`, `referees` → 3.6. İndeksler →
+3.7. Seed → 3.8. `WorldView`/`WorldMutation` → Faz 12.
 
 ---
 
-### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 → 3.3)
+### 🧾 3.4'TE VERİLEN KARARLAR — 3.5/3.6 bunlara UYAR
+
+| Karar | Nerede yazılı |
+|---|---|
+| §3.1.0 sütunları tek bir modülden gelir, kopyalanmaz | `src/schema/data-pack-columns.ts` |
+| `source` **DEFAULT ALMAZ** — varsayılan, kimsenin belirlemediği satıra köken uydurur | aynı dosya + `round-trip.itest.ts` |
+| `externalIds` Zod'u **`strictObject`** — `wikidatta` yazım hatası sessiz geçmez | aynı dosya |
+| `CompetitionRules` Zod'u da **`strictObject`** ve iç içe nesnelerde de öyle | `src/schema/competition-rules.ts` |
+| Zod şeması `packages/db`de, `packages/shared`da değil (`zod`u barrel'a çekmemek) | `src/schema/competition-rules.ts` başlığı |
+| Varlık kimlikleri (`flag_asset_id`, `logo_asset_id`, `asset_id`) **nullable** | SAPMA-026 |
+| `competitions.tier` **nullable** — kupanın kademesi yoktur | SAPMA-026 |
+| `federations.founded_year` **nullable** — bilinmeyen yıl uydurulmaz | SAPMA-026 |
+
+---
+
+### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 → 3.4)
 
 **Tablo envanteri 11'de kesin.** Karar tablosu `docs/ROADMAP.md` → *Faz 3 — Tablo
 envanteri*. Özet `docs/schema/world.md`. Sütun sözleşmesi
 `docs/spec/01-database.md` **§3.1.0** ve **§3.1.1**. Migration disiplini **§3.0**.
+**Şema yazım kuralları (3.4'te ölçüldü) §3.1.2** — `check()` desteği · CHECK'in
+nereye konacağı · `ON DELETE` kuralı · sütun sırası · `attnum` deliği.
 
-**✅ Kabul kriteri 1 KAPANDI (3.2b).** Çevrim sonrası **89 olgu, fark yok**
-(`countries`); çok adımlı fixture zincirinde **48 olgu, fark yok**. Üç yerde birden
-koştu: `pnpm test:db` · CI `Entegrasyon` işi (amd64+arm64) · derlenmiş çıktı düz
-`node` ile (D5).
+**✅ Kabul kriteri 1 KAPANDI (3.2b), 3.4'te GENİŞLETİLDİ.** 3.2b: `countries` tek
+başına **89 olgu, fark yok**. 3.4: üç tablolu gerçek zincirde **466 olgu, fark
+yok**; çok adımlı fixture zincirinde **48 olgu, fark yok**. Üç yerde birden koştu:
+`pnpm test:db` · CI `Entegrasyon` işi (amd64+arm64) · derlenmiş çıktı düz `node`
+ile (D5).
+⚠️ **3.4'te bir sınır ölçüldü:** *tek adımlık* bir `ALTER` migration'ının çevrimi
+`identical: true` **vermez** (`attnum` deliği, `spec/01` §3.1.2 ⑤). Kriter tam
+zincir geri almasıyla sağlanıyor; tek adımlık çevrim farkların **tam listesiyle**
+iddia ediliyor. İkisi farklı yollar ve **ikisi de gerekli** — tam zincir,
+`countries` düşüp yeniden yaratıldığı için 0001'in `down`undaki bir fazla gidişi
+**maskeler**.
 
 **Faz 3'te bilerek YAPILMAYAN dört şey — hepsinin gerekçesi yazılı:**
 
@@ -244,6 +285,11 @@ koştu: `pnpm test:db` · CI `Entegrasyon` işi (amd64+arm64) · derlenmiş çı
 
 **Sonraki alt görevleri bağlayan ölçülmüş kısıtlar:**
 
+- **ŞEMA YAZIM KURALLARI → `docs/spec/01-database.md` §3.1.2** (3.4'te ölçüldü,
+  beş madde). Burada **tekrarlanmıyor**: iki kopya kaçınılmaz olarak ayrışır ve
+  hangisinin güncel olduğu bilinmez. 3.5 ve 3.6 oradan okur. Özet başlıkları:
+  `check()` desteği · CHECK nereye konur · `ON DELETE` kuralı · sütun sırası ·
+  `attnum` deliği.
 - **K4 (3.3'te kuruldu, 3.4'ten itibaren ZORUNLU biçim):** master tablo
   `masterTable(...)` ile sarılır; save katmanı tablosu `arch:save-scoped` ile
   **açıkça** muaf tutulur. `arch:check` ⑨ denetliyor. Sözleşme
@@ -415,6 +461,14 @@ döner (`ERR_PNPM_IGNORED_BUILDS`). Yeni bir bağımlılık böyle bir paket get
   `.gitignore`'da. Yani ayar olmadan da yerelde `exit 0` alınabilir — **CI temiz
   kurulumda kırılır**. Negatif test `pnpm install --force` ile yapılır, aksi
   hâlde yanlış negatif verir (günlük #4).
+
+**⑭ PYTHON, GIT BASH'İN `/c/...` YOLUNU ÇÖZEMEZ** (Faz 3.4). `python3` bu makinede
+**Windows yorumlayıcısıdır**; MSYS tarzı `/c/Users/...` yolu ona anlamsız gelir ve
+`io.open` **`FileNotFoundError`** verir — oysa aynı çağrıdaki `ls` dosyayı
+**görür**. Belirti yanıltıcı, çünkü aynı betikteki **göreli** yollar sorunsuz
+çalışır. Çözüm: Python'a verilen her mutlak yol **`C:/...` biçiminde** yazılır.
+Tuzak ① (MSYS argüman dönüşümü) ve ⑬ (kalıcı çalışma dizini) ile aynı aile:
+üçü de *"yol yazdığın/okuduğun yere gitmedi"* ve üçü de sessiz ya da yanıltıcı.
 
 **⑬ Bash aracının ÇALIŞMA DİZİNİ ÇAĞRILAR ARASINDA KALICI** (Faz 3.0). Bir
 çağrıda `cd packages/db` yapılırsa sonraki çağrıdaki göreli yol **oradan** çözülür.
@@ -726,6 +780,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec/ROADMAP güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-026 | `karar` | 3 | **`spec/01` §3.1 nullability yazımı kendi içinde tutarsız; bir türetme kuralı yazıldı ve BEŞ sütun `nullable` yapıldı.** Belge nullability'yi açık bir işaretle yazıyor (`crestAssetId: text nullable`) ve işaretsiz sütunlar `NOT NULL` okunuyor. Ama aynı belge `stadiums.assetId`i **nullable**, `federations.assetId`i **işaretsiz** yazıyor — aynı sınıf iki alan, iki farklı yazım. 3.4'te `NOT NULL` okunmayan beş sütun: `countries.flag_asset_id` · `competitions.logo_asset_id` · `federations.asset_id` · `competitions.tier` · `federations.founded_year`. | **Üç ayrı gerekçe, tek karar değil.** ① **Varlık kimlikleri** (üç sütun): K9 gereği eksik bir varlık **prosedürel üretiliyor**, yani "varlık yok" gerçek ve beklenen bir durum — `DATA_MODE=clean` altında her ülke için uydurma bir kimlik yazmak gerekirdi. Spec'in kendi tutarsızlığı zaten bu yöne işaret ediyor. ② **`competitions.tier`**: kupanın ve kıta turnuvasının **kademesi yoktur**. `NOT NULL` olsaydı her kupaya uydurma bir `1` yazılırdı ve o değeri okuyan her sorgu yanlış cevap verirdi — `null` "uygulanamaz"ın tek dürüst gösterimi. ③ **`federations.founded_year`**: veri paketinde eksik olabilir; uydurulmuş bir yıl, eksik bir yıldan kötüdür. **Aynı ilke `source`un DEFAULT ALMAMASI kararıyla tutarlı:** kimsenin belirlemediği bir alana değer uydurmak, bilgi eksikliğini bilgi gibi gösterir. **Karşı argüman kaydedilir:** `NOT NULL` sorgu tarafını basitleştirir ve `null` denetimi unutulabilir; bedeli Faz 8 (ingest) ve Faz 11 (doğrulayıcı) tarafından üstlenilecek. | ✅ Gerekçe üç şema dosyasının başlığında/sütun yorumlarında. `docs/spec/01-database.md` **§3.1'in kendi metni DEĞİŞTİRİLMEDİ** — belge sütun taslağı, nullability'yi zaten eksik yazıyor; düzeltmek 11 tablonun tamamını gözden geçirmek olurdu (K12, 3.5/3.6'nın işi). Türetme kuralı **§3.1.2**'ye yazılmadı çünkü orası ölçülmüş kuralları tutuyor, bu bir okuma kararı — kaydı bu satır |
 | SAPMA-025 | `karar` | 3 | Postgres sürücüsü olarak **`postgres@3.4.9` (postgres.js)** seçildi, `pg` (node-postgres) **değil**. `CLAUDE.md` §2.1 sürücüyü hiç adlandırmıyordu; `spec/01` yalnızca "Drizzle ORM" diyor. | **İkisi de kuruldu ve gerçek PostgreSQL 18.6'ya karşı ölçüldü**, tahminle seçilmedi. Dört boyutta **birebir aynı** davrandılar: `bigint` → `string` (hassasiyet kaybı yok) · `numeric` → `string` · çok-ifadeli SQL çalışıyor · işlemsel DDL geri alınıyor. Davranış eşit olunca karar ölçülen tek gerçek farka düştü: **kurulan paket sayısı `pg` için 13, `postgres.js` için 1** (`node_modules/.pnpm` öncesi/sonrası karşılaştırılarak sayıldı — `pg` yanında `pg-types`, `pg-int8`, `pgpass`, `pg-protocol`, `pg-pool`, `pg-cloudflare`, `postgres-array/bytea/date/interval`, `xtend` getiriyor; ayrıca `@types/pg` ayrı bir paket, postgres.js kendi tiplerini taşıyor). CLAUDE.md §1.5 (public repo) ve §2.1'in *"lodash'in tamamı yasak, yalnızca gereken fonksiyon"* ilkesi aynı yöne işaret ediyor. **Karşı argüman dürüstçe kaydedilir:** `pg` NestJS ekosisteminde çok daha yaygın ve `apps/api`'nin DI yaşam döngüsüne bağlanması daha konvansiyoneldir. **Geri dönüş maliyeti bilinçli olarak düşük tutuldu:** koşucu `SqlExecutor` arayüzünü görüyor, sürücüyü değil — `pg`'ye dönmek `postgres-executor.ts`'i değiştirmek demek; koşucuya, testlere veya şemaya dokunulmaz. Bu, `jsdom` kararındaki asimetriden farkı: orada geri dönüş Faz 6'dan sonra pahalılaşıyordu, burada sabit kalıyor. | ✅ `packages/db/src/migrate/postgres-executor.ts` (gerekçe dosya başında), `docs/DEPENDENCY-WATCH.md`. `CLAUDE.md` §2.1'e **eklenmedi** — o tablo yığın kararlarını tutuyor ve sürücü `packages/db`nin iç detayı; arayüzün ardında olduğu için yığın kararı sayılmadı |
 | SAPMA-024 | `düzeltme` | 3 | `pnpm format:check` **Markdown'a hiç bakmıyor** (`.prettierignore` → `*.md`), yani belge ağırlıklı bir alt görevde kapı **değişen hiçbir dosyayı denetlemeden** "temiz" diyor. Faz 1'den beri yazılan raporların bir kısmında `format ✅` satırı **boştu**. | **Kararın kendisi doğru ve bilinçliydi** — git geçmişinden ölçüldü: `*.md` satırı Faz 1'de, commit **`1bafb7e`** (2026-08-23) ile girdi ve gerekçesi hem commit mesajında hem dosyada yazılı (elle hizalanmış spec tabloları, kasıtlı satır sarmaları). **Çürütülen şey iddia değil, kapının kapsamı hakkındaki sessizlikti:** hiçbir yerde *"öyleyse `format ✅` bir belge değişikliği için hiçbir şey kanıtlamaz"* yazmıyordu. D3'ün yeni bir biçimi — denetleyici sağlam, **kapsamı** dar ve kapsam yazılı değil. **Ölçülen kapsam:** 168 izlenen dosyanın **125'i denetleniyor**, **31'i yok sayılıyor** (29'u `.md`), 12'sinin ayrıştırıcısı yok → %17'si kapı dışında. **Karar 3.2a'da yeniden değerlendirildi ve KORUNDU, gerekçe ölçüldü:** Markdown denetimi açılsaydı **29 dosyanın 29'u** değişirdi, **4.159 satır**. İkisi tek başına belirleyici — `PROJECT_MEMORY.md` **append-only kütük** (diff okunabilirliği bir kalite özelliği) ve `docs/MASTER-SPEC.md` **donmuş arşiv** (yeniden biçimlendirmek statüsünü ihlal eder). Çözüm kapıyı değil **raporlamayı** düzeltmek oldu. | ✅ `docs/spec/09-quality-protocol.md` §11.5 (yeni bölüm + kapsam tablosu + ölçüm), **`docs/OUTPUT-FORMAT.md`** (raporlama kuralı: kapı koştu ama bakacak bir şey bulamadıysa `✅` yazılmaz). ROADMAP'te format kapsamı iddiası **geçmiyor** (grep ile arandı) |
 | SAPMA-023 | `karar` | 3 | `docs/spec/01-database.md` §3.1'in master tablolarında `key`, `source`, `externalIds` sütunları **yoktu**; `docs/spec/12-data-packs.md` §17.1/§17.3 üçünü de istiyor. Üçü Faz 3'te ekleniyor ve `key` benzersizliği **tablo başına** (`UNIQUE (key)`) karara bağlandı, global değil. | **Neden şimdi:** sonradan eklemek on bir tabloya `ALTER TABLE` + seed'in yeniden yazımı demekti; şema bu fazda yazılıyor. **Neden tablo başına — ölçüm:** `spec/12` §17.3'ün slug algoritması birebir çalıştırılıp ROADMAP Faz 8 kapsamındaki **76 gerçek ad** üzerinde denendi (6 ülke · 23 turnuva · 33 kulüp · 14 stadyum): tablo içi çakışma **0**, tablolar arası çakışma **0**. **Ama karar bu sayıdan değil anlamdan geliyor:** arama her zaman *"key'i X olan KULÜBÜ bul"* biçiminde; `explicit` stratejisi anahtarı zaten `data/clubs.json` dosyasına, yani varlık türüne kapsamlıyor. Global kısıt zararsız bir durumu (aynı adı taşıyan kulüp ve stadyum) yasaklar, karşılığında bir şey kazandırmaz. ⚠️ **Ölçüm çakışma bulamadı ama benzersizliğin KANITI değil** — örneklem 76, hedef ~240; algoritma kısa ve genel anahtarlar üretiyor (`AC Milan` → **`milan`**, `AS Roma` → **`roma`**, `Athletic Club` → **`athletic`**). `UNIQUE` kısıtı bu yüzden veritabanı seviyesinde: çakışma olursa ingest **patlar**, sessizce yanlış varlığa bağlanmaz. **Uydu tablolar `key` taşımıyor** (`club_facilities`, `club_finances_base`, `club_kits`, `rivalries`, `federations`, `kit_templates`) — kimlikleri sahiplerinin kimliği. `kit_templates` ayrıca pakette değil, oyunun kendi şablonu. `key` **`NOT NULL`**: `DATA_MODE=clean`'de prosedürel varlıklar da adreslenebilir olmak zorunda ve `SeededRng` deterministik anahtarı zaten mümkün kılıyor (K2). | ✅ **`docs/spec/01-database.md` §3.1.0 [YENİ]** (tam sözleşme + ölçüm), `docs/ROADMAP.md` Faz 3 tablo envanteri, `docs/schema/world.md` |
@@ -764,6 +819,12 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | #   | Alt görev | Hata (belirti)                                                                                                                                                                                                | Kök neden                                                                                                                                                                            | Çözüm                                                                                                                                                    | Tekrar önleme                                                                                                                                                        |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 29  | 3.4 | Python heredoc `FileNotFoundError` verdi — dosya `ls` ile **görünüyordu** | Python **Windows yorumlayıcısı**; Git Bash'in `/c/Users/...` MSYS yolunu çözemiyor. `ls` (bash) görüyor, `io.open` (Python) görmüyor. Aynı çağrıdaki göreli yollar sorunsuz çalıştığı için sebep bir an anlaşılmadı | Scratchpad yolları Python'a **`C:/...` biçiminde** verildi | ORTAM TUZAKLARI ⑭. Tuzak ① ve ⑬'ün akrabası: üçü de *"yol yazdığın/okuduğun yere gitmedi"* sınıfı. **Kural:** bir çağrıda hem bash hem Python yol kullanıyorsa, Python'a verilen yol **Windows biçiminde** yazılır |
+| 28  | 3.4 | `pnpm test:db` **14 test birden** kırıldı — üçü `round-trip`, ikisi kurgusal, dokuzu `runner` ve `master-readonly` | `0001` `countries`e altı `NOT NULL` sütun ekledi. **Üç ayrı entegrasyon dosyasında** `INSERT INTO "countries" ("key","code","name_key")` satırları vardı — tek bir gerçeğin üç kopyası. Ayrıca `runner.itest.ts` zincirin **tek migration'lık** olduğunu varsayan altı iddia taşıyordu (`applied`, `reverted`, `steps: 1`) | `integration/fixtures.ts` açıldı: `countryInsertSql()` **tek yerde**; `chainTags()` etiketleri journal'dan okuyor. Koşucu davranışını sınayan testler artık zincir uzunluğundan bağımsız | **Günlük #23'ün bir adım ötesi:** düzeltme sınıfın geçtiği her yeri kapsamakla kalmadı, **sınıfı tek bir yere indirdi**. Ayrım: *"koşucunun davranışını"* sınayan test girdisini journal'dan okur, *"şemanın içeriğini"* sınayan test beklentiyi **açıkça yazar** |
+| 27  | 3.4 | Tek adımlık `ALTER` çevrimi `identical: true` **vermedi**: sekiz sütunun `position`ı 7…14 → **15…22** | `information_schema.columns.ordinal_position` PostgreSQL'de `pg_attribute.attnum`dur ve `DROP COLUMN` numarayı **geri kazanmaz**, delik bırakır. Sıra değişmiyor, yalnızca numaralar kayıyor | Karşılaştırmadan `position` **çıkarılmadı**. Test farkların **tam listesini** iddia ediyor (yol, önceki, sonraki) | **Bir kapıyı daraltmak, ölçümü kapıya uydurmaktır.** Tam liste iddiası `identical: true`dan **daha güçlü**: beklenen sekizin dışında tek fark çıkarsa kırılır. → `spec/01` §3.1.2 ⑤ |
+| 26  | 3.4 | `snapshot ↔ gerçek şema` karşılaştırması kırılacaktı: snapshot `id · key · source · …`, gerçek `id · key · code · … · source` diyordu | `ALTER TABLE ADD COLUMN` sütunu tablonun **sonuna** ekler; `drizzle-kit` snapshot'a **TS tanımındaki** sırayı yazar. 3.2b'nin karşılaştırma kapsamına **sütun sırası** dahil ve o kapsam yalnızca `CREATE TABLE` ile sınanmıştı | `countries.ts` sütunları **fiziksel sıraya** hizalandı (`created_at`/`updated_at` ortada), migration yeniden üretildi | **Bir kapsam kararı, sınanmadığı bir yol ortaya çıkınca yeniden ölçülür.** Kural `spec/01` §3.1.2 ④: var olan tabloya sütun eklerken sütun TS tanımının da SONUNA yazılır. Kazanç bir değişmez: dosyadaki sıra = tablonun gerçek sırası |
+| 25  | 3.4 | `masterTable(` → `(` mutasyonu `tsc`yi kırdı; bir an *"tip sistemi işaretlemeyi unutmayı yakalıyor"* göründü | Hata **TS1109** idi: `(pgTable(…),)` — parantezli ifadenin sonunda **virgül**. Yani mutasyonun kendisi sözdizimsel olarak bozuktu ve kapı **yanlış sebeple** kırıldı | Mutasyon geçerli hâle getirildi (`masterTable` → yerel bir kimlik fonksiyonu + kullanılmayan import silindi). Sonuç **tam tersi**: `typecheck` exit 0, `pnpm test` 631/631, **yalnızca `arch:check`** yakaladı | **D2'nin yeni biçimi:** bir mutasyon "kırıldı" dediğinde önce **neyin** kırıldığına bakılır. Yanlış sebeple kırılan bir kapı, doğru sebeple kırılmış gibi okunur ve **uydurma bir kanıt** üretir |
+| 24  | 3.4 | `column "external_ids" is of type jsonb but expression is of type text` — çok satırlı `INSERT … VALUES` | Çok satırlı `VALUES` listesinde Postgres **önce** sütunun ortak tipini çözüyor; hepsi tırnaklı literal olduğu için `unknown` → **`text`**e düşüyor ve `text` → `jsonb` örtük atama yok. Tek satırlık `INSERT`te aynı literal sorunsuz geçiyor | Literallere açık `::jsonb` cast'i eklendi (`fixtures.ts` bunu tek yerde yapıyor) | **Aynı SQL, satır sayısına göre farklı davranıyor.** Bir `INSERT` tek satırla sınanıp çok satırla kullanılmaz; `jsonb`/`enum` gibi örtük atama kabul etmeyen tiplerde cast **her zaman** yazılır |
 | 23  | 3.3 devri | `spec/09` §11.4 envanterinin TAMAMI denetlendi ve **iki bulgu daha** çıktı: ① `.test-d.ts` dışlaması **canlı 6 `tsconfig.build.json`'da eksikti** (yalnızca `packages/db`ye eklenmişti) ② `apps/web/tsconfig.build.json` **hiçbir yerde kullanılmıyor** — `vite build` derliyor | İlk düzeltme yalnızca hatanın **görüldüğü** pakete bakmıştı. Ve "8 tsconfig" satırı tek bir dosya gibi okunuyordu | Altı canlı dosyaya dışlama eklendi; ölü dosyaya **dokunulmadı** ve durumu `spec/09`'a yazıldı | **Bir düzeltme, hatanın görüldüğü yeri değil SINIFININ geçtiği HER yeri kapsamalı** — SAPMA kuralının (`spec/11` §12.4) yapılandırma dosyalarındaki karşılığı. Ayrıca: ölü bir yapılandırmayı "düzeltmek" hiçbir şey kazandırmaz, ona güvenmeye yol açar |
 | 22  | 3.3       | CI **yalnızca amd64'te** kırıldı, arm64 geçti: `ReferenceError: window is not defined`. **598 testin hepsi GEÇMİŞTİ** — kırılma Vitest'in "2 unhandled errors" satırından geldi                                    | `main.tsx` modül düzeyinde `createRoot().render()` çağırıyor ama kökü **tutmuyor**; test hiç `unmount` etmiyordu. Dosya bitip Vitest jsdom'u yıkınca React'in zamanlayıcısında bekleyen iş (`setImmediate`) `window` yokken çalışıyor | `main.tsx` kökü **dışa aktarıyor**, test `afterEach`te söküyor. Üretim çıktısı **bayt bayt aynı** (321.495, aynı hash) — değişiklik yalnızca teste etki ediyor | **D6:** kırmızı olan kod değil **testti** — gerçek bir tarayıcı `window`u yıkmaz. Yerelde **beş koşuda hiç tekrar üretilemedi**: yarış makine hızına bağlı, o yüzden "yeniden koş" bir çözüm değil, sökme kancası olmalı. Ayrıca: **3.3 `apps/web`e hiç dokunmamıştı** — gizli yarışı ortaya çıkaran şey yeni testlerin zamanlamayı değiştirmesiydi |
 | 21  | 3.3       | `createWorldDb` yazıldı ama **hiçbir test onu çağırmıyordu** — tip koruması kanıtlıydı, fabrikanın çalıştığı değil                                                                                                | Tip seviyesi kanıtı yalnızca DERLEME zamanına ait; çalışma zamanında bağlantı kurup sorgu döndürdüğünü göstermiyor                                                                     | Entegrasyon testine iki `it()` eklendi: her iki istemci de gerçek konteynerde `select` koşuyor                                                          | **D5.** Tüketicisi olmayan bir fabrika, hiç koşulmamış koddur. "Tipi doğru" ile "çalışıyor" ayrı iddialar                                                                |
