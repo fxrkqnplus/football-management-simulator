@@ -254,6 +254,52 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > | 8 | `tools/arch-check/index.mjs` → `checkImportCasing` adayları | `.js→.ts`, `.mjs→.mts`, `.cjs→.cts` | düz dizi |
 > | 10 | **7** × `tsconfig.build.json` → `exclude` (`.test-d.ts` satırı) | Tip-seviyesi kontrol deneyleri `dist`e girmesin — Faz 3.3 | **parantez YOK** |
 > | 9 | `vitest.integration.config.ts` → `test.include` | Entegrasyon testi keşfi (`integration/**/*.itest.ts`) | süslü parantez ✅ |
+> | 11 | `packages/db/drizzle.config.ts` → `schema` | `drizzle-kit`in **çalıştırarak okuyacağı** şema dosyaları — Faz 3.5 | **extglob** (`!(...)`), negatif desen ÇALIŞMAZ |
+>
+> ### ⚠️ 11. SATIR — ENVANTERİN İLK "SESSİZ DEĞİL, GÜRÜLTÜLÜ" ÜYESİ (Faz 3.5)
+>
+> Desen `'./src/schema/*.ts'` idi ve test dosyalarını da topluyordu.
+> `drizzle-kit generate` şema dosyalarını **CommonJS `require` ile çalıştırıyor**
+> (`prepareFilenames` → `glob.sync`), yani `competition-rules.test.ts`in
+> `vitest` import'u komutu kırıyordu:
+> `Error: Vitest cannot be imported in a CommonJS module using require()`.
+>
+> **3.4'te görünmemesinin sebebi sıraydı:** migration, testler yazılmadan
+> **önce** üretilmişti. Tuzak baştan beri vardı; yalnızca kimse aynı gün her
+> ikisini de yapmamıştı.
+>
+> **Bu satır listenin geri kalanından iki yönden ayrılıyor:**
+>
+> | | Diğer on satır | 11. satır |
+> |---|---|---|
+> | Yanlışsa ne olur | **Sessiz** — kapı temiz der, dosya denetlenmez | **Gürültülü** — komut hiç çalışmaz |
+> | Ne zaman anlaşılır | Belki hiç | İlk `generate` çağrısında |
+>
+> Gürültülü olması onu **daha az** tehlikeli yapmıyor, **farklı** yapıyor: hata
+> yalnızca yeni bir migration üretilirken, yani seyrek olarak ortaya çıkıyor ve
+> aradaki tüm koşularda desen "çalışıyor" görünüyor. Bir sonraki oturum deseni
+> `*.ts`ye sadeleştirmeye kolayca kalkışabilir.
+>
+> **Ölçülmüş iki not:**
+>
+> - **Negatif desen İŞE YARAMIYOR.** `prepareFilenames` desenleri `reduce` ile
+>   **birleştiriyor**; `'!./src/schema/*.test.ts'` hiçbir şeyle eşleşmediği için
+>   sessizce **boş bir katkı** oluyor, dışlama olmuyor. Kaynaktan okundu, denenip
+>   bırakılmadı. Çalışan yol **extglob**: `!(*.test|*.test-d)`.
+> - **`*.test-d` de dışlanıyor**, bugün `src/schema/` altında öyle bir dosya
+>   yokken. Sebebi bu sınıfın bilinen bedeli: tip-seviyesi kontrol deneyleri
+>   gerçek `pgTable(...)` çağrıları içeriyor
+>   (`packages/db/src/client/master-write-control.test-d.ts`), yani böyle bir
+>   dosya o dizine düşseydi migration'a **hayalet bir tablo** girerdi.
+>
+> **Desen artık bir kapı, yalnızca bir yorum değil:**
+> `packages/db/src/schema/drizzle-config.test.ts` deseni Node'un `fs.globSync`i
+> ile açıp iki şeyi birden iddia ediyor — hiçbir test dosyası seçilmiyor **ve**
+> test olmayan her `.ts` seçiliyor (eşitlik, alt küme değil: fazla dışlama bir
+> tabloyu migration'dan sessizce düşürürdü). Ayrıca dizinde gerçekten dışlanacak
+> bir dosya olduğu ayrı bir testle sabitleniyor, yoksa iddia bedavaya sağlanırdı.
+> **Mutasyonla doğrulandı:** desen `*.ts`ye geri alındığında **4 testin 2'si**
+> kırılıyor.
 >
 > **9. satır Faz 3.2a'da eklendi** ve bu, listenin kendi kuralının işlemesidir:
 > yeni bir dosya deseni repoya girdiğinde envanter gözden geçirilir. `.itest.ts`
@@ -335,6 +381,21 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > ölçütü (`docs/SPEC-COVERAGE-GAPS.md` başlığı) bu sınıf için henüz
 > dolmadı: `.cts` (2.1), `{ts,tsx}` (2.0b) ve `.test-d.ts` (3.3) üç ayrı
 > tetikleyici ama üçü de **aynı** tabloyla yakalandı.
+>
+> > ⚠️ **DÖRDÜNCÜ VERİ NOKTASI (Faz 3.5) — ve bu öncekilerden FARKLI.**
+> > `drizzle.config.ts`in `schema` deseni (11. satır) bu tabloyla
+> > **yakalanmadı**: tablo o satırı hiç içermiyordu, çünkü satır ancak
+> > `drizzle-kit generate` kırıldığında keşfedildi. Yani ilk üç vaka
+> > *"envanter hatırlandı ve işe yaradı"* örneğiydi; bu vaka
+> > *"envanterde olmayan bir yer vardı"* örneği — önerilen meta-testin
+> > çözemeyeceği bir sınıf, çünkü o da yalnızca **kayıtlı** sonekleri sınar.
+> >
+> > **Kayıt buraya düşüyor ama öneri yine YAZILMIYOR (K12).** Değişen şey
+> > ölçüt: eksik olan bir *sonek* değil, bir *yer*. Envanterin
+> > tamlığını sınayacak bir mekanizma, repoda desen taşıyan her yapılandırmayı
+> > **bulmak** zorunda kalırdı ve o ayrı bir problem. Bugün yapılan şey, o yeri
+> > envantere yazmak ve **kendi kapısını** kurmak
+> > (`packages/db/src/schema/drizzle-config.test.ts`).
 >
 > **Ölçülmüş ders (2.1):** 7. satırdaki listede `.cts` eksikti ve sonuç sessizdi —
 > ihlal içeren bir `.cts` dosyası konulduğunda `arch:check` **"temiz"** dedi

@@ -72,6 +72,24 @@ verilip verilmeyeceği tabloyu açan fazda kararlaştırılır.
 
 ---
 
+## Tarama 4 — Faz 3.5 (2026-08-27)
+
+Yöntem: `clubs` tablosunun nullability kararları verilirken ortaya çıkan
+**koşullu** kısıtlar tarandı; sütun seviyesinde ifade edilemeyen her kural için
+"bunu kim doğrulayacak?" sorusu soruldu.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-10 | `spec/01` §3.1 — `clubs.competitionId` · `clubs.stadiumId` · `clubs.isNational` | Faz 3.5'te ikisi de **nullable** yapıldı, çünkü milli takımların (Faz 41) ne ligi ne sabit ev sahası var. Bu, kulüp takımları için bir **tutarlılık boşluğu** bırakıyor: *"`is_national = false` olan bir kulüp ligsiz veya stadyumsuz kalabilir mi?"* Cevap **hayır** olmalı ama bu koşullu bir kural — sütun seviyesinde `NOT NULL` ile ifade edilemez ve §3.1.2 ② gereği CHECK'e de konmuyor. Bugün **hiçbir şey** onu denetlemiyor. | **Faz 11** (`pnpm validate:world`) — veri doğrulayıcısının doğal işi; Faz 8 ingest'i o kuralın ilk müşterisi | ⏳ ROADMAP'e işlenmedi — Faz 11 açılışında karara bağlanır. Kararın gerekçesi `packages/db/src/schema/clubs.ts` başlığında. |
+
+> **Neden bir boşluk, bir borç değil:** borç *"yapılması gerekeni erteledik"*
+> demektir; burada yapılacak şeyin **yeri** başka bir fazda ve o faz henüz
+> gelmedi. Faz 3'ün kapsamı şema, doğrulayıcı değil (K12). Kaydın buraya
+> düşmesinin sebebi tam olarak bu dosyanın var olma sebebi: sütun kararı bugün
+> verildi, denetimi başka bir fazın işi, ve **arada kaybolabilirdi**.
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.

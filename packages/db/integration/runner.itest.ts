@@ -184,12 +184,19 @@ describe('migrateDown — gerçek Postgres', () => {
     );
 
     expect(result.dryRun).toBe(true);
-    // `countries` iki satırla, diğerleri boş: yapısal kayıp üç tabloda da var,
-    // satır riski yalnızca `countries`te.
+    // `countries` iki satırla, diğerleri boş: yapısal kayıp SEKİZ tabloda da
+    // var, satır riski yalnızca `countries`te. Liste açıkça yazılıyor —
+    // burada test edilen şey "koşucunun davranışı" değil "şemanın içeriği"
+    // (ayrım `integration/fixtures.ts` başlığında).
     expect([...result.loss.items].sort((a, b) => a.table.localeCompare(b.table))).toEqual([
+      { kind: 'table', table: 'club_facilities', rowsAtRisk: 0 },
+      { kind: 'table', table: 'club_finances_base', rowsAtRisk: 0 },
+      { kind: 'table', table: 'clubs', rowsAtRisk: 0 },
       { kind: 'table', table: 'competitions', rowsAtRisk: 0 },
       { kind: 'table', table: 'countries', rowsAtRisk: 2 },
       { kind: 'table', table: 'federations', rowsAtRisk: 0 },
+      { kind: 'table', table: 'rivalries', rowsAtRisk: 0 },
+      { kind: 'table', table: 'stadiums', rowsAtRisk: 0 },
     ]);
     // Rapor gerçek veriye dayandı — ve tablo hâlâ duruyor.
     expect(await tableExists('countries')).toBe(true);

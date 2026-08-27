@@ -15,6 +15,13 @@
       "when": 1787830948604,
       "tag": "0001_geography_institutions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787851120353,
+      "tag": "0002_club_core",
+      "breakpoints": true
     }
   ]
 }

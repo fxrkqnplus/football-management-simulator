@@ -29,11 +29,11 @@ her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (
 | 1 | `countries` | 3.2b / 3.4 | ✅ | İlk migration ve round-trip kanıtı bunun üzerinde |
 | 2 | `federations` | 3.4 | — | `presidentPersonId` **Faz 4'te** |
 | 3 | `competitions` | 3.4 | ✅ | `rules jsonb` (Zod: `CompetitionRules`), ayrı tablo değil |
-| 4 | `clubs` | 3.5 | ✅ | `reputation` ve üç renk **sütun** olarak burada; `chairmanPersonId` **Faz 4'te** |
-| 5 | `club_facilities` | 3.5 | — | `clubId` 1:1 |
-| 6 | `club_finances_base` | 3.5 | — | `clubId` 1:1 · başlangıç değerleri master, değişimi delta |
-| 7 | `stadiums` | 3.5 | ✅ | |
-| 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` |
+| 4 | `clubs` | 3.5 | ✅ | `reputation` ve üç renk **sütun** olarak burada; `chairmanPersonId` **Faz 4'te**. ⚠️ `competitionId` ve `stadiumId` **nullable** — milli takımın (Faz 41, `isNational`) ne ligi ne sabit sahası var (SAPMA-026'nın türetme kuralı) |
+| 5 | `club_facilities` | 3.5 | — | `clubId` 1:1 (PK = FK, ayrı `id` yok) |
+| 6 | `club_finances_base` | 3.5 | — | `clubId` 1:1 · başlangıç değerleri master, değişimi delta · `bigint` **`mode: 'bigint'`** (§3.1.2 ⑥) |
+| 7 | `stadiums` | 3.5 | ✅ | `builtYear`/`assetId` nullable |
+| 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` → ikisi de `clubs`, `CASCADE`. Tekrar/kendine-referans denetimi **Faz 11** |
 | 9 | `kit_templates` | 3.6 | — | Oyunun kendi 20 SVG şablonu, pakette değil — `code` kimliği taşıyor |
 | 10 | `club_kits` | 3.6 | — | `clubId` + `kitType` |
 | 11 | `referees` | 3.6 | ✅ | `personId` **Faz 4'te** → Faz 4'e kadar **isimsiz** |

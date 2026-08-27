@@ -1220,8 +1220,57 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       ② karşılaştırıcı köreltildi → **50 testin 5'i** kırıldı (3.2b'de 16'da 1) ve
       **üçü yeni tabloların** negatif testleri.
       **D5:** derlenmiş `dist/` düz `node` ile gerçek PG18.6'ya karşı koşturuldu.
-- [ ] **3.5** Kulüp çekirdeği — `clubs`, `club_facilities`, `club_finances_base`,
-      `stadiums`, `rivalries`
+- [x] **3.5** Kulüp çekirdeği — `clubs`, `club_facilities`, `club_finances_base`,
+      `stadiums`, `rivalries`.
+      **SONUÇ:** beş tablo `masterTable(...)` ile sarılı · `0002_club_core` +
+      **elle yazılmış `down`** · şema **8 / 11 master tablo** · dokuz FK ve
+      hepsinin `ON DELETE` davranışı §3.1.2 ③'e uygun (uydu CASCADE ×5,
+      bağımsız varlık RESTRICT ×4) — tam envanter entegrasyon testinde iddia
+      ediliyor.
+      ⚠️ **`clubs.competition_id` ve `clubs.stadium_id` NULLABLE — karar.**
+      `spec/01` ikisini de işaretsiz yazıyor (türetme kuralı `NOT NULL` okur)
+      ama aynı tablo `is_national` taşıyor ve milli takımlar **Faz 41'de gerçek
+      satırlar**: ne ligi ne sabit sahası var. SAPMA-026 ②'nin (`competitions.tier`)
+      birebir aynısı; `NOT NULL` yazılsaydı Faz 41 iki `ALTER … DROP NOT NULL`
+      yazmak zorunda kalırdı. Koşullu kural (*"`is_national = false` ise zorunlu"*)
+      sütun seviyesinde ifade edilemez → **Faz 11 doğrulayıcısı**, kayıt
+      `docs/SPEC-COVERAGE-GAPS.md` **G-10**.
+      ⚠️ **`bigint` MOD KARARI ÖLÇÜLDÜ → `{ mode: 'bigint' }`** (`spec/01`
+      §3.1.2 ⑥). İki mod **aynı DDL'i** üretiyor; fark JS eşlemesinde:
+      `mode: 'number'` 2⁵³+1'i **sessizce** `…992`ye düşürüyor. Entegrasyon
+      testi 9007199254740993'ü yazıp Drizzle üzerinden birebir geri okuyor,
+      **karşı örnek** de aynı testte (`Number`a düşünce kayıp gösteriliyor).
+      ⚠️ **`down` SIRASI ARTIK BİR TERCİH DEĞİL** (`spec/01` §3.1.2 ⑦): iki
+      katmanlı FK zinciri (uydular → `clubs` → `stadiums`). `CASCADE`
+      **kullanılmadı** — fazla giden bir `down` üretirdi (3.2b'nin sessiz
+      sınıfı). Yanlış sıralı bir fixture `down`unun patladığı **ölçüldü**.
+      ⚠️ **GİZLİ TUZAK BULUNDU:** `drizzle.config.ts`in `schema` globu
+      (`./src/schema/*.ts`) **test dosyalarını da** topluyordu ve
+      `drizzle-kit generate` `Vitest cannot be imported in a CommonJS module`
+      ile kırıldı. 3.4'te görünmemesinin sebebi sıraydı (migration testlerden
+      **önce** üretilmişti). Negatif desen **çalışmıyor** (kaynaktan okundu:
+      desenler birleştiriliyor); çözüm extglob `!(*.test|*.test-d)`. Yer
+      `spec/09` §11.4 envanterine **11. satır** olarak eklendi ve kendi kapısı
+      yazıldı (`drizzle-config.test.ts`) — mutasyonla doğrulandı: desen geri
+      alınınca **4 testin 2'si** kırılıyor.
+      **Ölçümler:** `pnpm test` 631 → **635** (45 → 46 dosya) · `pnpm test:db`
+      50 → **77** (4 dosya) · round-trip `comparedFacts` 466 → **1.223**, alt
+      sınır yükseltildi · kapsam **%86,31 satır / %77,37 fonksiyon** (eşik %70,
+      DÜŞÜRÜLMEDİ; düşüşün sebebi beş yeni Drizzle şema dosyasının %0'ı —
+      aşağıdaki dürüstlük notu) · `arch:check` **9 kural, değişmedi**.
+      **Mutasyonla doğrulandı:** ① `clubs`tan `masterTable(...)` sarması
+      kaldırıldı → `typecheck` **exit 0**, `pnpm test` **635/635 geçti**,
+      **yalnızca `arch:check` yakaladı** (3.4'ün ölçümü yeni bir tabloyla
+      tekrarlandı) ② karşılaştırıcı köreltildi → **77 testin 11'i** kırıldı
+      (3.2b'de 16'da 1, 3.4'te 50'de 5) ve **altısı yeni tabloların** bozulma
+      testleri.
+      **D5:** derlenmiş `dist/` düz `node` ile gerçek PG18.6'ya karşı koşturuldu
+      — 3 migration uygulandı, 8 tablo, `bigint` kayıpsız, ters sırada geri
+      alma, 0 tablo kaldı.
+      **Bilerek YAPILMAYANLAR:** `clubs.chairman_person_id` (Faz 4, sütun+FK
+      birlikte) · `rivalries` tekrar/kendine-referans kısıtı (Faz 11; kısmi bir
+      `UNIQUE` (B,A)'yı sessizce geçirir — D3 sınıfı) · `seated_capacity <=
+      capacity` CHECK'i (§3.1.2 ②, içerik denetimi Faz 11)
 - [ ] **3.6** Görsel varlıklar ve hakemler — `kit_templates`, `club_kits`, `referees`
 - [ ] **3.7** İndeksler + `pg_trgm` GIN + `CREATE EXTENSION` migration'ı.
       ⚠️ **3.1'de ölçülen kısıt:** düz `pg_trgm` Türkçe aramayı sağlamıyor

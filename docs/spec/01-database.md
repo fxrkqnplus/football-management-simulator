@@ -122,13 +122,17 @@ tutarlı tercihi sezonu **skaler bir tamsayı** olarak taşımaktır:
 Puan durumu da saklanmıyor — `matches` satırlarından **türetiliyor**. Yeni bir
 tablo eklemeden önce bu deseni bozup bozmadığı sorulmalıdır.
 
-### 3.1.2 Şema yazım kuralları — Faz 3.4'te ÖLÇÜLDÜ, 3.5/3.6 bunları okur
+### 3.1.2 Şema yazım kuralları — Faz 3.4'te ÖLÇÜLDÜ, 3.5'te genişledi, 3.6 okur
 
-> **Bu bölüm 3.4'te yazıldı.** Aşağıdaki dördü de o alt görevde *karar* olarak
-> verildi ve gerçek PostgreSQL 18.6'ya karşı **ölçüldü**. Yazılmasalardı 3.5
-> (kulüp çekirdeği) ve 3.6 (görsel varlıklar, hakemler) aynı soruları yeniden
-> sorup muhtemelen farklı cevaplar verirdi — ve iki farklı cevap şemada
-> **sessiz** bir tutarsızlık olurdu.
+> **Bu bölüm 3.4'te yazıldı, 3.5'te genişletildi.** ①–⑤ 3.4'ün, ⑥–⑦ 3.5'in
+> ölçümü; hepsi gerçek PostgreSQL 18.6'ya karşı alındı. Yazılmasalardı sonraki
+> alt görevler aynı soruları yeniden sorup muhtemelen farklı cevaplar verirdi —
+> ve iki farklı cevap şemada **sessiz** bir tutarsızlık olurdu.
+>
+> ⚠️ **Düzeltme (3.5):** bu paragrafın 3.4'teki hâli *"aşağıdaki dördü de"*
+> diyordu, oysa kural sayısı o gün de **beşti**. Sayı düzeltildi; kuralların
+> kendisine dokunulmadı. Bu bölüm 3.5 ve 3.6'nın **kaynağı** olduğu için burada
+> yanlış bir sayı, okuyanı listenin sonunu aramaktan vazgeçirebilirdi.
 
 **① `check()` DESTEKLENİYOR — ham SQL'e gerek yok.**
 `drizzle-orm@0.45.2` `check`'i dışa aktarıyor ve `drizzle-kit@0.31.10` uçtan uca
@@ -198,6 +202,55 @@ Sonuç: tek bir `ALTER` migration'ının `down`/`up` çevriminde `identical: tru
 biçimi: farkların **tam listesini** sabitlemek (fazlası varsa `down` fazla
 gidiyor demektir) — `packages/db/integration/round-trip.itest.ts`. Tam zincir
 geri alması (tablo düşüp yeniden yaratıldığı için) `identical: true` verir.
+
+> ⚠️ **Simetrik sonuç (Faz 3.5'te ölçüldü):** yalnızca `CREATE TABLE` içeren bir
+> migration'ın çevriminde `identical: true` **beklenir**. `0002_club_core`'un
+> beş tablosu düşüp yeniden yaratılıyor, yani `attnum`lar 1'den başlıyor ve
+> delik kalmıyor. İki beklenti **ayrı testlerde** tutuluyor: birleştirilselerdi
+> 0002'nin fazla giden bir `down`u, 0001'in bilinen sekiz farkının arkasında
+> *"zaten fark bekliyorduk"* diye okunurdu.
+
+**⑥ `bigint` SÜTUNLARI `{ mode: 'bigint' }` ALIR — `'number'` DEĞİL.**
+Drizzle'ın `bigint()`i bir mod istiyor ve **ikisi de aynı DDL'i üretiyor**
+(`getSQLType()` → `bigint`), yani seçim migration'ı değil yalnızca JS
+tarafındaki eşlemeyi değiştiriyor. Gerçek PG 18.6'ya karşı ölçüldü:
+
+| Yol | `9007199254740993` (2⁵³+1) | `9223372036854775807` (int8 üst sınırı) |
+|---|---|---|
+| Ham `postgres.js` | `'9007199254740993'` (dizge) ✅ | `'9223372036854775807'` ✅ |
+| Drizzle `mode: 'number'` | `9007199254740992` ❌ | `9223372036854776000` ❌ |
+| Drizzle `mode: 'bigint'` | `9007199254740993n` ✅ | `9223372036854775807n` ✅ |
+
+`mode: 'number'` sürücünün dizgesini `Number(value)` ile daraltıyor (kaynaktan
+okundu: `drizzle-orm/pg-core/columns/bigint.js`) — hata fırlatmıyor, **sessizce
+yanlış sayı** döndürüyor. Para (kuruş/cent) için bu, aşağı akışta hiçbir zaman
+tespit edilemeyecek bir hata sınıfıdır.
+
+**Bedeli yazılı olmalı:** `bigint` JS'te `number` ile karışmaz (`1n + 1` →
+`TypeError`) ve `JSON.stringify` onu serileştiremez. Para taşıyan her sınır
+(Faz 12 `WorldView`, Faz 30 piyasa değeri) dönüşümü **açıkça** yapmak zorunda —
+sessiz hassasiyet kaybı yerine gürültülü tip hatası.
+
+**⑦ ELLE YAZILAN `down` BAĞIMLILIK ZİNCİRİNİ TERSTEN SÖKER — ve `CASCADE` kullanmaz.**
+`DROP TABLE` (CASCADE'siz) kendisine bakan bir FK varken **reddedilir**
+(`cannot drop table X because other objects depend on it` — PG 18.6'da ölçüldü,
+tablo adı mesajda **tırnaksız**). 0000 ve 0001'de sıra bir okunabilirlik
+tercihiydi; `0002_club_core` iki katmanlı bir zincir getirdi
+(`rivalries`/`club_facilities`/`club_finances_base` → `clubs` → `stadiums`) ve
+orada sıra **zorunlu**.
+
+`DROP TABLE … CASCADE` sırayı gereksiz kılardı ama bu migration'ın **yaratmadığı**
+nesneleri de sessizce götürür — 3.2b'nin *"fazla giden `down`"* sınıfının ta
+kendisi: hiçbir hata çıkmaz, şema sessizce eksilir ve yalnızca karşılaştırma
+yakalar. Açık sıra, `CASCADE`in gizlediği bağımlılığı görünür kılıyor.
+
+Sıranın gerekliliği **varsayılmaz, sınanır**: `round-trip.itest.ts` yanlış sıralı
+bir fixture `down`unun patladığını ölçüyor, gerçek `down` ise dolu tablolarla
+sorunsuz koşuyor — nöbetçi iki yönlü.
+
+`DROP TABLE` tabloya ait kısıtları (PK, UNIQUE, CHECK, FK) zaten götürür; kısıt
+ayrıca düşürülmez. 0001'de CHECK'ler açıkça düşürülüyordu çünkü orada tablo
+değil **sütun** düşüyordu ve kısıt tabloya aitti, sütuna değil.
 
 ### Coğrafya ve Kurumlar
 

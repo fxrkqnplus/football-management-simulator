@@ -1,3 +1,6 @@
+export { clubFacilities } from './club-facilities.js';
+export { clubFinancesBase } from './club-finances-base.js';
+export { clubs } from './clubs.js';
 export type { CompetitionFormat, CompetitionRules, Tiebreaker } from './competition-rules.js';
 export { COMPETITION_FORMATS, competitionRulesSchema, TIEBREAKERS } from './competition-rules.js';
 export type { CompetitionType } from './competitions.js';
@@ -7,3 +10,5 @@ export { countries, WORK_PERMIT_RULES } from './countries.js';
 export type { DataSource, ExternalIds } from './data-pack-columns.js';
 export { DATA_SOURCES, externalIdsSchema } from './data-pack-columns.js';
 export { federations } from './federations.js';
+export { rivalries } from './rivalries.js';
+export { stadiums } from './stadiums.js';
