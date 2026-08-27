@@ -26,10 +26,10 @@
 | **Tarih** | 2026-08-27 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** var ama bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama kapanmış SAYILMIYOR, aşağıdaki kalıcı bloğa bak. |
-| **Son commit** | `chore(web): ölü tsconfig.build.json'ı sil — 3.3'ten devreden açık karar` (3.4'ün şema commit'i bir öncesi) |
+| **Son commit** | `docs(memory): 3.4 CI sonucunu işle — dördüncü ardışık yeşil amd64` |
 | **Devreden açık karar** | ✅ **KAPANDI.** `apps/web/tsconfig.build.json` **silindi** (not düşülmedi). Gerekçe ve ölçüm `spec/09` §11.4 ②. Doğrulandı: `apps/web/dist` **bayt bayt aynı** (aynı toplam SHA-256, aynı paket adı `index-BNdQN1Bb.js`, **321.495 bayt**) · dört kapı yeşil · `tsconfig.build.json` sayısı **8 → 7**, envanterin 6. ve 10. satırları güncellendi |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
-| **CI** | ✅ **`33065051088` — altı iş de yeşil** (3.4 öncesi son koşu, commit `a0d7994`). Bu, düzeltmeden sonraki **ÜÇÜNCÜ ardışık yeşil amd64** (`33028319414` · `33064847673` · `33065051088`). ⚠️ İlk 3.3 koşusu `33027936236` **yalnızca amd64'te** kırılmıştı — ayrıntı aşağıdaki **AÇIK RİSK** bloğunda. 3.4 commit'inin koşusu **henüz işlenmedi** (push sonrası bakılacak). |
+| **CI** | ✅ **`33071099131` — altı iş de yeşil** (3.4'ün push'u, commit `94f2a87`). `Entegrasyon` işi **amd64 + arm64** ikisinde de 50 entegrasyon testini gerçek PG18 konteynerine karşı koşturdu; `Kalite kapıları` ikisinde de 631 birim testi. Bu, düzeltmeden sonraki **DÖRDÜNCÜ ardışık yeşil amd64** (`33028319414` · `33064847673` · `33065051088` · `33071099131`). ⚠️ İlk 3.3 koşusu `33027936236` **yalnızca amd64'te** kırılmıştı — ayrıntı aşağıdaki **AÇIK RİSK** bloğunda. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — build **SOĞUK ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği): typecheck 9/9 · lint 0 · format 0 · build 8/8, 6,16 s · **arch 9 kural, DEĞİŞMEDİ**, 250 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0). ℹ️ pnpm **11.24.0** çıkmış; kilit 11.23.0'da, karar verilmedi (`DEPENDENCY-WATCH` faz açılışında bakılır) |
 | **test** | ✅ **631 test / 45 dosya** (`pnpm test`, 0 hata — 3.4'te 598/43'ten çıktı) · ✅ **`pnpm test:db` 50 test / 4 dosya** gerçek PG18 konteyneriyle (23/3'ten çıktı). ⚠️ `test:db` varsayılan `pnpm test`'e **girmez** — ayrı komut, `spec/09` §11.5 faz kapanış listesinde ve CI'da ayrı iş |
@@ -76,9 +76,10 @@ zamanlayıcısında bekleyen iş `window` yokken çalışıyor.
 - **Yerelde beş koşuda hiç tekrar üretilemedi** — yani yerel yeşil bir kanıt değil.
 - Düzeltme **yerelde kanıtlanamadı**; ölçüm aracı CI oldu (`33028319414` yeşil).
 - **Tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz.**
-- Sayaç: **üç ardışık yeşil amd64 koşusu** (`33028319414` · `33064847673` ·
-  `33065051088`). Her yeni gözlem iddiayı **güçlendirir, kanıtlamaz** — üç
-  gözlem de bir yokluk kanıtı değildir. **Kırmızı görülürse blok yeniden açılır.**
+- Sayaç: **dört ardışık yeşil amd64 koşusu** (`33028319414` · `33064847673` ·
+  `33065051088` · `33071099131`). Her yeni gözlem iddiayı **güçlendirir,
+  kanıtlamaz** — dört gözlem de bir yokluk kanıtı değildir.
+  **Kırmızı görülürse blok yeniden açılır.**
 - ⚠️ **3.4 riski BÜYÜTMEDİ ama azaltmadı da:** alt görev `apps/web`e hiç
   dokunmadı, yani `main.test.tsx` ve `main.tsx` bayt bayt aynı. Yeni koşulardaki
   yeşil, kod değişmediği için yalnızca aynı deneyin tekrarıdır.
