@@ -4,7 +4,7 @@
  * ESLint İLE İŞ BÖLÜMÜ (tekrar yok):
  *   ESLint yapar      → `console.log` (K8), kaynak kodda mutlak yol (K6),
  *                       tip farkında kurallar, biçim.
- *   arch:check yapar  → ESLint'in göremediği veya beceremediği SEKİZ şey.
+ *   arch:check yapar  → ESLint'in göremediği veya beceremediği DOKUZ şey.
  *
  * KURAL LİSTESİ — bu yorum kapsam beyanıdır, kod ile AYRIŞMAMALI.
  * (Adı geçen her belirteç aşağıda `rule:` alanı olarak basılır.)
@@ -21,6 +21,9 @@
  *   ⑧ forbidden-export-exists ⑦'nin tablosundaki her adın `@fms/shared` barrel'ında
  *                             GERÇEKTEN dışa aktarıldığı — Faz 2.8 (yanlış yazım kuralı
  *                             köreltiyordu ve gate sessiz kalıyordu; 2.7 mutasyon ölçümü)
+ *   ⑨ master-table-marking   `packages/db/src/schema/` altındaki her `pgTable(...)`
+ *                             ya `masterTable(...)` ile sarılı ya da `arch:save-scoped`
+ *                             yorumuyla AÇIKÇA muaf — Faz 3.3 (K4)
  *
  * ⚠️ BU LİSTE DEĞİŞTİRİLİRSE ÜÇ YER BİRDEN GÜNCELLENİR (Faz 2.3b'de kurallaştı):
  *   1. burada,
@@ -175,6 +178,66 @@ export const ENGINE_FORBIDDEN_SHARED_EXPORTS = {
  * söylemez; liste daralırsa kapı sessizce kör olur.
  */
 export const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
+
+/**
+ * ⑨ MASTER TABLO İŞARETLEME — Faz 3.3, K4.
+ *
+ * `CLAUDE.md` K4 master tabloya yazmanın **tip seviyesinde derlenmemesini**
+ * istiyor. Zorlama `packages/db/src/client/master.ts`'teki marka ile kuruldu ve
+ * kontrol deneyiyle kanıtlandı (`master-write-control.test-d.ts`).
+ *
+ * **Ama tip sistemi bir şeyi göremez: İŞARETLEMEYİ UNUTMAK.** İşaretlenmemiş bir
+ * tablo yazılabilir kalır ve derleyicinin şikâyet edeceği bir şey yoktur —
+ * görecek bir marka yoktur. 3.3'te ölçüldü: `countries`ten sarma kaldırılınca
+ * kontrol deneyi 3 hata verdi, ama YALNIZCA o dosya `countries`i adıyla
+ * andığı için. 3.4'te eklenecek yeni bir tablo sarmayı unutursa **hiçbir şey
+ * ötmez**. Bu kural o boşluğu kapatıyor.
+ *
+ * **Muafiyet SESSİZ DEĞİL.** Save katmanı tabloları (Faz 12: `save_deltas`,
+ * `contracts` …) yazılabilir olmak zorunda. Onlar `arch:save-scoped` yorumuyla
+ * AÇIKÇA muaf tutulur — varsayılan olarak muaf sayılmazlar. Sessiz bir varsayılan,
+ * "unuttum" ile "bilerek" arasındaki farkı yok ederdi.
+ */
+export const SCHEMA_DIR_PREFIX = 'packages/db/src/schema/';
+export const MASTER_TABLE_WRAPPER = 'masterTable(';
+export const SAVE_SCOPED_MARKER = 'arch:save-scoped';
+
+/**
+ * Bir şema dosyasındaki işaretlenmemiş `pgTable(...)` tanımlarını bulur.
+ *
+ * SAF fonksiyon — dosya sistemine dokunmuyor, metin alıyor. Böylece birim
+ * testiyle doğrudan sınanabiliyor; kablolamasını ise kanarya kanıtlıyor
+ * (2.3b dersi: birim testi kablolamayı kanıtlamaz).
+ *
+ * @param {string} text
+ * @returns {{line: number, snippet: string}[]}
+ */
+export function findUnmarkedTables(text) {
+  const lines = text.split(/\r?\n/);
+  /** @type {{line: number, snippet: string}[]} */
+  const found = [];
+
+  lines.forEach((lineText, idx) => {
+    if (!lineText.includes('pgTable(')) return;
+
+    // Aynı satırda sarılı: `masterTable(pgTable('x', {`
+    if (lineText.includes(MASTER_TABLE_WRAPPER)) return;
+
+    // Önceki satırda sarılı (biçimlendiricinin ürettiği çok satırlı hâl):
+    //   export const countries = masterTable(
+    //     pgTable('countries', {
+    const previous = idx > 0 ? lines[idx - 1] : '';
+    if (previous.includes(MASTER_TABLE_WRAPPER)) return;
+
+    // Açık muafiyet: önceki üç satırdan birinde işaretçi.
+    const window = lines.slice(Math.max(0, idx - 3), idx).join(' ');
+    if (window.includes(SAVE_SCOPED_MARKER)) return;
+
+    found.push({ line: idx + 1, snippet: lineText.trim().slice(0, 60) });
+  });
+
+  return found;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Saf yardımcılar (test edilebilir)
@@ -516,6 +579,26 @@ export function runArchCheck(root) {
       const rel = relative(root, abs).split(sep).join('/');
       const ext = abs.slice(abs.lastIndexOf('.'));
       const layer = resolveLayer(rel);
+
+      // ⑨ Master tablo işaretleme — Faz 3.3, K4.
+      //
+      // Tip sistemi "yazma girişimini" yakalar ama "işaretlemeyi unutmayı"
+      // yakalayamaz — göreceği bir marka yoktur. Kural o boşlukta duruyor.
+      if (rel.startsWith(SCHEMA_DIR_PREFIX) && ext === '.ts') {
+        for (const hit of findUnmarkedTables(readFileSync(abs, 'utf8'))) {
+          violations.push({
+            file: rel,
+            line: hit.line,
+            rule: 'master-table-marking',
+            message:
+              `İşaretlenmemiş tablo tanımı: ${hit.snippet}. Master World salt-okunurdur (K4) ` +
+              `ve zorlama TİP SEVİYESİNDE: tablo 'masterTable(...)' ile sarılmalı. ` +
+              `Sarılmayan bir tablo YAZILABİLİR kalır ve derleyici bunu göremez — ` +
+              `görecek bir marka yoktur. Save katmanı tablosuysa üstüne '${SAVE_SCOPED_MARKER}' ` +
+              `yorumu koy: muafiyet açık olmalı, varsayılan olmamalı.`,
+          });
+        }
+      }
 
       // ④ TS olmayan kaynak varlıklarda mutlak uygulama yolu
       if (ASSET_EXTENSIONS.includes(ext) && /\/src\//.test(rel)) {

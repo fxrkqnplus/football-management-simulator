@@ -609,6 +609,135 @@ class WorldMutation {
 }
 ```
 
-**Tip zorlaması:** `WorldView` dönüşleri `DeepReadonly<T>`. Master tablosuna Drizzle `update`/`insert` çağrısı yapan kod, özel bir ESLint kuralı + `db.master` salt-okunur istemcisi ile engellenir.
+**Tip zorlaması:** `WorldView` dönüşleri `DeepReadonly<T>`. Master tablosuna Drizzle `update`/`insert` çağrısı yapan kod, `db.master` salt-okunur istemcisi ve tablo markası ile engellenir (§3.4.1).
+
+### 3.4.1 K4'ün uygulanışı — Faz 3.3'te kuruldu, 3.4'ten itibaren ZORUNLU biçim
+
+> **Bu bölüm 3.4/3.5/3.6'nın uyacağı sözleşmedir.** Yeni bir master tablo eklerken
+> aşağıdaki üç adım zorunludur; üçüncüsü unutulursa `arch:check` kırılır.
+
+**① Tablo `masterTable(...)` ile SARILARAK tanımlanır:**
+
+```ts
+import { masterTable } from '../client/master.js';
+
+export const countries = masterTable(
+  pgTable('countries', { … }),
+);
+```
+
+`masterTable()` çalışma zamanında **kimlik fonksiyonudur** — aynı nesneyi döner,
+şemaya hiçbir şey eklemez. Tek işi görünmez bir marka (`unique symbol`) ile tipi
+daraltmaktır.
+
+> ⚠️ **`is_master = true` gibi bir SÜTUN kullanılmıyor** — ROADMAP Faz 3'ün ilk
+> hâli bunu istiyordu. Hiçbir şeyin tüketmediği bir bayrak bir **temennidir**
+> (Faz 2 §5 **D3**) ve `spec/09` §11.5'in *"bir yol yanlış tarafa düşerse hangi
+> test kırılır?"* testini geçemez. Ayrıca her satırda tekrarlanan sabit bir
+> değer, hiçbir sorgunun kullanmadığı ölü depolamadır.
+
+**② Save katmanı tablosu ise muafiyet AÇIKÇA yazılır:**
+
+```ts
+// arch:save-scoped — Faz 12: kullanıcıya özel, yazılabilir.
+export const saveDeltas = pgTable('save_deltas', { … });
+```
+
+Varsayılan **muaf değildir**. Sessiz bir varsayılan, *"unuttum"* ile *"bilerek"*
+arasındaki farkı yok ederdi.
+
+**③ İki istemci — hangisi neye erişir:**
+
+| İstemci | `select` | `insert`/`update`/`delete` |
+|---|---|---|
+| `db.master` | ✅ | **tipte YOK** |
+| `db.writable` | ✅ | yalnızca **master OLMAYAN** tablolarda; master verilirse parametre tipi `never` |
+
+İkisi iki ayrı kaçış yolunu kapatıyor: yanlış istemciyi seçmek (`master`da metot
+yok) ve doğru istemciyle yanlış tabloya yazmak (parametre `never`). Yalnızca
+birincisi olsaydı, yazılabilir istemciyle master tabloya yazmak derlenirdi — ve
+K4 istemciyi değil **tabloyu** koruyor.
+
+#### İDDİA KONTROL DENEYİYLE KANITLANDI (SAPMA-012 dersi)
+
+K4 *"tip seviyesinde derlenmez"* diyor; bu bir **iddiadır**. Faz 2'de benzer bir
+iddia (*"üç kat savunma"*) ölçümle çürütülmüştü. Bu yüzden zorlama kendi kendini
+denetliyor: `packages/db/src/client/master-write-control.test-d.ts` bilerek
+master'a yazan kod içeriyor ve her satır `@ts-expect-error` ile işaretli —
+**koruma kaybolursa derleyici *"Unused '@ts-expect-error' directive"* der ve
+`pnpm typecheck` KIRILIR.**
+
+Mutasyonla ölçüldü (Faz 3.3):
+
+| Mutasyon | Sonuç |
+|---|---|
+| `RejectMaster<T>` köreltildi (her tabloyu kabul et) | **4 × `TS2578`** |
+| `countries`ten `masterTable(...)` sarması kaldırıldı | **3 × `TS2578`** + kullanılmayan import |
+| (mutasyon yok) | `tsc` **exit 0** |
+
+Dosya ayrıca **karşı örnek** taşıyor: master olmayan bir tabloya yazma satırları
+`@ts-expect-error` **taşımıyor** ve derlenmeli. Taşımasalardı *"her şey
+reddediliyor"* durumundan ayırt edilemezdi — nöbetçi iki yönlü doğrulanır.
+
+#### TİP SİSTEMİNİN GÖREMEDİĞİ ŞEY: İŞARETLEMEYİ UNUTMAK
+
+İşaretlenmemiş bir tablo yazılabilir kalır ve derleyicinin şikâyet edeceği bir şey
+yoktur — **görecek bir marka yoktur.** 3.3'te ölçüldü: `countries`ten sarma
+kaldırılınca kontrol deneyi ötüyor, ama **yalnızca o dosya `countries`i adıyla
+andığı için.** 3.4'te eklenecek yeni bir tablo sarmayı unutursa hiçbir şey ötmez.
+
+O boşluğu **`arch:check` ⑨ `master-table-marking`** kapatıyor: bu dizindeki her
+`pgTable(...)` ya sarılı ya da `arch:save-scoped` ile muaf olmalı.
+
+#### İKİNCİ HAT: VERİTABANI ROLÜ — mekanizma ölçüldü, kurulum Faz 12 (BORÇ-007)
+
+Tip seviyesi **derleme zamanında** korur. Üç yol onu atlar: `as unknown as`
+dönüşümü · `SqlExecutor` üzerinden ham SQL · tip sistemini hiç görmeyen bir
+istemci (`psql`, bakım betiği).
+
+Veritabanı rolü o üçünü de kapatıyor ve **ölçüldü** (PG 18.6,
+`packages/db/integration/master-readonly.itest.ts`):
+
+| Rol | `SELECT` | `INSERT` / `UPDATE` / `DELETE` (**ham SQL**) |
+|---|---|---|
+| Sahip (migration, seed) | ✅ | ✅ |
+| Uygulama rolü (`GRANT SELECT` yalnızca) | ✅ | ❌ `permission denied` |
+
+**Bugün KURULMUYOR:** kısıtlanacak bir uygulama bağlantısı yok — `apps/api`
+veritabanına Faz 12'de bağlanıyor. Tüketicisi olmayan bir rol yazmak,
+SAPMA-017'nin reddettiği spekülatif yapılandırma olurdu. Ama mekanizma bugün
+kanıtlandı ki Faz 12 yeniden keşfetmek zorunda kalmasın → **BORÇ-007**.
+
+#### NE KORUNUYOR, NE KORUNMUYOR
+
+K4 *"asla **kullanıcı işlemiyle** değiştirilmez"* diyor. Korunan şey budur:
+
+| Yol | Durum | Neden |
+|---|---|---|
+| Oyun kodu (`db.writable`) | **KAPALI** — derlenmiyor | K4'ün asıl konusu |
+| Migration koşucusu (`SqlExecutor`) | **AÇIK** | Şemayı değiştirmek migration'ın **tanımı**; kapatmak migration'ı imkânsız kılardı |
+| Seed / veri aracı (`tools/data-cli`, Faz 3.8) | **AÇIK** | Master veriyi **dolduran** hat; K9 gereği veri paketlerinden gelir |
+
+Bu ayrım yazılmasaydı *"hiçbir şey master'a yazamaz"* gibi tutulamaz bir söz
+verilmiş olurdu. **Tutulamayan bir söz, hiç verilmemiş bir sözden kötüdür.**
+
+#### ⚠️ Faz 12'YE NOT: `Readonly<T>` SIĞDIR — ölçüldü
+
+§3.4 `DeepReadonly<T>` istiyor ve bu **bilinçli**: TypeScript'in yerleşik
+`Readonly<T>`si yalnızca üst seviyeyi korur. Ölçüm koşulabilir hâlde
+(`packages/db/src/client/readonly-depth.test-d.ts`) ve şunları **derliyor**
+(yani mutasyona açık):
+
+```ts
+declare const row: Readonly<{ rules: { maxForeign: number }; tags: string[] }>;
+row.rules.maxForeign = 99;   // ✅ derleniyor — iç nesne KORUNMUYOR
+row.tags.push('yeni');       // ✅ derleniyor — dizi KORUNMUYOR
+row.id = 2;                  // ❌ hata — yalnızca üst seviye korunuyor
+```
+
+Faz 3'te önemli çünkü `competitions.rules` bir `jsonb` sütunu (3.4) ve
+`CompetitionRules` iç içe: `squadRegistration`, `continentalSpots`,
+`transferWindows[]`. `WorldView` gerçek bir `DeepReadonly` yazmak zorunda —
+`Readonly` yetmez.
 
 ---

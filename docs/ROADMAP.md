@@ -1157,10 +1157,32 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       **Çok adımlı çevrim GEÇİCİ FIXTURE ZİNCİRİYLE kanıtlandı**, gerçek zincire
       ikinci bir migration eklenmeden: `drizzle/` pratikte append-only ve bir test
       migration'ı 3.4'ün numaralandırmasını sonsuza kadar kirletirdi
-- [ ] **3.3** K4 — Master World salt-okunurluğu **tip seviyesinde**. `db.master` istemcisi,
-      `DeepReadonly` dönüşler, denetim kuralı. **Negatif test: master tabloya yazma
-      girişimi DERLENMEZ.** 11 tablodan **önce** geliyor: sonra takılsaydı ve farklı bir
-      tablo biçimi isteseydi 11 tablo yeniden yazılırdı
+- [x] **3.3** K4 — Master World salt-okunurluğu **tip seviyesinde**.
+      `packages/db/src/client/` — görünmez marka (`unique symbol`), `MasterDb`
+      (yazma metotları **tipte yok**) ve `WritableDb` (master tablo verilirse
+      parametre `never`). **Sözleşme `docs/spec/01-database.md` §3.4.1'e yazıldı;
+      3.4/3.5/3.6 onu okuyacak.**
+      ⚠️ **`is_master = true` SÜTUNU KULLANILMADI** — ROADMAP'in ilk hâli bunu
+      istiyordu. Hiçbir şeyin tüketmediği bir bayrak bir temennidir (D3) ve her
+      satırda tekrarlanan sabit bir değer ölü depolamadır.
+      **İDDİA KONTROL DENEYİYLE KANITLANDI** (SAPMA-012 dersi): `@ts-expect-error`
+      ile işaretli yazma girişimleri, koruma kaybolursa *"Unused directive"* verip
+      **`pnpm typecheck`i kırıyor**. Mutasyonla ölçüldü — `RejectMaster` köreltildi:
+      **4 × TS2578**; `countries`ten sarma kaldırıldı: **3 × TS2578**; mutasyonsuz:
+      **exit 0**. Karşı örnek de var (master olmayan tabloya yazma `@ts-expect-error`
+      **taşımıyor** ve derleniyor) — nöbetçi iki yönlü.
+      **`arch:check` ⑨ `master-table-marking` eklendi** (kural sayısı 8 → 9, kanarya
+      fixture'ı ve meta-test listesiyle birlikte): tip sistemi *"yazma girişimini"*
+      yakalar ama *"işaretlemeyi UNUTMAYI"* yakalayamaz — görecek bir marka yoktur.
+      Muafiyet (`arch:save-scoped`) **açık**, varsayılan değil.
+      **İkinci hat ölçüldü, kurulmadı → BORÇ-007, Faz 12:** uygulama rolüne yalnızca
+      `GRANT SELECT` verilince ham SQL `INSERT`/`UPDATE`/`DELETE` üçü de
+      `permission denied` alıyor (gerçek PG18'de koşan test). Bugün kısıtlanacak bir
+      uygulama bağlantısı yok; tüketicisi olmayan rol yazmak SAPMA-017'nin
+      reddettiği spekülatif yapılandırma olurdu.
+      **Faz 12'ye ölçüm bırakıldı:** `Readonly<T>` **sığdır** — iç nesne ve dizi
+      mutasyonu derleniyor (`readonly-depth.test-d.ts`). `competitions.rules` bir
+      `jsonb` (3.4) ve iç içe; `WorldView` gerçek bir `DeepReadonly` yazmak zorunda.
 - [ ] **3.4** Coğrafya ve kurumlar — `countries` (tamamlanır), `federations`,
       `competitions` + `CompetitionRules` Zod şeması
 - [ ] **3.5** Kulüp çekirdeği — `clubs`, `club_facilities`, `club_finances_base`,

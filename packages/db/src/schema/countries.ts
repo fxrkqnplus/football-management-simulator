@@ -13,14 +13,18 @@
  */
 import { pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
-export const countries = pgTable('countries', {
-  id: serial('id').primaryKey(),
-  /** Veri paketi eşleme anahtarı. Benzersizlik TABLO BAŞINA (spec/01 §3.1.0). */
-  key: text('key').notNull().unique(),
-  /** ISO 3166-1 alpha-3: TUR, ENG, ESP… */
-  code: varchar('code', { length: 3 }).notNull().unique(),
-  /** i18n anahtarı — görünen ad koda gömülmez (K5). */
-  nameKey: text('name_key').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+import { masterTable } from '../client/master.js';
+
+export const countries = masterTable(
+  pgTable('countries', {
+    id: serial('id').primaryKey(),
+    /** Veri paketi eşleme anahtarı. Benzersizlik TABLO BAŞINA (spec/01 §3.1.0). */
+    key: text('key').notNull().unique(),
+    /** ISO 3166-1 alpha-3: TUR, ENG, ESP… */
+    code: varchar('code', { length: 3 }).notNull().unique(),
+    /** i18n anahtarı — görünen ad koda gömülmez (K5). */
+    nameKey: text('name_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  }),
+);

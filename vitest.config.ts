@@ -174,6 +174,14 @@ export default defineConfig({
 
       exclude: [
         '**/*.test.{ts,tsx,mts,cts}',
+        // ⚠️ `.test-d.ts` AYRI BİR DESEN — yukarıdaki `*.test.*` onunla EŞLEŞMEZ.
+        // Faz 3.3'te ölçüldü: iki tip-seviyesi kontrol deneyi kapsam paydasına
+        // %0 ile girdi ve global kapsamı **%89,75 → %87,20** düşürdü. Bunlar
+        // ürün kodu değil, `@ts-expect-error` iddiaları — çalışma zamanında
+        // koşacak bir satırları yok, dolayısıyla "kapsanmamış" olmaları anlamsız.
+        // Paydaya girmeleri, eşiği YANLIŞ YÖNDE bozar (SAPMA-007'nin tersi:
+        // orada ürün kodu paydadan düşüyordu, burada ürün olmayan giriyor).
+        '**/*.test-d.ts',
         '**/*.d.ts',
         '**/dist/**',
         '**/node_modules/**',

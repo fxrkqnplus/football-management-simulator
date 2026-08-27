@@ -21,24 +21,24 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **FAZ 3 — Veritabanı Şeması I: Dünya Çekirdeği · 3.2b BİTTİ** (12 alt görevden 4'ü) |
-| **Son tamamlanan** | ✅ **3.2b — Round-trip kanıtı.** Derin şema introspection'ı + saf karşılaştırıcı. **Faz 3'ün 1. KABUL KRİTERİ KAPANDI** |
+| **Aktif faz / alt görev** | **FAZ 3 — Veritabanı Şeması I: Dünya Çekirdeği · 3.3 BİTTİ** (12 alt görevden 5'i) |
+| **Son tamamlanan** | ✅ **3.3 — K4 Master World salt-okunurluğu.** Tip seviyesi zorlama + kontrol deneyi + `arch:check` ⑨. Sözleşme `spec/01` §3.4.1'de |
 | **Tarih** | 2026-08-26 |
 | **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor |
 | **Bloke eden var mı?** | Hayır. Plan revizyonu **onaylandı**: 3.2 → **3.2a** (koşucu) / **3.2b** (round-trip kanıtı), liste 11 → **12** alt görev |
-| **Son commit** | `docs(memory): 3.2b CI sonucunu işle — round-trip arm64'te de yeşil` |
+| **Son commit** | `feat(db): K4 tip seviyesinde — master tabloya yazma DERLENMİYOR` |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda açılacak. |
 | **CI** | ✅ **3.2b koşusu `33016109348` — ALTI İŞ DE YEŞİL**, *Entegrasyon* işi **arm64 dahil**: round-trip kanıtı gerçek bir ARM64 runner'ında da koştu. ⚠️ Kalıcı ders (günlük #15, `spec/09` §11.5): yeni bir CI işi, mevcut işlerin **örtük hazırlık adımlarını** miras almaz — `Entegrasyon` işi `pnpm build` olmadan `33001368015`'te iki mimaride birden kırılmıştı. |
 | **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — **3.0 sonunda soğuk ölçüldü** (`rm -rf .turbo/cache` + ESLint önbelleği). typecheck 9/9 `0 cached` · build 8/8 `0 cached` · arch **8 kural**, 163 ms |
 | **install** | ✅ `pnpm install` **exit 0** — ⚠️ 3.0'da **exit 1'e düşmüştü**, `allowBuilds` ile düzeltildi. İki yönlü negatif testle kanıtlandı (`--force` ile: ayar yok → exit 1, var → exit 0) |
-| **test** | ✅ **590 test / 43 dosya** (`pnpm test`) — 3.2b **+23 test / +2 dosya**. Ayrıca ✅ **`pnpm test:db` 16 test / 2 dosya** (3.2b **+8**), gerçek PG18 konteyneriyle (varsayılan `pnpm test`'e GİRMEZ) |
-| **kapsam** | ✅ satır **%89,75** · ifade %89,60 · dal %88,40 · fonksiyon **%84,12** — eşik %70, eşik DÜŞÜRÜLMEDİ. ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor. ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ** — `file-source.ts`, `postgres-executor.ts` ve **`introspect.ts`** raporda **%0** görünüyor ama üçü de entegrasyon testiyle gerçek Postgres'e karşı koşuyor; `countries.ts` de %0 çünkü hiçbir birim testi import etmiyor |
+| **test** | ✅ **598 test / 43 dosya** (`pnpm test`) — 3.3 **+8 test**. Ayrıca ✅ **`pnpm test:db` 23 test / 3 dosya** (3.3 **+7**), gerçek PG18 konteyneriyle |
+| **kapsam** | ✅ satır **%89,10** · ifade %89,01 · dal %87,82 · fonksiyon **%82,81** — eşik %70, eşik DÜŞÜRÜLMEDİ. ⚠️ Motor eşiği (%85) hâlâ **boş yere** sağlanıyor. ⚠️ **`packages/db` kapsamı KANIT SAYILMAZ** — I/O sınırı dosyaları (`file-source.ts`, `postgres-executor.ts`, `introspect.ts`, `world-db.ts`) raporda %0 ama entegrasyon testiyle gerçek Postgres'e karşı koşuyorlar. ⚠️ **`.test-d.ts` kapsam paydasından ÇIKARILDI (3.3):** tip-seviyesi kontrol deneyleri ürün kodu değil; paydaya girdiklerinde eşiği **yanlış yönde** bozuyorlardı (%89,75 → %87,20 gösteriyordu, SAPMA-007'nin tersi) |
 | **Veritabanı** | **PostgreSQL 18.6** (16.15'ten yükseltildi, SAPMA-019) · `builtin`/`C.UTF-8` locale (SAPMA-020) · bağlama noktası `pgdata:/var/lib/postgresql` (18'de **değişti**) · `pg_trgm` 1.6 mevcut · `docker compose up -d` → **healthy**, işlevsel olarak doğrulandı |
 | **Web paketi** | **321.495 bayt** (ham) — 3.0'da değişmedi (tarayıcı kodu eklenmedi) |
 | **API imajı** | **423 MB** — Faz 2 kapanış ölçümü, 3.0'da yeniden ölçülmedi (`apps/api` değişmedi) |
 | **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · **drizzle-orm 0.45.2 + drizzle-kit 0.31.10** (tam sürüm, `^` yok) · **testcontainers + @testcontainers/postgresql 12.1.0** · jsdom 30.0.1 · pino 10.3.1 · @sentry/* 10.70.0 |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **6** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · BORÇ-006 (Faz 50) |
+| **Teknik borç sayısı** | **7** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · **BORÇ-007 (Faz 12, master salt-okunurluk ikinci hattı)** · BORÇ-006 (Faz 50) |
 | **SAPMA sayısı** | **25** (SAPMA-001…025) — 3.0'da iki, 3.1'de üç, **3.2a'da iki**: 024 (`format:check` Markdown'a bakmıyor) · 025 (sürücü `postgres.js`) |
 | **Faz 3 kabul kriterleri** | **1 ✅ (3.2b)** · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **1/5**. Kriter 1: çevrim sonrası **89 olgu, fark yok**; çok adımlı zincirde **48 olgu, fark yok** |
 | **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, panodan yeniden ölçülmedi. 3.0'da hiç olay gönderilmedi. |
@@ -59,25 +59,40 @@
 
 ---
 
-### 🎯 SIRADAKİ ALT GÖREV — 3.3 (K4: Master World salt-okunurluğu)
+### 🎯 SIRADAKİ ALT GÖREV — 3.4 (Coğrafya ve kurumlar)
 
-**Ne yapılacak:** master tablolara yazmanın **tip seviyesinde derlenmemesi**.
-`db.master` salt-okunur istemcisi, `DeepReadonly` dönüşler, denetim kuralı.
-**Negatif test zorunlu:** master tabloya `insert`/`update` girişimi **DERLENMEZ** —
-ve bu, testin kırılmasıyla değil **derlemenin kırılmasıyla** gösterilir.
+**Ne yapılacak:** `countries` (tamamlanır), `federations`, `competitions` +
+`CompetitionRules` Zod şeması. Faz 3'ün **ilk gerçek şema** alt görevi.
 
-**⚠️ `is_master = true` BAYRAK SÜTUNU KULLANILMAYACAK.** ROADMAP'in ilk hâli bunu
-istiyordu; hiçbir şeyin tüketmediği bir bayrak bir **temennidir** (D3) ve
-`spec/09` §11.5'in *"bir yol yanlış tarafa düşerse hangi test kırılır?"* testini
-geçemez. K4 zaten *"tip seviyesinde derlenmez"* diyor.
+**⚠️ BİÇİM ZORUNLU — `docs/spec/01-database.md` §3.4.1.** Üç adım:
+① tablo `masterTable(...)` ile sarılarak tanımlanır ② save katmanı tablosuysa
+`arch:save-scoped` yorumuyla **açıkça** muaf tutulur ③ `arch:check` ⑨ bunu
+denetliyor — unutulursa gate kırılır.
 
-**Neden 11 tablodan ÖNCE:** zorlama farklı bir tablo tanımı biçimi isterse (örneğin
-şema nesnelerinin ayrı bir sarmalayıcıdan geçmesi), 11 tablo yazıldıktan sonra
-öğrenmek 11 tabloyu yeniden yazmak demek.
+**Sütun sözleşmesi §3.1.0:** `key` (`text NOT NULL`, **tablo başına** `UNIQUE`) ·
+`source` (**CHECK** kısıtlı: `pack|api|wikidata|openfootball|procedural`) ·
+`externalIds` (`jsonb` + Zod). `countries`, `competitions` üçünü de taşır;
+`federations` taşımaz (uydu).
+
+**Bu alt görevde iki şey ilk kez olacak:**
+
+1. **`countries` bir `ALTER TABLE` migration'ı alacak** — 3.2a'da minimal
+   yazılmıştı. Koşucunun ikinci gerçek müşterisi. `drizzle/down/0001_*.sql`
+   **elle yazılacak**; unutulursa koşucu `migration.downScriptMissing` ile
+   veritabanına dokunmadan durur.
+2. **Round-trip testi genişletilecek.** Hat hazır (`src/schema-state/`),
+   maliyeti bir `it()` bloğu. Genişletilmezse yeni tabloların `down`u **hiç
+   sınanmamış** olur ve 3.2b'nin kanıtı yalnızca `countries` için geçerli kalır.
+
+**⚠️ `competitions.rules` bir `jsonb`** ve `CompetitionRules` iç içe
+(`squadRegistration`, `continentalSpots`, `transferWindows[]`). Zod şeması
+`spec/01` §3.1'deki tanımdan türetilir; tip `z.infer` ile alınır (CLAUDE.md §1.3).
+
+**İlk iş:** 3.3 CI koşusunun sonucunu ANLIK DURUM'a işle.
 
 ---
 
-### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 → 3.2b)
+### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 → 3.3)
 
 **Tablo envanteri 11'de kesin.** Karar tablosu `docs/ROADMAP.md` → *Faz 3 — Tablo
 envanteri*. Özet `docs/schema/world.md`. Sütun sözleşmesi
@@ -99,7 +114,17 @@ koştu: `pnpm test:db` · CI `Entegrasyon` işi (amd64+arm64) · derlenmiş çı
 
 **Sonraki alt görevleri bağlayan ölçülmüş kısıtlar:**
 
-- **3.3 (K4):** yukarıdaki blok.
+- **K4 (3.3'te kuruldu, 3.4'ten itibaren ZORUNLU biçim):** master tablo
+  `masterTable(...)` ile sarılır; save katmanı tablosu `arch:save-scoped` ile
+  **açıkça** muaf tutulur. `arch:check` ⑨ denetliyor. Sözleşme
+  `docs/spec/01-database.md` **§3.4.1**. İki istemci: `db.master` (yazma metotları
+  tipte yok) ve `db.writable` (master tablo verilirse parametre `never`).
+  İddia kontrol deneyiyle kanıtlı — koruma kaybolursa `pnpm typecheck` kırılır.
+- **Master salt-okunurluğunun İKİNCİ hattı kurulmadı (BORÇ-007, Faz 12).**
+  Mekanizma ölçüldü ve koşulabilir: uygulama rolüne yalnızca `GRANT SELECT`
+  verilince ham SQL yazma denemeleri `permission denied` alıyor. Tip seviyesinin
+  atlanabildiği üç yol (`as unknown as`, ham SQL, tip sistemini görmeyen istemci)
+  ancak orada kapanır.
 - **3.7 (indeksler):** düz `pg_trgm` Türkçe aramayı **sağlamıyor**
   (`'Beşiktaş' % 'besiktas'` → **`f`**, benzerlik 0,286 · eşik 0,3). `unaccent`
   gerekiyor (1,0) ama **`STABLE`**, indekste doğrudan kullanılamıyor →
@@ -347,7 +372,7 @@ alınır.
 > ayrı şeyler; kanaryanın temiz depo testi bu sayede yanlış pozitif almıyor.
 > Kanaryada hem **öttüğü** hem **sustuğu** ayrı testlerle sabitlendi.
 
-**Kural sayısı: 8** (kaynak: `runArchCheck` içinde basılan `rule:` belirteçleri)
+**Kural sayısı: 9** (kaynak: `runArchCheck` içinde basılan `rule:` belirteçleri)
 
 | # | `rule` | Ne denetler | Geldiği faz |
 |---|---|---|---|
@@ -359,6 +384,7 @@ alınır.
 | ⑥ | `undeclared-dependency` | `@fms/X` import ediliyorsa `package.json`'da bildirilmiş mi | **2.2a** |
 | ⑦ | `engine-forbidden-import` | Motorun `@fms/shared`'dan alamayacağı **adlandırılmış** dışa aktarımlar | **2.3a** |
 | ⑧ | `forbidden-export-exists` | ⑦'nin tablosundaki her adın barrel'da **gerçekten** dışa aktarıldığı (yanlış yazım kuralı köreltiyordu) | **2.8** |
+| ⑨ | `master-table-marking` | `packages/db/src/schema/` altındaki her `pgTable(...)` `masterTable(...)` ile sarılı ya da `arch:save-scoped` ile **açıkça** muaf (K4 — tip sistemi "işaretlemeyi unutmayı" göremez) | **3.3** |
 
 **Taranan uzantılar (7):** `.ts .tsx .mts .cts .mjs .cjs .js`
 — `.cts` 2.1'de eksikti ve bir `.cts` dosyası denetimden **tamamen** kaçıyordu.
@@ -489,6 +515,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 | BORÇ-003 | 2 | **`ErrorBoundary` yedek arayüzündeki Türkçe metinler koda gömülü** (`apps/web/src/components/ErrorBoundary.tsx`: başlıklar, "Bu bölüm yüklenemedi…", "Tekrar dene", bildirim durumu). K5 arayüzde sabit Türkçe metni yasaklıyor. **⚠️ 2.8'DE KAPSAM GENİŞLEDİ:** `apps/web/src/components/dev/DebugPanel.tsx` de aynı sınıf metin taşıyor (sekme adları, üç boş sekmenin açıklaması, "Temizle", "Kapat"). **Ama önceliği DAHA DÜŞÜK ve bu bilinçli:** panel **dev-only** — üretim paketinde hiç yok (kaynak haritasıyla kanıtlandı), yani hiçbir kullanıcı o metinleri görmüyor. Faz 5'te `ErrorBoundary` çevrilirken panel **atlanabilir**; K5'in koruduğu şey kullanıcıya görünen yüzey. | i18n Faz 5'te geliyor; **BORÇ-005 ile aynı sınıf** (o sunucu hata gövdesi, bu tarayıcı yedek arayüzü). Sınırın çalışması için metin şart: i18n'i beklemek, Faz 5'e kadar çöken her ekranın **boş** kalması demekti. Metinler `TODO(Faz 5)` yorumlarıyla işaretlendi ve tek bileşende toplandı — Faz 5 işi bir dosyada `t()` çağrılarına çevirmeye iner. `title` zaten **prop**, yani çağrı yerleri hazır. | **5** — i18n kurulurken |
 | BORÇ-005 | 2 | **Hata gövdesindeki Türkçe metinler koda gömülü** (`MESSAGE_BY_KIND`, `apps/api/src/common/filters/global-exception.filter.ts`). K5 arayüzde sabit Türkçe metni yasaklıyor. | i18n Faz 5'te geliyor; 2.6'nın BORÇ-003'üyle **aynı sınıf** borç. Metin `AppError.message`'tan alınamıyor çünkü o alan bilinçli olarak **geliştirici mesajı** (`errors.ts`: *"loga ve Sentry'ye gider, çevrilmez, kullanıcıya gösterilmesi hedeflenmez"*) — doğrudan gövdeye konsaydı iç ayrıntı sızardı. Tablo bir **yedek**: sözleşmenin aslı `code` + `context` ve ikisi de gövdede dönüyor, yani Faz 5 işi `t('errors:' + code, context)` yazmaya iner, fırlatma yerlerini gezmeye değil. Metinler bilerek **genel** tutuldu ki hataya özgü cümle `code` üzerinden gelsin. | **5** — i18n kurulurken tablo silinir, istemci `code`+`context`ten üretir |
 | BORÇ-004 | 2 | **BullMQ'ya özgü `correlationId` kablolaması yapılmadı.** Taşınabilir zarf (`serializeLogContext`/`deserializeLogContext`) 2.3b'de kuruldu ve **gerçek bir süreç sınırında** test edildi (`spawnSync` + argv), ama `job.data.correlationId` alanına yazan/okuyan kuyruk tarafı yok. | `spec/09` §11.1 zincirinde *"Kuyruğa iş atılırsa `job.data.correlationId` taşınır → Worker aynı id ile loglar"* adımı var; ama **kuyruk henüz yok** — BullMQ Faz 16'da (tur motoru) kuruluyor. Bugün yazılacak kablolama, bağlanacağı üretici/tüketici olmadığı için ancak sahte bir kuyrukla test edilebilirdi ve o test **hiçbir şey kanıtlamazdı**: sahte kuyruk aynı süreçte kalır, ALS zaten oradan taşır (2.3b Karar 2). Zarfın kendisi — kırılabilecek asıl parça — bugün gerçek süreç sınırında sınandı; geriye kalan yalnızca BullMQ'nun kendi alanına bağlama işi. | **16** — kuyruk kurulurken üretici ve tüketici tarafına birlikte bağlanacak |
+| BORÇ-007 | 3 | **Master World'ün veritabanı-rolü ikinci hattı KURULMADI.** Tip seviyesi zorlaması (K4) 3.3'te kuruldu ve kontrol deneyiyle kanıtlandı, ama `as unknown as`, ham SQL ve tip sistemini hiç görmeyen istemciler onu atlıyor. İkinci hat: uygulama rolüne yalnızca `GRANT SELECT`. | **Kısıtlanacak bir uygulama bağlantısı henüz YOK** — `apps/api` veritabanına Faz 12'de bağlanıyor. Bugün rol oluşturmak tüketicisi olmayan bir yapılandırma yazmak olurdu; SAPMA-017'nin reddettiği şey (*"kanıtlanamaz → işaretlenemez"*). **Ama mekanizma bugün ÖLÇÜLDÜ ve koşulabilir hâlde:** `packages/db/integration/master-readonly.itest.ts` gerçek PG18'de bir rol kurup ham SQL ile `INSERT`/`UPDATE`/`DELETE` deniyor → üçü de `permission denied`; sahip rol aynı tabloya yazabiliyor (karşı örnek, kısıtın role bağlı olduğunun kanıtı). Yani Faz 12 bunu yeniden keşfetmek zorunda değil, yalnızca `GRANT`/`REVOKE`'u bir migration'a yazacak. | **12** — `WorldView`/delta mimarisi kurulurken, `apps/api` bağlantısıyla birlikte |
 | BORÇ-002 | 1 | `bullmq` 5.81.3'te tutuldu; 6.2.0 alınmadı | Aynı gerekçe (BORÇ-001). Ek olarak bullmq 6 `ioredis`'i peer'a taşıdı ve `pg`/`redis` peer'ları ekledi — kuyruk yapılandırmasını değiştiren bir mimari değişiklik, Faz 16'da bilinçli ele alınmalı. | **16** — faz açılışında changelog okunup karar verilecek |
 
 ---
@@ -568,6 +595,10 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | #   | Alt görev | Hata (belirti)                                                                                                                                                                                                | Kök neden                                                                                                                                                                            | Çözüm                                                                                                                                                    | Tekrar önleme                                                                                                                                                        |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 21  | 3.3       | `createWorldDb` yazıldı ama **hiçbir test onu çağırmıyordu** — tip koruması kanıtlıydı, fabrikanın çalıştığı değil                                                                                                | Tip seviyesi kanıtı yalnızca DERLEME zamanına ait; çalışma zamanında bağlantı kurup sorgu döndürdüğünü göstermiyor                                                                     | Entegrasyon testine iki `it()` eklendi: her iki istemci de gerçek konteynerde `select` koşuyor                                                          | **D5.** Tüketicisi olmayan bir fabrika, hiç koşulmamış koddur. "Tipi doğru" ile "çalışıyor" ayrı iddialar                                                                |
+| 20  | 3.3       | `.test-d.ts` dosyaları **`dist/`e sızdı** (4 dosya) ve kapsam paydasına %0 ile girip global kapsamı **%89,75 → %87,20** düşürdü                                                                                  | `*.test.ts` deseni `.test-d.ts` ile **EŞLEŞMEZ**. Yeni bir dosya soneki repoya girdi, desen taşıyan yerler güncellenmedi                                                                | `tsconfig.build.json` `exclude` + `vitest.config.ts` `coverage.exclude` düzeltildi; `spec/09` §11.4 envanterine 10. satır ve denetim tablosu eklendi     | **SAPMA-009'un sınıfı.** Envanter tam da bunun için vardı ve **işe yaradı** — dört yerin ikisi bozuktu. Kapsam bozulması SAPMA-007'nin TERS yönü: ürün olmayan kod paydaya giriyordu |
+| 19  | 3.3       | Bash aracının heredoc'u `<<'PY'` ile TIRNAKLI olmasına rağmen ters bölü kaçışlarını işledi: Python'a `\n` (gerçek satır sonu) ulaştı, `\\n` değil. Sonuç: üretilen JS dosyalarına **gerçek satır sonu** yazıldı ve `SyntaxError` verdi | Tırnaklı heredoc'un kaçışları koruyacağı varsayımı bu ortamda **yanlış**                                                                        | Kaçış içeren metin artık heredoc'tan geçirilmiyor: ya `Edit` aracıyla doğrudan yazılıyor ya da `String.fromCharCode(10)` gibi kaçışsız biçimde üretiliyor | ÜÇ KEZ ısırdı (aynı alt görevde). ORTAM TUZAKLARI ⑤'in ("çok katmanlı kaçış yerine doğrudan düzenleme") somut ve tekrar eden hâli — kural yazılıydı, yine de tekrarlandı |
+| 18  | 3.3       | `masterTable()` sarması kaldırılınca kontrol deneyi **öttü** — ama bu iyi haber DEĞİLDİ                                                                                                                          | Ötmesinin sebebi korumanın genel olması değil, kontrol dosyasının `countries`i **adıyla anması**. 3.4'te eklenecek yeni bir tablo sarmayı unutursa hiçbir şey ötmez | `arch:check` ⑨ `master-table-marking` eklendi + kanarya fixture'ı + meta-test listesi güncellendi                                                        | **Bir korumanın çalıştığını görmek, KAPSAMININ ne olduğunu söylemez.** Soru "öttü mü?" değil, "**hangi durumlar için** öter?" |
 | 17  | 3.2b      | Negatif testin fixture'ı `relation "probe_aux" already exists` ile patladı — bozuk `down` yakalandı ama **karşılaştırma tarafından değil**                                                                                  | Fixture'ı öyle kurdum ki `down` kendi yarattığı tabloyu bırakıyordu; sonraki `up` onu yeniden yaratmaya çalışıp çakıştı. Yani kanıtlamak istediğim şeyi (karşılaştırma bakıyor) değil, başka bir şeyi kanıtladı | Bozuk `down`un **iki sınıfı** ayrıldı ve ikisi de test edildi: *eksik kalan* → `up` patlar (gürültülü) · *fazla giden* → sessiz, **yalnızca karşılaştırma yakalar** | **D6:** kırmızı olan **testti**, kod değildi. Ve bir negatif test, hangi mekanizmanın yakaladığını da göstermeli — "yakalandı" yetmez, "**neyin** yakaladığı" sorulur |
 | 16  | 3.2b      | Round-trip testinin `identical: true` iddiası **tek başına boştu**                                                                                                                                                            | Kör bir karşılaştırıcı da `identical: true` döner; pozitif test bunu ayırt edemez                                                                                                                             | `comparedFacts` sayacı eklendi (ölçüldü: `countries` 89, fixture zinciri 48) ve mutasyonla doğrulandı: karşılaştırıcı köreltilince **16 testin yalnızca 1'i** kırılıyor — o da negatif test | **D3:** pozitif bir testin yeşili, karşılaştırmanın baktığını göstermez. Bir karşılaştırıcı yazan her yerde *"kaç olguya baktı?"* sorusu sorulur ve cevap iddia edilir |
 | 15  | 3.2a      | **Yeni CI işi `Entegrasyon` iki mimaride birden kırıldı** — `Failed to resolve entry for package "@fms/shared"`. Yerelde `pnpm test:db` geçiyordu                                                              | Testler `@fms/*`'ı `exports` üzerinden, yani **derlenmiş `dist/`** üzerinden çözüyor. `quality` işinde derleme adımı **görünmüyor** ama var: `turbo.json`'da `typecheck` görevi `dependsOn: ["^build"]` taşıyor ve bağımlılıkları bir **yan etki** olarak derliyor. Yeni iş `typecheck` koşmadığı için o yan etkiyi almadı. Yerelde geçmesinin sebebi önceki kapılardan kalan `dist/`ti | CI işine açık `pnpm build` adımı eklendi. Kök neden **yerelde tekrar üretildi** (`rm -rf packages/*/dist` → aynı hata) ve düzeltme aynı sırayla doğrulandı (build → test:db → 8/8) | Faz 1 hata #7'nin ("test öncesi `pnpm build`") **CI sürümü**: kural yazılıydı ama yeni bir iş onu **miras almamıştı**. Örtük bağımlılık artık workflow'da açık yazılı. **Ders: bir kural mevcut bir işin içinde yaşıyorsa, yeni iş onu otomatik devralmaz** |

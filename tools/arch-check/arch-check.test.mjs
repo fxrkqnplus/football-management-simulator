@@ -12,6 +12,7 @@ import {
   ENGINE_FORBIDDEN_CALLS,
   ENGINE_FORBIDDEN_MODULE_PREFIXES,
   ENGINE_FORBIDDEN_SHARED_EXPORTS,
+  findUnmarkedTables,
   isDependencyDeclared,
   isForbiddenEngineModule,
   isImportAllowed,
@@ -372,6 +373,51 @@ describe('META: arch:check kural tabloları boşalmadı', () => {
   });
 });
 
+describe('findUnmarkedTables — saf kural (kablolamasını KANARYA kanıtlar)', () => {
+  it('isaretlenmemis tabloyu bulur', () => {
+    const hits = findUnmarkedTables("export const x = pgTable('x', {});");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].line).toBe(1);
+  });
+
+  it('ayni satirda sarilmis tabloyu kabul eder', () => {
+    expect(findUnmarkedTables("export const x = masterTable(pgTable('x', {}));")).toEqual([]);
+  });
+
+  it('onceki satirda sarilmis tabloyu kabul eder (bicimlendirici cikti)', () => {
+    const text = ['export const x = masterTable(', "  pgTable('x', {", '  }),', ');'].join('\n');
+    expect(findUnmarkedTables(text)).toEqual([]);
+  });
+
+  it('acik muafiyet yorumunu kabul eder', () => {
+    const text = ['// arch:save-scoped', "export const x = pgTable('x', {});"].join('\n');
+    expect(findUnmarkedTables(text)).toEqual([]);
+  });
+
+  it('muafiyet yorumu UZAKSA kabul etmez — pencere uc satir', () => {
+    const text = ['// arch:save-scoped', '', '', '', "export const x = pgTable('x', {});"].join(
+      '\n',
+    );
+    expect(findUnmarkedTables(text)).toHaveLength(1);
+  });
+
+  it('birden cok isaretlenmemis tabloyu ayri ayri bildirir', () => {
+    const text = ["export const a = pgTable('a', {});", "export const b = pgTable('b', {});"].join(
+      '\n',
+    );
+    expect(findUnmarkedTables(text)).toHaveLength(2);
+  });
+
+  it('pgTable icermeyen dosyada sessiz kalir', () => {
+    expect(findUnmarkedTables('export const x = 1;')).toEqual([]);
+  });
+
+  it('CRLF satir sonlariyla da calisir (ADR-0004)', () => {
+    const text = "export const x = masterTable(\r\n  pgTable('x', {});";
+    expect(findUnmarkedTables(text)).toEqual([]);
+  });
+});
+
 describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', () => {
   let root;
 
@@ -460,13 +506,28 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
     write('packages/shared/package.json', JSON.stringify({ dependencies: {} }));
     write('packages/shared/src/index.ts', "export { bambaska } from './bambaska.js';\n");
     write('packages/shared/src/bambaska.ts', 'export const bambaska = 1;\n');
+
+    // Kural 9 — master tablo işaretleme (Faz 3.3, K4).
+    //
+    // Tip sistemi "yazma girişimini" yakalar ama "işaretlemeyi UNUTMAYI"
+    // yakalayamaz — göreceği bir marka yoktur. 3.3'te ölçüldü: `countries`ten
+    // sarma kaldırılınca kontrol deneyi (`master-write-control.test-d.ts`) üç
+    // hata verdi, AMA yalnızca o dosya `countries`i adıyla andığı için. 3.4'te
+    // eklenecek yeni bir tablo sarmayı unutursa hiçbir şey ötmez — bu kural
+    // tam olarak o boşlukta duruyor.
+    write('packages/db/package.json', JSON.stringify({ dependencies: {} }));
+    write(
+      'packages/db/src/schema/unmarked.ts',
+      "import { pgTable, integer } from 'drizzle-orm/pg-core';\n" +
+        "export const unmarked = pgTable('unmarked', { id: integer('id') });\n",
+    );
   });
 
   afterAll(() => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('SEKİZ kuralın hepsi ihlal bildiriyor', () => {
+  it('DOKUZ kuralın hepsi ihlal bildiriyor', () => {
     const rules = runArchCheck(root).map((v) => v.rule);
     // Bu liste `index.mjs` başlığındaki kural listesiyle BİREBİR aynı olmalı.
     // Oraya yeni bir kural eklenip buraya eklenmezse kanarya onu görmez ve
@@ -480,6 +541,7 @@ describe('META: KANARYA — her kural sahte bir depoda gerçekten ötüyor mu', 
       'undeclared-dependency',
       'engine-forbidden-import',
       'forbidden-export-exists',
+      'master-table-marking',
     ]) {
       expect(rules).toContain(rule);
     }

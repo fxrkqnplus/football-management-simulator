@@ -252,6 +252,7 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > | 6 | 7 × `tsconfig.build.json` → `exclude` | Testler `dist`'e girmesin | **parantez YOK** |
 > | 7 | `tools/arch-check/index.mjs` → taranan uzantılar | Hangi dosyalar denetlenir | düz dizi |
 > | 8 | `tools/arch-check/index.mjs` → `checkImportCasing` adayları | `.js→.ts`, `.mjs→.mts`, `.cjs→.cts` | düz dizi |
+> | 10 | 8 × `tsconfig.build.json` → `exclude` (`.test-d.ts` satırı) | Tip-seviyesi kontrol deneyleri `dist`e girmesin — Faz 3.3 | **parantez YOK** |
 > | 9 | `vitest.integration.config.ts` → `test.include` | Entegrasyon testi keşfi (`integration/**/*.itest.ts`) | süslü parantez ✅ |
 >
 > **9. satır Faz 3.2a'da eklendi** ve bu, listenin kendi kuralının işlemesidir:
@@ -261,6 +262,28 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > deseniyle `integration/**/*.itest.ts` dosyalarını **almıyor** (`pnpm test`
 > 41 dosya sayıyor, entegrasyon dosyası içlerinde değil) — istenen davranış bu,
 > ama iki desenin ayrıştığı yer artık **yazılı**.
+>
+> ### ⚠️ ENVANTER İŞE YARADI — `.test-d.ts` (Faz 3.3)
+>
+> Faz 3.3 repoya yeni bir dosya soneki soktu: **`.test-d.ts`** (tip seviyesi
+> kontrol deneyleri — `@ts-expect-error` iddiaları taşıyan, çalışma zamanı
+> davranışı olmayan dosyalar). Yukarıdaki listenin **tamamı** gözden geçirildi ve
+> **iki yerde** desen eşleşmiyordu — `*.test.*` deseni `.test-d.ts` ile
+> **eşleşmez**:
+>
+> | Yer | Sonuç | Ölçülen etki |
+> |---|---|---|
+> | 6 · `tsconfig.build.json` → `exclude` | ❌ eşleşmiyordu | **4 dosya `dist/`e sızdı** |
+> | 2 · `vitest.config.ts` → `coverage.exclude` | ❌ eşleşmiyordu | Kapsam **%89,75 → %87,20** |
+> | 3 · `vitest.config.ts` → `projects[].include` | ✅ doğru davranış | Vitest onları koşmuyor — istenen |
+> | 1 · `coverage.include` | ✅ (dışlama ile dengeleniyor) | — |
+>
+> İkincisi **SAPMA-007'nin tersi yönü**: orada ürün kodu paydadan düşüyordu, burada
+> ürün OLMAYAN kod paydaya giriyordu. İki yön de eşiği yalancı yapar.
+>
+> **Ders:** envanterin değeri, yeni bir sonek geldiğinde **hatırlanmasında**.
+> Hatırlanmasaydı iki sessiz bozulma birden olurdu ve ikisi de "kapı temiz"
+> derken sürerdi.
 >
 > **Ölçülmüş ders (2.1):** 7. satırdaki listede `.cts` eksikti ve sonuç sessizdi —
 > ihlal içeren bir `.cts` dosyası konulduğunda `arch:check` **"temiz"** dedi
@@ -314,6 +337,38 @@ pnpm i18n:check             # Faz 5+   (0 eksik anahtar)
 pnpm perf:budget            # Faz 6+
 pnpm arch:check             # katman bağımlılık ihlali
 ```
+
+### ⚠️ POZİTİF TESTLER KÖR BİR KONTROLLE DE GEÇER — ölçülmüş oran (Faz 3.2b)
+
+*"Pozitif test yetmez, negatif test şart"* bu belgede bir **ilke** olarak
+yazılıydı. Faz 3.2b'de bir **oranı** oldu.
+
+**Ölçüm.** Round-trip kanıtının karşılaştırıcısı (`compareSchemas`) mutasyona
+uğratıldı — her zaman `identical: true` dönecek şekilde köreltildi. Sonuç:
+
+| | |
+|---|---|
+| Kırılan entegrasyon testi | **1** |
+| Etkilenmeyen | **15** |
+| Toplam | 16 |
+
+Kırılan tek test, bozuk bir `down`u yakalayan **negatif** testti. **On beş pozitif
+test kör bir karşılaştırıcıyla da geçiyordu** — çünkü hepsi `identical: true`
+bekliyor ve kör bir karşılaştırıcı bunu bedavaya sağlıyor.
+
+**İki kalıcı kural:**
+
+1. **Bir karşılaştırma/doğrulama yazan her yerde negatif test ZORUNLU.** Pozitif
+   testlerin sayısı bunu telafi etmez; ölçülen oran 16'da 1.
+2. **Kontrol "kaç şeye baktığını" da bildirmeli.** `compareSchemas` bu yüzden
+   `comparedFacts` döner ve testler onu da iddia eder. Boş bir şemayı boş bir
+   şemayla karşılaştıran bir test de "fark yok" der — o cevap **değersizdir** ve
+   sayaç olmadan değerli olandan ayırt edilemez.
+
+Aynı disiplin `arch:check` kanaryasının doğuş sebebiydi (Faz 2.3b): saf
+fonksiyonun beş birim testi yeşilken kuralın **kablolaması** kopabiliyordu.
+Fark şu ki orada eksik olan bir *kanarya*, burada bir *negatif iddia* — ikisi de
+aynı sorunun biçimleri: **yeşil bir test, kontrolün baktığını göstermez.**
 
 ### ⚠️ CI'A YENİ BİR İŞ EKLENDİĞİNDE, MEVCUT İŞLERİN ÖRTÜK HAZIRLIK ADIMLARI ÇIKARILIR (Faz 3.2a)
 
