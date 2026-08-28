@@ -12,9 +12,15 @@
  * ifadesinden bir karakter bile ayrılırsa indeks **sessizce** devre dışı kalır.
  * Bu, D3'ün ta kendisi: *"bir kapının 'temiz' demesi baktığını göstermez."*
  *
- * ⚠️ **`EXPLAIN ANALYZE` PERFORMANS İDDİASI BURADA YOK.** *"< 20 ms"* Faz 3'ün
- * 4. kabul kriteri ve **3.9'un işi** (seed verisiyle). Buradaki tek soru
- * *"planlayıcı indeksi SEÇİYOR mu"* — süre değil, plan.
+ * ⚠️ **3.7'DE BURADA PERFORMANS İDDİASI YOKTU** — tek soru *"planlayıcı indeksi
+ * SEÇİYOR mu"* idi. **Faz 3.9 dosyanın sonuna İDDİA B'yi ekledi:** indeksin
+ * *gerekçesi*, yani sentetik hacimde süre ve indekssiz karşılaştırma.
+ *
+ * ⚠️ **Kabul kriteri 4 (*"< 20 ms **seed verisiyle**"*) BURADA DEĞİL.** O,
+ * `tools/data-cli/integration/seed-query-performance.itest.ts`te — seed
+ * `@fms/data-cli`de ve `packages/db` onu import **edemez** (`arch:check` ①).
+ * İki dosya iki ayrı iddia taşıyor ve birleştirilmeleri, ölçülmemiş bir hacmi
+ * ölçülmüş gibi gösterirdi.
  */
 import { fileURLToPath } from 'node:url';
 
@@ -217,6 +223,25 @@ describe('⚠️ İNDEKSİN VARLIĞI YETMEZ — PLANLAYICI ONU SEÇİYOR MU (D3)
     expect(plan).toContain('clubs_competition_id_idx');
   });
 
+  /**
+   * ⚠️ **PLAN SEÇİMİ HACME DEĞİL, SEÇİCİLİĞE BAĞLI — 3.9'da ölçüldü.**
+   *
+   * Yukarıdaki test `'besiktas'` arıyor ve **tek** satır eşleşiyor. Aynı
+   * tabloda, aynı hacimde (3.001 satır), **çok** satırla eşleşen bir terim
+   * arandığında planlayıcı GIN indeksini **bırakıyor** ve Seq Scan seçiyor —
+   * ve haklı: eşleşen satırların çoğunu okuyacaksa indeks üzerinden gitmek
+   * fazladan iş olur.
+   *
+   * Bu satır olmadan *"3.000 satırda indeks kullanılıyor"* cümlesi **hacme**
+   * bağlı bir kural gibi okunurdu. Değil.
+   */
+  it('KONTROL: aynı hacimde SEÇİCİ OLMAYAN terim indeksi kullanmıyor', async () => {
+    // `kulup1234` üretilmiş 3.000 `Kulup N` adının hepsiyle trigram paylaşıyor.
+    const plan = await planFor(`${NORMALIZED_NAME} % 'kulup1234'`);
+    expect(plan).toContain('Seq Scan');
+    expect(plan).not.toContain('clubs_name_trgm_idx');
+  });
+
   it('dört indeksin dördü de gerçekten yaratıldı', async () => {
     const rows = await executor.rows<{ indexname: string }>(`
       SELECT indexname FROM pg_indexes
@@ -229,5 +254,104 @@ describe('⚠️ İNDEKSİN VARLIĞI YETMEZ — PLANLAYICI ONU SEÇİYOR MU (D3)
       'competitions_country_id_idx',
       'rivalries_pair_unique_idx',
     ]);
+  });
+});
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * İDDİA B — İNDEKSİN GEREKÇESİ (Faz 3.9). Kabul kriterini KAPATMAZ.
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Kriter 4 *"seed verisiyle"* diyor ve seed hacminde (6 ülke + 11 yarışma,
+ * `clubs` **boş**) her sorgu zaten mikrosaniyeler sürüyor — orada bir süre
+ * ölçmek indeks hakkında **hiçbir şey** söylemez. O ölçüm İDDİA A ve ayrı
+ * dosyada. Burada sorulan şey farklı: **bu indeksler neden var?**
+ *
+ * Cevap bir karşılaştırma: aynı sorgu, aynı veri, indeksli ve indekssiz.
+ * Tek bir süre sayısı bunu gösteremez — 0,9 ms "hızlı" mı? Neye göre?
+ *
+ * ⚠️ **ÖLÇÜM ARACININ KENDİSİ DOĞRULANDI (D2).** 3.9'da üç tuzak ölçüldü:
+ * ① **soğuk koşu** — ilk ve beşinci koşu arasında anlamlı fark **çıkmadı**
+ *   (0,059 → 0,055 ms); veri shared buffers'a hemen giriyor. Yine de ısıtma
+ *   koşusu yapılıyor, çünkü yokluğunun zararsız olduğu **bu hacimde** ölçüldü.
+ * ② **`TIMING ON` enstrümantasyonu** — `TIMING OFF` ile fark **yok**
+ *   (0,050–0,054 ms her ikisinde); yani ölçülen şey ölçümün kendisi değil.
+ * ③ **`ANALYZE` yapılmamış tablo** — bu, üçünün içinde **tek gerçek tuzak**
+ *   çıktı ve yönü tehlikeli: istatistiksiz planlayıcı dört sorgunun
+ *   **dördünde de** indeksi seçiyor, `ANALYZE` sonrası dördü de Seq Scan'e
+ *   düşüyor. Yani ölçüm `ANALYZE`sız alınsaydı *"indeksler kullanılıyor"*
+ *   diye **yanlış ama gurur verici** bir sonuç yazılırdı. `beforeAll`
+ *   `ANALYZE "clubs"` çalıştırıyor ve bu satır bir konfor değil, **şart**.
+ */
+describe('İDDİA B — indeksin gerekçesi: indeksli vs indekssiz, 3.001 satır', () => {
+  /** Isıtma koşusundan sonra `Execution Time`ı ms cinsinden döner. */
+  /**
+   * ⚠️ `SET LOCAL` AYRI BİR ÇAĞRI — aynı ifadeye eklenemez.
+   *
+   * 3.9'da ölçüldü: `postgres.js` `unsafe()`e çok ifadeli bir dize verildiğinde
+   * dönen şekil tek ifadelidekinden **farklı** ve `rows[0]['QUERY PLAN']`
+   * `undefined` geliyor. Belirti yanıltıcıydı — bir tip hatası gibi göründü,
+   * oysa sebep sürücünün çok-ifade davranışı. `run()` + `rows()` ayrımı hem
+   * çalışıyor hem niyeti görünür kılıyor.
+   */
+  async function withIndexesDisabled(tx: SqlExecutor): Promise<void> {
+    await tx.run('SET LOCAL enable_indexscan = off');
+    await tx.run('SET LOCAL enable_bitmapscan = off');
+  }
+
+  async function executionTimeMs(sql: string, disableIndexes = false): Promise<number> {
+    // ⚠️ İşlem içinde: `SET LOCAL` işlem bitince kendiliğinden geri alınır.
+    // Oturum düzeyinde `SET` bırakılsaydı SONRAKİ testler indekssiz koşardı ve
+    // bozulma sessiz olurdu.
+    return executor.transaction(async (tx) => {
+      if (disableIndexes) await withIndexesDisabled(tx);
+
+      const explain = `EXPLAIN (ANALYZE, TIMING ON, FORMAT JSON) ${sql}`;
+      // Isıtma — ölçülmüyor.
+      await tx.rows(explain);
+
+      const rows = await tx.rows<{ 'QUERY PLAN': { 'Execution Time': number }[] }>(explain);
+      const time = rows[0]?.['QUERY PLAN'][0]?.['Execution Time'];
+      expect(typeof time).toBe('number');
+      return time ?? Number.NaN;
+    });
+  }
+
+  const SEARCH = `SELECT "id" FROM "clubs" WHERE ${NORMALIZED_NAME} % 'besiktas'`;
+
+  it('Türkçe arama indeksle 20 ms bütçesinin ALTINDA', async () => {
+    const withIndex = await executionTimeMs(SEARCH);
+    expect(withIndex).toBeLessThan(20);
+  });
+
+  it('⚠️ İNDEKSSİZ AYNI SORGU DAHA YAVAŞ — indeksin var olma sebebi ÖLÇÜLDÜ', async () => {
+    // Tek başına bir süre sayısı hiçbir şey kanıtlamaz. Karşılaştırma kanıtlar.
+    // Yerelde ölçüldü (PG 18.6, 3.001 satır): indeksli 0,92 ms · indekssiz
+    // 6,13 ms. Oran makineye göre değişir; iddia edilen şey **yön**.
+    const withIndex = await executionTimeMs(SEARCH);
+    const withoutIndex = await executionTimeMs(SEARCH, true);
+
+    expect(withoutIndex).toBeGreaterThan(withIndex);
+  });
+
+  it('KONTROL: indeks kapatma gerçekten Seq Scan`e düşürüyor', async () => {
+    // Yukarıdaki karşılaştırma, `SET LOCAL` hiçbir şey yapmasaydı da "geçebilir"
+    // görünürdü (iki ölçüm arasındaki gürültü). Bu test kapatmanın GERÇEKTEN
+    // planı değiştirdiğini sabitliyor — nöbetçinin nöbetçisi.
+    const plan = await executor.transaction(async (tx) => {
+      await withIndexesDisabled(tx);
+      const rows = await tx.rows<{ 'QUERY PLAN': string }>(`EXPLAIN (COSTS OFF) ${SEARCH}`);
+      return rows.map((row) => row['QUERY PLAN']).join('\n');
+    });
+
+    expect(plan).toContain('Seq Scan');
+    expect(plan).not.toContain('clubs_name_trgm_idx');
+  });
+
+  it('`SET LOCAL` sızmadı — sonraki sorgu indeksi yine kullanıyor', async () => {
+    // İşlem dışında plan normale dönmüş olmalı; dönmediyse bu dosyadaki
+    // önceki plan testleri bundan sonra yanlış sebeple geçerdi.
+    const rows = await executor.rows<{ 'QUERY PLAN': string }>(`EXPLAIN (COSTS OFF) ${SEARCH}`);
+    expect(rows.map((row) => row['QUERY PLAN']).join('\n')).toContain('clubs_name_trgm_idx');
   });
 });

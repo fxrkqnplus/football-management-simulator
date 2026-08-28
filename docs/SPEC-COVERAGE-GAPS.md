@@ -123,6 +123,45 @@ arama isteyen fazlarına karşı tek tek soruldu.
 
 ---
 
+### ℹ️ G-01'E YÖNTEM NOTU — Faz 3.9 (2026-08-28)
+
+> **Yeni bir boşluk değil, G-01'in ilerideki kurulumuna bırakılmış ölçülmüş
+> yöntem.** 3.9 projenin **ilk gerçek performans ölçümünü** yaptı ve `pnpm
+> perf:budget`i kurmak cazipti — **kurulmadı** (K12: kapı G-01 ile Faz 6'ya
+> atanmış). Kurulmayan şeyin yerine, o gün yeniden keşfedilmesin diye yöntem
+> yazıldı. Kod değil, not.
+>
+> ℹ️ **Sınır temiz:** `spec/09` §11.6'nın 15 satırında **veritabanı sorgusu
+> yok** (sayıldı); *"< 20 ms"* `docs/ROADMAP.md` Faz 3'ün kendi kriteri. Yani
+> 3.9 §11.6'ya girmedi, kendi kriterini ölçtü.
+>
+> **Bir `EXPLAIN` ölçümünün geçerli olması için üç şey (3.9'da ölçüldü):**
+>
+> | # | Tuzak | 3.9'da ölçülen |
+> |---|---|---|
+> | ① | Soğuk koşu diski ölçer, sorguyu değil | Bu hacimde fark **yok** (0,059 → 0,055 ms). Isıtma yine de yapılır — zararsızlığı *"muhtemelen"* değil **ölçülerek** biliniyor |
+> | ② | `ANALYZE` enstrümantasyonu süreyi domine edebilir | `TIMING OFF` ile fark **yok** (0,050–0,054 ms her ikisinde) |
+> | ③ | **`ANALYZE` yapılmamış tabloda planlayıcı KÖR** | **Tek gerçek tuzak.** `reltuples = -1` iken dört sorgunun **dördü de** indeksi seçiyor; `ANALYZE` sonrası dördü de Seq Scan'e düşüyor |
+>
+> ⚠️ **③'ün yönü tehlikeli ve kuralın var olma sebebi bu:** yanlış cevap, doğru
+> cevaptan **daha iyi** görünüyor. `ANALYZE`sız bir ölçüm *"indeksler
+> kullanılıyor"* der ve rapora `✅` olarak geçer. PG 14+ `reltuples = -1` ile
+> *"hiç ANALYZE edilmedi"*yi *"edildi ve boş"*tan (`0`) ayırıyor — ölçüm
+> öncesi bakılacak alan bu.
+>
+> **Ve iki okuma kuralı:**
+> - **Bir süre sayısı, ölçüldüğü HACİM yazılmadan anlamsızdır.** 3.9 kriteri
+>   iki etiketli iddiaya böldü (A: seed verisi, kriteri kapatır · B: sentetik
+>   hacim, indeksin gerekçesi) çünkü tek satırda birleştirilseler ölçülmemiş
+>   bir hacim ölçülmüş gibi görünürdü.
+> - **Plan seçimi hacme değil SEÇİCİLİĞE bağlı.** Aynı tabloda, aynı 3.001
+>   satırda: seçici terim GIN indeksini kullanıyor, seçici olmayan terim Seq
+>   Scan'e düşüyor. *"N satırda indeks kullanılıyor"* bir kural değildir.
+> - **Ölçümün MİMARİSİ raporun parçasıdır (K14).** Süreler amd64'te alındı,
+>   üretim ARM64. Mutlak süre taşınabilir değil; bütçe kararı taşınabilir.
+
+---
+
 ## Tarama 7 — Faz 3.8 (2026-08-28)
 
 Yöntem: seed'in yazması gereken **her sütun** için *"bu değeri hangi spec

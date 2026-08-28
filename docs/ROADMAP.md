@@ -1030,8 +1030,33 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
       ⚠️ **Kapatılmayan bir delik koşan bir testle görünür:** `ON CONFLICT (key)`
       `code` benzersizliğini görmüyor; negatif test hatanın `countries_code_unique`ten
       geldiğini adıyla iddia ediyor.
-- [ ] Tüm yabancı anahtarlar ve `ON DELETE` davranışları tanımlı
-- [ ] `EXPLAIN ANALYZE` ile temel sorgular < 20 ms
+- [x] Tüm yabancı anahtarlar ve `ON DELETE` davranışları tanımlı
+      **Faz 3.9'da kanıtlandı — LİSTEYLE DEĞİL, KURALLA.** On iki FK'nın davranışı
+      `spec/01` §3.1.2 ③ + ⑧'den **türetiliyor** (`src/schema/fk-policy.ts`), girdiler
+      katalogdan okunuyor (`key` sütunu var mı · giden FK var mı) ve türetilen değer
+      `pg_constraint`teki gerçekle karşılaştırılıyor: **12/12, 0 uyumsuzluk.**
+      ⚠️ ⑧'in üçüncü sınıfı (sahipsiz sözlük tablosu) **elle adlandırılmıyor**:
+      *"sahipsiz"* = giden FK'sı yok, ve bu koşulu sağlayan tek tablo ölçüldüğünde
+      `kit_templates` çıkıyor. Faz 4'ün ekleyeceği FK'lar hiçbir liste güncellenmeden
+      denetlenecek — elle envanterin iki kez kırılmasının (günlük #30, #36) sebebi buydu.
+      ℹ️ Elle liste testi **korundu**: ikisi farklı şey söylüyor (*"bugün şunlar var"*
+      ve *"olması gereken bu"*). **Mutasyonla doğrulandı:** sözlük sınıfı köreltildiğinde
+      `typecheck`/`lint` sessiz kalıyor, **yalnızca** bu test kırılıyor ve farkı adıyla
+      gösteriyor.
+- [x] `EXPLAIN ANALYZE` ile temel sorgular < 20 ms
+      **Faz 3.9'da kanıtlandı — İKİ AYRI ETİKETLİ İDDİA olarak.**
+      **İDDİA A (kriteri kapatan):** seed verisiyle (**6 ülke + 11 yarışma**, diğer
+      dokuz tablo boş) dört indeks sorgusu — **0,006–0,012 ms**, bütçenin çok altında.
+      Bu hacimde planlayıcı **Seq Scan** seçiyor ve **haklı**; test bunu iddia ediyor.
+      **İDDİA B (kriteri kapatmaz, indeksin gerekçesi):** 3.001 satırda Türkçe arama
+      **indeksli 0,92 ms · indekssiz 6,13 ms**.
+      ⚠️ **`ANALYZE` şart:** istatistiksiz planlayıcı dört sorgunun dördünde de indeksi
+      seçiyor (`reltuples = -1`), `ANALYZE` sonrası dördü de Seq Scan'e düşüyor — ölçüm
+      `ANALYZE`sız alınsaydı **yanlış ama gurur verici** bir sonuç yazılırdı.
+      ⚠️ **Plan seçimi hacme değil SEÇİCİLİĞE bağlı:** aynı tabloda `'besiktas'` indeksi
+      kullanıyor, `'kulup1234'` kullanmıyor. İkisi de doğru karar.
+      ⚠️ Süreler **amd64**'te ölçüldü; üretim ARM64 (K14). Aynı testler CI'ın `arm64`
+      işinde de yeşil — mutlak süre taşınabilir değil, bütçe kararı taşınabilir.
 - [ ] Şema dokümanı ve mermaid diyagramı üretildi
 
 **Bağımlılık:** Faz 1, 2
@@ -1487,8 +1512,96 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       **Bilerek YAPILMAYANLAR:** `federations` seed'i (kabul kriterinde yok, K12) ·
       kulüp/stadyum/hakem verisi (Faz 8–9) · `EXPLAIN ANALYZE` süre ölçümü (3.9) ·
       `spec/12` slug algoritmasının düzeltilmesi (Faz 7, SAPMA-022)
-- [ ] **3.9** `EXPLAIN ANALYZE` ölçümü (< 20 ms) seed verisiyle + FK/`ON DELETE`
-      envanteri `information_schema`'dan **programatik** doğrulanır (gözle sayılmaz)
+- [x] **3.9** `EXPLAIN ANALYZE` ölçümü (< 20 ms) seed verisiyle + FK/`ON DELETE`
+      envanteri `information_schema`'dan **programatik** doğrulanır (gözle sayılmaz).
+      **SONUÇ: kabul kriteri 3 ve 4 KAPANDI.**
+      ⚠️ **KRİTER 3 BİR LİSTEYLE DEĞİL, BİR KURALLA KAPANDI.** Elle yazılmış on iki
+      FK'lık envanter iki kez güncellenmeyi unuttu (günlük #30, #36) ve Faz 4 üç
+      ileri FK daha getiriyor — üçüncü kırılma yoldaydı. Kaynağı `pg_constraint`ten
+      `information_schema`'ya çevirmek bunu **çözmezdi** (mevcut test zaten
+      katalogdan okuyor; değişen tek şey adres olurdu). Yapılan şey beklentiyi
+      `spec/01` §3.1.2 ③ + ⑧'den **türetmek**: yeni bir saf modül
+      (`src/schema/fk-policy.ts`) tabloyu sınıflandırıyor, entegrasyon testi
+      katalogdan okuduğu olguları ona veriyor.
+      ⚠️ **ÜÇÜNCÜ SINIF (⑧) ARTIK ELLE ADLANDIRILMIYOR — ÖLÇÜLEREK BULUNUYOR.**
+      §3.1.2 ⑧ `kit_templates`i *"`key` taşımıyor ama hiçbir şeyin uydusu da değil
+      — **sahipsiz** bir sözlük tablosu"* diye tarif ediyor ve *"sahipsiz"*
+      ölçülebilir bir şey: bir uydunun tanımı gereği sahibine FK'sı vardır, sözlük
+      tablosunun **giden FK'sı yoktur**. Ölçüldü (PG 18.6, 11 tablo): bu koşulu
+      sağlayan **tek** tablo `kit_templates`. Yani kural, ⑧'in elle saydığı tabloyu
+      **adı hiçbir yerde geçmeden** buluyor; Faz 4'ün `injury_types`/`staff_roles`
+      tabloları aynı koşulu sağlayacak. Türetme **12/12** FK'da gerçek davranışla
+      örtüştü.
+      ℹ️ **Liste testi SİLİNMEDİ ve bu bir tekrar değil:** liste *"bugün şunlar
+      var"*, kural *"olması gereken bu"* diyor. Yalnızca kural kalsaydı kuralın
+      kendisi yanlış olduğunda hiçbir şey ötmezdi (3.3'ün birim testi + kanarya
+      kararının aynısı).
+      ⚠️ **KRİTER 4 İKİ AYRI ETİKETLİ İDDİA OLARAK YAZILDI — birleştirilmedi.**
+      **İDDİA A** (kriteri kapatan): seed verisiyle, dört sorgu, hepsi bütçenin
+      altında — **0,006–0,012 ms** (D5, derlenmiş çıktı). Ölçülen hacim **6 ülke
+      + 11 yarışma**, diğer dokuz tablo **boş**. **İDDİA B** (kriteri kapatmaz,
+      indeksin *gerekçesini* verir): 3.001 satırda Türkçe arama **indeksli
+      0,92 ms · indekssiz 6,13 ms**. Tek bir süre sayısı *"< 20 ms"* diye
+      yazılsaydı, bakacak bir şey bulamayan bir kapı `✅` almış olurdu
+      (SAPMA-024 sınıfı) — sayı hacmiyle birlikte anlamlı.
+      ⚠️ **BU HACİMDE Seq Scan DOĞRU KARARDIR** ve test onu **iddia ediyor**, ki
+      gelecekte biri planı görüp *"indeksler çalışmıyor"* diye regresyon sanmasın.
+      ⚠️ **`ANALYZE` YAPILMAMIŞ TABLODA ÖLÇÜM, GURUR VERİCİ BİR YALAN ÜRETİYOR —
+      3.9'un en önemli bulgusu (D2).** Migration + seed sonrası `reltuples` = **-1**
+      (PG 14+ bunu *"hiç ANALYZE edilmedi"* için kullanır, *"edildi ve boş"* olan
+      `0` ile aynı şey değil). İstatistiksiz planlayıcı dört sorgunun **dördünde de
+      indeksi seçiyor**; `ANALYZE` sonrası dördü de Seq Scan'e düşüyor. Yani ölçüm
+      `ANALYZE`sız alınsaydı rapora *"indeksler kullanılıyor"* yazılırdı ve
+      **yanlış** olurdu. Tuzağın yönü tehlikeli: yanlış cevap doğru cevaptan iyi
+      görünüyor. İki durum **yan yana** bir testte sabitlendi.
+      ⚠️ **PLAN SEÇİMİ HACME DEĞİL SEÇİCİLİĞE BAĞLI — ölçüldü.** Aynı tabloda, aynı
+      3.001 satırda: `'besiktas'` (tek satır eşleşiyor) GIN indeksini **kullanıyor**,
+      `'kulup1234'` (binlerce benzer ad) **Seq Scan**'e düşüyor. İkisi de doğru
+      karar. Bu satır olmadan 3.7'nin *"3.000 satırda indeks kullanılıyor"*
+      sonucu **hacme bağlı bir kural** gibi okunurdu; değil.
+      ℹ️ **Planlayıcının davranış değiştirdiği hacim ÖLÇÜLDÜ** (temiz artan
+      rampa, her adımda `VACUUM ANALYZE`): `clubs_competition_id_idx` için
+      **240 satırda Seq Scan, 500 satırda Bitmap Index Scan** (relpages 5 → 11).
+      **v1'in gerçekçi hacmi ~118 kulüp** (ROADMAP Faz 8) — yani o indeksin
+      tüketicisi bir kullanıcı sorgusu **değil**, `ON DELETE RESTRICT` denetimi
+      (`competitions.ts` bunu zaten yazıyordu). Dürüst sonuç, başarısızlık değil.
+      ⚠️ **ÖLÇÜM ARACININ KENDİSİ DOĞRULANDI (D2, üç tuzak):** ① soğuk/sıcak farkı
+      **yok** (0,059 → 0,055 ms) ② `TIMING ON` vs `TIMING OFF` farkı **yok**
+      (0,050–0,054 ms her ikisinde) ③ `ANALYZE` — **tek gerçek tuzak** (yukarıda).
+      Isıtma koşusu yine de yapılıyor: yokluğunun zararsızlığı *"muhtemelen"* değil
+      **ölçülerek** biliniyor.
+      ⚠️ **`pnpm perf:budget` KURULMADI (K12).** `spec/09` §11.6'nın 15 satırlık
+      bütçesini ölçen kapı **G-01** ve **Faz 6**'ya atanmış; §11.6'da veritabanı
+      sorgusu satırı **yok** (sayıldı) — *"< 20 ms"* ROADMAP Faz 3'ün kendi
+      kriteri, sınır temiz. 3.9'un kurduğu **yöntem** G-01'e not olarak bırakıldı.
+      **Ölçümler:** `pnpm test` 703 → **724** (50 → 51 dosya) · `pnpm test:db`
+      146 → **160** (6 → 7 dosya) · round-trip `comparedFacts` **1.627**
+      (değişmedi — 3.9 şema nesnesi eklemedi; erişilemez sınır konup çıktıdan
+      okundu) · kapsam **dört metrik de yine YÜKSELDİ**: satır **%85,53** ·
+      ifade **%85,68** · fonksiyon **%78,61** · dal **%88,25** (eşik %70;
+      `fk-policy.ts` 9/9 satır, 2/2 fonksiyon, 9/9 dal) · `arch:check` **9 kural,
+      değişmedi** · soğuk build 8/8 **5,80 s** (⚠️ varyans yüksek: 3.8'de aynı
+      komut 11,49 s ve 21,29 s ölçmüştü).
+      **Mutasyonla doğrulandı (üç ayrı mutasyon):** ① `classifyTable` sözlük
+      sınıfını üretmez hâle getirildi → entegrasyon testi kırıldı ve fark
+      **`kit_templates: dictionary → satellite`** olarak adıyla raporlandı;
+      `typecheck` ve `lint` **sessiz** ② `expectedDeleteAction`ın hedef denetimi
+      (⑧'in var olma sebebi) kaldırıldı → 2 birim + 1 entegrasyon testi kırıldı,
+      uyumsuzluk listesi FK'yı adıyla gösterdi ③ karşılaştırıcı köreltildi →
+      **160 testin 19'u**; seri %6,3 → %10,0 → %14,3 → %15,5 → %15,1 → %13,0 →
+      **%11,9**. **Pay 19'da sabit ve bu BEKLENEN:** 3.9 de migration yazmadı,
+      round-trip yüzeyi büyümedi.
+      **D5:** derlenmiş `dist/` düz `node` ile gerçek PG18.6'ya karşı — 11 tablo
+      sınıflandırıldı (`kit_templates` = `dictionary`, türetilerek), **12 FK, 0
+      uyumsuzluk**, `ANALYZE` öncesi dört plan da Index, sonrası dördü de Seq Scan,
+      süreler 0,006–0,012 ms, bütçe **sağlandı**.
+      ⚠️ **ÖLÇÜMÜN MİMARİSİ RAPORUN PARÇASI (K14):** yukarıdaki süreler
+      **Windows + Docker Desktop (amd64)** üzerinde alındı; üretim Oracle Ampere
+      A1 (**ARM64**). En yakın vekil CI'ın `arm64` entegrasyon işi — orada da
+      yeşil, yani iddia iki mimaride birden koşuyor. Mutlak süreler taşınabilir
+      **değil**, bütçe kararı taşınabilir.
+      **Bilerek YAPILMAYANLAR:** yeni indeks · yeni migration · `COLLATE`li indeks
+      (Faz 32) · `pnpm perf:budget` (Faz 6, G-01) · seed'in büyütülmesi (Faz 8–9)
 - [ ] **3.10** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR
 
 > **⚠️ `packages/db` kapsamı bu fazda bir KANIT sayılmaz.** Drizzle şema dosyaları modül

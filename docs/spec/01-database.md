@@ -200,6 +200,39 @@ alınması gerekir. Ölçüldü (PG 18.6): kullanılan bir şablonun silinmesi
 `club_kits_template_id_kit_templates_id_fk` ile reddediliyor; kulüp silindiğinde
 formalar gidiyor ama **şablon kalıyor**.
 
+> ### ⚠️ ③ + ⑧ ARTIK ÇALIŞTIRILABİLİR — prose değil kod (Faz 3.9)
+>
+> Bu iki kural `packages/db/src/schema/fk-policy.ts`te **saf bir fonksiyon**
+> olarak yaşıyor ve `integration/schema-constraints.itest.ts` onu gerçek
+> katalogla besleyip `pg_constraint`teki davranışla karşılaştırıyor:
+> **12/12 FK, 0 uyumsuzluk** (PG 18.6'da ölçüldü).
+>
+> **Faz 4 için önemli olan:** yeni bir FK eklendiğinde **güncellenecek bir liste
+> yok**. Kural üç sınıfı katalogdan çıkarıyor:
+>
+> ```
+> `key` var                 → independent  (ondan çıkan FK  → RESTRICT)
+> `key` yok + giden FK var  → satellite    (ondan çıkan FK  → CASCADE)
+> `key` yok + giden FK yok  → dictionary   (ona GİDEN FK    → RESTRICT)
+> ```
+>
+> ⚠️ **⑧'in *"sahipsiz"* kelimesi ölçülebilir çıktı ve kuralın can alıcı noktası
+> bu:** bir uydunun tanımı gereği sahibine bir FK'sı vardır; sözlük tablosunun
+> **giden FK'sı yoktur**. Bu koşulu sağlayan tek tablo ölçüldüğünde
+> `kit_templates` çıkıyor — yani ⑧'in adıyla saydığı tablo, **adı hiçbir yerde
+> yazılmadan** bulunuyor. Faz 4'ün `injury_types` / `staff_roles` tabloları aynı
+> koşulu sağlayacak.
+>
+> ⚠️ **Hedef denetimi kaynak denetiminden ÖNCE gelir.** `club_kits` bir uydu; ③
+> körlemesine uygulansaydı `club_kits.template_id` **CASCADE** alırdı ve bir
+> şablon silindiğinde kulübün forma satırı alakasız bir sebeple yok olurdu.
+> Mutasyonla doğrulandı: hedef denetimi kaldırıldığında 2 birim + 1 entegrasyon
+> testi kırılıyor ve uyumsuzluk FK'yı adıyla gösteriyor.
+>
+> ℹ️ Elle yazılmış tam envanter testi **korundu**. İkisi farklı şey söylüyor:
+> liste *"bugün şunlar var"*, kural *"olması gereken bu"*. Yalnızca kural
+> kalsaydı, kuralın kendisi yanlış olduğunda hiçbir şey ötmezdi.
+
 **⑨ İNDEKS İFADESİ `IMMUTABLE` İSTER — ve `unaccent` DEĞİL (Faz 3.7).**
 PostgreSQL indeks ifadesinde `IMMUTABLE` olmayan fonksiyon kabul etmiyor
 (`ERROR: functions in index expression must be marked IMMUTABLE`). Türkçe arama

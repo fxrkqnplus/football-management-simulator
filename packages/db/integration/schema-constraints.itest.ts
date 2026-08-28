@@ -50,6 +50,8 @@ import { KIT_TYPES } from '../src/schema/club-kits.js';
 import { COMPETITION_TYPES } from '../src/schema/competitions.js';
 import { WORK_PERMIT_RULES } from '../src/schema/countries.js';
 import { DATA_SOURCES } from '../src/schema/data-pack-columns.js';
+import type { DeleteAction, TableClass } from '../src/schema/fk-policy.js';
+import { classifyTable, expectedDeleteAction } from '../src/schema/fk-policy.js';
 import { KIT_COLOR_SLOTS } from '../src/schema/kit-templates.js';
 import {
   clubFacilitiesInsertSql,
@@ -339,6 +341,104 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       'rivalries_club_a_id_clubs_id_fk → CASCADE',
       'rivalries_club_b_id_clubs_id_fk → CASCADE',
     ]);
+  });
+
+  /**
+   * ────────────────────────────────────────────────────────────────────────
+   * KABUL KRİTERİ 3 — envanter LİSTEDEN değil KURALDAN doğrulanıyor (Faz 3.9)
+   * ────────────────────────────────────────────────────────────────────────
+   *
+   * Yukarıdaki test on iki FK'yı **adıyla** sayıyor ve iki kez güncellenmeyi
+   * unuttu (günlük #30, #36). Buradaki test beklentiyi `spec/01` §3.1.2 ③ + ⑧
+   * kuralından **türetiyor**; girdilerin ikisi de katalogdan okunuyor, yani
+   * Faz 4'ün ekleyeceği FK'lar hiçbir liste güncellenmeden denetlenir.
+   *
+   * ⚠️ **Liste testi SİLİNMİYOR ve bu bir tekrar değil.** İkisi farklı şey
+   * söylüyor: liste *"bugün şunlar var"*, kural *"olması gereken bu"*. Yalnızca
+   * kural kalsaydı, kuralın kendisi yanlış olduğunda hiçbir şey ötmezdi.
+   */
+  it('KRİTER 3: her FK`nın `ON DELETE`i KURALDAN türetiliyor — liste yok', async () => {
+    const tables = await executor.rows<{
+      table_name: string;
+      has_key: boolean;
+      has_outgoing_fk: boolean;
+    }>(`
+      SELECT t.relname AS table_name,
+             EXISTS (SELECT 1 FROM information_schema.columns c
+                      WHERE c.table_schema = 'public'
+                        AND c.table_name = t.relname
+                        AND c.column_name = 'key')                       AS has_key,
+             EXISTS (SELECT 1 FROM pg_constraint fk
+                      WHERE fk.contype = 'f' AND fk.conrelid = t.oid)    AS has_outgoing_fk
+        FROM pg_class t
+        JOIN pg_namespace n ON n.oid = t.relnamespace
+       WHERE n.nspname = 'public' AND t.relkind = 'r'
+       ORDER BY t.relname
+    `);
+
+    const classes = new Map<string, TableClass>(
+      tables.map((row) => [
+        row.table_name,
+        classifyTable({
+          hasKeyColumn: row.has_key,
+          hasOutgoingForeignKey: row.has_outgoing_fk,
+        }),
+      ]),
+    );
+
+    // ⚠️ Sınıflandırma ÖNCE iddia ediliyor. Yalnızca son karşılaştırma
+    // yapılsaydı, iki yanlışın birbirini götürdüğü bir kural yeşil geçebilirdi.
+    expect(Object.fromEntries([...classes].sort())).toEqual({
+      club_facilities: 'satellite',
+      club_finances_base: 'satellite',
+      club_kits: 'satellite',
+      clubs: 'independent',
+      competitions: 'independent',
+      countries: 'independent',
+      federations: 'satellite',
+      // ⑧'in üçüncü sınıfı — adı hiçbir yerde YAZILI DEĞİL, katalogdan çıktı.
+      kit_templates: 'dictionary',
+      referees: 'independent',
+      rivalries: 'satellite',
+      stadiums: 'independent',
+    });
+
+    const foreignKeys = await executor.rows<{
+      name: string;
+      source_table: string;
+      target_table: string;
+      action: DeleteAction;
+    }>(`
+      SELECT c.conname                     AS name,
+             src.relname                   AS source_table,
+             tgt.relname                   AS target_table,
+             CASE c.confdeltype
+               WHEN 'c' THEN 'CASCADE'  WHEN 'r' THEN 'RESTRICT'
+               WHEN 'n' THEN 'SET NULL' ELSE 'NO ACTION'
+             END                           AS action
+        FROM pg_constraint c
+        JOIN pg_class src ON src.oid = c.conrelid
+        JOIN pg_class tgt ON tgt.oid = c.confrelid
+       WHERE c.contype = 'f' AND c.connamespace = 'public'::regnamespace
+       ORDER BY c.conname
+    `);
+
+    // Boş bir sonuç "hiç uyumsuzluk yok" diye okunurdu — bakacak bir şey
+    // bulamayan kapı (SAPMA-024). Sayı ayrıca iddia ediliyor.
+    expect(foreignKeys).toHaveLength(12);
+
+    const classLookup = (table: string): TableClass => classes.get(table) ?? 'independent';
+    const mismatches = foreignKeys
+      .filter((fk) => {
+        const expectedAction = expectedDeleteAction(
+          { name: fk.name, sourceTable: fk.source_table, targetTable: fk.target_table },
+          classLookup,
+        );
+        return expectedAction !== fk.action;
+      })
+      .map((fk) => `${fk.name}: gerçek ${fk.action}`);
+
+    expect(mismatches).toEqual([]);
   });
 
   it('CASCADE: ülke silinince federasyonu da gidiyor', async () => {

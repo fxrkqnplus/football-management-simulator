@@ -12,6 +12,8 @@ export { countries, WORK_PERMIT_RULES } from './countries.js';
 export type { DataSource, ExternalIds } from './data-pack-columns.js';
 export { DATA_SOURCES, externalIdsSchema } from './data-pack-columns.js';
 export { federations } from './federations.js';
+export type { DeleteAction, ForeignKeyFacts, TableClass, TableClassFacts } from './fk-policy.js';
+export { classifyTable, DELETE_ACTIONS, expectedDeleteAction, TABLE_CLASSES } from './fk-policy.js';
 export type { KitColorSlots } from './kit-templates.js';
 export { KIT_COLOR_SLOTS, kitTemplates } from './kit-templates.js';
 export { referees } from './referees.js';
