@@ -87,12 +87,13 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 /** Zincirin son migration'ı — snapshot karşılaştırması bunu okur. */
-const LATEST_SNAPSHOT = '0003_snapshot.json';
+const LATEST_SNAPSHOT = '0004_snapshot.json';
 const CHAIN_TAGS = [
   '0000_countries_initial',
   '0001_geography_institutions',
   '0002_club_core',
   '0003_visual_assets_referees',
+  '0004_search_indexes',
 ] as const;
 
 /** Zincirin tamamını geri almak için gereken adım sayısı. */
@@ -129,16 +130,21 @@ const MASTER_TABLE_COUNT = 11;
  *
  * "Fark yok" ancak gerçekten bir şeye bakıldıysa anlamlı. Sayaç ölçülmüş
  * değerlerden geliyor: 3.2b'de `countries` tek başına **89**, 3.4'te üç tabloda
- * **466**, 3.5'te sekiz tabloda **1.223**, 3.6'da on bir tabloda **1.619**.
- * Sınır yükseltilmezse test "fark yok" demeye devam eder ama **kaç şeye
- * baktığı** sabitlenmemiş olur — D3'ün ta kendisi.
+ * **466**, 3.5'te sekiz tabloda **1.223**, 3.6'da on bir tabloda **1.619**,
+ * 3.7'de dört indeksle **1.627**. Sınır yükseltilmezse test "fark yok"
+ * demeye devam eder ama **kaç şeye baktığı** sabitlenmemiş olur — D3.
+ *
+ * ℹ️ **3.7'nin artışı yalnızca +8 ve bu BEKLENEN:** indeksler tablo/sütun
+ * eklemiyor, yalnızca dört indeks olgusu (ad + tanım) getiriyor. Küçük artış,
+ * karşılaştırmanın indekslere *baktığının* kanıtı değil — onu yukarıdaki
+ * `DROP INDEX` mutasyon testleri kanıtlıyor.
  *
  * ⚠️ **Sayı TAHMİN EDİLMEZ.** 3.5'te 1.246 yazıldı, gerçek 1.223 çıktı ve test
- * onu reddetti (günlük #34). 3.6'da yöntem baştan doğru uygulandı: sınır
- * kasıtlı olarak erişilemeyecek bir değere (`9_999_999`) konuldu ve gerçek
- * değer testin reddettiği çıktıdan okundu. **Tahmin hiç yazılmadı.**
+ * onu reddetti (günlük #34). 3.6'dan beri yöntem: sınır kasıtlı olarak
+ * erişilemeyecek bir değere (`9_999_999`) konur ve gerçek değer testin
+ * reddettiği çıktıdan okunur. **Tahmin hiç yazılmaz.**
  */
-const COMPARED_FACTS_FLOOR = 1_619;
+const COMPARED_FACTS_FLOOR = 1_627;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;
@@ -456,12 +462,46 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
    * `down`unu 0002'nin arkasında görünmez kılardı — 0002 zaten `club_kits`in
    * baktığı `clubs`ı düşürüyor.
    */
-  it('yalnızca 0003 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+  /**
+   * 0004 TEK BAŞINA — ve bu, zincirin İLK "tablo yaratmayan" migration'ı.
+   *
+   * Öncekiler tablo/sütun getiriyordu; 0004 yalnızca **uzantı, fonksiyon ve
+   * indeks**. Çevrimin `identical: true` vermesi burada ayrıca anlamlı: indeks
+   * tanımları karşılaştırmanın kapsamında (`introspect.ts` → `IndexFacts`), yani
+   * `down`un bir indeksi geri getirmeyi unutması **yakalanır**.
+   */
+  it('yalnızca 0004 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
     const before = await introspectSchema(executor);
 
     await migrateDown({ executor, source, logger }, { steps: 1, allowDataLoss: true });
+
+    // Tablolar duruyor — kaybolan yalnızca indeksler (ve uzantı + fonksiyon).
+    const rolledBack = await introspectSchema(executor);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...ALL_TABLES]);
+    const indexNames = rolledBack.tables.flatMap((table) =>
+      table.indexes.map((index) => index.name),
+    );
+    expect(indexNames).not.toContain('clubs_name_trgm_idx');
+    expect(indexNames).not.toContain('rivalries_pair_unique_idx');
+
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const comparison = compareSchemas(before, after);
+
+    expect(summarizeDifferences(comparison)).toMatch(/^fark yok/);
+    expect(comparison.identical).toBe(true);
+    expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
+  });
+
+  it('yalnızca 0003 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+    const before = await introspectSchema(executor);
+
+    await migrateDown({ executor, source, logger }, { steps: 2, allowDataLoss: true });
 
     // Geri alma tam olarak ÜÇ tabloyu düşürdü — 0002'nin sekizi ayakta.
     const rolledBack = await introspectSchema(executor);
@@ -504,7 +544,7 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
     const before = await introspectSchema(executor);
 
     // ⚠️ `steps: 2` — 3.6'da zincir uzadı; 0003 önce, 0002 sonra geri alınıyor.
-    await migrateDown({ executor, source, logger }, { steps: 2, allowDataLoss: true });
+    await migrateDown({ executor, source, logger }, { steps: 3, allowDataLoss: true });
 
     // Geri alma gerçekten sekiz tabloyu düşürdü — 0001'in üçü ayakta.
     const rolledBack = await introspectSchema(executor);
@@ -599,7 +639,7 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
     // ⚠️ `steps: 3` — 3.6'da zincir uzadı. 0003 → 0002 → 0001 sırayla geri
     // alınıyor; `countries` ayakta kalıyor ve `attnum` deliği ölçülebilir
     // hâlde duruyor.
-    await migrateDown({ executor, source, logger }, { steps: 3, allowDataLoss: true });
+    await migrateDown({ executor, source, logger }, { steps: 4, allowDataLoss: true });
 
     const rolledBack = await introspectSchema(executor);
     expect(rolledBack.tables.map((table) => table.name)).toEqual(['countries']);
@@ -682,7 +722,7 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
 
-    await migrateDown({ executor, source, logger }, { steps: 3, allowDataLoss: true });
+    await migrateDown({ executor, source, logger }, { steps: 4, allowDataLoss: true });
 
     // Satırlar duruyor — kaybolan yalnızca sütunlar.
     const remaining = await executor.rows<{ n: number | string }>(
@@ -799,6 +839,13 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
       'kit_templates_color_slots_check',
     ],
     ['referees', 'ALTER TABLE "referees" DROP COLUMN "home_bias"', 'home_bias'],
+    // ── 3.7'nin indeksleri: SESSİZ bir bozulma sınıfı ──────────────────────
+    // Bir indeksin düşmesi sorgunun cevabını DEĞİŞTİRMEZ, yalnızca yavaşlatır.
+    // Karşılaştırma bunu gördüğü için `down`un bir indeksi geri getirmeyi
+    // unutması yakalanır — yoksa hiçbir kapı ötmezdi.
+    ['clubs', 'DROP INDEX "clubs_name_trgm_idx"', 'clubs_name_trgm_idx'],
+    ['clubs', 'DROP INDEX "clubs_competition_id_idx"', 'clubs_competition_id_idx'],
+    ['rivalries', 'DROP INDEX "rivalries_pair_unique_idx"', 'rivalries_pair_unique_idx'],
     [
       'referees',
       'ALTER TABLE "referees" DROP CONSTRAINT "referees_country_id_countries_id_fk"',
@@ -876,7 +923,7 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
 
     const result = await migrateDown(
       { executor, source, logger },
-      { steps: 3, dryRun: true, allowDataLoss: true },
+      { steps: 4, dryRun: true, allowDataLoss: true },
     );
 
     const byKind = {

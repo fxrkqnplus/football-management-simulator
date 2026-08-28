@@ -1314,7 +1314,67 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       ileri FK, kabul kriteri zaten yazılı) · `color3` ↔ `colorSlots` tutarlılığı
       (Faz 11, **G-12**) · `rivalries` teklik kısıtı (Faz 11, **G-11**; fikir
       değişirse 3.7'de bedelsiz)
-- [ ] **3.7** İndeksler + `pg_trgm` GIN + `CREATE EXTENSION` migration'ı.
+- [x] **3.7** İndeksler + `pg_trgm` GIN + `CREATE EXTENSION` migration'ı.
+      **SONUÇ:** `0004_search_indexes` + elle `down` · iki uzantı (`pg_trgm` 1.6,
+      `unaccent` 1.1) · `immutable_unaccent` sarmalayıcısı · **dört indeks**:
+      `clubs_competition_id_idx` · `competitions_country_id_idx` ·
+      `clubs_name_trgm_idx` (GIN) · `rivalries_pair_unique_idx` (UNIQUE ifade).
+      ✅ **Faz 8'in kabul kriteri artık SAĞLANABİLİR:** gerçek tabloda
+      `'besiktas'` sorgusu **`Beşiktaş`**'ı buluyor ve planlayıcı GIN indeksini
+      **seçiyor** (`Bitmap Index Scan`).
+      ⚠️ **`unaccent`in İKİ AŞIRI YÜKLEMESİ DE `STABLE`** — sözlüğü açıkça veren
+      `unaccent(regdictionary, text)` biçiminin `IMMUTABLE` olabileceği hipotezi
+      **ölçümle çürütüldü**. `IMMUTABLE` sarmalayıcı **şart** ve bir **iddia**:
+      `unaccent.rules` bir majör yükseltmede değişirse indeks sessizce eskir,
+      düzeltmesi `REINDEX`. **Bedel gürültülüye çevrildi:** entegrasyon testi
+      sarmalayıcının çıktısını altı Türkçe ad için sabitliyor → sözlük değişirse
+      **CI kırılır**. `spec/01` §3.1.2 **⑨**.
+      ⚠️ **G-11 DARALDI — 3.5'in kararı geri alındı ve sebebi yazılı.** 3.5'te
+      teklik Faz 11'e bırakılmıştı; gerekçe (a) kısmi `UNIQUE` `(B,A)`'yı
+      sessizce geçirir (b) tam koruma ingest'e sıralama sözleşmesi dayatır idi.
+      **`LEAST/GREATEST` ifade indeksi üçüncü bir yol** ve iki gerekçeyi de
+      düşürüyor: koruma **tam**, sözleşme **yok**. Kalan tek delik `(A,A)` →
+      Faz 11, ve **koşan bir testle görünür** tutuluyor.
+      ⚠️ **`competitions`a trigram indeksi KONMADI — yeni boşluk G-13.** Görünen
+      adı `name_key`, yani bir **i18n anahtarı**; trigram araması anlamsız. Ama
+      ROADMAP Faz 17 global aramayı *"lig + turnuva"* için de istiyor → o
+      mekanizma Faz 17'de seçilecek.
+      ⚠️ **`COLLATE`'li indeks YAPILMADI:** ROADMAP 3.7 onu saymıyor (K12),
+      tüketicisi **Faz 32** ve doğru indeks o fazın `ORDER BY`'ının tam şekline
+      bağlı — bugün kurmak sütunu ve yönü **tahmin etmek** olurdu. 3.0'ın
+      `Index Only Scan` ölçümü kayıtlı, Faz 32 onu okur.
+      ⚠️ **UZANTI `down`U — PG fazla gitmeyi KENDİSİ engelliyor** (`spec/01`
+      §3.1.2 ⑩): `DROP EXTENSION` CASCADE'siz, bağımlı indeks varken
+      **reddediliyor**. `DROP TABLE`ın aksine *"fazla giden down"* burada
+      yapısal olarak imkânsız.
+      ⚠️ **TEST KONTEYNERİ ÜRETİMDEN FARKLI LOCALE KULLANIYOR — ölçüldü ve
+      DAVRANIŞ AYNI ÇIKTI.** `testcontainers` varsayılan `initdb` ile
+      `datlocprovider = c` (libc `en_US.utf8`), compose ise SAPMA-020 gereği
+      `b` (builtin `C.UTF-8`). D2 ②'nin sorusu buydu; iki veritabanında da
+      `similarity` **0,2857**, `%` **f**, `unaccent`li benzerlik **1,0**,
+      `lower`/`ILIKE` doğru — yani `test:db` ölçümleri **aktarılabilir**.
+      ⚠️ Çakışan bir sonuç çıksaydı bütün trigram testleri üretim hakkında
+      hiçbir şey söylemiyor olurdu.
+      **Ölçümler:** `pnpm test` 635 → **639** (46 → 47 dosya) · `pnpm test:db`
+      103 → **126** (5 dosya) · round-trip `comparedFacts` 1.619 → **1.627**
+      (sınır yine erişilemez bir değerden ölçülerek okundu; artış +8 çünkü
+      indeksler tablo/sütun eklemiyor) · kapsam **%85,09 satır / %75,26
+      fonksiyon** (eşik %70) · `arch:check` **9 kural, değişmedi** ·
+      soğuk build 8/8.
+      ℹ️ **Kapsam düştü, sebebi bulundu, kapatıldı:** yeni `src/schema/search.ts`
+      %0'la paydaya girip kapsamı **%84,64**'e düşürmüştü. Yazılan birim testi
+      bir *import testi değil*: `searchNormalizedSql`in ifadesini **sabitliyor**
+      ve o ifade hem indeksin hem sorgunun tanımı.
+      **Mutasyonla doğrulandı:** ① karşılaştırıcı köreltildi → **126 testin
+      19'u** kırıldı; seri %6,3 → %10,0 → %14,3 → %15,5 → **%15,1** (oran
+      düştü, **pay 16 → 19 arttı** — okuma kuralı `spec/09` §11.5'te)
+      ② `searchNormalizedSql`in `lower`/`unaccent` **sırası** değiştirildi →
+      *"arama doğru sonucu buluyor"* testi **GEÇMEYE DEVAM ETTİ**, yalnızca plan
+      testi kırıldı. Yani sessiz bozulma sınıfı gerçek ve tek nöbetçisi plan
+      testi.
+      **D5:** derlenmiş `dist/` düz `node` ile gerçek PG18.6'ya karşı — beş
+      migration, iki uzantı, dört indeks, `'besiktas'` → `Beşiktaş`, ters çift
+      reddedildi, tam geri almada **0 tablo ve 0 uzantı** kaldı.
       ⚠️ **3.1'de ölçülen kısıt:** düz `pg_trgm` Türkçe aramayı sağlamıyor
       (`'Beşiktaş' % 'besiktas'` → **`f`**, benzerlik 0,286 · eşik 0,3) çünkü Türkçe
       harf içeren trigramlar hash'leniyor. **`unaccent` gerekiyor** (mevcut, 1.1;

@@ -33,7 +33,7 @@ her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (
 | 5 | `club_facilities` | 3.5 | — | `clubId` 1:1 (PK = FK, ayrı `id` yok) |
 | 6 | `club_finances_base` | 3.5 | — | `clubId` 1:1 · başlangıç değerleri master, değişimi delta · `bigint` **`mode: 'bigint'`** (§3.1.2 ⑥) |
 | 7 | `stadiums` | 3.5 | ✅ | `builtYear`/`assetId` nullable |
-| 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` → ikisi de `clubs`, `CASCADE`. Tekrar/kendine-referans denetimi **Faz 11** |
+| 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` → ikisi de `clubs`, `CASCADE`. **3.7:** `(least,greatest)` UNIQUE ifade indeksi çift tekliğini sıradan bağımsız kapatıyor; kalan tek delik `(A,A)` → Faz 11 (G-11 daraldı) |
 | 9 | `kit_templates` | 3.6 | — | Oyunun kendi 20 SVG şablonu, pakette değil (`spec/12` §17.2'de `templates.json` **yok** — ölçüldü) — `code` **UNIQUE**, `key`in rolünü görüyor. `colorSlots` **CHECK (2,3)**: sayısal ama kapalı küme (§3.1.2 ②, 4. satır) |
 | 10 | `club_kits` | 3.6 | — | `(clubId, kitType)` **UNIQUE** · `kitType` CHECK · `templateId` → **RESTRICT** (sözlük tablosu, §3.1.2 ⑧). ⚠️ `assetId` `spec/01`'de **yoktu**, eklendi (SAPMA-026 EK): `spec/12` §17.4 gerçek forma görselini veriyor ve `null` = şablondan üret (K9) |
 | 11 | `referees` | 3.6 | ✅ | `personId` **Faz 4'te** → Faz 4'e kadar **isimsiz**. Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
@@ -43,7 +43,7 @@ her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (
 > `information_schema`'dan okuyup tablo adlarını tek tek iddia ediyor ve
 > `round-trip.itest.ts` aynı listeyi çevrimin iki ucunda karşılaştırıyor.
 > Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` ·
-> `0002_club_core` · `0003_visual_assets_referees` — **dördünün de elle yazılmış
+> `0002_club_core` · `0003_visual_assets_referees` · `0004_search_indexes` — **beşinin de elle yazılmış
 > `down`u var**.
 
 ## Faz 3'te bilerek YAPILMAYANLAR
@@ -66,3 +66,21 @@ her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (
 - **Collation ve arama:** veritabanı `builtin`/`C.UTF-8`; sıralama sorgu başına
   `COLLATE "tr-TR-x-icu"`. Türkçe arama için `unaccent` **şart** ve `IMMUTABLE`
   sarmalayıcı istiyor — ölçüm ROADMAP Faz 3.7 ve Faz 8 maddelerinde.
+
+## İndeksler (Faz 3.7)
+
+| İndeks | Tablo | Tür | Tüketici |
+|---|---|---|---|
+| `clubs_competition_id_idx` | `clubs` | btree | `ON DELETE RESTRICT` denetimi (bugün) · lig kadrosu sorgusu (Faz 16/18) |
+| `competitions_country_id_idx` | `competitions` | btree | `ON DELETE RESTRICT` denetimi (bugün) |
+| `clubs_name_trgm_idx` | `clubs` | **GIN** `immutable_unaccent(lower(name)) gin_trgm_ops` | Faz 8 kabul kriteri (`besiktas` → `Beşiktaş`) · Faz 17 global arama |
+| `rivalries_pair_unique_idx` | `rivalries` | **UNIQUE** `(least(a,b), greatest(a,b))` | Çift tekliği — sıradan bağımsız (G-11 daraldı) |
+
+⚠️ PostgreSQL FK sütunlarını **otomatik indekslemiyor**; ilk iki indeksin
+tüketicisi gelecekte değil **bugün**.
+
+⚠️ `competitions`a trigram indeksi **konmadı**: görünen adı `name_key`, bir i18n
+anahtarı. ROADMAP Faz 17 lig/turnuva aramasını da istiyor → **G-13**.
+
+⚠️ `immutable_unaccent` bir **iddia** (`unaccent` gerçekte `STABLE`). Bedeli ve
+nöbetçisi `docs/spec/01-database.md` §3.1.2 **⑨**'da.

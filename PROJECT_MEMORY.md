@@ -21,29 +21,29 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **FAZ 3 · SIRADAKİ: 3.7 — İndeksler + `pg_trgm`** (12 alt görevden 8'i bitti) |
-| **Son tamamlanan** | ✅ **3.6 — Görsel varlıklar ve hakemler.** `kit_templates` · `club_kits` · `referees` · `0003_visual_assets_referees` + elle `down`. 🎉 **FAZ 3'ÜN ŞEMA ENVANTERİ KAPANDI: 11 / 11 master tablo**, sayı `information_schema`'dan **ölçülerek** iddia ediliyor |
+| **Aktif faz / alt görev** | **FAZ 3 · SIRADAKİ: 3.8 — Seed betiği** (12 alt görevden 9'u bitti) |
+| **Son tamamlanan** | ✅ **3.7 — İndeksler + `pg_trgm`.** `0004_search_indexes` + elle `down` · iki uzantı · `immutable_unaccent` sarmalayıcısı · **dört indeks**. ✅ **Faz 8'in kabul kriteri artık SAĞLANABİLİR:** gerçek tabloda `'besiktas'` → **`Beşiktaş`** ve planlayıcı GIN indeksini **seçiyor** |
 | **Tarih** | 2026-08-28 |
-| **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor, şema işi bitti |
+| **Genel ilerleme** | **2 / 50 faz (%4)** — Faz 3 sürüyor; şema + indeks bitti, sırada veri |
 | **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** var ama bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama kapanmış SAYILMIYOR, aşağıdaki kalıcı bloğa bak. |
-| **Son commit** | `feat(db): görsel varlıklar ve hakemler — şema envanteri 11/11 kapandı` |
-| **Devreden açık karar** | **YOK.** 3.6'da bir karar kullanıcıya soruldu ve cevaplandı: `club_kits.asset_id` **eklendi** (SAPMA-026'nın üçüncü uygulaması). 3.5'ten devreden `rivalries` sorusu da kapandı — **Faz 11'e** kalıyor, kayıt **G-11**; fikir değişirse 3.7'de **bedelsiz** eklenebilir (`UNIQUE` zaten indeks yaratıyor) |
-| **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ **merge edildi** 2026-08-26T01:58Z, merge commit `c97ebd0`. Faz 3 PR'ı faz sonunda (3.10) açılacak. |
-| **CI** | ✅ İşlenen son koşu **`33100256651` — altı iş de yeşil** (3.5'in push'u, commit `b918ac3`). `Entegrasyon` işi **amd64 + arm64** ikisinde de koştu. 3.6'nın push'unun koşusu **HENÜZ İŞLENMEDİ** — sonuç bir sonraki commit'te işlenir. ⚠️ Sayaç **YEDİ ardışık yeşil amd64** ve bu kez **liste sorgusuyla** doğrulandı: `gh run list --limit 40` → dalda toplam **2 kırmızı**, ikisi de düzeltmeden ÖNCE. |
-| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — build **SOĞUK ölçüldü** (`rm -rf .turbo/cache node_modules/.cache/turbo`): typecheck 9/9 · lint 0 · **format 0 — bu commit'te ANLAMLI**, sekiz `.ts` dosyası değişti · build 8/8 (0 cached), **11,79 s** · **arch 9 kural, DEĞİŞMEDİ**, 240 ms |
-| **install** | ✅ `pnpm install` **exit 0**, `git diff pnpm-workspace.yaml` **boş**. ℹ️ pnpm **11.24.0** çıkmış; kilit 11.23.0'da, karar verilmedi (`DEPENDENCY-WATCH` faz açılışında bakılır) |
-| **test** | ✅ **635 test / 46 dosya** (`pnpm test`, 0 hata — **değişmedi**: 3.6 birim testi getirmedi, üç yeni şema dosyasının kanıtı entegrasyon tarafında; `drizzle-config.test.ts`in "test olmayan HER `.ts` seçiliyor" eşitliği onları zaten kapsıyor) · ✅ **`pnpm test:db` 103 test / 4 dosya** gerçek PG18 konteyneriyle (77'den çıktı). ⚠️ `test:db` varsayılan `pnpm test`'e **girmez** — ayrı komut, `spec/09` §11.5 faz kapanış listesinde ve CI'da ayrı iş |
-| **kapsam** | ✅ satır **%85,12** · ifade %85,26 · dal **%87,82** (üç fazdır değişmedi) · fonksiyon **%75,44** — eşik %70, eşik DÜŞÜRÜLMEDİ, hiçbir dosya dışlanmadı, `pnpm test:coverage` exit 0. ⚠️ **%86,31 → %85,12 DÜŞTÜ ve bu BEKLENEN:** üç yeni Drizzle şema dosyası raporda **%0**. Seri: %89,11 → %87,73 → %86,31 → **%85,12**; sebep her seferinde aynı. **Bir import-testi yazıp %100 yapmak YASAK** (ROADMAP Faz 3 bunu adıyla anıyor). ⚠️ **Marj daralıyor** — 3.7 yeni şema dosyası getirmiyor, düşüş durmalı; eşiğin altına inerse DUR ve bildir |
-| **Veritabanı** | **PostgreSQL 18.6** (16.15'ten yükseltildi, SAPMA-019) · `builtin`/`C.UTF-8` locale (SAPMA-020) · bağlama noktası `pgdata:/var/lib/postgresql` (18'de **değişti**) · `pg_trgm` 1.6 mevcut (**3.7'nin konusu**) · `docker compose up -d` → **healthy** |
-| **Web paketi** | **321.495 bayt** (ham) — 3.4/3.5/3.6 `apps/web`e **hiç dokunmadı**, yeniden ölçülmedi |
-| **API imajı** | **423 MB** — Faz 2 kapanış ölçümü. **3.0–3.6'da yeniden ÖLÇÜLMEDİ.** `apps/api/src` hiç değişmedi. Faz kapanışında (3.10) yeniden ölçülecek (`spec/11` §12.5). |
-| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · **drizzle-orm 0.45.2 + drizzle-kit 0.31.10** (tam sürüm, `^` yok) · **testcontainers + @testcontainers/postgresql 12.1.0** · jsdom 30.0.1 · pino 10.3.1 · @sentry/* 10.70.0 |
+| **Son commit** | `feat(db): türkçe arama indeksi ve pg_trgm — IMMUTABLE iddiası izleniyor` |
+| **Devreden açık karar** | **YOK.** 3.7'de dört karar ölçümle verildi (①`IMMUTABLE` sarmalayıcı bugün ④ uzantı migration'a girer, `down` düşürür ⑥ G-11 indeksi eklendi ⑦ `COLLATE` indeksi yapılmadı). **G-11 kapanmadı, DARALDI:** kalan tek delik `(A,A)` → Faz 11 |
+| **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (3.0'da açıldı). Faz 2 → PR #3 ✅ merge `c97ebd0`. Faz 3 PR'ı 3.10'da açılacak. |
+| **CI** | ✅ İşlenen son koşu **`33127803143` — altı iş de yeşil** (3.6'nın push'u, `ae86ee1`). 3.7'nin koşusu **HENÜZ İŞLENMEDİ**. Sayaç **SEKİZ ardışık yeşil amd64**, yine **liste sorgusuyla** doğrulandı: `gh run list --limit 40` → dalda toplam **2 kırmızı**, ikisi de düzeltmeden önce. |
+| **typecheck / lint / format / build / arch** | ✅ hepsi yeşil — typecheck 9/9 · lint 0 · **format 0 — ANLAMLI**, sekiz `.ts` değişti · build 8/8 **soğuk** · **arch 9 kural, DEĞİŞMEDİ** |
+| **install** | ✅ `pnpm install` **exit 0**, `git diff pnpm-workspace.yaml` **boş**. ℹ️ pnpm 11.24.0 çıkmış; kilit 11.23.0'da, karar verilmedi |
+| **test** | ✅ **639 test / 47 dosya** (635/46'dan; +1 dosya `search.test.ts`) · ✅ **`pnpm test:db` 126 test / 5 dosya** (103/4'ten; +1 dosya `search-index.itest.ts`) gerçek PG18 konteyneriyle |
+| **kapsam** | ✅ satır **%85,09** · ifade %85,23 · dal **%87,82** (dört fazdır değişmedi) · fonksiyon **%75,26** — eşik %70, DÜŞÜRÜLMEDİ, dosya dışlanmadı. ⚠️ **Düşüş DURDU ve bu ölçülerek sağlandı:** yeni `search.ts` önce %0'la kapsamı **%84,64**'e indirdi; sebebi bulundu ve **iddiası olan** bir birim testiyle kapatıldı (`searchNormalizedSql`in ifadesini sabitliyor — bir *import testi değil*, o ifade hem indeksin hem sorgunun tanımı) |
+| **Veritabanı** | **PostgreSQL 18.6** · compose: `builtin`/`C.UTF-8` (SAPMA-020) · **`pg_trgm` 1.6 + `unaccent` 1.1 artık migration'la KURULUYOR** · ⚠️ **test konteyneri farklı locale kullanıyor** (`datlocprovider = c`, libc `en_US.utf8`) ama **davranış birebir aynı ölçüldü** (D2 ②'ye cevap) — `similarity` 0,2857 · `%` f · `unaccent`li 1,0 · `lower`/`ILIKE` doğru, ikisinde de |
+| **Web paketi** | **321.495 bayt** — 3.4–3.7 `apps/web`e **hiç dokunmadı**, yeniden ölçülmedi |
+| **API imajı** | **423 MB** — Faz 2 kapanış ölçümü, 3.0–3.7'de yeniden ÖLÇÜLMEDİ. 3.10'da ölçülecek (`spec/11` §12.5) |
+| **Araç zinciri** | Node 24.19.0 · pnpm 11.23.0 · drizzle-orm 0.45.2 + drizzle-kit 0.31.10 · testcontainers 12.1.0 · jsdom 30.0.1 · pino 10.3.1 · @sentry/* 10.70.0 |
 | **Açık sorun sayısı** | **0** |
-| **Teknik borç sayısı** | **7** — BORÇ-001, BORÇ-002, BORÇ-004 (Faz 16) · BORÇ-003, BORÇ-005 (Faz 5) · **BORÇ-007 (Faz 12, master salt-okunurluk ikinci hattı)** · BORÇ-006 (Faz 50) |
-| **SAPMA sayısı** | **26** (SAPMA-001…026) — **3.6 YENİ SAPMA AÇMADI.** `club_kits.asset_id` kararı SAPMA-026'nın **üçüncü** uygulaması; kütüğe ek satır olarak yazıldı. **3.2b, 3.3, 3.5 ve 3.6 yeni sapma açmadı.** |
-| **Faz 3 kabul kriterleri** | **1 ✅ (3.2b, 3.4/3.5/3.6'da GENİŞLETİLDİ)** · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **1/5**. Kriter 1 bugün: on bir tablolu zincirde **1.619 olgu, fark yok**. ℹ️ Kriter 3'ün zemini tamamlandı (**on iki FK**, hepsinin `ON DELETE` davranışı tam envanter olarak test edilmiş) ama kriter **kapanmadı**: ROADMAP 3.9 ayrıca *"`information_schema`'dan programatik doğrulanır"* diyor |
-| **Şema durumu** | 🎉 **11 / 11 master tablo YAZILDI.** `countries` · `federations` · `competitions` · `clubs` · `club_facilities` · `club_finances_base` · `stadiums` · `rivalries` · **`kit_templates` · `club_kits` · `referees`**. Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` · `0002_club_core` · `0003_visual_assets_referees` (**dördünün de elle yazılmış `down`u var**). Kalan üç ileri FK Faz 4'te: `federations.president_person_id` · `clubs.chairman_person_id` · `referees.person_id` |
-| **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, **panodan yeniden ölçülmedi**. 3.0–3.6'da hiç olay gönderilmedi (Faz 3 tarayıcı kodu yazmadı). |
+| **Teknik borç sayısı** | **7** — BORÇ-001, 002, 004 (Faz 16) · BORÇ-003, 005 (Faz 5) · **BORÇ-007 (Faz 12)** · BORÇ-006 (Faz 50) |
+| **SAPMA sayısı** | **26** (SAPMA-001…026) — **3.7 YENİ SAPMA AÇMADI.** `IMMUTABLE` iddiası bir sapma değil, ölçülmüş bir kural (§3.1.2 ⑨); G-11'in daralması bir **karar değişikliği** ve gerekçesi `rivalries.ts` başlığında |
+| **Faz 3 kabul kriterleri** | **1 ✅ (3.2b, 3.4–3.7'de genişletildi)** · 2 ⏳ (3.8) · 3 ⏳ (3.9) · 4 ⏳ (3.9) · 5 ⏳ (3.10) — **1/5**. Kriter 1 bugün: **1.627 olgu, fark yok**. ℹ️ Kriter 4'ün (`EXPLAIN` < 20 ms) zemini kuruldu ama kriter **kapanmadı**: bugün ölçülen şey *"plan indeksi seçiyor mu"*, **süre değil** |
+| **Şema durumu** | **11 / 11 master tablo** + **4 indeks**. Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` · `0002_club_core` · `0003_visual_assets_referees` · **`0004_search_indexes`** (**beşinin de elle yazılmış `down`u var**). Veritabanı nesneleri: 2 uzantı + 1 fonksiyon (`immutable_unaccent`) |
+| **Sentry kotası** | **3 / 5.000 olay** (%0,06). ⚠️ Kütükten geliyor, panodan yeniden ölçülmedi. Faz 3 tarayıcı kodu yazmadı. |
 
 ---
 
@@ -76,14 +76,13 @@ zamanlayıcısında bekleyen iş `window` yokken çalışıyor.
 - **Yerelde beş koşuda hiç tekrar üretilemedi** — yani yerel yeşil bir kanıt değil.
 - Düzeltme **yerelde kanıtlanamadı**; ölçüm aracı CI oldu (`33028319414` yeşil).
 - **Tek yeşil koşu bir yarışın kesin yokluğunu kanıtlamaz.**
-- Sayaç: **YEDİ ardışık yeşil amd64 koşusu** (`33028319414` · `33028466409` ·
+- Sayaç: **SEKİZ ardışık yeşil amd64 koşusu** (`33028319414` · `33028466409` ·
   `33064847673` · `33065051088` · `33071099131` · `33071299875` ·
-  **`33100256651`**). Her yeni gözlem iddiayı **güçlendirir, kanıtlamaz** —
-  yedi gözlem de bir yokluk kanıtı değildir.
+  `33100256651` · **`33127803143`**). Her yeni gözlem iddiayı **güçlendirir,
+  kanıtlamaz** — sekiz gözlem de bir yokluk kanıtı değildir.
   **Kırmızı görülürse blok yeniden açılır.**
 - ✅ **Sayım yöntemi 3.6'da uygulandı:** sayı elle artırılmadı, dal üzerindeki
-  **tam koşul listesi** çekilip başarısız koşular sayıldı — `gh run list --limit
-  40` → toplam **2 kırmızı**, ikisi de düzeltmeden ÖNCE (`33001368015` 3.2a CI
+  **tam koşul listesi** çekilip başarısız koşular sayıldı — `gh run list --limit 40` → toplam **2 kırmızı**, ikisi de düzeltmeden ÖNCE (`33001368015` 3.2a CI
   hazırlık adımı · `33027936236` 3.3 yarışı). `1c93890`'dan sonra kırmızı yok.
 - ⚠️ **SAYAÇ DÜZELTMESİ (3.5'te bulundu).** Blok "dört" diyordu ve dört koşu
   numarası sayıyordu; `gh run list` ile tam liste çıkarıldığında **iki eksik**
@@ -94,7 +93,7 @@ zamanlayıcısında bekleyen iş `window` yokken çalışıyor.
   üzerindeki **tam koşu listesi** çıkarılarak sayılır — bir commit'in kendi
   koşusunu saymayı unutmak sessizdir. Kırmızı `33027936236`'dan sonra hiç
   kırmızı yok, bu da tam listeden doğrulandı.
-- ⚠️ **3.6 riski BÜYÜTMEDİ ama azaltmadı da:** 3.4 ve 3.5 gibi bu alt görev de
+- ⚠️ **3.7 riski BÜYÜTMEDİ ama azaltmadı da:** 3.4/3.5/3.6 gibi bu alt görev de
   `apps/web`e hiç dokunmadı, yani `main.test.tsx` ve `main.tsx` bayt bayt aynı.
   Yeni koşulardaki yeşil, kod değişmediği için yalnızca aynı deneyin tekrarıdır.
   ⚠️ **Faz 6 bu riski gerçekten sınayacak** — yüzlerce bileşen testi geliyor ve
@@ -224,95 +223,89 @@ yeniden üretir.
 
 ---
 
-### 🎯 SIRADAKİ ALT GÖREV — 3.7 (İndeksler + `pg_trgm`)
+### 🎯 SIRADAKİ ALT GÖREV — 3.8 (Seed betiği)
 
-**Ne yapılacak:** `CREATE EXTENSION` migration'ı, temel indeksler ve Türkçe
-arama indeksi. **Şema yazma bitti (11/11);** buradan sonrası performans ve veri.
+**Ne yapılacak:** `tools/data-cli/seed.ts` — 6 ülke + 6 lig + 5 kupa,
+**deterministik** (K2) ve **idempotent** (iki kez koşulur).
+Bu, Faz 3'ün **2. kabul kriteri**.
 
-**⚠️ 3.1'DE ÖLÇÜLMÜŞ BİR KISIT VAR VE BU ALT GÖREVİN ÇEKİRDEĞİ.**
-Düz `pg_trgm` Türkçe aramayı **sağlamıyor** — gerçek PG'de ölçüldü:
+**⚠️ İLK KEZ `packages/db` DIŞINA ÇIKILIYOR.** `tools/data-cli` katman
+tablosunda `packages/shared` + `packages/db` görebiliyor, **motoru göremiyor**
+(`CLAUDE.md` §2.4, `arch:check` ① denetliyor).
 
-| Ölçüm | Sonuç |
-|---|---|
-| `similarity('Beşiktaş','besiktas')` | **0,286** (varsayılan eşik 0,3) |
-| `'Beşiktaş' % 'besiktas'` | **`f`** |
-| Sebep (`show_trgm`) | Türkçe harf içeren trigramlar **hash'leniyor** (`0xc41c44`…), ASCII sorguyla kesişmiyor |
-| `similarity(unaccent(…), unaccent(…))` | **1,0** ✅ |
-| ⚠️ `unaccent` indekste | **KULLANILAMIYOR** — `STABLE`, `IMMUTABLE` değil (`ERROR: functions in index expression must be marked IMMUTABLE`) |
+#### 3.8'de dikkat edilecek YEDİ nokta
 
-Yani **`IMMUTABLE` bir sarmalayıcı şart**. Bu aynı zamanda **Faz 8'in kabul
-kriterinin** dayanağı (*"kulüp arama `besiktas` → `Beşiktaş`"*) — ROADMAP Faz 8
-maddesinde ölçümüyle yazılı.
+**① SEED MASTER'A YAZIYOR — ve bu K4'ün AÇIK bir istisnası.**
+`spec/01` §3.4.1'in *"Ne korunuyor, ne korunmuyor"* tablosu bunu adıyla sayıyor:
+*"Seed / veri aracı (`tools/data-cli`, Faz 3.8) — **AÇIK** — master veriyi
+dolduran hat."* Yani `db.writable` **kullanılamaz** (master tablo verilirse
+parametre `never`); seed ya `SqlExecutor` üzerinden ham SQL yazar ya da kendi
+istemcisini kurar. **Hangisi olduğunu kararlaştır ve gerekçesini yaz** — bu
+karar K4'ün sınırını tanımlıyor.
 
-**ROADMAP'in istediği indeksler:** `clubs(competition_id)` ·
-`competitions(country_id)` · arama için `pg_trgm` GIN.
+**② İDEMPOTENT — ama HANGİ anahtara göre?**
+Her tablonun `key`i **tablo başına UNIQUE** (§3.1.0). `ON CONFLICT (key) DO
+NOTHING` mi, `DO UPDATE` mi? İkisi farklı sözleşme: `DO NOTHING` elle yapılmış
+düzeltmeleri korur, `DO UPDATE` seed'i doğruluk kaynağı yapar.
+⚠️ **Testi negatif olmalı:** iki kez koş, satır sayısı **değişmemeli** — ve
+kasıtlı olarak bozulmuş bir satırın ne olduğu (korunuyor mu, düzeltiliyor mu)
+**iddia edilmeli**. "İkinci koşu patlamadı" idempotentlik kanıtı **değildir**.
 
-#### 3.7'de dikkat edilecek ALTI nokta
+**③ DETERMİNİSTİK (K2) — `Math.random()` YASAK.**
+`crest_seed` gibi alanlar tohum istiyor. `SeededRng` `packages/engine`de ve
+`tools/data-cli` **motoru import EDEMEZ** (katman tablosu). Seçenekler: tohumu
+veriden türet (`key`in hash'i) · `SeededRng`i `packages/shared`a taşı (mimari
+değişiklik, K12) · sabit değerler yaz. **Kararını gerekçesiyle ver.**
+⚠️ Determinizm testi: iki koşu **aynı** değerleri üretmeli, ölç.
 
-**① `CREATE EXTENSION` ve `down` — yeni bir sınıf.**
-Şimdiye kadar `down`lar tablo/sütun düşürdü. Bir uzantıyı `DROP EXTENSION` ile
-geri almak **veritabanı genelinde** etki eder: aynı veritabanında başka bir şema
-o uzantıyı kullanıyorsa gider. Kararı ver ve gerekçesini yaz —
-`CREATE EXTENSION IF NOT EXISTS` + `down`da **düşürmemek** savunulabilir bir
-seçenek, ama o zaman round-trip karşılaştırması ne diyor, ÖLÇ.
+**④ HANGİ VERİ? — kriter net, kaynak değil.**
+Kriter *"6 ülke + 6 lig + 5 UEFA/yerel kupa"*. ROADMAP Faz 8 ülkeleri sayıyor:
+İngiltere, İspanya, Almanya, İtalya, Fransa, Türkiye. Ligler: Premier League,
+LaLiga, Bundesliga, Serie A, Ligue 1, Süper Lig.
+⚠️ **Kulüp/stadyum/hakem seed'i kriterde YOK** — K12: yazma. `clubs` boş
+kalacak ve bu **beklenen**; `clubs_name_trgm_idx` de boş bir tabloyu
+indeksleyecek (3.9'un `EXPLAIN` ölçümü bunu bilmeli).
+⚠️ `competitions.rules` bir `jsonb` ve `competitionRulesSchema` ile **Zod'dan
+geçmek zorunda** (`competitions.ts` başlığı: *"yazan her yol
+`parse()`ten geçer"*).
 
-**② `IMMUTABLE` SARMALAYICI BİR FONKSİYONDUR — ve `down`u da vardır.**
-`CREATE FUNCTION` + `DROP FUNCTION`. Fonksiyonun gövdesi `unaccent`i çağırıyor
-ve `IMMUTABLE` işaretlemek bir **iddiadır**: `unaccent` sözlük değişirse sonuç
-değişir. Bu bilinen bir PostgreSQL kabulü ama **yazılı** olmalı, çünkü indeks
-bozulursa sebebi burasıdır.
+**⑤ `country_id` / `competition_id` ÇÖZÜMLEMESİ.**
+Seed FK'ları anahtarla çözmek zorunda (kimlikler `serial`). `fixtures.ts`in
+`idOf()` deseni aynı işi yapıyor ama o **test** kodu — `tools/`a kopyalanmaz,
+gerekiyorsa ortak bir yere taşınır. Kopyalama 3.4'ün 14 test kıran hatasıydı.
 
-**③ İNDEKSLER `information_schema`'DA DEĞİL, `pg_indexes`'TE.**
-`introspect.ts` indeksleri zaten okuyor (3.2b'de yazıldı, `IndexFacts`).
-Round-trip karşılaştırması indeks adlarını ve tanımlarını **görüyor** —
-yani yeni indeksler `comparedFacts`i artıracak. Sınırı yine **ÖLÇ**, tahmin etme.
+**⑥ KAPSAM — `tools/` EŞİĞE GİRMİYOR.**
+`spec/09` §11.4: *"`coverage.include` yalnızca `*/src/**` desenini alır;
+geliştirme araçları test edilir ama ürün kodu sayılmaz."* Yani `seed.ts`
+kapsamı **düşürmez** ve yükseltmez. Bugün %85,09; 3.8 sonrası **aynı kalmalı**.
+Değişirse sebebini bul.
 
-**④ `EXPLAIN ANALYZE` 3.9'UN İŞİ, 3.7'NİN DEĞİL.**
-3.7 indeksi **kurar**; *"< 20 ms"* iddiası 3.9'da seed verisiyle ölçülür (kabul
-kriteri 4). Bugün bir performans iddiası yazma — ölçülecek veri yok (K12).
-⚠️ Ama 3.1'de ölçülmüş bir şey var: `COLLATE`'li indeks `Index Only Scan`
-veriyor. Bu bir zemin, kriter değil.
+**⑦ MUTASYON SERİSİ — ALTINCI ÖLÇÜM.**
+%6,3 → %10,0 → %14,3 → %15,5 → %15,1. `spec/09` §11.5'in okuma kuralı: **orana
+ve paya birlikte** bakılır. Seed testleri `compareSchemas`ı çağırmayacağı için
+oran yine seyrelebilir — alarm veren şey **payın sabit kalması** olur.
 
-**⑤ MUTASYON SERİSİ DEVAM EDER.**
-%6,3 → %10,0 → %14,3 → **%15,5** (`spec/09` §11.5, tablo hâlinde).
-İndeksler yeni bir bozulma sınıfı getiriyor: **bir indeksin düşürülmesi
-sessizdir** — sorgu yine doğru cevap verir, yalnızca yavaşlar. Karşılaştırma bunu
-yakalıyor mu? `DROP INDEX` mutasyonuyla ÖLÇ ve seriyi güncelle.
+**KAPSAM SINIRI.** `EXPLAIN ANALYZE` < 20 ms + FK envanterinin programatik
+doğrulaması → **3.9**. ER diyagramı + faz kaydı + PR → **3.10**.
+Kulüp/oyuncu verisi → Faz 8–9. `WorldView` → Faz 12.
 
-**⑥ `rivalries` TEKLİK KISITI — İSTENİRSE BURADA BEDELSİZ.**
-3.5'te Faz 11'e bırakıldı (G-11) ve gerekçe hâlâ geçerli. **Ama** `UNIQUE` zaten
-bir indeks yaratıyor ve 3.7 zaten bir migration açıyor — fikir değişirse ek
-maliyet **yok**. Kullanıcı istemedikçe **yapma** (K12); kayıt
-`docs/SPEC-COVERAGE-GAPS.md` G-11'de.
+#### Faz 3'ün geri kalanı ve kriter eşlemesi
 
-**⚠️ KAPSAM EŞİĞİ — MARJ DARALIYOR.**
-Kapsam **%85,12 satır / %75,44 fonksiyon**, eşik **%70**. Üç fazda 89,11 →
-87,73 → 86,31 → 85,12 indi ve sebebi her seferinde aynı: şema dosyaları %0.
-3.7 yeni şema dosyası **getirmiyor**, yani düşüş durmalı. Eşiğin altına inerse
-DUR ve bildir — **düşürme, dosya dışlama, import-testi yazma** (ROADMAP Faz 3
-bunu adıyla anıyor).
-
-**KAPSAM SINIRI.** Seed → 3.8. `EXPLAIN ANALYZE` + FK envanterinin programatik
-doğrulaması → 3.9. ER diyagramı + faz kaydı + PR → 3.10.
-`WorldView`/`WorldMutation` → Faz 12.
-
-#### Faz 3'ün geri kalanı
-
-| Alt görev | Ne | Kabul kriteri bağlantısı |
+| Alt görev | Ne | Kabul kriteri |
 |---|---|---|
-| 3.7 | İndeksler + `pg_trgm` + `IMMUTABLE` sarmalayıcı | — (Faz 8'in zemini) |
-| 3.8 | Seed: 6 ülke + 6 lig + 5 kupa, **deterministik** (K2) ve **idempotent** | **Kriter 2** |
+| 3.8 | Seed — 6 ülke + 6 lig + 5 kupa, deterministik + idempotent | **Kriter 2** |
 | 3.9 | `EXPLAIN ANALYZE` < 20 ms + FK/`ON DELETE` envanterinin **programatik** doğrulaması | **Kriter 3 ve 4** |
 | 3.10 | ER diyagramı + `docs/schema/world.md` + faz kaydı + PR | **Kriter 5** |
 
-ℹ️ **Kriter 3'ün zemini bugün kuruldu ama kriter KAPANMADI:** on iki FK'nın tam
-envanteri entegrasyon testinde adıyla iddia ediliyor, ama ROADMAP 3.9'un
-*"`information_schema`'dan **programatik** doğrulanır (gözle sayılmaz)"*
-şartı ayrı bir iştir ve orada koşacak.
+ℹ️ **Kriter 3'ün zemini hazır:** on iki FK'nın tam envanteri (ad → `ON DELETE`)
+`schema-constraints.itest.ts`te iddia ediliyor. 3.9 bunu **programatik
+doğrulama** hâline getirecek (ROADMAP: *"gözle sayılmaz"*).
+ℹ️ **Kriter 4 için indeksler hazır** ama `clubs` seed'de doldurulmuyor — 3.9
+hangi sorguyu hangi veriyle ölçeceğine karar vermek zorunda.
 
 ---
 
-### 🧾 ŞEMA KARARLARI (3.4 · 3.5 · 3.6) — 3.7+ ve FAZ 4 bunlara UYAR
+### 🧾 ŞEMA VE İNDEKS KARARLARI (3.4 → 3.7) — 3.8+ ve FAZ 4 bunlara UYAR
 
 | Karar | Geldiği | Nerede yazılı |
 |---|---|---|
@@ -336,10 +329,15 @@ envanteri entegrasyon testinde adıyla iddia ediliyor, ama ROADMAP 3.9'un
 | **Sözlük tabloları → RESTRICT** (`kit_templates`; Faz 4'ün `injury_types`/`staff_roles`'ü aynı sınıf) | **3.6** | `spec/01` §3.1.2 **⑧** |
 | **Sayısal ama KAPALI küme → CHECK** (`color_slots`); ayraç *"sözleşme mi kalibrasyon mu"*, *"dize mi sayı mı"* değil | **3.6** | `spec/01` §3.1.2 ② 4. satır |
 | **`kit_templates.code` UNIQUE** — `key`in rolünü görüyor (§3.1.0'ın kendi notu) | **3.6** | `src/schema/kit-templates.ts` |
+| **`rivalries` çift tekliği KONDU** — `(least,greatest)` ifade indeksi; 3.5'in **iki gerekçesi de düştü**, kalan tek delik `(A,A)` → Faz 11 | **3.7** | `src/schema/rivalries.ts` · G-11 (daraldı) |
+| **`IMMUTABLE` sarmalayıcı** — `unaccent` `STABLE`, iki aşırı yükleme de; iddia **kabul edildi ve izleniyor** (sözlük nöbetçisi testi) | **3.7** | `spec/01` §3.1.2 ⑨ · `src/schema/search.ts` |
+| **İndeks ifadesi TEK YERDE üretilir** — indeks ve sorgu ayrışırsa cevap doğru kalır, plan çöker, hiçbir kapı ötmez | **3.7** | `src/schema/search.ts` + `search.test.ts` |
+| **Uzantı `down`u CASCADE'siz** — PG bağımlı indeks varken `DROP EXTENSION`'ı reddediyor, fazla gitme yapısal olarak imkânsız | **3.7** | `spec/01` §3.1.2 ⑩ |
+| **`COLLATE`'li indeks YAPILMADI** — ROADMAP 3.7 saymıyor, tüketicisi Faz 32 ve doğru indeks o sorgunun şekline bağlı | **3.7** | ROADMAP 3.7 · 3.0'ın ölçümü kayıtlı |
 
 ---
 
-### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 → 3.6)
+### 📌 FAZ 3'ÜN KESİNLEŞMİŞ ZEMİNİ (3.0 → 3.7)
 
 **✅ TABLO ENVANTERİ KAPANDI: 11 / 11 yazıldı.** Sayı 3.1'de mutabakata
 bağlanmıştı (SAPMA-021: ROADMAP 15, `spec/01` 11, Faz 2 kaydı 16 diyordu) ve
@@ -347,21 +345,21 @@ bağlanmıştı (SAPMA-021: ROADMAP 15, `spec/01` 11, Faz 2 kaydı 16 diyordu) v
 sayılmıyor. Karar tablosu `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*. Özet
 `docs/schema/world.md`. Sütun sözleşmesi `docs/spec/01-database.md` **§3.1.0** ve
 **§3.1.1**. Migration disiplini **§3.0**.
-**Şema yazım kuralları §3.1.2 — artık SEKİZ kural** (①–⑤ 3.4, ⑥–⑦ 3.5, ⑧ 3.6):
+**Şema yazım kuralları §3.1.2 — artık ON kural** (①–⑤ 3.4, ⑥–⑦ 3.5, ⑧ 3.6, ⑨–⑩ 3.7):
 `check()` desteği · CHECK'in nereye konacağı (**②'nin dördüncü satırı 3.6'da
 eklendi**) · `ON DELETE` kuralı · sütun sırası · `attnum` deliği ·
 **`bigint` modu** · **elle `down`un düşürme sırası** · **sözlük tabloları →
-RESTRICT**.
+RESTRICT** · **`IMMUTABLE` iddiası ve nöbetçisi** · **uzantı `down`u**.
 ⚠️ **Bu bölüm bundan sonra FAZ 4'ün kaynağıdır** — Faz 3'ün şema işi bitti.
 
-**✅ Kabul kriteri 1 KAPANDI (3.2b), 3.4/3.5/3.6'da GENİŞLETİLDİ.** 3.2b:
+**✅ Kabul kriteri 1 KAPANDI (3.2b), 3.4–3.7'de GENİŞLETİLDİ.** 3.2b:
 `countries` tek başına **89 olgu**. 3.4: üç tabloda **466**. 3.5: sekiz tabloda
-**1.223**. 3.6: on bir tablolu gerçek zincirde **1.619 olgu, fark yok**; çok
-adımlı fixture zincirinde **48 olgu, fark yok**. Üç yerde birden koştu:
-`pnpm test:db` · CI `Entegrasyon` işi (amd64+arm64) · derlenmiş çıktı düz `node`
-ile (D5).
+**1.223**. 3.6: on bir tabloda **1.619**. 3.7: dört indeksle **1.627 olgu, fark
+yok**; çok adımlı fixture zincirinde **48 olgu, fark yok**. Üç yerde birden
+koştu: `pnpm test:db` · CI `Entegrasyon` işi (amd64+arm64) · derlenmiş çıktı düz
+`node` ile (D5).
 ⚠️ **İKİ ÇEVRİM SINIFI VE İKİSİ DE AYRI TESTTE:** yalnızca `CREATE TABLE` içeren
-bir migration'ın (`0002`, `0003`) tek başına çevriminde `identical: true`
+bir migration'ın (`0002`, `0003`, `0004`) tek başına çevriminde `identical: true`
 **beklenir**; `ALTER` içeren bir migration'ın (`0001`) çevriminde
 **beklenmez** (`attnum` deliği, §3.1.2 ⑤) ve farkların **tam listesi** iddia
 edilir. Birleştirilselerdi yeni bir migration'ın fazla giden `down`u eskinin
@@ -385,11 +383,12 @@ iddia ediliyor. İkisi farklı yollar ve **ikisi de gerekli** — tam zincir,
 **Sonraki alt görevleri bağlayan ölçülmüş kısıtlar:**
 
 - **ŞEMA YAZIM KURALLARI → `docs/spec/01-database.md` §3.1.2** (3.4'te beş,
-  3.5'te yedi, 3.6'da **sekiz**). Burada **tekrarlanmıyor**: iki kopya kaçınılmaz
+  3.5'te yedi, 3.6'da sekiz, 3.7'de **on**). Burada **tekrarlanmıyor**: iki kopya kaçınılmaz
   olarak ayrışır ve hangisinin güncel olduğu bilinmez. **Faz 4 oradan okur.**
   Özet başlıkları: `check()` desteği · CHECK nereye konur · `ON DELETE` kuralı ·
   sütun sırası · `attnum` deliği · **`bigint` modu** ·
-  **elle `down`un düşürme sırası** · **sözlük tabloları → RESTRICT**.
+  **elle `down`un düşürme sırası** · **sözlük tabloları → RESTRICT** ·
+  **`IMMUTABLE` iddiası** · **uzantı `down`u**.
 - **K4 (3.3'te kuruldu, 3.4'ten itibaren ZORUNLU biçim):** master tablo
   `masterTable(...)` ile sarılır; save katmanı tablosu `arch:save-scoped` ile
   **açıkça** muaf tutulur. `arch:check` ⑨ denetliyor. Sözleşme
@@ -919,6 +918,8 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | #   | Alt görev | Hata (belirti)                                                                                                                                                                                                | Kök neden                                                                                                                                                                            | Çözüm                                                                                                                                                    | Tekrar önleme                                                                                                                                                        |
 | --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 38  | 3.7 | Mutasyon: `searchNormalizedSql`in `lower`/`unaccent` **sırası** değiştirildi. *"Arama `besiktas` → `Beşiktaş` buluyor"* testi **GEÇMEYE DEVAM ETTİ** | Sıra değişince sorgu ifadesi indeks ifadesinden ayrışıyor ama sonuç **doğru kalıyor** — PostgreSQL yalnızca ardışık taramaya düşüyor. Yani doğruluk testi bu bozulmayı **göremiyor** | Nöbetçi ayrı: `EXPLAIN` planını iddia eden test kırıldı (1 entegrasyon + 2 birim). İfade tek yerde üretiliyor (`search.ts`) ve birim testi onu **sabitliyor** | **D3'ün en saf hâli:** bir kapı yeşil, cevap doğru, performans çökmüş. *"Doğru sonuç"* testi bir indeks için **hiçbir şey kanıtlamaz** — indeksin kanıtı yalnızca **plandır**. Kural `spec/01` §3.1.2 ⑨'a yazıldı |
+| 37  | 3.7 | Kendi yazdığım `sed`, `rivalries.clubAId`/`clubBId`'den **`.notNull()`'ı sildi** — `pnpm typecheck` **exit 0** verdi | Girinti düzeltmek için yazılan `/^      \\.notNull\(\)$/gm` deseni tek başına duran satırları da eşledi. `.notNull()` **opsiyonel** bir zincir çağrısı olduğu için tip sistemi eksikliği göremez | Elle geri yazıldı; **kanıt üretilen SQL'den** okundu (`0004`te beklenmedik `ALTER` yok). Sonraki düzenlemeler `sed` yerine `Edit` ile yapıldı | **D2'nin yeni biçimi: ölçüm aracı değil, DÜZENLEME aracı bozdu.** Ve tip sistemi sessiz kaldı çünkü kaybolan şey bir **kısıt**, bir tip hatası değil. **Kural:** şema dosyasında toplu metin değişimi yapılmaz; yapıldıysa doğrulama `typecheck` değil **üretilen migration SQL'i** olmalı |
 | 36  | 3.6 | `pnpm test:db` `runner.itest.ts`te kırıldı — kayıp kalemleri **sekiz** tablo bekliyordu | 0003 üç tablo daha ekledi; iddia `tags.length`ten besleniyor ama **beklenen liste** elle yazılı ve güncellenmemişti. **Günlük #30'un birebir tekrarı — ve bu iyi haber** | Liste on bir tabloya çıkarıldı, yanına *"bu liste her yeni migration'da güncellenir ve kırılması istenen davranıştır"* notu yazıldı | **Aynı hatanın iki kez tekrarlanması, burada bir kusur değil bir ÖZELLİK:** kırılma her seferinde doğru yerden geliyor ve ne yapılacağını söylüyor. Kapatılması gereken bir delik değil, **çalışan bir nöbetçi**. Not düşülmesinin sebebi 3.7'nin bunu bir regresyon sanmaması |
 | 35  | 3.6 | `drizzle-kit generate` bu kez **sorunsuz** koştu — 3.5'in tuzağı tekrarlamadı | Tuzak değil, **düzeltmenin doğrulanması**: 3.5'te extglob deseni (`!(*.test\|*.test-d)`) yazılmıştı ve `src/schema/`e üç yeni dosya + hiç yeni test dosyası girmesine rağmen desen doğru davrandı | — (eylem gerekmedi) | **Bir düzeltmenin işe yaradığı, ancak onu tetikleyen koşul yeniden oluştuğunda görülür.** Günlüğe yazılmasının sebebi: 3.5'in kaydı *"kırıldı ve düzeltildi"* diyor; bu satır *"düzeltme bir sonraki gerçek kullanımda tuttu"* diyor. İkisi ayrı iddialar |
 | 34  | 3.5 | `round-trip` testinde `comparedFacts` alt sınırı **1.246** yazıldı, test **1.223** ölçtü ve kırıldı | Sınır ölçülmeden önce "makul" bir değerle dolduruldu — üç tablodan sekize çıkışın oranı **tahmin edildi** | Ölçülen değer yazıldı ve sabitin başlığına *"ilk yazılan 1.246 bir tahmindi ve test onu reddetti"* notu düşüldü | **D1'in ucuz biçimi:** burada tahmin bir **teste** yazıldığı için ölçüm onu anında reddetti. Aynı sayı bir rapora veya belgeye yazılsaydı hiçbir şey ötmezdi. **Kural:** ölçülecek bir sayı, mümkünse önce bir iddiaya konur — belgeye değil |

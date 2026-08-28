@@ -30,6 +30,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -105,6 +106,17 @@ export const competitions = masterTable(
         'competitions_type_check',
         sql`${table.type} IN (${sql.raw(COMPETITION_TYPES.map((type) => `'${type}'`).join(', '))})`,
       ),
+      /**
+       * FK sütunu — PostgreSQL onu otomatik indekslemiyor. Tüketicisi bugün var:
+       * `countries` üzerindeki `ON DELETE RESTRICT` denetimi her ülke silme
+       * girişiminde `competitions`ı tarıyor.
+       *
+       * ⚠️ **Bu tabloya trigram indeksi KONMADI ve sebebi bir boşluk:** görünen
+       * ad `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`).
+       * Onun üzerinde Türkçe arama anlamsız. ROADMAP Faz 17 global aramayı
+       * *"lig + turnuva"* için de istiyor → `docs/SPEC-COVERAGE-GAPS.md` **G-13**.
+       */
+      index('competitions_country_id_idx').on(table.countryId),
     ],
   ),
 );

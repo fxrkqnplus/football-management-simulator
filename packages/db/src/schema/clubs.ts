@@ -55,12 +55,23 @@
  * aralık kalibrasyondur ve Faz 23/Faz 30 denge ayarı onu değiştirebilir.
  * Aralık denetiminin yeri Faz 11.
  */
-import { boolean, char, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  char,
+  index,
+  integer,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 import { masterTable } from '../client/master.js';
 import { competitions } from './competitions.js';
 import { countries } from './countries.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { searchNormalizedSql } from './search.js';
 import { stadiums } from './stadiums.js';
 
 export const clubs = masterTable(
@@ -132,6 +143,25 @@ export const clubs = masterTable(
       createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },
-    (table) => [sourceCheck('clubs_source_check', table.source)],
+    (table) => [
+      sourceCheck('clubs_source_check', table.source),
+      /**
+       * ⚠️ PostgreSQL FK sütunlarını **otomatik indekslemiyor** — ve bu indeksin
+       * tüketicisi bugün de var: `competitions` üzerindeki `ON DELETE RESTRICT`
+       * denetimi her yarışma silme girişiminde `clubs`u tarıyor. İkinci tüketici
+       * *"bir ligin kulüplerini getir"* (Faz 16 fikstür, Faz 18 kadro).
+       */
+      index('clubs_competition_id_idx').on(table.competitionId),
+      /**
+       * TÜRKÇE ARAMA — `docs/ROADMAP.md` Faz 8 kabul kriteri
+       * (*"`besiktas` → `Beşiktaş`"*). İfade **`search.ts`ten** geliyor;
+       * sorgu tarafı birebir aynı ifadeyi kullanmak zorunda, yoksa planlayıcı
+       * indeksi seçmez ve kimse fark etmez (D3).
+       */
+      index('clubs_name_trgm_idx').using(
+        'gin',
+        sql.raw(`${searchNormalizedSql('"name"')} gin_trgm_ops`),
+      ),
+    ],
   ),
 );

@@ -97,12 +97,29 @@ sorusu her koşullu/çapraz kısıt için tekrarlandı.
 
 | #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
 | ---- | -------------- | ---------- | --------------------- | ----- |
-| G-11 | `spec/01` §3.1 — `rivalries.clubAId` · `clubBId` | 3.5'te teklik/kendine-referans koruması **bilerek konmadı**: kısmi bir `UNIQUE (a,b)` `(B,A)` ters çiftini sessizce geçirir (D3) ve tam koruma (`CHECK a < b` + `UNIQUE`) Faz 8 ingest'ine hiçbir spec'in istemediği bir **sıralama sözleşmesi** dayatır. Bugün üç hata biçimi denetimsiz: `(A,A)`, `(A,B)` tekrarı, `(B,A)` ters tekrarı. | **Faz 11** (`pnpm validate:world`) | ⏳ ROADMAP'e işlenmedi. ℹ️ **Fikir değişirse doğal yeri 3.7'dir ve BEDELSİZDİR:** `UNIQUE` zaten bir indeks yaratıyor, 3.7 (indeksler + `pg_trgm`) zaten bir migration açıyor — ayrı bir migration maliyeti yok. Karar `packages/db/src/schema/rivalries.ts` başlığında. |
+| G-11 | `spec/01` §3.1 — `rivalries.clubAId` · `clubBId` | 3.5'te teklik/kendine-referans koruması **bilerek konmadı**: kısmi bir `UNIQUE (a,b)` `(B,A)` ters çiftini sessizce geçirir (D3) ve tam koruma (`CHECK a < b` + `UNIQUE`) Faz 8 ingest'ine hiçbir spec'in istemediği bir **sıralama sözleşmesi** dayatır. Bugün üç hata biçimi denetimsiz: `(A,A)`, `(A,B)` tekrarı, `(B,A)` ters tekrarı. | **Faz 11** (`pnpm validate:world`) | ⚠️ **3.7'DE DARALDI — kapanmadı.** İki hata biçimi kapandı: `rivalries_pair_unique_idx` bir **`LEAST/GREATEST` ifade indeksi** ve `(A,B)` ile `(B,A)`'yı **aynı** anahtara indirgiyor. 3.5'in iki gerekçesi de düştü: koruma kısmi değil **tam**, ve ingest'e **hiçbir sıralama sözleşmesi** dayatmıyor — üçüncü bir yol vardı ve 3.5'te düşünülmemişti. **Kalan tek delik `(A,A)`:** bir ifade indeksi onu engelleyemez (tek satır olarak geçerli bir anahtar üretir), bir **değer** kuralıdır → Faz 11. Kalan delik `schema-constraints.itest.ts`te **koşan bir testle** görünür tutuluyor. |
 | G-12 | `spec/01` §3.1 — `club_kits.color3` ↔ `kit_templates.colorSlots` | 3.6'da `color3` **nullable** yazıldı: iki yuvalı bir şablonda üçüncü renk yoktur. Ama *"`colorSlots = 3` ise `color3` dolu olmalı, `= 2` ise boş olmalı"* bir **çapraz tablo** kuralıdır ve sütun kısıtıyla ifade edilemez. Bugün hiçbir şey denetlemiyor. | **Faz 11** — G-10 ile aynı sınıf (koşullu kural → doğrulayıcı) | ⏳ ROADMAP'e işlenmedi. Karar `packages/db/src/schema/club-kits.ts` sütun yorumunda. |
 
 > **G-10, G-11 ve G-12 aynı sınıf ve bu bir desendir:** üçü de *"şema bu kuralı
 > ifade edemez"* dediği için Faz 11'e düşüyor. Faz 11 açılışında bu üçü **birlikte**
 > okunmalı — tek tek karşılaşılırsa her biri ayrı bir sürpriz gibi görünür.
+>
+> ⚠️ **3.7'nin dersi bu desene bir uyarı ekliyor:** G-11 *"şema bunu ifade edemez"*
+> diye sınıflandırılmıştı ve **yanlıştı** — ifade edebiliyordu, yalnızca yol
+> (ifade indeksi) o gün düşünülmemişti. Faz 11'e devredilen her satır için soru
+> yeniden sorulmalı: *"gerçekten ifade edilemiyor mu, yoksa bir yol mu
+> kaçırdık?"*
+
+---
+
+## Tarama 6 — Faz 3.7 (2026-08-28)
+
+Yöntem: indeksler kurulurken *"hangi sorgu bunu kullanacak"* sorusu ROADMAP'in
+arama isteyen fazlarına karşı tek tek soruldu.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-13 | `docs/ROADMAP.md` Faz 17 — *"Global arama (`/`): oyuncu + kulüp + personel + **lig + turnuva** — tek kutu, Türkçe karakter toleranslı (pg_trgm)"* | Beş varlık türünde trigram araması. **İkisi bugünkü şemayla yapılamaz:** `competitions`ın görünen adı `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`) — onun üzerinde trigram araması anlamsız. Aynı sorun `rivalries.nameKey`te de var. Yani arama, veritabanında **bulunmayan** bir metin üzerinde yapılmak zorunda. | **Faz 5** (i18n altyapısı) çeviri kaynağını belirler; **Faz 17** arama mekanizmasını seçer | ⏳ ROADMAP'e işlenmedi. 3.7 `competitions`a trigram indeksi **koymadı** — indekslenecek bir metin yok. Seçenekler Faz 17'ye bırakıldı (çeviriler üzerinde istemci tarafı arama · çevrilmiş adı taşıyan bir arama tablosu · `nameKey`i tamamlayan bir `displayName` sütunu). Karar `packages/db/src/schema/competitions.ts` yorumunda. |
 
 ---
 

@@ -122,9 +122,9 @@ tutarlı tercihi sezonu **skaler bir tamsayı** olarak taşımaktır:
 Puan durumu da saklanmıyor — `matches` satırlarından **türetiliyor**. Yeni bir
 tablo eklemeden önce bu deseni bozup bozmadığı sorulmalıdır.
 
-### 3.1.2 Şema yazım kuralları — 3.4'te ölçüldü, 3.5 ve 3.6'da genişledi
+### 3.1.2 Şema yazım kuralları — 3.4'te ölçüldü, 3.5–3.7'de genişledi
 
-> **①–⑤ 3.4'ün, ⑥–⑦ 3.5'in, ⑧ 3.6'nın ölçümü** (ayrıca ②'nin dördüncü satırı ve
+> **①–⑤ 3.4'ün, ⑥–⑦ 3.5'in, ⑧ 3.6'nın, ⑨–⑩ 3.7'nin ölçümü** (ayrıca ②'nin dördüncü satırı ve
 > ayraç netleştirmesi 3.6'da eklendi); hepsi gerçek PostgreSQL 18.6'ya karşı
 > alındı. Yazılmasalardı sonraki alt görevler aynı soruları yeniden sorup
 > muhtemelen farklı cevaplar verirdi — ve iki farklı cevap şemada **sessiz** bir
@@ -199,6 +199,43 @@ Faz 4'te gelecek `injury_types`, `staff_roles` aynı sınıf) davranış
 alınması gerekir. Ölçüldü (PG 18.6): kullanılan bir şablonun silinmesi
 `club_kits_template_id_kit_templates_id_fk` ile reddediliyor; kulüp silindiğinde
 formalar gidiyor ama **şablon kalıyor**.
+
+**⑨ İNDEKS İFADESİ `IMMUTABLE` İSTER — ve `unaccent` DEĞİL (Faz 3.7).**
+PostgreSQL indeks ifadesinde `IMMUTABLE` olmayan fonksiyon kabul etmiyor
+(`ERROR: functions in index expression must be marked IMMUTABLE`). Türkçe arama
+`unaccent` gerektiriyor ve o **`STABLE`**. Ölçüldü: **iki aşırı yükleme de**
+öyle — sözlüğü açıkça veren `unaccent(regdictionary, text)` biçimi de kurtarmıyor
+(`pg_proc.provolatile = 's'`, iki indeks denemesi de aynı hatayla kırıldı).
+
+Çözüm bir sarmalayıcıyı `IMMUTABLE` işaretlemek. **Bu bir iddiadır ve tam olarak
+doğru değildir:** `unaccent.rules` bir majör yükseltmede değişebilir ve indeks
+eski normalleştirmeyle kalır — arama **sessizce** yanlış sonuç verir, düzeltmesi
+`REINDEX`.
+
+**Kural:** doğru olmadığını bildiğin bir işaret koyuyorsan, o işaretin bedeli
+**gürültülüye çevrilir**. Burada bir entegrasyon testi sarmalayıcının çıktısını
+sabit bir Türkçe karakter kümesi için iddia ediyor; sözlük değişirse CI kırılır,
+yani hata dağıtımdan **önce** görülür. *Bir yalanı kabul etmek, onu izlemeyi
+kabul etmektir.*
+
+⚠️ **İkinci tuzak, aynı yerde:** indeks ifadesi ile sorgu ifadesi **birebir**
+aynı olmak zorunda. Ayrışırlarsa sorgu **doğru cevabı vermeye devam eder**,
+yalnızca ardışık taramaya düşer ve hiçbir kapı ötmez (D3). Bu yüzden ifade tek
+bir yerde üretilir (`packages/db/src/schema/search.ts`) ve hem indeks hem sorgu
+oradan okur. Mutasyonla ölçüldü: ifadedeki `lower()`/`unaccent` **sırası**
+değiştirildiğinde *"arama doğru sonucu buluyor"* testi **geçmeye devam etti**,
+yalnızca plan testi kırıldı.
+
+**⑩ UZANTI `down`U — PostgreSQL FAZLA GİTMEYİ KENDİSİ ENGELLİYOR (Faz 3.7).**
+`CREATE EXTENSION IF NOT EXISTS` idempotent (ölçüldü). `down` uzantıyı
+**düşürür** (§3.0: önceki duruma dönülür) ve `CASCADE` **kullanılmaz**. Ölçüldü:
+bağımlı bir indeks varken `DROP EXTENSION` (CASCADE'siz) **reddediliyor**
+(`cannot drop extension pg_trgm because other objects depend on it`).
+
+Bu, `DROP TABLE`tan **farklı ve daha güvenli** bir durum: 3.2b'nin *"fazla giden
+`down`"* sınıfı burada **yapısal olarak imkânsız** — sıra yanlışsa gürültülü
+patlar, sessizce fazla götürmez. `CASCADE` yazmak tam da bu korumayı kapatırdı.
+`down` sırası yine ⑦: indeksler → fonksiyon → uzantılar.
 
 **③ `ON DELETE` — uydu CASCADE, bağımsız varlık RESTRICT.**
 `spec/01` ve ROADMAP `ON DELETE` için hiçbir şey söylemiyordu (arandı, yok) ama

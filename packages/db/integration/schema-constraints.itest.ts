@@ -1135,3 +1135,82 @@ describe('FAZ 3 ŞEMA ENVANTERİ — 11/11, sayı ÖLÇÜLÜYOR', () => {
     expect(Number(rows[0]?.n)).toBe(1);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FAZ 3.7 — ÇİFT TEKLİĞİ (3.5'in kararı geri alındı, gerekçesi rivalries.ts'te)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('rivalries çift tekliği — SIRADAN BAĞIMSIZ', () => {
+  async function seedPair(prefix: string, code: string): Promise<void> {
+    await executor.run(countryInsertSql([{ key: `k-${prefix}`, code }]));
+    await executor.run(stadiumInsertSql([{ key: `s-${prefix}` }]));
+    await executor.run(
+      clubInsertSql([
+        { key: `${prefix}-a`, countryCode: code, stadiumKey: `s-${prefix}`, abbreviation: 'PA1' },
+        { key: `${prefix}-b`, countryCode: code, stadiumKey: `s-${prefix}`, abbreviation: 'PB1' },
+      ]),
+    );
+  }
+
+  it('aynı çift İKİNCİ kez yazılamıyor', async () => {
+    await seedPair('pair1', 'PR1');
+    await executor.run(rivalryInsertSql([{ clubAKey: 'pair1-a', clubBKey: 'pair1-b' }]));
+
+    await expect(
+      executor.run(rivalryInsertSql([{ clubAKey: 'pair1-a', clubBKey: 'pair1-b' }])),
+    ).rejects.toThrow(/rivalries_pair_unique_idx/);
+  });
+
+  /**
+   * ⚠️ ASIL İDDİA — 3.5'te bu vaka kısmi bir `UNIQUE (a,b)` ile SESSİZCE
+   * geçerdi (D3) ve karar tam da bu yüzden Faz 11'e bırakılmıştı.
+   * `LEAST/GREATEST` ifade indeksi onu kapatıyor.
+   */
+  it('TERS çift (B,A) da reddediliyor — kısmi UNIQUE bunu geçirirdi', async () => {
+    await seedPair('pair2', 'PR2');
+    await executor.run(rivalryInsertSql([{ clubAKey: 'pair2-a', clubBKey: 'pair2-b' }]));
+
+    await expect(
+      executor.run(rivalryInsertSql([{ clubAKey: 'pair2-b', clubBKey: 'pair2-a' }])),
+    ).rejects.toThrow(/rivalries_pair_unique_idx/);
+  });
+
+  it('KARŞI ÖRNEK: FARKLI çiftler yan yana durabiliyor', async () => {
+    await seedPair('pair3', 'PR3');
+    await executor.run(
+      clubInsertSql([
+        { key: 'pair3-c', countryCode: 'PR3', stadiumKey: 's-pair3', abbreviation: 'PC1' },
+      ]),
+    );
+    await executor.run(
+      rivalryInsertSql([
+        { clubAKey: 'pair3-a', clubBKey: 'pair3-b' },
+        { clubAKey: 'pair3-b', clubBKey: 'pair3-c' },
+      ]),
+    );
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "rivalries"
+       WHERE "club_a_id" IN (SELECT "id" FROM "clubs" WHERE "key" LIKE 'pair3-%')
+    `);
+    expect(Number(rows[0]?.n)).toBe(2);
+  });
+
+  /**
+   * ⚠️ NE KAPANMADI — G-11 daraldı, kapanmadı.
+   *
+   * `(A,A)` bir ifade indeksiyle engellenemez: tek satır olarak geçerli bir
+   * anahtar üretir. Bu test o deliği **görünür** tutuyor; yazılmasaydı indeksin
+   * varlığı "rekabetler korunuyor" izlenimi verirdi (D3).
+   */
+  it('KALAN DELİK: kendine-referans HÂLÂ kabul ediliyor → Faz 11 (G-11)', async () => {
+    await seedPair('pair4', 'PR4');
+    await executor.run(rivalryInsertSql([{ clubAKey: 'pair4-a', clubBKey: 'pair4-a' }]));
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "rivalries"
+       WHERE "club_a_id" = "club_b_id"
+    `);
+    expect(Number(rows[0]?.n)).toBe(1);
+  });
+});

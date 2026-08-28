@@ -32,49 +32,85 @@
  * adlarını `pg_constraint`ten okuyup iddia ettiği için sapma sessiz kalmazdı.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * ⚠️ TEKRAR VE KENDİNE-REFERANS KORUMASI BUGÜN YOK — bilinçli
+ * ⚠️ ÇİFT TEKLİĞİ 3.7'DE EKLENDİ — 3.5'in KARARI GERİ ALINDI, ve sebebi yazılı
  * ────────────────────────────────────────────────────────────────────────────
  *
- * Şema `(A,A)`yı, `(A,B)`nin tekrarını ve `(B,A)` ters çiftini **engellemiyor**.
- * Üçü de gerçek hata biçimleri ve üçü de Faz 11 doğrulayıcısının işi. İki
- * gerekçe:
+ * **3.5'te teklik kısıtı Faz 11'e bırakılmıştı** (G-11). Gerekçe iki bacaklıydı:
  *
- * ① **Kısmi bir koruma yanıltıcıdır.** Yalnızca `UNIQUE (club_a_id, club_b_id)`
+ * ① Kısmi bir koruma yanıltıcıdır — yalnızca `UNIQUE (club_a_id, club_b_id)`
  *    konsaydı `(1,2)` ikinci kez reddedilir ama `(2,1)` **sessizce** kabul
- *    edilirdi — *"bir kapının 'temiz' demesi baktığını göstermez"* (D3) sınıfının
- *    ta kendisi. Tam koruma `CHECK (club_a_id < club_b_id)` + `UNIQUE` çiftiyle
- *    mümkün, ama o da Faz 8 ingest'ine hiçbir spec'in istemediği bir sıralama
- *    sözleşmesi dayatırdı (K12).
- * ② **Sonradan eklemenin maliyeti sıfıra yakın:** `UNIQUE` zaten bir indeks
- *    yaratıyor ve 3.7 (indeksler + `pg_trgm`) bu fazın içinde. İstenirse orada
- *    tek migration'a biner.
+ *    edilirdi (D3).
+ * ② Tam koruma (`CHECK a < b` + `UNIQUE`) Faz 8 ingest'ine hiçbir spec'in
+ *    istemediği bir **sıralama sözleşmesi** dayatırdı (K12).
+ *
+ * **3.7'de iki bacak da düştü.** Bir **ifade indeksi** üçüncü bir yol açıyor:
+ *
+ * ```sql
+ * CREATE UNIQUE INDEX … ON rivalries (LEAST(club_a_id,club_b_id),
+ *                                     GREATEST(club_a_id,club_b_id));
+ * ```
+ *
+ * `(1,2)` ve `(2,1)` **aynı** anahtara indirgeniyor — koruma kısmi değil **tam**
+ * (①  düştü) — ve ingest çiftleri istediği sırada yazabiliyor, hiçbir sözleşme
+ * yok (② düştü). Yani karar kopyalanmadı: *"bir kararı kopyalamadan önce
+ * gerekçesinin hâlâ geçerli olduğunu sor"*.
+ *
+ * ⚠️ **KAPSAM — ne KAPANMADI:** `(A,A)` kendine-referansı bir ifade indeksiyle
+ * engellenemez (tek satır olarak geçerli bir anahtar üretir). O bir **değer**
+ * kuralı ve yeri Faz 11 doğrulayıcısı; **G-11 kapanmadı, daraldı**. Bunu yazmak
+ * zorunlu: yazılmasaydı indeksin varlığı *"rekabetler korunuyor"* izlenimi verir
+ * ve kalan delik görünmez olurdu (D3).
  */
-import { integer, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  integer,
+  pgTable,
+  serial,
+  smallint,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 import { masterTable } from '../client/master.js';
 import { clubs } from './clubs.js';
 
 export const rivalries = masterTable(
-  pgTable('rivalries', {
-    id: serial('id').primaryKey(),
-    clubAId: integer('club_a_id')
-      .notNull()
-      .references(() => clubs.id, { onDelete: 'cascade' }),
-    clubBId: integer('club_b_id')
-      .notNull()
-      .references(() => clubs.id, { onDelete: 'cascade' }),
-    /** 1-10 yoğunluk. Aralık denetimi Faz 11'de — CHECK değil (§3.1.2 ②). */
-    intensity: smallint('intensity').notNull(),
-    /**
-     * `null` = rekabetin özel bir adı yok.
-     *
-     * `spec/01`'de açıkça `nullable` ve `spec/12` §17.4 bunu doğruluyor:
-     * paketteki `rivals` girdisi yalnızca `key` + `intensity` taşıyor, ad
-     * taşımıyor. "Kıtalar Arası Derbi" gibi bir ad **arayüzde görünen metindir**,
-     * o yüzden i18n anahtarı (K5) — özel isim olan `clubs.name`in tersi.
-     */
-    nameKey: text('name_key'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  }),
+  pgTable(
+    'rivalries',
+    {
+      id: serial('id').primaryKey(),
+      clubAId: integer('club_a_id')
+        .notNull()
+        .references(() => clubs.id, { onDelete: 'cascade' }),
+      clubBId: integer('club_b_id')
+        .notNull()
+        .references(() => clubs.id, { onDelete: 'cascade' }),
+      /** 1-10 yoğunluk. Aralık denetimi Faz 11'de — CHECK değil (§3.1.2 ②). */
+      intensity: smallint('intensity').notNull(),
+      /**
+       * `null` = rekabetin özel bir adı yok.
+       *
+       * `spec/01`'de açıkça `nullable` ve `spec/12` §17.4 bunu doğruluyor:
+       * paketteki `rivals` girdisi yalnızca `key` + `intensity` taşıyor, ad
+       * taşımıyor. "Kıtalar Arası Derbi" gibi bir ad **arayüzde görünen metindir**,
+       * o yüzden i18n anahtarı (K5) — özel isim olan `clubs.name`in tersi.
+       */
+      nameKey: text('name_key'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+      /**
+       * ÇİFT TEKLİĞİ — sıradan bağımsız (dosya başlığındaki gerekçe).
+       *
+       * `LEAST`/`GREATEST` ikisi de `IMMUTABLE`, o yüzden ifade indeksinde
+       * kullanılabiliyor — `unaccent`in aksine (bkz. `search.ts`).
+       */
+      uniqueIndex('rivalries_pair_unique_idx').on(
+        sql`least(${table.clubAId}, ${table.clubBId})`,
+        sql`greatest(${table.clubAId}, ${table.clubBId})`,
+      ),
+    ],
+  ),
 );

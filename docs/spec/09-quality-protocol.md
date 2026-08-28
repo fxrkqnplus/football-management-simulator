@@ -479,9 +479,10 @@ görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; dört rakam bir eğil
 | **3.4** | 3 tablo | **5 / 50** | %10,0 |
 | **3.5** | 8 tablo | **11 / 77** | %14,3 |
 | **3.6** | 11 tablo | **16 / 103** | %15,5 |
+| **3.7** | 11 tablo + 4 indeks | **19 / 126** | **%15,1** ⬇ |
 
-**Ne söylüyor:** test tabanı 16'dan 103'e çıkarken kör bir kontrolün yakalandığı
-yer oranı **%6'dan %15,5'e** çıktı. Yani testler yalnızca **çoğalmadı**,
+**Ne söylüyor:** test tabanı 16'dan 126'ya çıkarken kör bir kontrolün yakalandığı
+yer oranı **%6'dan ~%15'e** çıktı. Yani testler yalnızca **çoğalmadı**,
 *derinleşti* — her yeni tablo kendi bozulma testini de getirdiği için körelen
 bir karşılaştırıcı daha çok yerde ötüyor.
 
@@ -489,6 +490,21 @@ bir karşılaştırıcı daha çok yerde ötüyor.
 **altısı** o alt görevde **açıkça yazılan** yeni bozulma testleriydi; yazılmasalardı
 sayı 5'te kalır, oran **%6,5'e düşerdi**. Yani eğilim bir kazanım değil, her alt
 görevde **yeniden kazanılan** bir şey.
+
+> ⚠️ **3.7'DE ORAN DÜŞTÜ (%15,5 → %15,1) VE BU BİR GERİLEME DEĞİL.**
+> Mutlak sayı **arttı** (16 → 19: üç yeni `DROP INDEX` bozulma testi), ama payda
+> daha hızlı büyüdü (103 → 126). Eklenen 23 testin çoğu **arama ve sorgu planı**
+> testleri ve onlar `compareSchemas`ı hiç çağırmıyor — köreltilmesi onları
+> etkilemiyor, etkilememeli de.
+>
+> **Okuma kuralı:** bu oran *"testlerin ne kadarı şema karşılaştırmasına bağlı"*
+> sorusunu ölçüyor, *"testler ne kadar iyi"* sorusunu değil. Farklı bir
+> mekanizmayı sınayan testler eklendiğinde oranın seyrelmesi **beklenen**
+> davranıştır. Alarm veren durum **mutlak sayının** sabit kalması olurdu: bu,
+> yeni yüzeyin negatif testsiz geldiği anlamına gelirdi.
+>
+> **Sonuç: seriye iki sütun birden bakılır** — oran *ve* pay. 3.7'de pay 16'dan
+> 19'a çıktı, yani yeni yüzey kendi bozulma testlerini getirdi.
 
 **Nasıl okunur:** bu seri bir **taban çizgisidir**. Yeni bir şema/karşılaştırma
 alt görevinde oran düşerse, sebebi aranır: ya negatif testler genişletilmemiştir
