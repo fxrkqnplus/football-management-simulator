@@ -224,6 +224,18 @@ yukarıdaki aktif takip satırı bunun için açıldı.
 
 `packages/db` devDependency. `engines: node >= 22.22` ✅ (Node 24.19.0).
 
+> ⚠️ **İKİNCİ PAKETE DE GİRDİ (Faz 3.8): `tools/data-cli`.** Seed'in gerçek
+> veritabanı kanıtı o pakette durmak zorunda — testi `packages/db/integration/`
+> altına koymak `arch:check`i kırıyor (`layer-direction` + `undeclared-dependency`,
+> sonda dosyasıyla ölçüldü). **Sürüm birebir aynı pin** (`12.1.0`), ama artık
+> **iki yerde**: yükseltme ikisini birden güncellemek zorunda, yoksa iki farklı
+> testcontainers sürümü aynı repoda koşar ve fark **sessiz** olur.
+> Aynı uyarı `drizzle-orm@0.45.2` için de geçerli — `tools/data-cli`ye
+> devDependency olarak girdi (`seed-sql.test.ts` `getTableColumns()` metadatasını
+> okuyor). ⚠️ Bu iki paket `arch:check` ⑥ `undeclared-dependency`nin **kapsamı
+> dışında**: kural yalnızca `@fms/*` belirteçlerini denetliyor (KOD TUZAKLARI ④),
+> yani bildirilmemiş bir üçüncü taraf paketi bu kapıdan **görünmez**.
+
 **ARM64 (K14) — iddia değil, ölçüm.** Kurulum 135 yeni paket getirdi
 (`node_modules/.pnpm` öncesi/sonrası karşılaştırılarak sayıldı, elle sayılmadı):
 

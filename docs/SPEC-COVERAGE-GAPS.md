@@ -123,6 +123,18 @@ arama isteyen fazlarına karşı tek tek soruldu.
 
 ---
 
+## Tarama 7 — Faz 3.8 (2026-08-28)
+
+Yöntem: seed'in yazması gereken **her sütun** için *"bu değeri hangi spec
+söylüyor"* sorusu tek tek soruldu. On bir sütunun onunun cevabı vardı; birinin
+yoktu.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-14 | `docs/spec/12-data-packs.md` §17.1 + `docs/spec/01-database.md` §3.1.0 — `source` kapalı kümesi: `pack \| api \| wikidata \| openfootball \| procedural` | Her varlığın verisinin **nereden geldiğini** taşımak. Ama küme **elle yazılmış bootstrap seed verisini** kapsamıyor: §17.1'in listesi sağlayıcı zincirinden türetilmiş, hepsi bir **sağlayıcıyı** adlandırıyor. Faz 3.8'in 17 satırı hiçbir sağlayıcıdan gelmiyor — repoda elle yazıldılar. | **Faz 7** (DataProvider soyutlaması) — sağlayıcı zinciri orada kuruluyor, kümenin doğru yeri orası | ⏳ ROADMAP'e işlenmedi. **3.8 `procedural` seçti ve gerekçesi ölçülebilir bir soruya dayanıyor:** alanın tüketicisi (§17.1 *"Veri Editörü'nde hangi varlığın nereden geldiği görünür — eksikleri kapatmak kolaylaşır"*) şunu soruyor: *"bu satır için hâlâ gerçek veri gerekiyor mu?"* `pack` **hayır** derdi ve Faz 8 ingesti bu satırları otoriter paket verisi sanardı; `procedural` **evet** der. Ayrıca `procedural` bugünkü durumun birebir tarifi: `ACTIVE_PACK` boş, K9'un yedek koşulu geçerli. **Altıncı bir değer (`seed`) eklemek CHECK kısıtını değiştirmek, yani yeni bir migration demekti** — 3.8'in kapsamı dışında (K12). Faz 7 kümeyi yeniden değerlendirirse seed `DO UPDATE` yaptığı için tek koşuda düzelir. Karar `tools/data-cli/src/seed/world-seed-data.ts` başlığında. |
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.

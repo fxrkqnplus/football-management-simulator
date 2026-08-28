@@ -253,7 +253,8 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > | 7 | `tools/arch-check/index.mjs` → taranan uzantılar | Hangi dosyalar denetlenir | düz dizi |
 > | 8 | `tools/arch-check/index.mjs` → `checkImportCasing` adayları | `.js→.ts`, `.mjs→.mts`, `.cjs→.cts` | düz dizi |
 > | 10 | **7** × `tsconfig.build.json` → `exclude` (`.test-d.ts` satırı) | Tip-seviyesi kontrol deneyleri `dist`e girmesin — Faz 3.3 | **parantez YOK** |
-> | 9 | `vitest.integration.config.ts` → `test.include` | Entegrasyon testi keşfi (`integration/**/*.itest.ts`) | süslü parantez ✅ |
+> | 9 | `vitest.integration.config.ts` → **`projects[].test.include`** | Entegrasyon testi keşfi (`integration/**/*.itest.ts`) — **Faz 3.8'de tek kökten İKİ PROJEYE çıktı** (`db-integration`, `data-cli-integration`) | süslü parantez ✅ |
+> | 12 | `tools/data-cli/tsconfig.json` → `include` + `tsconfig.build.json` → `exclude` | `integration/` tip denetimine **girer**, `dist/`e **girmez** — Faz 3.8'de `packages/db`nin biçimi kopyalandı | **parantez YOK** |
 > | 11 | `packages/db/drizzle.config.ts` → `schema` | `drizzle-kit`in **çalıştırarak okuyacağı** şema dosyaları — Faz 3.5 | **extglob** (`!(...)`), negatif desen ÇALIŞMAZ |
 >
 > ### ⚠️ 11. SATIR — ENVANTERİN İLK "SESSİZ DEĞİL, GÜRÜLTÜLÜ" ÜYESİ (Faz 3.5)
@@ -404,9 +405,45 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > söylemez. Uzantı listesi olan her denetleyici için soru şudur:
 > *"bu kural hangi dosyalar için geçerli?"* — *"bugün hangi uzantılar var?"* değil.
 >
-> **`tools/` kapsam eşiğine dahil DEĞİLDİR.** `coverage.include` yalnızca
-> `*/src/**` desenini alır; geliştirme araçları (`arch-check`, `eslint-local-rules`)
-> test edilir ama ürün kodu sayılmaz ve %70/%85 eşiklerine girmez.
+> ### ⚠️ DÜZELTME (Faz 3.8, SAPMA-027) — bu paragraf YANLIŞTI
+>
+> Burada şu yazıyordu ve **ölçümle çürütüldü**:
+>
+> > ~~**`tools/` kapsam eşiğine dahil DEĞİLDİR.** `coverage.include` yalnızca
+> > `*/src/**` desenini alır; geliştirme araçları (`arch-check`,
+> > `eslint-local-rules`) test edilir ama ürün kodu sayılmaz ve %70/%85
+> > eşiklerine girmez.~~
+>
+> **Gerçek:** `vitest.config.ts` → `coverage.include` **üç** desen taşıyor ve
+> üçüncüsü `tools` altındaki her paketin `src` ağacını topluyor. Yani
+> `tools/<paket>/src/**` kapsam paydasına **dahildir** ve global %70 eşiğine
+> girer.
+>
+> **İddia neden bugüne kadar sınanmadı:** `tools/` altında `src/` içeren tek
+> paket `data-cli` idi ve tek dosyası `export {}` — kapsam raporunda **girdisi
+> vardı** ama `0/0` olduğu için paydaya hiçbir şey katmıyordu. Bakacak bir şey
+> bulamayan bir kapı "temiz" diyordu; **SAPMA-024'ün birebir kardeşi.**
+>
+> **Ayracın kendisi de yanlış öğrenilmişti.** `arch-check` ve
+> `eslint-local-rules` kapsam dışında oldukları için değil — `src/` altında
+> **olmadıkları** ve `.mjs` oldukları için dışarıdalar. Kural örneklerinden
+> geriye okunmuştu; 3.6'da adı konan tuzağın tekrarı (*bir kuralın ayracı,
+> örneklerinin tesadüfen paylaştığı bir özellikten okunursa yanlış öğrenilir*).
+>
+> **Ölçüm (Faz 3.8, seed `tools/data-cli/src/` altına ilk gerçek kodu koydu):**
+>
+> | Metrik | 3.7 sonu | 3.8 sonu | Paydaya eklenen |
+> |---|---|---|---|
+> | lines | 748 / 879 · %85,09 | 807 / 945 · **%85,39** | **+66** |
+> | statements | 814 / 955 · %85,23 | 875 / 1023 · **%85,53** | **+68** |
+> | functions | 213 / 283 · %75,26 | 259 / 330 · **%78,48** | **+47** |
+> | branches | 404 / 460 · %87,82 | 412 / 468 · **%88,03** | **+8** |
+>
+> Payda dört metrikte de büyüdü — iddia doğru olsaydı **değişmemesi** gerekirdi.
+>
+> **Sonuç:** `tools/<paket>/src/**` altına yazılan kod ürün kodu gibi sayılır ve
+> testsiz bırakılamaz. Kapsam dışında kalan tek şey `src/` dışındaki `.mjs`
+> araçlarıdır.
 
 > ### ⚠️ ENTEGRASYON TESTLERİ VARSAYILAN `pnpm test`'E GİRMEZ (Faz 3.2a)
 >
@@ -416,7 +453,28 @@ motor kendini ölçmez, ölçüm motoru **dışarıdan** sarmalar.
 > atlanmaya başlanırdı.
 >
 > Ayrı yapılandırma: `vitest.integration.config.ts` · ayrı komut: **`pnpm test:db`** ·
-> ayrı dosya deseni: `packages/*/integration/**/*.itest.ts`.
+> ayrı dosya deseni: `<paket>/integration/**/*.itest.ts`.
+>
+> ### ⚠️ ÇOK PROJELİ OLDU (Faz 3.8) — ve sebebi konfor değil, `arch:check`
+>
+> Yapılandırma 3.7'ye kadar tek bir `root: './packages/db'` taşıyordu. 3.8 seed'i
+> `tools/data-cli`ye yazdı ve onun gerçek veritabanı kanıtı **o pakette durmak
+> zorunda**: testi `packages/db/integration/` altına koymak katman kuralını
+> kırıyor. **Ölçüldü, varsayılmadı** — bir sonda dosyası konup `pnpm arch:check`
+> koşuldu ve **iki kural birden öttü**:
+> `[layer-direction]` (*"`packages/db` → `@fms/data-cli`. İzin verilenler:
+> @fms/shared"*) ve `[undeclared-dependency]`.
+>
+> **Kural: yeni bir paket entegrasyon testi yazdığında `projects` listesine satır
+> eklenir.** Eklenmezse dosya hiçbir yerde koşmaz ve `pnpm test:db` yine "yeşil"
+> der — bakacak bir şey bulamayan bir kapı (SAPMA-024 sınıfı). Yer yukarıdaki
+> desen envanterinde **9. satır**.
+>
+> **Ölçülen bedel (Faz 3.8):** iki proje iki konteyner kaldırıyor ama duvar
+> saati **artmadı** — tek projeli koşu 31,2 s, iki projeli koşu 27,1 s ve
+> 28,8 s (projeler paralel koşuyor, ikinci konteynerin açılışı birincinin
+> testleriyle örtüşüyor). Süre farkı ölçüm gürültüsü mertebesinde; "iki kat
+> yavaşladı" beklentisi **çürütüldü**.
 >
 > **⚠️ AYRI KOMUT YAZMAK YETMEZ — komutun KOŞULDUĞU YER de yazılmalı.** Yukarıdaki
 > §11.5 faz kapanış listesine ve CI'a ayrı iş olarak eklendi. Yazılmasaydı bu tam

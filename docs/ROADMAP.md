@@ -1010,7 +1010,26 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
       hata çıkmıyor, şema **sessizce eksiliyor** ve **yalnızca karşılaştırma yakalıyor**.
       Mutasyonla doğrulandı: karşılaştırıcı köreltildiğinde 16 testin **yalnızca 1'i**
       kırılıyor — o da bu negatif test. Pozitif testler kör bir karşılaştırıcıyla da geçer.
-- [ ] 6 ülke + 6 lig + 5 UEFA/yerel kupa örnek verisiyle seed başarılı
+- [x] 6 ülke + 6 lig + 5 UEFA/yerel kupa örnek verisiyle seed başarılı
+      **Faz 3.8'de kanıtlandı.** `tools/data-cli/src/seed.ts` → gerçek PostgreSQL 18.6'ya
+      **6 ülke + 11 yarışma** (6 lig · 3 UEFA turnuvası · 2 yerel kupa, iki farklı ülkeden).
+      Kanıt üç yerde birden koştu: `pnpm test:db` (yeni `data-cli-integration` projesi,
+      20 test) · CI'ın `Entegrasyon` işi (amd64 + arm64) · **derlenmiş `dist/seed.js`
+      düz `node` ile** (D5).
+      ⚠️ **İki iddia AYRI AYRI kanıtlandı, çünkü ikisi farklı şeyler:**
+      *deterministik* (K2) — aynı girdi birebir aynı SQL, rastgelelik kaynağı yok;
+      *idempotent* — iki koşu satır sayısını ve `id`'leri değiştirmiyor.
+      ⚠️ **İdempotentlik "patlamadı" ile kanıtlanmadı:** `DO UPDATE` seçildiği için
+      iddia *"seed bozuk satırı ONARIR"*; negatif test satırı kasten bozup üç alanın
+      da onarıldığını okuyor. Üçüncü adım olmadan test yalnızca ikinci koşunun
+      hata vermediğini söylerdi — 3.2b'nin kör karşılaştırıcı boşluğuyla aynı sınıf.
+      ⚠️ **Zaman damgaları karşılaştırmadan çıkarıldı ama dışlama SESSİZ DEĞİL:**
+      `created_at`in sabitliği ve `updated_at`in ilerlemesi ayrıca **okunup iddia**
+      ediliyor, dışlama listesinin iki elemanlı olduğu da kendi testini taşıyor
+      (3.2b'nin sequence kararının biçimi).
+      ⚠️ **Kapatılmayan bir delik koşan bir testle görünür:** `ON CONFLICT (key)`
+      `code` benzersizliğini görmüyor; negatif test hatanın `countries_code_unique`ten
+      geldiğini adıyla iddia ediyor.
 - [ ] Tüm yabancı anahtarlar ve `ON DELETE` davranışları tanımlı
 - [ ] `EXPLAIN ANALYZE` ile temel sorgular < 20 ms
 - [ ] Şema dokümanı ve mermaid diyagramı üretildi
@@ -1381,8 +1400,93 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       benzerlik 1,0'a çıkıyor) ama `STABLE` olduğu için indeks ifadesinde doğrudan
       **kullanılamıyor** — `IMMUTABLE` sarmalayıcı şart. Bu, Faz 8'in kabul
       kriterinin dayanağı
-- [ ] **3.8** Seed betiği (`tools/data-cli/seed.ts`) — 6 ülke + 6 lig + 5 kupa,
-      **deterministik** (K2), **idempotent** (iki kez koşulur)
+- [x] **3.8** Seed betiği (`tools/data-cli/src/seed.ts`) — 6 ülke + 6 lig + 5 kupa,
+      **deterministik** (K2), **idempotent** (iki kez koşulur).
+      **SONUÇ: kabul kriteri 2 KAPANDI** — gerçek PG18'de 6 ülke + 11 yarışma
+      (6 lig + 5 kupa), FK'lar anahtarla çözüldü, `clubs` ve `federations` boş
+      kaldı. ℹ️ Dosya `src/` altında: paketin `rootDir`ı `src` ve
+      `coverage.include` deseni oradan okuyor; `tools/data-cli/seed.ts` tip
+      denetimine bile girmezdi.
+      ⚠️ **YAZMA YOLU `SqlExecutor` (ham SQL) — K4'ün §3.4.1'de ADIYLA SAYILAN
+      istisnası.** `db.writable` yapısal olarak kullanılamaz (master tablo
+      verilirse parametre `never`); zorlamak `as unknown as` yazmak, yani
+      §3.4.1'in saydığı üç atlama yolundan birini **bilerek** açmak olurdu.
+      **Bedeli dürüstçe kabul edildi ve ölçülebilir hâle getirildi:** ham SQL'de
+      sütun adları tip denetimi görmez → `seed-sql.test.ts` sütun listesini
+      Drizzle'ın `getTableColumns()` metadatasıyla iki yönlü karşılaştırıyor
+      (yazılan her sütun tabloda var mı · `NOT NULL` + varsayılansız her sütunu
+      seed yazıyor mu). **Mutasyonla kanıtlandı:** `confederation` bağı
+      kaldırıldı → `pnpm typecheck` **exit 0**, `pnpm lint` **temiz**, yalnızca
+      bu kapı öttü (64 testin 1'i). 3.7 günlük #37'nin dersinin uygulaması.
+      ⚠️ **`ON CONFLICT (key) DO UPDATE` — `DO NOTHING` DEĞİL.** Master veride
+      korunacak elle bir düzeltme yok (K4'ün var olma sebebi); seed doğruluk
+      kaynağı. `DO NOTHING` Faz 7–9'un güncellenmiş paketini **sessizce** yok
+      sayardı. `updated_at` **açıkça** `now()` alıyor (`defaultNow()` yalnızca
+      `INSERT`te işler), `created_at` hiç güncellenmiyor.
+      **İdempotentlik "patlamadı" ile değil ONARIM ile kanıtlandı:** satır kasten
+      bozuldu (`confederation='BOZUK'`, `uefa_coefficient=0`, `football_level=1`),
+      seed yeniden koştu, üç değer de **onarıldı**, satır sayısı ve `id`'ler sabit.
+      ⚠️ **`ON CONFLICT (key)` `code` ÇAKIŞMASINI GÖRMÜYOR — delik bilerek AÇIK.**
+      `countries.code` ve `competitions.code` ayrı `UNIQUE`; `key`i yeni ama
+      `code`u mevcut bir satır `23505` ile koşuyu öldürür. Kapatılmadı çünkü böyle
+      bir satır **seed verisinin kendisinin yanlış** olduğu anlamına gelir ve
+      gürültülü ölmek, sessizce yanlış satırı güncellemekten iyidir.
+      **Koşan bir testle görünür tutuldu** (G-11'in 3.5'teki biçimi): entegrasyon
+      testi hatanın `countries_code_unique`ten geldiğini **adıyla** iddia ediyor.
+      ⚠️ **`SeededRng` TAŞINMADI, tohum UYDURULMADI (K2).** Kapsamdaki iki tablonun
+      hiçbir sütunu rastgelelik istemiyor — tohum isteyen tek sütun
+      `clubs.crest_seed` ve `clubs` seed edilmiyor (ölçüldü). K2 **yapısal olarak**
+      sağlanıyor ve iddia ediliyor: aynı girdi birebir aynı SQL'i üretiyor.
+      ⚠️ **`key` DEĞERLERİ ÖLÇÜLDÜ, TAHMİN EDİLMEDİ:** `spec/12` §17.3'ün
+      `slugify`'ı 17 ad üzerinde çalıştırıldı (`Türkiye Kupası` → `turkiyekupasi`,
+      `Süper Lig` → `superlig`, `Serie A` → `seriea`). Algoritma kusurlu
+      (SAPMA-022) ama seed onunla **tutarlı** kalıyor; Faz 7 düzelttiğinde ikisi
+      birlikte düzelir. Bu 17 ad kalibrasyona ikinci örneklem.
+      ⚠️ **`name_key` bir i18n ANAHTARI (K5)** — `'Süper Lig'` değil
+      `'competition.tur.superlig'`. Gerçek tabloda doğrulandı; **Faz 5 bu 17
+      anahtarın tüketicisi.**
+      ⚠️ **`externalIds` HEPSİNDE BOŞ ve bu D1 disiplini** — doğrulanmamış bir
+      Wikidata Q-kimliği yazılmadı; şemanın dolu yolu birim testinde sentetik
+      değerle kapsandı. **`source: 'procedural'`** → yeni boşluk **G-14**.
+      ⚠️ **`playoffSpots: 0`** — `CLAUDE.md` §16.2 ③ (anayasa) `competition-rules.ts`
+      yorumundaki *"Türkiye: 4"* örneğine karşı; çelişkide anayasa kazandı.
+      ⚠️ **`pnpm test:db` ÇOK PROJELİ OLDU** (`db-integration` +
+      `data-cli-integration`) ve sebebi konfor değil: testi
+      `packages/db/integration/` altına koymak `arch:check`i kırıyor — **sonda
+      dosyasıyla ölçüldü**, `layer-direction` ve `undeclared-dependency` birden
+      öttü. **Süre artmadı:** 31,2 s (tek proje) → 27,1 s / 28,8 s (iki proje),
+      projeler paralel koşuyor. `spec/09` §11.4 desen envanterine **aynı gün**
+      9. satır güncellendi + 12. satır eklendi.
+      ⚠️ **`.env`i KİMSE OKUMUYORDU — D5 adımında bulundu.** İlk derlenmiş koşu
+      `REDIS_URL`/`JWT_SECRET` eksik diye patladı; eksik olan değişkenler değil,
+      onları yükleyecek adımdı (`apps/api` bunları Docker `-e` ile alıyor).
+      Çözüm Node 24'ün yerleşik `--env-file-if-exists` bayrağı — bağımlılık yok.
+      **Ölçümler:** `pnpm test` 639 → **703** (47 → 50 dosya) · `pnpm test:db`
+      126 → **146** (5 → 6 dosya) · kapsam **dört metrikte de YÜKSELDİ**:
+      satır %85,09 → **%85,39**, ifade %85,23 → **%85,53**, fonksiyon %75,26 →
+      **%78,48**, dal %87,82 → **%88,03** (eşik %70, DÜŞÜRÜLMEDİ, dosya
+      dışlanmadı) · `arch:check` **9 kural, değişmedi** · soğuk build 8/8
+      (11,49 s ve 21,29 s — varyans yüksek, ikisi de yazıldı).
+      🔵 **SAPMA-027 AÇILDI:** `spec/09` §11.4'ün *"`tools/` kapsam eşiğine dahil
+      değildir"* iddiası **ölçümle çürütüldü** — payda dört metrikte de büyüdü
+      (+66 satır, +47 fonksiyon). İddia bugüne kadar sınanmamıştı çünkü
+      `tools/data-cli/src/index.ts` `export {}` idi: bakacak bir şey bulamayan
+      bir kapı "temiz" diyordu (SAPMA-024'ün kardeşi).
+      **Mutasyonla doğrulandı (dört ayrı mutasyon):** ① `confederation` bağı
+      silindi → yalnızca metadata kapısı, `typecheck`/`lint` sessiz ②
+      `DO UPDATE` → `DO NOTHING` → 2 test ③ `"updated_at" = now()` silindi →
+      2 test ④ `RETURNING` sıralaması kaldırıldı → 1 test. Ayrıca
+      karşılaştırıcı köreltildi → **146 testin 19'u**; seri %6,3 → %10,0 →
+      %14,3 → %15,5 → %15,1 → **%13,0**. **Pay 19'da SABİT ve bu beklenen:**
+      3.8 yeni migration yazmadı, yani round-trip yüzeyi büyümedi.
+      **D5:** derlenmiş `dist/seed.js` **düz `node`** ile gerçek PG18.6'ya karşı
+      iki kez koşturuldu — 6+11 yazıldı, `id` toplamı 21 (satır yeniden
+      yaratılmadı), bozulan satır onarıldı, `created_at` birebir aynı,
+      `updated_at` ilerledi, FK'ların 8'i doğru ülkeye 3'ü NULL'a bağlandı,
+      `clubs`/`federations` 0 kaldı.
+      **Bilerek YAPILMAYANLAR:** `federations` seed'i (kabul kriterinde yok, K12) ·
+      kulüp/stadyum/hakem verisi (Faz 8–9) · `EXPLAIN ANALYZE` süre ölçümü (3.9) ·
+      `spec/12` slug algoritmasının düzeltilmesi (Faz 7, SAPMA-022)
 - [ ] **3.9** `EXPLAIN ANALYZE` ölçümü (< 20 ms) seed verisiyle + FK/`ON DELETE`
       envanteri `information_schema`'dan **programatik** doğrulanır (gözle sayılmaz)
 - [ ] **3.10** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR
