@@ -30,8 +30,19 @@ sessizce yalan söylemeye başlar.
 | **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (11 / 12) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
 
 ⚠️ **Bu blok elle düzenlenmez.** Yeni bir migration burayı bayatlatır ve nöbetçi
-kırılır; doğru düzeltme testin fark çıktısındaki üretilmiş metni buraya
-kopyalamaktır. Elle düzeltmek üçüncü temsili geri getirir.
+kırılır. **Doğru düzeltme:** testin hata mesajı üretilmiş metnin **tamamını**
+`----- ÜRETİLMİŞ METİN -----` işaretleri arasında basıyor; o blok olduğu gibi
+buraya kopyalanır ve `er-diagram.itest.ts`'teki `EXPECTED_TABLE_COUNT` /
+`EXPECTED_FOREIGN_KEY_COUNT` sabitleri güncellenir. Elle düzeltmek üçüncü
+temsili geri getirir.
+
+⚠️ **Kurtarma yolunun ilk hâli YETERSİZDİ ve ölçümle bulundu (3.10).** Önce
+*"fark çıktısındaki metni kopyala"* yazıyordu; Vitest gerçekte **bağlamı
+sınırlı bir birleşik fark** basıyor (`@@ -131,25 +131,10 @@`), metnin tamamını
+değil. Üstelik yön **ters okunmaya açık**: `- Expected` satırları **üretilmiş**
+(doğru) taraf, `+ Received` **bayat belge** — karıştırılırsa bayat metin geri
+yazılır ve **test yeşile döner**. Sessiz bir yanlış düzeltme. Bu yüzden doğru
+metin artık hata mesajının **içinde** duruyor ve fark okunmasına gerek yok.
 
 ✅ **Render 3.10'da ölçüldü** — `mermaid-cli 11.16.0` (tek seferlik, repoya
 bağımlılık **eklenmedi**): 403 KB SVG, hata kutusu yok, on bir varlık adının

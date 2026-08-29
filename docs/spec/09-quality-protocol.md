@@ -668,6 +668,43 @@ planlayıcının maliyet modeli satır sayısını değil **sayfa sayısını** 
 için rampa tersine dönmüş görünüyor. Eşik `TRUNCATE` + artan `INSERT` + her
 adımda `VACUUM ANALYZE` ile ölçülür.
 
+### ⚠️ BİR NÖBETÇİNİN "KIRILDIĞINDA NE YAPILACAĞI" DA BİR İDDİADIR — SINANMADAN YAZILMAZ (Faz 3.10)
+
+**Kural:** bir kapı yazarken iki şey üretilir — kapının kendisi **ve** kırıldığında
+izlenecek kurtarma yolu. İkincisi genellikle bir cümleyle geçiştirilir ve
+**hiç sınanmaz**. Sınanmamış bir kurtarma yolu, kapı gerçekten öttüğünde
+sessizce yanlış bir düzeltmeye yol açar.
+
+**Ölçülmüş vaka.** 3.10'un ER diyagramı nöbetçisi için kurtarma yolu şöyle
+yazılmıştı: *"Vitest'in fark çıktısı üretilmiş metnin tamamını gösteriyor, blok
+o çıktıdan yenilenir."* Gerçek bir mutasyonla sınandığında **iki yönden yanlış**
+çıktı:
+
+| İddia | Ölçüm |
+|---|---|
+| *"Fark çıktısı metnin tamamını gösteriyor"* | **Hayır** — bağlamı sınırlı bir **birleşik fark** basıyor (`@@ -131,25 +131,10 @@`) |
+| *"Blok o çıktıdan yenilenir"* | Yön **ters okunmaya açık**: `- Expected` = **üretilmiş** (doğru) taraf, `+ Received` = **bayat belge** |
+
+⚠️ **Ters okumanın bedeli sessiz:** bayat metin geri yazılırsa test **yeşile
+döner** ve belge yanlış kalır. Yani yanlış düzeltme, doğru düzeltmeden **ayırt
+edilemez**.
+
+**Düzeltme:** doğru metin artık farkın içinde aranmıyor — karşılaştırma onu
+**kendi hata mesajında** taşıyor:
+
+```ts
+expect(documented, staleDocumentMessage(generated)).toBe(generated);
+```
+
+Mesaj üretilmiş bloğun tamamını `----- ÜRETİLMİŞ METİN -----` işaretleri
+arasında basıyor; kurtarma bir **fark okuma alıştırması** olmaktan çıkıp
+kopyala-yapıştıra iniyor. Gerçek bir mutasyonla doğrulandı.
+
+**Bu D3'ün yeni bir biçimi:** orada kapı **bakmadığı** hâlde yeşil diyordu;
+burada kapı doğru ötüyor ama **ötüşün söylediği şey** yanlış. Soru genişliyor:
+*"bu kapı benim değiştirdiğim dosyalara baktı mı?"* yanına *"öttüğünde
+söylediği şey doğru mu?"*
+
 ### ⚠️ CI'A YENİ BİR İŞ EKLENDİĞİNDE, MEVCUT İŞLERİN ÖRTÜK HAZIRLIK ADIMLARI ÇIKARILIR (Faz 3.2a)
 
 **Kural:** CI'a yeni bir iş eklendiğinde, mevcut işlerin hangi **hazırlık

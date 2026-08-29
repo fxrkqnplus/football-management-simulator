@@ -40,9 +40,19 @@
  * ────────────────────────────────────────────────────────────────────────────
  *
  * Yeni bir migration `docs/schema/world.md`'yi bayatlatır ve bu test kırılır.
- * Doğru düzeltme belgeyi elle düzenlemek **değil**: Vitest'in fark çıktısı
- * üretilmiş metnin tamamını gösteriyor, blok o çıktıdan yenilenir. Elle
- * düzenlemek üçüncü temsili geri getirir.
+ * Doğru düzeltme belgeyi elle düzenlemek **değil**, üretilmiş metni yerine
+ * koymaktır — elle düzenlemek üçüncü temsili geri getirir.
+ *
+ * ⚠️ **KURTARMA YOLU ÖLÇÜLDÜ VE İLK HÂLİ YETERSİZDİ.** Bu başlık önce
+ * *"Vitest'in fark çıktısı üretilmiş metnin tamamını gösteriyor"* diyordu.
+ * Ölçüm bunu çürüttü: Vitest **bağlamı sınırlı bir birleşik fark** basıyor
+ * (`@@ -131,25 +131,10 @@`), metnin tamamını değil. Üstelik yön **ters
+ * okunmaya açık** — `- Expected` satırları **üretilmiş** (doğru) taraf,
+ * `+ Received` **bayat belge**; karıştırılırsa bayat metin geri yazılır ve
+ * test yeşile döner. Sessiz bir yanlış düzeltme.
+ *
+ * **Çözüm:** karşılaştırma, üretilmiş metnin **tamamını** kendi hata mesajında
+ * taşıyor. Fark okunmasına gerek yok; mesajdaki blok olduğu gibi kopyalanır.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -102,13 +112,33 @@ function readSchemaDocument(): string {
   return readFileSync(SCHEMA_DOC, 'utf8').replace(/\r\n/g, '\n');
 }
 
+/**
+ * Kırılma mesajı — üretilmiş metnin **tamamını** taşır.
+ *
+ * Başlıktaki ölçümün sonucu: Vitest'in fark çıktısı bağlamı sınırlı ve yönü
+ * ters okunmaya açık. Kurtarma yolunun bir **fark okuma alıştırması** olmaması
+ * için doğru metin mesajın içinde, olduğu gibi duruyor.
+ */
+function staleDocumentMessage(generated: string): string {
+  return [
+    '`docs/schema/world.md` BAYAT — diyagram artık gerçek şemayı anlatmıyor.',
+    'Belgeyi elle düzenleme; aşağıdaki bloğun TAMAMINI `docs/schema/world.md`',
+    'içindeki ```mermaid ... ``` bloğunun yerine yaz. `EXPECTED_TABLE_COUNT` ve',
+    '`EXPECTED_FOREIGN_KEY_COUNT` sabitleri de güncellenmeli.',
+    '',
+    '----- ÜRETİLMİŞ METİN (BAŞLANGIÇ) -----',
+    generated,
+    '----- ÜRETİLMİŞ METİN (SON) -----',
+  ].join('\n');
+}
+
 describe('KRİTER 5: `docs/schema/world.md` diyagramı gerçek şemadan üretilmiş', () => {
   it('① belgedeki mermaid bloğu, canlı katalogdan üretilen metnin BİREBİR aynısı', async () => {
     const facts = await introspectSchema(executor);
     const generated = renderErDiagram(facts);
     const documented = extractMermaidBlock(readSchemaDocument());
 
-    expect(documented).toBe(generated);
+    expect(documented, staleDocumentMessage(generated)).toBe(generated);
   });
 
   it('② belgedeki tablo ve ilişki SAYISI katalogla ve bugünün değerleriyle aynı', async () => {
