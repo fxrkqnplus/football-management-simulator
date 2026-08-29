@@ -49,16 +49,24 @@ BAĞLAM (bu sırayla)
 14. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
 
 FAZ KAPANIŞI
-15. Kabul kriterlerini tek tek doğrula, sonuçları göster.
-16. `pnpm typecheck lint test build arch:check` + faza özel doğrulama komutları.
-17. **PROJECT_MEMORY.md'ye faz kaydını yaz** (Bölüm 12.5 şablonu, 11 başlığın hepsi).
-18. **ANLIK DURUM bloğunu tamamen yeniden yaz.**
-19. Yeni sorun/borç/sapma varsa ilgili kütüğe ekle (SORUN-XXX, BORÇ-XXX, SAPMA-XXX).
-20. **docs/SPEC-COVERAGE-GAPS.md** — bu fazda kapanan satırların `Durum`u güncellendi mi?
+15. **SÜRE ÖLÇÜLDÜ MÜ?** Fazın gerçek gün sayısını hesapla (ilk commit → son commit).
+    docs/ROADMAP.md §0.5: "hiçbir faz 3 günü aşmaz; aşacaksa ikiye bölünür ve bu
+    belgeye kaydedilir." 3 günü AŞTIYSA: ya faz bölünür, ya istisna ROADMAP'e
+    GEREKÇESİYLE yazılır. Sessizce geçilmez.
+    ⚠️ Bu adım Faz 4.1'de eklendi (SAPMA-033). §0.5'in ROADMAP:3730'da bir
+       "bölünme riski yüksek fazlar" listesi vardı ama o bir TAHMİN: Faz 3 listede
+       DEĞİLDİ ve 4 gün sürdü — bölünme olmadı, istisna kaydedilmedi, çünkü süreyi
+       ÖLÇEN bir adım yoktu. Tahmin listesi bir kontrol değildir.
+16. Kabul kriterlerini tek tek doğrula, sonuçları göster.
+17. `pnpm typecheck lint test build arch:check` + faza özel doğrulama komutları.
+18. **PROJECT_MEMORY.md'ye faz kaydını yaz** (Bölüm 12.5 şablonu, 11 başlığın hepsi).
+19. **ANLIK DURUM bloğunu tamamen yeniden yaz.**
+20. Yeni sorun/borç/sapma varsa ilgili kütüğe ekle (SORUN-XXX, BORÇ-XXX, SAPMA-XXX).
+21. **docs/SPEC-COVERAGE-GAPS.md** — bu fazda kapanan satırların `Durum`u güncellendi mi?
     Yeni boşluk bulunduysa yeni bir "Tarama N" bölümü açıldı mı? (Satır SİLİNMEZ.)
-21. CHANGELOG.md güncelle, ROADMAP.md'de fazı [x] işaretle.
-22. PR aç: feature/faz-[XX]-[slug] → develop
-23. Kısa demo notu + (arayüz fazıysa) ekran görüntüsü.
+22. CHANGELOG.md güncelle, ROADMAP.md'de fazı [x] işaretle.
+23. PR aç: feature/faz-[XX]-[slug] → develop
+24. Kısa demo notu + (arayüz fazıysa) ekran görüntüsü.
 
 KURALLAR
 - Her alt görev raporu docs/OUTPUT-FORMAT.md biçiminde verilir (zorunlu).

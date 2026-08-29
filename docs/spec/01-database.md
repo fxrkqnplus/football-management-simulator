@@ -194,9 +194,29 @@ uygulansaydı `club_kits.template_id` CASCADE alırdı ve bir şablon silindiği
 kulübün forma satırı **alakasız bir sebeple** yok olurdu.
 
 **Kural:** bir FK'nın hedefi bir sözlük/tanım tablosuysa (`kit_templates` ve
-Faz 4'te gelecek `injury_types`, `staff_roles` aynı sınıf) davranış
+**Faz 12**'de gelecek `injury_types` aynı sınıf) davranış
 **RESTRICT**'tir: sözlük girdisi silinmeden önce ona bağlı kayıtların ele
-alınması gerekir. Ölçüldü (PG 18.6): kullanılan bir şablonun silinmesi
+alınması gerekir.
+
+> ⚠️ **DÜZELTME (Faz 4.1) — bu kuralın öngörüsü YARI YANLIŞ ÇIKTI.**
+> Metin 3.6'da *"Faz 4'te gelecek `injury_types`, `staff_roles` aynı sınıf"*
+> diyordu. Faz 4.1'de ikisi de ölçüldü ve **ayrıştılar**:
+>
+> | Tablo | Ölçüm | Sonuç |
+> |---|---|---|
+> | `injury_types` | Satırları **veri** taşıyor: süre aralığı (1-2 hf … 24-40 hf), ciddiyet, tekrarlama eğilimi (Faz 39 tipolojisi) | **Gerçek sözlük tablosu** ✅ ⑧ doğru |
+> | `staff_roles` | Satırları yalnızca bir **etiket**: `spec/01` `staff.role`u zaten 12 değerlik **satır içi kapalı küme** yazıyor | **CHECK**, tablo değil ❌ ⑧ yanlış |
+>
+> **Yeni ayraç:** *"kapalı küme **etiket** mi, **veri taşıyan satır** mı?"* Etiketse
+> §3.1.2 ②'nin CHECK'i yeter; satır veri taşıyorsa tablo gerekir. Bu, ②'nin
+> *"sözleşme mi kalibrasyon mu"* ayracının kardeşi ve aynı aileden: bir kuralın
+> **örneklerinden** çıkarılan bir genelleme (*"Faz 4'te iki sözlük tablosu gelecek"*)
+> ölçülene kadar bir **tahmindir** (desen **F3**).
+>
+> ℹ️ `injury_types` ayrıca **Faz 12**'ye taşındı (SAPMA-030): tek FK kaynağı
+> `injuries` ve o save-scoped. Bu kural ancak tabloyu **hedefleyen** bir FK varken
+> cevap üretir, yani Faz 4'te açılsaydı kendisi için yazılmış kuralı bile
+> çalıştırmazdı. Ölçüldü (PG 18.6): kullanılan bir şablonun silinmesi
 `club_kits_template_id_kit_templates_id_fk` ile reddediliyor; kulüp silindiğinde
 formalar gidiyor ama **şablon kalıyor**.
 
@@ -220,8 +240,12 @@ formalar gidiyor ama **şablon kalıyor**.
 > bu:** bir uydunun tanımı gereği sahibine bir FK'sı vardır; sözlük tablosunun
 > **giden FK'sı yoktur**. Bu koşulu sağlayan tek tablo ölçüldüğünde
 > `kit_templates` çıkıyor — yani ⑧'in adıyla saydığı tablo, **adı hiçbir yerde
-> yazılmadan** bulunuyor. Faz 4'ün `injury_types` / `staff_roles` tabloları aynı
-> koşulu sağlayacak.
+> yazılmadan** bulunuyor. **Faz 12**'nin `injury_types` tablosu aynı koşulu
+> sağlayacak.
+> ⚠️ **`staff_roles` sağlamayacak, çünkü o tablo AÇILMIYOR** (Faz 4.1'de ölçüldü —
+> `staff.role` bir CHECK; yukarıdaki düzeltme kutusuna bak). Bir kuralın
+> *"şunlar da aynı sınıf olacak"* öngörüsü, o tablolar gerçekten yazılana kadar
+> **doğrulanmamış bir tahmindir**.
 >
 > ⚠️ **Hedef denetimi kaynak denetiminden ÖNCE gelir.** `club_kits` bir uydu; ③
 > körlemesine uygulansaydı `club_kits.template_id` **CASCADE** alırdı ve bir
@@ -549,7 +573,16 @@ player_attributes: {
 //    `pa_range_min <= pa_range_max`) `players` tablosunda CHECK ALIR.
 // INDEX: (primaryPosition, currentAbility), (finishing), (passing), (pace) — transfer araması için
 //    ⚠️ İlk iki sütun `players` tablosunda, son üçü burada: indeks TEK BİR tabloya
-//    konur. Bu satır iki tabloyu karıştırıyor; doğru dağılım Faz 4'te kararlaştırılır.
+//    konur. Bu satır iki tabloyu karıştırıyor.
+//    ✅ KARAR (Faz 4.1): bu satır bir indeks LİSTESİ değil, bir NİYET beyanıdır ve
+//    ondan indeks türetilmez. Faz 4.8'in indeks kapsamı KABUL KRİTERİ 3'ün
+//    sorgusundan çıkarılır ("20–24 yaş, sağ bek, CA>120" → `people.birth_date` +
+//    `players.primary_position` + `players.current_ability`). Gerekçe 3.7'nin
+//    dersi: doğru indeks, o indeksi kullanacak SORGUNUN ŞEKLİNE bağlıdır —
+//    3.7 aynı sebeple `COLLATE`'li indeksi yapmadı (tüketicisi Faz 32).
+//    `(finishing)`, `(passing)`, `(pace)` tekil indeksleri de tüketicisi olan fazda
+//    (Faz 32, transfer filtreleri) değerlendirilir; bugün onları koymak, hiçbir
+//    sorgunun kullanmadığı üç indeksin yazma maliyetini ödemek olurdu.
 
 // player_hidden_attributes — 10 gizli nitelik
 player_hidden_attributes: {
@@ -569,8 +602,16 @@ player_positions: {
 player_traits: { playerId FK, traitCode: text, PK (playerId, traitCode) }
 
 // player_stats_history — gerçek dünya istatistikleri (nitelik türetimi girdisi)
+// ⚠️ `clubId` FAZ 4.1'DE EKLENDİ — spec'te YOKTU ve eksikliği ölçüldü (0 eşleşme).
+//    Onsuz "Osimhen 2023-24'te HANGİ KULÜPTE 26 gol attı?" cevaplanamıyor ve iki
+//    tüketici bunu istiyor: ROADMAP Faz 19 ("İstatistikler — sezon / KARİYER /
+//    turnuva bazlı") ve Faz 47 ("kariyer geçmişi: HER KULÜP, süre, istatistik").
+//    ROADMAP'in `player_career_history` adı bu eksiği tarif etmeye çalışıyordu;
+//    ayrı tablo açmak yerine sütun eklendi (SAPMA-030). `nullable` — Faz 9 öncesi
+//    seed verisinde kulüp yok ve SAPMA-026 gereği kimsenin belirlemediği alana
+//    değer uydurulmaz.
 player_stats_history: {
-  id, playerId FK, seasonYear, competitionId FK,
+  id, playerId FK, seasonYear, competitionId FK, clubId FK nullable,
   appearances, minutes, goals, assists, xG, xA,
   passesAttempted, passesCompleted, progressivePasses,
   dribblesAttempted, dribblesCompleted, duelsWon, duelsTotal,
@@ -589,6 +630,15 @@ staff: {
         'gk_coach'|'technical_coach'|'physio'|'sports_scientist'|'scout'|
         'data_analyst'|'youth_manager'|'youth_coach'
 }
+// ⚠️ `role` KAPALI KÜME → CHECK, ayrı bir `staff_roles` TABLOSU DEĞİL (Faz 4.1).
+//    ROADMAP Faz 4 bir `staff_roles` tablosu sayıyordu ve §3.1.2 ⑧ onu
+//    `injury_types` ile aynı sınıfa koyuyordu; ölçüm ikisini AYIRDI:
+//      · `staff_roles` satırları yalnızca bir ETİKET taşır  → §3.1.2 ② gereği CHECK
+//      · `injury_types` satırları VERİ taşır (süre aralığı, ciddiyet) → gerçek tablo
+//    Ayraç: "kapalı küme ETİKET mi, veri taşıyan SATIR mı?"
+//    Faz 37'nin "12 rol de atanabiliyor" kriterini CHECK zaten sağlıyor; rol
+//    ETKİLERİ (S164) motor katsayısıdır, tablo satırı değil (K3: motor veriyi
+//    parametre olarak alır).
 
 staff_attributes: {
   staffId PK FK
@@ -600,6 +650,13 @@ staff_attributes: {
 
 managers: {
   id, personId FK, userId FK nullable,     // userId null = AI menajer
+  // ⚠️ `userId` FAZ 4'TE YAZILMAZ — DÖRDÜNCÜ İLERİ FK (Faz 4.1, SAPMA-032).
+  //    `users` §3.2 save katmanında ve ROADMAP'te Faz 13'te doğuyor. Kısıtsız bir
+  //    sütun "tüm yabancı anahtarlar tanımlı" kriterini görünürde sağlayıp gerçekte
+  //    delerdi — Faz 3'ün üç ileri FK'sıyla birebir aynı sınıf. Sütun ve kısıt
+  //    BİRLİKTE Faz 13'te eklenir.
+  //    ℹ️ Açık soru (G-16): master bir tablonun save katmanına FK vermesi K4
+  //    açısından doğru mu? Alternatif `users.manager_id`. Karar Faz 12'de.
   clubId FK nullable, isUserManager: boolean,
   coachingBadge: 'none'|'c'|'b'|'a'|'pro',
   experienceLevel: 'amateur'|'former_player_lower'|'former_player_mid'|
@@ -737,12 +794,58 @@ player_match_stats: {
 }
 
 injuries: {
-  id, saveId FK, playerId FK, injuryTypeCode: text,
+  id, saveId FK, playerId FK, injuryTypeCode: text,   // → injury_types.code
   startDate, estimatedReturnDate, actualReturnDate: date nullable,
   severity: 'minor'|'moderate'|'serious'|'career_threatening',
   occurredInMatchId FK nullable, occurredInTraining: boolean,
   recurrenceOf: FK nullable
 }
+
+// injury_types — SÖZLÜK TABLOSU. Faz 4.1'de tanımlandı, Faz 12'de açılır.
+// ⚠️ Bu tablo `spec/01`'de HİÇ YOKTU; ROADMAP Faz 4 onu sayıyordu ama tanımı
+//    hiçbir yerde yazılı değildi. Tüketicisi ölçülerek bulundu: ROADMAP Faz 39
+//    "Sakatlık tipolojisi (~40 tür)" + kabul kriteri "40 sakatlık türünün tamamı
+//    tetiklenebiliyor", ve yukarıdaki `injuries.injuryTypeCode` zaten ona işaret
+//    ediyor.
+// ⚠️ NEDEN BİR CHECK DEĞİL DE TABLO: satırları yalnızca bir etiket değil VERİ
+//    taşıyor (süre aralığı, ciddiyet, tekrarlama eğilimi). Karşılaştır:
+//    `staff.role` 12 değerlik bir etiket kümesi ve CHECK alıyor (§3.1.2 ②).
+// ⚠️ NEDEN FAZ 12: tek FK kaynağı `injuries` ve o save-scoped. `fk-policy.ts`'in
+//    sözlük kuralı ancak tabloyu HEDEFLEYEN bir FK varken cevap üretir — Faz 4'te
+//    açılsaydı kendisi için yazılmış kuralı bile çalıştırmazdı (SAPMA-030).
+// SINIF: `key` yok + giden FK yok → `dictionary` → ona GİDEN FK'lar RESTRICT
+//        (§3.1.2 ⑧; `kit_templates` ile aynı sınıf).
+injury_types: {
+  id: serial PK
+  code: text UNIQUE                        // 'hamstring_strain' — `key`in rolünü görür
+  nameKey: text                            // i18n anahtarı (K5)
+  bodyPart: 'head'|'shoulder'|'arm'|'torso'|'hip'|'thigh'|'knee'|'calf'|'ankle'|'foot'
+  minWeeks, maxWeeks: smallint             // 1-2 hf, 2-6 hf, 8-16 hf, 24-40 hf …
+  severity: 'minor'|'moderate'|'serious'|'career_threatening'
+  recurrenceRisk: smallint                 // 0-100 — Faz 39 kalibre eder, CHECK YOK
+  canOccurInTraining, canOccurInMatch: boolean
+}
+// CHECK: `bodyPart` ve `severity` kapalı küme. `minWeeks`/`maxWeeks`/`recurrenceRisk`
+//        ARALIK → CHECK YOK (§3.1.2 ②, Faz 39'un kalibre edeceği ölçekler).
+
+// manager_career — Faz 4.1'de tanımlandı, Faz 12'de açılır.
+// ⚠️ Bu tablo da `spec/01`'de HİÇ YOKTU. Tüketicisi kaynaktan doğrulandı:
+//    ROADMAP Faz 47 (S207) "Menajer profil sayfası: kariyer geçmişi (her kulüp,
+//    süre, istatistik), kupa vitrini, en iyi sezonlar" + (S204) liderlik tablosu
+//    metrikleri "toplam maç, G/B/M, kupa sayısı, sezon sayısı".
+// ⚠️ NEDEN SAVE KATMANI (master değil): kariyer oyun oynanırken birikiyor. Faz 47
+//    liderlik tablosu onu KAYITLAR ARASI topluyor, yani satırlar kayıt başına.
+//    Master'da önceden yüklenmiş AI menajer geçmişi Faz 8/9 ingest kapsamında YOK
+//    (arandı) — istenirse ayrı bir karar olur.
+manager_career: {
+  id, saveId FK, managerId FK, clubId FK,
+  startDate, endDate: date nullable,        // null = hâlâ görevde
+  matchesPlayed, wins, draws, losses: integer,
+  goalsFor, goalsAgainst: integer,
+  trophies: jsonb,                          // {competitionId, seasonYear}[]
+  endReason: 'resigned'|'sacked'|'contract_expired'|'mutual'|'still_active' nullable
+}
+// CHECK: `endReason` kapalı küme. Sayısal alanlar sayaç, aralık değil — CHECK yok.
 
 suspensions: {
   id, saveId FK, playerId FK, competitionId FK,

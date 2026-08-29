@@ -225,6 +225,25 @@ göstermiyor. Şablona adım 7 olarak eklendi.
 
 ---
 
+## Tarama 9 — Faz 4.1 (2026-08-29)
+
+Yöntem: ROADMAP Faz 4'ün 19 tablosu için **tüketici araması** (`competition_seasons`
+yöntemi, Faz 3.1). *"Bu tabloyu kim okuyacak/yazacak?"* sorusu `docs/spec/**` ve
+ROADMAP'in ileri fazlarına tek tek soruldu. On dokuzun tamamı cevaplandı; ikisi
+**yeni boşluk** üretti.
+
+| # | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| --- | --- | --- | --- | --- |
+| G-15 | `docs/spec/02-attributes.md` §4.6 *"Kişilik **saklanmaz, türetilir**"* ↔ `docs/ROADMAP.md` Faz 11 *"Düzenlenebilir: … oyuncu (tüm nitelikler, CA/PA, **kişilik**, sözleşme)"* | **Türetilmiş bir değer nasıl "düzenlenir"?** İki belge çelişiyor: `spec/02` kişiliği `derivePersonality(hidden)` ile gizli niteliklerden **hesaplıyor** ve saklamıyor; Faz 11 Veri Editörü onu **düzenlenebilir alan** sayıyor. Üç olası cevap var ve hiçbiri yazılı değil: ① editör aslında **gizli nitelikleri** düzenler, kişilik onu takip eder (en tutarlısı, ama kullanıcı *"Profesyonel yap"* diyemez) ② bir **override sütunu** eklenir (türetmeyi delerdi) ③ Faz 11 metni düzeltilir. **Faz 4 bu yüzden `player_personalities` tablosunu AÇMADI** (SAPMA-030) ve karar Faz 11'e ait. | **Faz 11** (Veri Editörü + doğrulayıcı) | ✅ **ROADMAP Faz 11 kapsamına eklendi (Faz 4.1)** |
+| G-16 | `docs/spec/01-database.md` §3.1 `managers.userId FK` → §3.2 `users` | **Master bir tablo, save katmanına yabancı anahtar verebilir mi?** `managers` §3.1'de (master, K4: *"asla kullanıcı işlemiyle değiştirilmez"*) ama `userId` §3.2'deki `users`a bakıyor. Bu, K4'ün *"master paylaşımlı ve değişmez"* ilkesiyle gerilimde: bir kullanıcı silinince master bir satır etkilenir. Alternatif ilişkiyi **ters çevirmek** (`users.manager_id`), böylece bağ save tarafında durur. Faz 4 sütunu **hiç yazmadı** (SAPMA-032) ve uygulaması Faz 13'te; ama **hangi yönde kurulacağı** delta mimarisinin kararı. | **Faz 12** (karar — `WorldView`/delta) · **Faz 13** (uygulama) | ✅ **ROADMAP Faz 12 ve Faz 13 kapsamlarına eklendi (Faz 4.1)** |
+
+> ℹ️ **Bu taramanın "boşluk olmayan" bulguları ROADMAP'e doğrudan işlendi:** sekiz
+> tablonun gideceği yer (SAPMA-030), dördüncü ileri FK (SAPMA-032) ve kabul kriteri
+> 3'ün daraltılması (SAPMA-031). Bunlar *"hiçbir fazın işi değil"* sınıfına girmiyor —
+> sahibi belli, o yüzden burada değil ROADMAP'te ve SAPMA kütüğünde.
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.

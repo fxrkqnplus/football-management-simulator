@@ -182,6 +182,26 @@ Faz başına **1–3 gün** (S234 → A). Kural: hiçbir faz 3 günü aşmaz; a�
 
 Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
 
+> ⚠️ **BU KURAL BİR KEZ ATEŞLENDİ VE İŞLEMEDİ — Faz 3, 4 gün** (SAPMA-033, Faz 4.1'de
+> kaydedildi). `PROJECT_MEMORY.md` Faz 3 kaydı *"2026-08-26 → 2026-08-29 · **Süre:
+> 4 gün**"* diyor; bölünme yapılmadı, istisna **hiçbir yere yazılmadı**. Faz 1 ve 2
+> ikişer gündü, yani bu **ilk ihlal**.
+>
+> **Sebep ölçüldü ve *"kimse bakmadı"*dan daha keskin:** aşağıda (EK C öncesi) bir
+> **"bölünme riski yüksek fazlar"** listesi var ve Faz 6 ile Faz 47 kendi bölümlerinde
+> açık bölünme planları taşıyor — yani mekanizma **var**. Ama **Faz 3 o listede
+> yoktu ve yine de aştı.** Liste bir **TAHMİN**; hiçbir adım gerçek süreyi **ölçmüyordu**
+> (`docs/SESSION-TEMPLATE.md`'de *"süre"* kelimesi hiç geçmiyordu).
+>
+> **Bir tahmin listesi bir kontrol değildir.** Düzeltme: `SESSION-TEMPLATE` faz
+> kapanışına **adım 15 — süre ölçümü** eklendi. Aşan faz ya bölünür ya istisnası
+> gerekçesiyle buraya yazılır; **sessizce geçilmez.**
+>
+> ℹ️ Aynı ailenin diğer iki üyesi: `docs/SPEC-COVERAGE-GAPS.md`'nin **okuyucusu
+> yoktu** ve `docs/DEPENDENCY-WATCH.md` *"beni SESSION-TEMPLATE okur"* diyordu ama
+> orada öyle bir satır **yoktu** (ikisi de Faz 4.0'da kapatıldı). Üçünde de kural
+> yazılıydı; eksik olan **kuralı kontrol eden adım**dı.
+
 ---
 ---
 
@@ -1708,11 +1728,35 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 **Hedef:** Oyunun canlı varlıklarının şeması + delta kayıt için hazırlık.
 
 **Kapsam:**
-- **Tablolar:** `people` (oyuncu/personel/menajer ortak kimlik), `players`, `player_attributes` (47 görünür), `player_hidden_attributes` (**10 gizli** — SAPMA-001), `player_positions` (mevki yetkinlik matrisi), `player_traits`, `player_personalities`, `player_relationships`, `player_career_history`, `player_injuries`, `injury_types`, `contracts`, `contract_clauses`, `staff`, `staff_attributes`, `staff_roles`, `managers`, `manager_attributes`, `manager_career`
+- **Tablolar — 11 MASTER** *(4.0'da ölçüldü, 4.1'de işlendi; eski liste 19 sayıyordu — SAPMA-030)*:
+  `people` (oyuncu/personel/menajer ortak kimlik) · `players` · `player_attributes`
+  (47 görünür) · `player_hidden_attributes` (**10 gizli** — SAPMA-001) ·
+  `player_positions` (mevki yetkinlik matrisi) · `player_traits` ·
+  **`player_stats_history`** · `staff` · `staff_attributes` · `managers` ·
+  `manager_attributes`
+- ⚠️ **KAPSAMDAN ÇIKAN SEKİZ TABLO — hepsinin gideceği yer yazılı** (SAPMA-030):
+
+  | Tablo | Nereye | Neden |
+  |---|---|---|
+  | `contracts` · `contract_clauses` | **Faz 12** | `spec/01` **§3.2 save katmanı**. Save-scoped bir tabloyu save-delta mimarisi yokken seed etmek tutarsız; *"5.000 sahte oyuncu"* kriteri onları istemiyor; transfer bloğu (Faz 30–33) Faz 12'den **sonra** geliyor, gecikme yok |
+  | `player_injuries` → **`injuries`** | **Faz 12** | Ad çakışması: tablo `spec/01` §3.2'de `injuries` adıyla ve `saveId FK` taşıyor |
+  | `injury_types` | **Faz 12** | Tüketicisi **var** (Faz 39, ~40 tür; satırlar veri taşıyor → gerçek sözlük tablosu). Ama tek FK kaynağı `injuries` ve `fk-policy.ts`'in sözlük kuralı yalnızca tabloyu **hedefleyen** FK'lar için cevap üretir — `injuries` yokken ona giden hiçbir FK yok, yani Faz 4'te açmak **kendisi için yazılmış kuralı bile çalıştırmaz** |
+  | `manager_career` | **Faz 12** | Tüketicisi **var ve kaynaktan doğrulandı** (Faz 47 S207 *"kariyer geçmişi (her kulüp, süre, istatistik), kupa vitrini"*), ama kariyer **oyun oynanırken** birikir → save-scoped. Master'da önceden yüklenmiş menajer geçmişi Faz 8/9 ingest kapsamında **yok** (arandı) |
+  | `player_career_history` → **`player_stats_history`** | **Faz 4'te KALIR, adı düzeldi** | Aynı tablonun eski adı. `spec/01` §3.1'deki tablo sezon × turnuva gerçek dünya istatistiğini tutuyor ve Faz 10 nitelik türetiminin girdisi. ⚠️ **`club_id` sütunu ekleniyor** — spec'te yoktu (0 eşleşme) ve onsuz Faz 19 *"kariyer bazlı istatistik"*, Faz 47 *"her kulüp, süre"* cevaplanamıyor |
+  | `player_personalities` | **AÇILMAZ** | `spec/02` §4.6 **aktif olarak karşı**: *"Kişilik **saklanmaz, türetilir**"* — `derivePersonality(hidden)`. Faz 10 kişiliği **türetiyor**. Bu bir *"tüketici bulunamadı"* değil, bir **tasarım yasağı** |
+  | `player_relationships` | **AÇILMAZ** | `spec/06` §8.6 `affinity(a,b)` bir **formül** (uyruk/dil/yaş/kişilik/kıdem), klikler `> 0,62` ile **hesaplanıyor** — saklanan kenar listesi yok. Faz 38 Mentorluk bir **atama**, oyun oynanırken doğar → gerekirse orada save-scoped |
+  | `staff_roles` | **AÇILMAZ** | Tüketici var (Faz 37 *"12 rol de atanabiliyor"*) ama **tablo gerekmiyor**: `spec/01` `staff.role`u **satır içi kapalı küme** yazıyor (12 değer) ve §3.1.2 ② gereği kapalı küme **CHECK** alır. Rol *etkileri* (S164) motor katsayısı, tablo satırı değil (K3) |
+
+  ⚠️ **`spec/01` §3.1.2 ⑧'in öngörüsü yarı yanlış çıktı.** 3.6 *"Faz 4'ün `injury_types` / `staff_roles` tabloları aynı sınıf"* demişti; ölçüm ayırdı: `injury_types` **gerçek bir sözlük tablosu** (satırları veri taşıyor), `staff_roles` **bir CHECK** (satırları yalnızca etiket). Ayraç: *"kapalı küme **etiket** mi, veri taşıyan **satır** mı?"*
 - CA/PA alanları: `current_ability` (1–200), `potential_ability` (1–200), `pa_range_min/max` (belirsizlik için)
 - `player_attributes` tasarımı: **tek satır, 47 sütun** (JSONB değil — sorgu ve filtre performansı için kritik, transfer arama bunun üzerinde çalışacak)
-- İndeksler: transfer aramasında kullanılacak kompozit indeksler (`position`, `age`, `current_ability`, `value`)
-- Bölümleme (partitioning) değerlendirmesi: `player_career_history` yıla göre
+- İndeksler: transfer aramasında kullanılacak kompozit indeksler.
+  ⚠️ **Kapsam `spec/01`'in indeks satırından TÜRETİLMEZ** — o satır
+  (`INDEX: (primaryPosition, currentAbility), (finishing), (passing), (pace)`)
+  **iki tabloyu karıştırıyor**: ilk iki sütun `players`'ta, son üçü
+  `player_attributes`'ta ve bir indeks tek bir tabloya konur (4.0'da ölçüldü).
+  Kapsam **kabul kriteri 3'ün sorgusundan** türetilir.
+- Bölümleme (partitioning) değerlendirmesi: `player_stats_history` yıla göre
 - ⚠️ **FAZ 3'TEN DEVREDİLEN ZORUNLULUK — üç ileri yabancı anahtar.** Faz 3, `people`
   tablosu burada geldiği için şu **üç sütunu hiç yazmadı**:
   `federations.presidentPersonId` · `clubs.chairmanPersonId` · `referees.personId`
@@ -1720,6 +1764,19 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
   Yalnızca sütunu eklemek, Faz 3'ün *"tüm yabancı anahtarlar tanımlı"* kriterini
   görünürde sağlayıp gerçekte delerdi — kararın gerekçesi Faz 3 tablo envanterinde.
   Bu tamamlanana kadar hakemlerin **adı yok** (ilk görüntülendikleri yer Faz 26).
+- ⚠️ **DÖRDÜNCÜ İLERİ FK VAR ve BU FAZDA YAZILMAZ — `managers.user_id`** (SAPMA-032)
+  `spec/01` §3.1 `managers`i master'a koyuyor ama `userId FK nullable` taşıyor; `users`
+  **§3.2 save katmanında** ve **Faz 13**'te (açık kayıt akışı) doğuyor. Bu, yukarıdaki
+  üç FK'yla **birebir aynı sınıf**: kısıtsız bir sütun *"tüm FK'lar tanımlı"* kriterini
+  görünürde sağlayıp gerçekte deler. **Sütun Faz 4'te HİÇ yazılmaz**; sütun ve kısıt
+  **birlikte Faz 13'te** eklenir. Gerekçe `managers.ts` başlığına konur.
+- ⚠️ **KABUL KRİTERİ 3 DARALDI — `değer<15M` yüklemi çıkarıldı** (SAPMA-031)
+  `marketValue` **`player_state`** tablosunda ve o `spec/01` **§3.2 save katmanı**
+  (Faz 12). Üstelik türev bir değer: `spec/02` §4.7 onu kalan sözleşme ayı, form,
+  sakatlık cezası ve enflasyon endeksiyle hesaplıyor — **hiçbiri master'da yok**, yani
+  master'a bir `market_value` sütunu **konamaz** (konsaydı her tur bayatlardı).
+  Yüklem **Faz 30** (piyasa değeri motoru) ve **Faz 32** (transfer arama) kapsamına
+  taşındı. Kriterin **amacı** (bileşik indeks transfer aramasını taşıyor mu) korunuyor.
 - ⚠️ **NİTELİK ARALIKLARI CHECK ALMAZ — ama İLİŞKİ değişmezleri ALIR** *(SAPMA-028)*
   Bu kriter Faz 4.0'da değiştirildi; eski hâli *"Tüm nitelikler 1–20 aralığında CHECK
   kısıtıyla korunuyor"* idi ve **iki kaynakla birden** çelişiyordu.
@@ -1739,7 +1796,7 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 **Kabul kriterleri:**
 - [ ] 5.000 sahte oyuncu seed → şema tutarlı
 - [ ] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri)
-- [ ] "20–24 yaş, sağ bek, CA>120, değer<15M" sorgusu < 50 ms
+- [ ] **"20–24 yaş, sağ bek, CA>120" sorgusu 5.000 oyuncu hacminde < 50 ms** *(SAPMA-031 — `değer<15M` yüklemi çıkarıldı)*
 - [ ] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)*
 - [ ] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`**
 - [ ] Şema dokümanı güncellendi
@@ -1755,7 +1812,7 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 - [x] **4.0b** CI işlendi (`33228266356`, 6/6 yeşil) · `OUTPUT-FORMAT`'a kural:
       **onay bekleyen içerik raporun `DETAY` bölümünde yaşar** · kayıp plan yeniden
       üretildi (tüketici araması + altı karar). → `docs/reports/faz-04/4.0b-*.md`
-- [ ] **4.1** **Kararlar ve envanter mutabakatı — KOD YOK.** Kapsam 19 → **11 master**;
+- [x] **4.1** **Kararlar ve envanter mutabakatı — KOD YOK.** Kapsam 19 → **11 master**;
       beş tablo **Faz 12**'ye, biri **Faz 13**'e, `değer<15M` yüklemi **Faz 30/32**'ye
       *yazılır* (kütüğe kayıt yetmez) · `spec/01`'e eksik tanımlar ·
       üç SAPMA · G-15/G-16 · `SESSION-TEMPLATE`'e **§0.5 süre kontrolü**
@@ -2089,6 +2146,16 @@ docs/glossary.md
     (iki yuvalı şablonda üçüncü renk yoktur), ama *"`color_slots = 3` ise `color3`
     dolu, `= 2` ise boş"* bir **çapraz tablo** kuralı. Bugün hiçbir şey denetlemiyor.
     Karar `packages/db/src/schema/club-kits.ts` sütun yorumunda.
+- **⚠️ TÜRETİLMİŞ BİR DEĞER NASIL "DÜZENLENİR" — kişilik** *(G-15, Faz 4.1'de açıldı)*
+  Yukarıdaki *"Düzenlenebilir: … oyuncu (… **kişilik** …)"* satırı `docs/spec/02` §4.6
+  ile çelişiyor: orada kişilik **saklanmıyor**, `derivePersonality(hidden)` ile gizli
+  niteliklerden **türetiliyor**. Faz 4 bu yüzden `player_personalities` tablosunu
+  **açmadı** (SAPMA-030) — bir tabloyu açmak çelişkiyi çözmek değil, gizlemek olurdu.
+  Üç olası cevap ve hiçbiri bugün yazılı: ① editör aslında **gizli nitelikleri**
+  düzenler ve kişilik onu takip eder (en tutarlısı; bedeli: kullanıcı doğrudan
+  *"Profesyonel yap"* diyemez) ② bir **override sütunu** eklenir (türetmeyi deler,
+  iki gerçek kaynağı doğar) ③ bu satır düzeltilir. **Karar bu fazda verilir ve
+  `docs/spec/02` §4.6 ile ROADMAP aynı alt görevde hizalanır.**
 - ℹ️ **`CA ≤ PA` ve `1–20` burada İKİNCİ KEZ denetleniyor — bu çakışma değil, bilinçli.**
   Faz 4'te `CA <= PA` ve `pa_range_min <= pa_range_max` veritabanı **CHECK**'i alır
   (ilişki değişmezi); nitelik **aralıkları** CHECK almaz (§3.1.2 ② — aralık bir
@@ -2128,12 +2195,45 @@ docs/glossary.md
 - **Delta katmanı:** `save_deltas` tablosu — `(saveId, entityType, entityId, field, value, turnNumber)`
 - **Okuma katmanı (`WorldView`):** master + delta birleştirme, bellekte önbellekli, tip güvenli erişim
 - **Yazma katmanı (`WorldMutation`):** her değişiklik delta olarak yazılır, doğrudan master'a yazma **imkânsız** (tip seviyesinde engellenir)
+- **⚠️ MASTER BİR TABLO SAVE KATMANINA FK VEREBİLİR Mİ — yön kararı** *(G-16, Faz 4.1'de açıldı)*
+  `spec/01` §3.1 `managers`i **master**'a koyuyor ama `userId` §3.2'deki `users`a
+  bakıyor. K4 *"master paylaşımlı ve asla kullanıcı işlemiyle değiştirilmez"* diyor;
+  bir kullanıcı silinince master bir satırın etkilenmesi bu ilkeyle gerilimde.
+  Alternatif ilişkiyi **ters çevirmek** (`users.manager_id`), böylece bağ tamamen save
+  tarafında kalır. **Bu fazın kararı** (delta mimarisi burada kuruluyor), uygulaması
+  **Faz 13**. Faz 4 sütunu bu belirsizlik çözülmeden yazmadı (SAPMA-032).
 - **Snapshot sıkıştırma:** delta sayısı 50.000'i aşınca mevcut durum tek JSONB blob'a yazılır, delta temizlenir
 - **Otomatik kayıt:** her ayın 1'i + her 5 turda bir + manuel (S48)
 - **Snapshot noktaları:** sezon başı otomatik + kullanıcının 1 manuel noktası
 - Kayıt slotları: 3 slot, her slot bağımsız
 - **Kayıt bütünlüğü doğrulayıcısı (`validateSave`):** her otomatik kayıtta çalışır — kadro sayısı, negatif bütçe, yetim referans, çift kayıt, tarih tutarlılığı
 - Kayıt sıkıştırma (gzip) + boyut telemetrisi
+- **🆕 FAZ 4'TEN DEVREDİLEN BEŞ TABLO** *(SAPMA-030, 4.1'de taşındı)*
+  ROADMAP Faz 4 bunları kendi kapsamında sayıyordu; ölçüm dördünün `spec/01`
+  **§3.2 save katmanında** olduğunu (ya da oraya ait olduğunu) gösterdi. Save-scoped
+  bir tabloyu save-delta mimarisi **yokken** açmak tutarsız olurdu.
+  - **`contracts`** — `spec/01` §3.2. `saveId`·`playerId`·`clubId` FK, `weeklyWage`/
+    `signingBonus`/`releaseClause`/`minimumFeeClause` **`bigint` + `{ mode: 'bigint' }`**
+    (§3.1.2 ⑥ — `mode: 'number'` sessizce yanlış sayı döndürüyor, para için ölümcül),
+    `squadRole` ve `status` **kapalı küme → CHECK** (§3.1.2 ②)
+  - **`contract_clauses`** — `spec/01` §3.2. `type` kapalı küme → CHECK; `amount` `bigint`
+  - **`injuries`** — `spec/01` §3.2. ⚠️ ROADMAP Faz 4 buna **`player_injuries`** diyordu;
+    spec adı kazandı. `severity` kapalı küme → CHECK; `recurrenceOf` kendine referans
+  - **`injury_types`** — **sözlük tablosu** (`key` yok + giden FK yok → `fk-policy.ts`
+    onu `dictionary` sınıflar ve ona giden FK'lar **RESTRICT** alır). ~40 satır, her biri
+    **veri taşıyor** (süre aralığı, ciddiyet) — bu yüzden bir CHECK değil bir tablo.
+    Veriyi **Faz 39** kalibre eder; burada yalnızca şema ve sözlüğün kendisi.
+    `injuries.injury_type_code` → buraya FK.
+  - **`manager_career`** — `(saveId, managerId, clubId, başlangıç, bitiş, sezon
+    istatistikleri, kupalar)`. Tüketicisi **Faz 47** (S207 menajer profili: *"kariyer
+    geçmişi (her kulüp, süre, istatistik), kupa vitrini"* + S204 metrikleri).
+    Master'da **değil**: kariyer oyun oynanırken birikiyor ve Faz 47 liderlik tablosu
+    onu kayıtlar arası topluyor.
+
+  ⚠️ **Faz 4'ün FK kuralı (V3) burada da geçerli ve `spec/01` §3.1.2 ③+⑧'den
+  türetiliyor** — güncellenecek bir liste yok. Ama `injury_types` bu fazda **ilk kez
+  bir hedef** oluyor: sözlük kuralı ancak ona giden bir FK varken cevap üretir, ve o FK
+  burada doğuyor.
 
 **Kabul kriterleri:**
 - [ ] 1 sezon oynanmış kayıt < 500 KB
@@ -2143,6 +2243,7 @@ docs/glossary.md
 - [ ] Snapshot sıkıştırma sonrası dünya durumu birebir aynı (100 alan karşılaştırma testi)
 - [ ] `validateSave` bozuk kaydı yakalıyor ve hangi varlıkta olduğunu söylüyor
 - [ ] 3 kayıt slotu birbirini etkilemiyor
+- [ ] **Faz 4'ten devredilen beş tablo açıldı** (`contracts` · `contract_clauses` · `injuries` · `injury_types` · `manager_career`), `injury_types`'a giden FK **RESTRICT** ve bu **kuraldan türetilerek** doğrulandı *(SAPMA-030)*
 
 **Bağımlılık:** Faz 11
 **Risk:** En kritik mimari faz. Yanlış yapılırsa 30. fazda geri dönüş imkânsız → ekstra test yatırımı yapılacak.
@@ -2177,6 +2278,18 @@ docs/glossary.md
 
 **Kapsam — Kayıt ve Güvenlik:**
 - **Açık kayıt akışı:** e-posta + şifre (argon2id), kullanıcı adı, e-posta doğrulama zorunlu (doğrulanmadan oyun başlatılamaz) — **Resend** ile gönderim
+- **🆕 FAZ 4'TEN DEVREDİLEN İLERİ YABANCI ANAHTAR — `managers.user_id`** *(SAPMA-032, 4.1'de taşındı)*
+  `spec/01` §3.1 `managers`i **master** tabloya koyuyor ama `userId FK nullable` taşıyor
+  (*"`userId` null = AI menajer"*); `users` **§3.2 save katmanında** ve **bu fazda**
+  doğuyor. Faz 4 bu yüzden sütunu **hiç yazmadı** — kısıtsız bir sütun *"tüm yabancı
+  anahtarlar tanımlı"* kriterini görünürde sağlayıp gerçekte delerdi (Faz 3'ün üç ileri
+  FK'sıyla birebir aynı sınıf). **Bu fazın migration'ı sütunu VE yabancı anahtarı
+  BİRLİKTE eklemek zorunda.** `ON DELETE` davranışı `fk-policy.ts`'ten **türetilir**,
+  elle seçilmez.
+  ⚠️ İkinci bir soru bu satırla birlikte cevaplanır ve **kaydı G-16'da**: master bir
+  tablonun save katmanına FK vermesi K4 açısından doğru mu? Alternatif, ilişkiyi ters
+  çevirip `users.manager_id` yapmak. Karar Faz 12'de (delta mimarisi) verilir,
+  uygulaması burada.
 - **Cloudflare Turnstile:** kayıt ve giriş formunda — görünmez, kullanıcıyı yormaz, bot kaydını engeller, ücretsiz ve sınırsız
 - **Kötüye kullanım önleme (ücretsiz sunucuda kaynak koruması):**
   - Hesap başına **3 kayıt slotu** (S43) — sunucu tarafında zorunlu
@@ -2227,6 +2340,7 @@ docs/glossary.md
 - [ ] E-posta doğrulanmadan oyun başlatılamıyor
 - [ ] 4. kayıt slotu açılamıyor (API seviyesinde engelli, sadece arayüzde değil)
 - [ ] IP başına saatlik kayıt limiti çalışıyor
+- [ ] **`managers.user_id` sütunu VE yabancı anahtarı birlikte eklendi**, `ON DELETE` davranışı `fk-policy.ts`'ten türetildi *(Faz 4 devri, SAPMA-032)*
 - [ ] Rate limiting normal oynayışı engellemiyor, saldırıyı engelliyor (yük testiyle kanıtlanır)
 - [ ] Anomali tespiti test senaryolarını yakalıyor
 - [ ] Küfür filtresi 200 test vakasını geçiyor (100 engellenmeli, 100 geçmeli)
@@ -2833,6 +2947,13 @@ docs/glossary.md
 **Kapsam:**
 - **Piyasa değeri formülü:** CA, PA, yaş eğrisi (16–23 prim, 24–28 zirve, 29+ düşüş), sözleşme kalan süresi (son yılda sert düşüş), form, moral, lig prestiji, mevki kıtlığı (kaleci vs. kanat), uyruk (çalışma izni etkisi), son 12 ay performansı, sakatlık geçmişi
 - **Değer güncelleme:** her ay + her transfer sonrası + her sezon sonu
+- ⚠️ **DEĞER MASTER'DA DEĞİL, `player_state`'TE** *(Faz 4'ten devreden not, SAPMA-031)*
+  `spec/01` `marketValue`i **§3.2 save katmanına** (`player_state`) koyuyor ve bu doğru:
+  formül kalan sözleşme ayı, form, sakatlık cezası ve enflasyon endeksiyle hesaplanıyor
+  (`spec/02` §4.7) — dördü de kayıt başına değişiyor. Master'a bir `market_value` sütunu
+  **konamaz**, konsaydı her tur bayatlardı. Faz 4'ün kabul kriteri bu yüzden daraltıldı
+  (`değer<15M` yüklemi çıkarıldı); **değer üzerinden filtrelemenin ilk gerçek ölçümü
+  Faz 32'de.**
 - **Piyasa enflasyonu:** yıllık %4–8, lig gelirlerine bağlı — 20 sezon sonra ekonomi çökmesin
 - **Talep edilen bonservis:** piyasa değeri × kulüp isteksizliği katsayısı (sözleşme süresi, oyuncunun takımdaki rolü, kulübün mali durumu, alıcının prestiji, rakip kulüp primi)
 - **Oyuncu ilgi sistemi:** her AI kulüp, kadro ihtiyacına göre "ilgilenilen oyuncu" listesi tutar
@@ -2903,6 +3024,7 @@ docs/glossary.md
 
 **Kabul kriterleri:**
 - [ ] 50.000 oyuncuda tüm filtreler < 300 ms
+- [ ] **Faz 4'ün kriterinin tam hâli ölçüldü: "20–24 yaş, sağ bek, CA>120, **değer<15M**"** — `değer` yüklemi Faz 4'te ölçülemiyordu (`marketValue` save katmanında ve türev, SAPMA-031); bileşik indeksin gerçek transfer aramasını taşıdığı **burada** kanıtlanır
 - [ ] Kayıtlı arama şablonu doğru çalışıyor ve bildirim veriyor
 - [ ] Öneri motoru gerçekten zayıf mevkiyi tespit ediyor
 - [ ] Benzer oyuncu bulma mantıklı sonuç veriyor
@@ -3787,6 +3909,15 @@ BLOK I (46-50): Sezon & Yayın
 **Kritik yol:** 1 → 7 → 12 → 16 → 22 → 30 → 36 → 42 → 46 → 50
 
 **Bölünme riski yüksek fazlar** (3 günü aşabilir, ikiye ayrılabilir): **6, 10, 13, 16, 23, 27, 28, 33, 40, 41, 44, 47**
+
+> ⚠️ **BU LİSTE BİR TAHMİNDİR, BİR KONTROL DEĞİL** (SAPMA-033, Faz 4.1). Ölçüldü:
+> **Faz 3 bu listede yoktu ve 4 gün sürdü** — §0.5'in sınırı 3. Liste bir fazı
+> *"riskli"* diye işaretlemeyi başarabilir ama **aşmayı yakalayamaz**; onu yakalayan
+> tek şey faz kapanışında **gerçek süreyi ölçmek** (`docs/SESSION-TEMPLATE.md`
+> adım 15, Faz 4.1'de eklendi).
+> ℹ️ **Faz 4 de bu listede değil** ve aynı risk taşıyor (6 migration, 47 sütunlu
+> tablo, 5.000 satırlık seed, bir performans ölçümü); bu yüzden Faz 4'ün **4.7'sine
+> bir ara kontrol noktası** kondu — bölünme tahminle değil ölçümle kararlaştırılıyor.
 
 ---
 
