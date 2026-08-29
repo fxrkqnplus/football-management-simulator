@@ -37,6 +37,10 @@ docs/reports/faz-03/3.10-er-diyagrami-ve-faz-kapanisi.md
   (`docs/MASTER-SPEC.md` ile aynı sözleşme). Sonradan yanlış olduğu anlaşılan
   bir rakam, sonraki raporda düzeltilir ve `PROJECT_MEMORY.md`'nin *"Bilinen
   kayıt düzeltmeleri"* bölümüne yazılır.
+- **Künye alanı `İçerik commit'i`, alt görevin İŞİNİ taşıyan commit'tir** —
+  raporu taşıyan commit değil. ⚠️ Bir dosya **kendi commit hash'ini taşıyamaz**;
+  bu, kuralın ilk kullanımında (3.10) doldurulması imkânsız bir yer tutucu
+  üretti ve sözleşme aynı gün daraltıldı.
 - **Kısaltılmaz:** özet **ve** `DETAY` bölümü birebir yazılır. Bu dosyaların
   var olma sebebi tam olarak kısaltılmamış olmaları.
 - `*.md` `.prettierignore`'da, yani `pnpm format:check` bu dosyalara

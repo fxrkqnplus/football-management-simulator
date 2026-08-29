@@ -114,9 +114,14 @@ docs/reports/faz-03/3.10-er-diyagrami-ve-faz-kapanisi.md
 ```markdown
 > **Alt görev:** 3.10 — ER diyagramı + faz kapanışı + PR
 > **Tarih:** YYYY-MM-DD · **Dal:** feature/faz-03-database
-> **Commit(ler):** <hash> · **CI koşusu:** <id> · **PR:** #<n>
+> **İçerik commit'i:** <hash> · **CI koşusu:** <id> · **PR:** #<n>
 > **Bağlam yüzdesi:** <ölçüm> veya "ölçülemedi"
 ```
+
+⚠️ **`İçerik commit'i` alt görevin İŞİNİ taşıyan commit'tir, raporu taşıyan
+commit değil.** Bir dosya kendi commit hash'ini taşıyamaz; ilk kullanımda
+(3.10) buraya doldurulması imkânsız bir yer tutucu yazıldı ve sözleşme aynı
+gün daraltıldı. Raporu ekleyen commit `git log` ile zaten bulunur.
 
 Künyenin altında **raporun tamamı**: özet **ve** `DETAY` bölümü, birebir.
 Kısaltma yok.
