@@ -1681,10 +1681,19 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       baktı ve işini yaptı:** ilk koşuda `er-diagram.ts`'i **reddetti**, `lint`
       **üç gerçek hata** buldu. Belgelerin doğruluğunu denetleyen tek kapı
       **ER nöbetçisi**.
+      ✅ **RENDER DOĞRULANDI — akıl yürütmeyle değil, ÖLÇÜMLE.** Sözdiziminin
+      *"dar bir alt kümede tutulduğu"* bir **iddiaydı**; `mermaid-cli 11.16.0`
+      (tek seferlik `npx`, **repoya bağımlılık eklenmedi**) blok üzerinde
+      koşturuldu: **403 KB SVG, 2416×3226**, hata kutusu **yok**, on bir varlık
+      adının **her biri birebir bir kez**, işaretler **9 `PK` + 2 `PK,FK` + 10
+      `FK` + 8 `UK`** (= 11 birincil anahtar, 12 FK sütunu, 8 tek sütunlu
+      benzersizlik — diyagramla **tam örtüşüyor**), yorumlar **16 `null` +
+      2 `uq:club_id+kit_type`**.
       **Bilerek YAPILMAYANLAR:** yeni tablo/migration/indeks · diyagrama CHECK
       kısıtı ve indeks çizimi (metinsel tablolarda, mermaid ER'de yeri yok) ·
-      `mermaid` paketi ile render doğrulaması (yeni bağımlılık, K12 — sözdizimi
-      bilerek en dar alt kümede tutuldu) · merge (kullanıcı yapar)
+      render doğrulamasının **kalıcı bir kapıya** çevrilmesi (bir `mermaid`
+      bağımlılığı + tarayıcı indirmesi ister, K12 — bugün tek seferlik ölçümle
+      yetinildi ve sonucu yazıldı) · merge (kullanıcı yapar)
 
 > **⚠️ `packages/db` kapsamı bu fazda bir KANIT sayılmaz.** Drizzle şema dosyaları modül
 > düzeyi ifadelerden ibarettir: bir testin onları **import etmesi** kapsamı %100 yapar,

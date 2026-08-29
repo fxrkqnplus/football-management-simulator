@@ -33,6 +33,16 @@ sessizce yalan söylemeye başlar.
 kırılır; doğru düzeltme testin fark çıktısındaki üretilmiş metni buraya
 kopyalamaktır. Elle düzeltmek üçüncü temsili geri getirir.
 
+✅ **Render 3.10'da ölçüldü** — `mermaid-cli 11.16.0` (tek seferlik, repoya
+bağımlılık **eklenmedi**): 403 KB SVG, hata kutusu yok, on bir varlık adının
+her biri birebir bir kez, işaretler 9 `PK` + 2 `PK,FK` + 10 `FK` + 8 `UK`.
+⚠️ **Bu kalıcı bir kapı DEĞİL.** Nöbetçi diyagramın **içeriğini** koruyor
+(katalogla birebir aynı mı), **sözdizimini** koruyan bir şey yok — sürekli
+koşan bir render kontrolü bir `mermaid` bağımlılığı ve tarayıcı indirmesi
+ister (K12). Üretici sözdizimini bilerek `erDiagram`ın **en dar** alt
+kümesinde tutuyor; yine de şema değişince render **tek seferlik yeniden
+ölçülür**.
+
 ## Kapsam
 
 Faz 3 **11 master tablo** tanımlar. Bunlar tüm kayıtlar tarafından paylaşılır ve

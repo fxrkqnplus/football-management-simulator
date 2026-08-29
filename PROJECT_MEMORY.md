@@ -28,11 +28,12 @@
 | **Bloke eden var mı?** | Hayır — ama **bir bekleme var: PR merge'ünü kullanıcı yapar.** ⚠️ Bir **açık risk** duruyor ve bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama **KAPANMIŞ SAYILMIYOR**, aşağıdaki kalıcı bloğa bak. Gerçek sınavı **Faz 6** |
 | **Son commit** | `docs(memory): 3.10 raporu arşivlendi + PR işlendi` (fazın **son** commit'i — ANLIK DURUM'u yazan commit en sonda olsun diye, Faz 1'de unutulmuştu) |
 | **Devreden açık karar** | **YOK.** 3.10 hiçbir karar bırakmadı. Faz 4'ün kaynağı faz kaydının **§11'i** — sekiz madde, hepsi ölçümle gerekçeli |
-| **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (24+1 commit ileride, 0 geride). Faz 2 → PR #3 ✅ merge `c97ebd0`. **Faz 3 → PR `ÖLÇÜLECEK`, hedef `develop`, MERGE COMMIT (squash değil), merge'ü kullanıcı yapar** |
-| **CI** | ✅ **3.9'un koşusu işlenmişti: `33192882347` (`4b618b6`) — altı iş de yeşil.** Sayaç **ON İKİ ardışık yeşil amd64**, **liste sorgusuyla** doğrulandı (elle artırılmadı). ⏳ **3.10'un koşusu `ÖLÇÜLECEK`** — push'tan sonra `gh run list --limit 40 --branch feature/faz-03-database` ile **kırmızı aranarak** işlenir, numara **eklenerek değil** |
+| **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (25 commit ileride, 0 geride). Faz 2 → PR #3 ✅ merge `c97ebd0`. **Faz 3 → [PR #4](https://github.com/fxrkqnplus/football-management-simulator/pull/4) AÇIK, hedef `develop`.** ⏸️ **Birleştirme biçimi MERGE COMMIT (squash DEĞİL) ve merge'ü KULLANICI yapar** — squash, her alt görevin kendi commit'iyle kapandığı geçmişi siler ve oturum kurtarma `git log` üzerinden yürüyor |
+| **CI** | ✅ **3.10'un koşusu İŞLENDİ: `33223489489` (`4a0eb43`) — ALTI İŞ DE YEŞİL** (`Kalite kapıları` amd64+arm64 · `Entegrasyon` amd64+arm64 · `İmaj` amd64+arm64). Sayaç **ON DÖRT ardışık yeşil**, yine **liste sorgusuyla** doğrulandı: `gh run list --limit 40 --branch …` → dalda **23 koşu, 2 kırmızı**, ikisi de (`074e373`, `bd59fac`) `1c93890`'dan **önce**. ⚠️ **Bu koşunun özel değeri (K14):** ER nöbetçisi `arm64` entegrasyon işinde de koştu — yani *"belge katalogla uyuşuyor"* iddiası **iki mimaride birden** doğrulandı. ℹ️ 3.9'un kaydı 12 diyordu ve doğruydu; aradaki iki koşu `24d3ec6` ve `4a0eb43` |
 | **typecheck / lint / format / build / arch** | ✅ typecheck **10/10** · lint 0 · format 0 · **build 8/8 SOĞUK** (`.turbo/cache` silindi, `Cached: 0` doğrulandı; **iki koşu: 10,90 s ve 7,01 s** — ⚠️ fazda ölçülen aralık **5,80–21,29 s**, tek sayı trend değil) · **arch 9 kural, DEĞİŞMEDİ** |
 | **Kapı kapsamı — ÖLÇÜLDÜ, varsayılmadı** | Bu commit **15 dosya** değiştiriyor: **11 Markdown + 4 `.ts`**. ⚠️ `.prettierignore` `*.md` taşıyor (SAPMA-024), yani `format:check` **on bir dosyanın hiçbirine bakmadı**. **Ama dört `.ts`e baktı ve İŞİNİ YAPTI:** ilk koşuda `format:check` `er-diagram.ts`'i **reddetti** ve `lint` **üç gerçek hata** buldu (`unbound-method` · `restrict-template-expressions` · `simple-import-sort/exports`). Yani bu commit'te *"format ✅"* **anlamlı** — ama yalnızca `.ts` yüzeyi için. Belgelerin doğruluğunu denetleyen tek kapı **ER nöbetçisi** |
-| **install** | ✅ **3.10 YENİ BAĞIMLILIK EKLEMEDİ** — `pnpm-lock.yaml` ve `pnpm-workspace.yaml` **dokunulmadı**. ⚠️ `mermaid` paketi ile render doğrulaması **bilerek yapılmadı** (K12, yeni bağımlılık); bunun yerine sözdizimi `erDiagram`ın **en dar ve en yaygın desteklenen alt kümesinde** tutuldu (sade tanımlayıcılar, ASCII yorum ve etiketler). ℹ️ pnpm 11.24.0 çıkmış; kilit 11.23.0'da, karar verilmedi |
+| **install** | ✅ **3.10 YENİ BAĞIMLILIK EKLEMEDİ** — `pnpm-lock.yaml` ve `pnpm-workspace.yaml` **dokunulmadı**. ℹ️ pnpm 11.24.0 çıkmış; kilit 11.23.0'da, karar verilmedi |
+| **Diyagram RENDER'ı** | ✅ **ÖLÇÜLDÜ, akıl yürütülmedi.** *"Sözdizimi dar bir alt kümede"* bir **iddiaydı** ve iddia sınandı: `mermaid-cli 11.16.0` (tek seferlik `npx`, **repoya bağımlılık eklenmedi**) → **403 KB SVG, 2416×3226**, hata kutusu **yok**, on bir varlık adının her biri **birebir bir kez**, işaretler **9 `PK` + 2 `PK,FK` + 10 `FK` + 8 `UK`**, yorumlar **16 `null` + 2 `uq:club_id+kit_type`** — hepsi diyagramla **tam örtüşüyor**. ⚠️ Bu **kalıcı bir kapı değil**: sürekli koşan bir render kontrolü bir `mermaid` bağımlılığı + tarayıcı indirmesi ister (K12). Yani *"blok render ediliyor"* bugün **ölçülmüş bir olgu**, yarın **nöbetçisiz bir iddia** — diyagramın **içeriğini** koruyan nöbetçi var, **sözdizimini** koruyan yok |
 | **test** | ✅ **744 test / 52 dosya** (724/51'den; +1 dosya `er-diagram.test.ts`, **+20 test**) · ✅ **`pnpm test:db` 163 test / 8 dosya** (160/7'den; +1 dosya `er-diagram.itest.ts`, **+3 test**), gerçek PG18 konteyneriyle, **33,33 s / 36,42 s** (iki koşu). Dağılım **ölçüldü**: `db-integration` **135 / 6 dosya**, `data-cli-integration` **28 / 2 dosya** |
 | **kapsam** | ✅ **DÖRT METRİK DE YİNE YÜKSELDİ** — satır %85,53 → **%86,99** (923/1061) · ifade %85,68 → **%87,04** (1008/1158) · dal %88,25 → **%88,68** (486/548) · fonksiyon %78,61 → **%80,00** (284/355). Eşik %70, DÜŞÜRÜLMEDİ, dosya dışlanmadı. `er-diagram.ts` **%100 satır · %100 fonksiyon**. ℹ️ İlk koşuda **satır 113** kapsanmamıştı (`PRIMARY KEY`/`UNIQUE` ayrıştırma hatası yolu) — yani *"sessizce atlamıyor, fırlatıyor"* iddiasının **iki yolundan biri hiç koşulmamıştı**; iki test eklendi |
 | **ER diyagramı** | ✅ **ÜRETİLDİ, ÇİZİLMEDİ.** Kaynak `introspectSchema()` → gerçek `information_schema` + `pg_catalog`. Nöbetçi üç iddia taşıyor: ① belgedeki blok canlı katalogdan üretilenin **birebir aynısı** ② belge **metninden sayılan** tablo/ilişki sayısı katalogla **ve** mutlak değerlerle (**11 / 12**) aynı ③ negatif kontrol. ⚠️ **Blok elle düzenlenmez** — yeni migration burayı bayatlatır, doğru düzeltme testin fark çıktısındaki metni kopyalamaktır |
@@ -1021,7 +1022,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 ### FAZ 3 — Veritabanı Şeması I: Dünya Çekirdeği
 
 **Tarih:** 2026-08-26 → 2026-08-29 · **Süre:** 4 gün · **Durum:** ✅ Tamamlandı
-**Dal:** `feature/faz-03-database` · **PR:** `ÖLÇÜLECEK` (3.10 push'undan sonra doldurulur) · **Commit aralığı:** `ec268d4..<3.10>`
+**Dal:** `feature/faz-03-database` · **PR:** [#4](https://github.com/fxrkqnplus/football-management-simulator/pull/4) · **Commit aralığı:** `ec268d4..4a0eb43` (25 commit)
 
 ---
 
@@ -1278,6 +1279,12 @@ sorgusu satırı **yok** (sayıldı). *"< 20 ms"* ROADMAP Faz 3'ün kendi kriter
       `entities: 10 ≠ 11` olarak adıyla raporlandı. **İkinci mutasyon:**
       migration SQL'inden `NOT NULL` kaldırıldı → **163'ün 7'si** kırıldı
       (ikisi bu nöbetçi), `pnpm test` ve `typecheck` **sessiz**.
+      ✅ **Render de ölçüldü, varsayılmadı:** `mermaid-cli 11.16.0` ile blok
+      gerçekten çizildi — **403 KB SVG**, hata kutusu **yok**, on bir varlık
+      adının her biri birebir bir kez, işaretler **9 `PK` + 2 `PK,FK` + 10 `FK`
+      + 8 `UK`**. ⚠️ Bu **kalıcı bir kapı değil** (bağımlılık gerekirdi, K12):
+      diyagramın **içeriğini** koruyan bir nöbetçi var, **sözdizimini** koruyan
+      yok — bir sonraki şema değişikliğinde render tek seferlik yeniden ölçülür.
 
 **5 / 5 sağlandı.**
 

@@ -55,4 +55,4 @@ numaraları bir hata sanar ve doldurmaya çalışır.
 
 | Faz | Klasör | Kapsanan alt görevler |
 |---|---|---|
-| 3 — Veritabanı Şeması I | `faz-03/` | **3.10'dan itibaren** (3.0–3.9 yok, yukarıdaki not) |
+| 3 — Veritabanı Şeması I | `faz-03/` | **3.10'dan itibaren** (3.0–3.9 yok, yukarıdaki not) — [3.10 — ER diyagramı + faz kapanışı](faz-03/3.10-er-diyagrami-ve-faz-kapanisi.md) |
