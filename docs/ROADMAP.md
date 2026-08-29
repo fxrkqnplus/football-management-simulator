@@ -1744,8 +1744,67 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 - [ ] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`**
 - [ ] Şema dokümanı güncellendi
 
+**Alt görevler** *(4.0/4.0b'de ölçüldü, kullanıcı onayıyla 2026-08-29'da işlendi — K11)*
+
+- [x] **4.0** Faz açılışı — doğrulama · üç süreç boşluğu · iki pahalı ölçüm.
+      `SPEC-COVERAGE-GAPS`'in **okuyucusu yoktu** (7 satır atandığı fazda görünmüyordu) ·
+      **SAPMA-028** (nitelik CHECK'i) · **SAPMA-029** (`source` kümesi 4→5).
+      Ölçümler: tablo envanteri (19 = 11 master + 3 save + 7 yok) ve FK kuralı kuru
+      çalıştırması (bugünkü kural Faz 4'te **7 veri kaybettiren cevap** üretiyor).
+      → `docs/reports/faz-04/4.0-*.md`
+- [x] **4.0b** CI işlendi (`33228266356`, 6/6 yeşil) · `OUTPUT-FORMAT`'a kural:
+      **onay bekleyen içerik raporun `DETAY` bölümünde yaşar** · kayıp plan yeniden
+      üretildi (tüketici araması + altı karar). → `docs/reports/faz-04/4.0b-*.md`
+- [ ] **4.1** **Kararlar ve envanter mutabakatı — KOD YOK.** Kapsam 19 → **11 master**;
+      beş tablo **Faz 12**'ye, biri **Faz 13**'e, `değer<15M` yüklemi **Faz 30/32**'ye
+      *yazılır* (kütüğe kayıt yetmez) · `spec/01`'e eksik tanımlar ·
+      üç SAPMA · G-15/G-16 · `SESSION-TEMPLATE`'e **§0.5 süre kontrolü**
+- [ ] **4.2** **`fk-policy.ts` V3'e genişletilir** — üçüncü olgu `is_nullable`,
+      `SET NULL` üretimi, sıra `dictionary → independent → nullable → satellite`.
+      Migration yok. Faz 3'ün **12 gerçek FK'sı regresyon kümesi**; V1'in bozduğu üç
+      vaka **negatif test**. → kriter 2
+- [ ] **4.3** **`people` + `players`** (`0005`) — §3.1.0 sütunları `people`'a,
+      `person_id` UNIQUE. ⚠️ **`ON DELETE SET NULL` DAVRANIŞ testi** gerçek PG18'e
+      karşı: kulüp sil → oyuncu **duruyor**, `club_id` **NULL**; karşı örnek kişi sil →
+      oyuncu **gidiyor**. → kriter 1, 6
+- [ ] **4.4** **Üç ileri FK** (`0006`) — sütun **ve** kısıt aynı migration'da.
+      `managers.user_id` **YAZILMAZ** (Faz 13). → kriter 2
+- [ ] **4.5** **`player_attributes` (47) + `player_hidden_attributes` (10)** (`0007`) —
+      nitelik CHECK'i **YOK** (SAPMA-028); `players`'a `CA <= PA` ve
+      `pa_range_min <= pa_range_max` CHECK'leri. 47+10 envanteri `spec/02` §4.1'den
+      **sayılarak** doğrulanır (SAPMA-001 bu sınıftı). → kriter 4, 5
+- [ ] **4.6** **`player_positions` + `player_traits` + `player_stats_history`**
+      (`0008`) — `player_stats_history` **`club_id` alır**. → kriter 1, 6
+- [ ] **4.7** **`staff` + `staff_attributes` + `managers` + `manager_attributes`**
+      (`0009`) — `staff.role` **CHECK** (12 değer). → kriter 1, 6
+      ⚠️ **§0.5 KONTROL NOKTASI:** burada geçen gün sayısı **ölçülür ve raporlanır**;
+      iki günü aştıysa 4.8–4.11 **Faz 4b** olarak ayrılır ve ROADMAP'e yazılır.
+- [ ] **4.8** **Transfer arama indeksleri** (`0010`) — kapsam `spec/01`'in indeks
+      satırından **değil** kriter 3'ün sorgusundan türetilir (o satır iki tabloyu
+      karıştırıyor, 4.0'da ölçüldü). → kriter 3 hazırlığı
+- [ ] **4.9** **5.000 sahte oyuncu seed'i** + determinizm ölçümü (iki koşu birebir
+      aynı; `created_at`/`updated_at` **gürültülü** dışlanır).
+      ⚠️ `clubs` boş olduğu için **5.000'in 5.000'i serbest oyuncu** — bilinçli, ve
+      4.10'a not bırakılır. → kriter 1
+- [ ] **4.10** **Kriter 3'ün ölçümü** — `ANALYZE` şart (`reltuples != -1` denetlenir) ·
+      **A** = 5.000 (kriteri kapatır) / **B** = sentetik hacim (indeksin gerekçesi) ·
+      **seçici + seçici olmayan** iki terim · mimari etiketi (amd64, üretim ARM64).
+      → kriter 3
+- [ ] **4.11** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR. → kriter 6
+
+**Her migration üç şey daha getirir:** `drizzle/down/<tag>.sql` (yoksa koşucu
+veritabanına **dokunmadan durur**) · round-trip testine bir `it()` · ER diyagramı
+bayatlar (`er-diagram.itest.ts` kırılır — blok **elle düzenlenmez**, hata mesajındaki
+üretilmiş metin kopyalanır, `EXPECTED_TABLE_COUNT`/`EXPECTED_FOREIGN_KEY_COUNT`
+güncellenir). **`comparedFacts` alt sınırı (bugün 1.627) TAHMİN EDİLMEZ** — erişilemez
+bir değer yazılır, gerçek çıktıdan okunur.
+
 **Bağımlılık:** Faz 3
 **Risk:** 47 sütunlu tablo genişliği → `player_attributes` ayrı tabloda, `players` ile 1:1.
+⚠️ **Bölünme riski VAR ve bu faz §0.5'in "bölünme riski yüksek" listesinde DEĞİL** —
+Faz 3 de değildi ve **4 gün sürdü** (§0.5 sınırı 3). 4.7'nin kontrol noktası bu yüzden
+var: bölünme tahminle değil **ölçümle** kararlaştırılır. Çizgi hazır:
+**4a** = 4.1–4.7 (şema) · **4b** = 4.8–4.11 (indeks, seed, ölçüm, kapanış).
 
 ---
 
