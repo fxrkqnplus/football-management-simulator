@@ -526,10 +526,11 @@ Kırılan tek test, bozuk bir `down`u yakalayan **negatif** testti. **On beş po
 test kör bir karşılaştırıcıyla da geçiyordu** — çünkü hepsi `identical: true`
 bekliyor ve kör bir karşılaştırıcı bunu bedavaya sağlıyor.
 
-### 📈 MUTASYON SERİSİ — sekiz ölçüm, bir eğilim (Faz 3.2b → 3.10)
+### 📈 MUTASYON SERİSİ — on ölçüm, bir eğilim (Faz 3.2b → 4.3)
 
-Aynı mutasyon (`compareSchemas` → her zaman `identical: true`) her şema alt
-görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; sekiz rakam bir eğilim:
+Aynı mutasyon her şema alt görevinde **yeniden** koşuldu. Tek rakam bir
+gözlemdir; on rakam bir eğilim. ⚠️ Mutasyonun **tam metni** aşağıdaki kutuda —
+tarifi değil (4.2'de ölçülerek bulundu):
 
 | Alt görev | Şema | Kırılan / toplam `test:db` | Oran |
 |---|---|---|---|
@@ -542,6 +543,7 @@ görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; sekiz rakam bir eğil
 | **3.9** | değişmedi (ölçüm) | **19 / 160** | %11,9 ⬇ |
 | **3.10** | değişmedi (belge) | **19 / 163** | %11,7 ⬇ |
 | **4.2** | değişmedi (kural) | **19 / 163** | %11,7 → |
+| **4.3** | **13 tablo** (`people` + `players`) | **20 / 178** | %11,2 ⬇ |
 
 > ⚠️ **MUTASYONUN TARİFİ DE BİR İDDİADIR — 4.2'de ölçülerek bulundu (D2).**
 > Yukarıdaki başlık mutasyonu *"`compareSchemas` → her zaman `identical: true`"*
@@ -571,7 +573,23 @@ görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; sekiz rakam bir eğil
 > return { differences: [], identical: true, comparedFacts: counter.value };
 > ```
 
-> ⚠️ **SON ÜÇ SATIRDA PAY 19'DA SABİT VE BU BEKLENEN.** 3.8, 3.9 ve 3.10'un
+> ✅ **4.3'TE PAY ARTTI: 19 → 20 — ve BEKLENEN buydu.** 3.8/3.9/3.10/4.2'de pay
+> 19'da sabitti çünkü hiçbiri migration yazmadı. 4.3 `0005`i yazdı, round-trip
+> yüzeyi büyüdü ve körelen karşılaştırıcı **bir yerde daha** ötüyor. Payın
+> kaynağı adıyla belli: 4.3'ün eklediği **dizi eleman tipi negatif testi**
+> (*"③ SESSİZ bozuk down (DİZİ ELEMAN TİPİ)"*).
+>
+> ⚠️ **Aynı alt görevin POZİTİF testleri paya HİÇ katkı yapmadı** ve bu, §11.5'in
+> başındaki ölçümün canlı bir tekrarı: yeni `0005` çevrim testi
+> (`identical: true` + `comparedFacts >= sınır`) kör bir karşılaştırıcıyla da
+> **geçiyor**. Yani *"migration yazdım, round-trip testi ekledim"* tek başına
+> payı artırmaz — artıran şey **negatif testtir**.
+>
+> ℹ️ Oran %11,7 → %11,2 **düştü** çünkü payda 163 → 178 büyüdü (15 yeni test,
+> çoğu `compareSchemas`ı hiç çağırmayan davranış/CHECK testleri). Okuma kuralı
+> gereği bakılan sütun **pay**: 19 → 20.
+
+> ⚠️ **3.8, 3.9, 3.10 VE 4.2'DE PAY 19'DA SABİTTİ VE O DA BEKLENENDİ.** Bu dördün
 > hiçbiri migration yazmadı — round-trip yüzeyi büyümedi, yani körelen
 > karşılaştırıcının ötebileceği yer sayısı da büyümedi. Payda büyüdüğü için
 > oran düştü. **Alarm veren durum bu değil:** şema **büyürken** payın sabit
@@ -733,6 +751,50 @@ kopyala-yapıştıra iniyor. Gerçek bir mutasyonla doğrulandı.
 burada kapı doğru ötüyor ama **ötüşün söylediği şey** yanlış. Soru genişliyor:
 *"bu kapı benim değiştirdiğim dosyalara baktı mı?"* yanına *"öttüğünde
 söylediği şey doğru mu?"*
+
+### ⚠️ BİR ARTEFAKT ÜRETEN YÖNERGE, ARTEFAKTIN KENDİSİ OLMALI — TARİFİ DEĞİL (Faz 4.2'de kural oldu)
+
+**Kural:** bir yönerge okuyanın bir **artefakt** üretmesini istiyorsa (bir metin,
+bir kod parçası, bir komut), yönerge o artefaktın **tarifini** değil
+**kendisini** taşımalıdır. Tarif ile artefakt arasındaki her boşluk, okuyanın
+kendi makul yorumuyla doldurulur — ve o yorum **sessizce farklı bir sonuç**
+üretir.
+
+**Bu kural iki vakadan TÜRETİLDİ, bir vakadan genellenmedi.** Faz 3'ün
+kapanışında bilerek yazılmamıştı: *"geleceğe verilen yönergeler de birer
+iddiadır; **Faz 4'te ikinci bir örnek çıkarsa kural yazılabilir**."* Faz 4.2 o
+ikinci örneği getirdi.
+
+| # | Vaka | Yönergenin tarif ettiği şey | Birebir uygulanınca çıkan sonuç | Düzeltme |
+|---|---|---|---|---|
+| ① | **Faz 3.10 — kurtarma yolu** | *"Vitest'in fark çıktısı üretilmiş metnin tamamını gösteriyor, blok o çıktıdan yenilenir"* | Fark **bağlamı sınırlı** ve yönü ters okunmaya açık; bayat metin geri yazılırsa test **yeşile döner** | Doğru metin **hata mesajının içinde** üretiliyor (`----- ÜRETİLMİŞ METİN -----`) |
+| ② | **Faz 4.2 — ölçüm tarifi** | *"`compareSchemas` → her zaman `identical: true`"* | **18/163**, kayıtlı seri **19** diyor → *"pay düştü, alarm"* diye okundu | Mutasyonun **tam kodu** spec'te duruyor (`return { differences: [], identical: true, … }`) |
+
+**İkisinin ortak yapısı:** yönerge yazıldı, okundu, **ilk kez uygulandığında
+yanlış çıktı**, ve her ikisinde de **yanlış sonuç makul görünüyordu** — 18 bir
+"alarm" olarak raporlanabilirdi, bayat bir diyagram "düzeltildi" sayılabilirdi.
+Yani bu sınıfın belirtisi bir hata değil, **inandırıcı bir yanlış cevaptır**.
+
+**İkisinin çaresi de aynı yere yakınsıyor:** artefaktı yönergenin **içine** koy.
+③'ün kurtarma metni bir dosyada değil, kapının kendi çıktısında. ②'nin
+mutasyonu bir cümlede değil, bir kod bloğunda.
+
+> ⚠️ **SERİNİN BÜTÜNLÜĞÜ HAKKINDA KESKİN SONUÇ (4.2'de ölçüldü).** Mutasyon
+> serisinin 3.2b–3.10 arası rakamları, **yazılı tarifin ürettiğinden farklı bir
+> tarifle** alınmıştı. Seri sağlamdı ama **yazılı olan hiç işlemiyordu**: onu
+> harfiyen izleyen ilk oturum 18 bulup seriyi kırık sanacaktı. Taban çizgisinin
+> `HEAD`'de, kod hiç değişmeden ölçülmesi (orada da 18) bunu kanıtladı —
+> refleks *"pay düştü, alarm"* demek olurdu.
+
+ℹ️ **Bu sınıf artık greplenebilir ve üçüncü aday zaten görünür:**
+`docs/spec/11-project-memory.md` §12.5'in *"§7 rakamları faz kapanışında YENİDEN
+ölçülür — ara ölçümlerden kopyalanmaz"* uyarısı. O **hâlâ sağlam** — Faz 3'te
+tuttu (3.10 rakamları yeniden ölçtü ve ROADMAP'e yazılmış tahminleri düzeltti),
+yani bu bir vaka değil bir **karşı örnek**: aynı sınıftaki bir yönerge, ölçümü
+zorunlu kıldığı için işledi.
+**Envanter bugün AÇILMIYOR (K12).** Bu sınıfın sistematik taraması **Faz 50**'nin
+(bütünsel denetim) işi; buraya yalnızca notu düşülüyor ki orada yeniden
+keşfedilmesin.
 
 ### ⚠️ CI'A YENİ BİR İŞ EKLENDİĞİNDE, MEVCUT İŞLERİN ÖRTÜK HAZIRLIK ADIMLARI ÇIKARILIR (Faz 3.2a)
 

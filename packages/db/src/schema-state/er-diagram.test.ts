@@ -28,6 +28,7 @@ function column(name: string, position: number, overrides: Partial<ColumnFacts> 
     name,
     position,
     dataType: 'text',
+    udtName: 'text',
     maxLength: null,
     numericPrecision: null,
     numericScale: null,

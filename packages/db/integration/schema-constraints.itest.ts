@@ -53,6 +53,8 @@ import { DATA_SOURCES } from '../src/schema/data-pack-columns.js';
 import type { DeleteAction, TableClass } from '../src/schema/fk-policy.js';
 import { classifyTable, expectedDeleteAction } from '../src/schema/fk-policy.js';
 import { KIT_COLOR_SLOTS } from '../src/schema/kit-templates.js';
+import { GENDERS, PERSON_TYPES } from '../src/schema/people.js';
+import { PLAYER_POSITIONS } from '../src/schema/players.js';
 import { foreignKeyNullability } from '../src/schema-state/foreign-key-nullability.js';
 import {
   clubFacilitiesInsertSql,
@@ -62,6 +64,8 @@ import {
   type CountryFixture,
   countryInsertSql,
   kitTemplateInsertSql,
+  personInsertSql,
+  playerInsertSql,
   refereeInsertSql,
   rivalryInsertSql,
   stadiumInsertSql,
@@ -244,6 +248,8 @@ describe('⑥ `key` benzersizliği TABLO BAŞINA (spec/01 §3.1.0)', () => {
       'clubs:clubs_key_unique',
       'competitions:competitions_key_unique',
       'countries:countries_key_unique',
+      // 🆕 4.3 — `people` §3.1.0'ın altıncı taşıyıcısı.
+      'people:people_key_unique',
       'referees:referees_key_unique',
       'stadiums:stadiums_key_unique',
     ]);
@@ -257,22 +263,27 @@ describe('⑥ `key` benzersizliği TABLO BAŞINA (spec/01 §3.1.0)', () => {
    * (`referees`) Faz 3.6'da geliyor, o yüzden bugün dört. Liste yazılı olduğu
    * için 3.6 onu güncellemeyi unutamaz: test kırılır.
    */
-  it('`key` sütununu §3.1.0’ın saydığı BEŞ tablonun tamamı taşıyor', async () => {
+  it('`key` sütununu §3.1.0’ın saydığı ALTI tablonun tamamı taşıyor', async () => {
     const rows = await executor.rows<{ table_name: string }>(`
       SELECT table_name FROM information_schema.columns
        WHERE table_schema = 'public' AND column_name = 'key'
        ORDER BY table_name
     `);
-    // §3.1.0: countries · competitions · clubs · stadiums · referees.
+    // §3.1.0: countries · competitions · clubs · stadiums · referees · people.
     // 3.5'te dörttü ve testin başlığı beşincinin 3.6'da geleceğini yazıyordu;
     // `referees` gelince test **beklendiği gibi kırıldı** ve sayı güncellendi.
+    // 🆕 4.3'te ALTINCI geldi: `people`. ⚠️ `players` bilerek YOK — Karar 3
+    // (4.0b) ölçümle verildi: `key`i `people` taşırsa FK kuralı Faz 4'ün 20
+    // planlanan FK'sında 20/20, `players` taşırsa 17/20 doğru cevap veriyor.
     expect(rows.map((row) => row.table_name)).toEqual([
       'clubs',
       'competitions',
       'countries',
+      'people',
       'referees',
       'stadiums',
     ]);
+    expect(rows.map((row) => row.table_name)).not.toContain('players');
   });
 });
 
@@ -310,7 +321,7 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
    * yani Faz 4'ün ekleyeceği `chairman_person_id` FK'sı burayı güncellemeyi
    * unutamaz.
    */
-  it('ON İKİ FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
+  it('ON ALTI FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
     const rows = await executor.rows<{ conname: string; def: string }>(`
       SELECT conname, pg_get_constraintdef(oid) AS def
         FROM pg_constraint
@@ -336,6 +347,17 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       'clubs_stadium_id_stadiums_id_fk → RESTRICT',
       'competitions_country_id_countries_id_fk → RESTRICT',
       'federations_country_id_countries_id_fk → CASCADE',
+      // 🆕 4.3 — `people` kendi `key`ini taşıyor → bağımsız varlık → RESTRICT.
+      // ⚠️ İKİNCİSİ NULLABLE VE YİNE DE `SET NULL` DEĞİL: kural ② (kaynak
+      // `independent`) ③'ten (nullable → SET NULL) ÖNCE geliyor. Sıranın
+      // koşan kanıtı bu satır.
+      'people_nationality_country_id_countries_id_fk → RESTRICT',
+      'people_second_nationality_country_id_countries_id_fk → RESTRICT',
+      // 🆕 4.3 — `players` bir uydu (`key` yok, giden FK var).
+      // `club_id` NULLABLE → **ŞEMANIN İLK `SET NULL`I** (4.2'nin ③ dalı).
+      'players_club_id_clubs_id_fk → SET NULL',
+      // `person_id` NOT NULL → ④ CASCADE. Kimliği sahibinin kimliğidir.
+      'players_person_id_people_id_fk → CASCADE',
       // hakem kendi `key`ini taşıyor → bağımsız varlık → RESTRICT
       'referees_country_id_countries_id_fk → RESTRICT',
       // aynı tabloya İKİ FK — adlar sütundan ayrışıyor, çakışma yok
@@ -399,6 +421,10 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       federations: 'satellite',
       // ⑧'in üçüncü sınıfı — adı hiçbir yerde YAZILI DEĞİL, katalogdan çıktı.
       kit_templates: 'dictionary',
+      // 🆕 4.3 — `people` `key` taşıyor → independent; `players` taşımıyor ama
+      // giden FK'sı var → satellite. İkisi de katalogdan çıkıyor.
+      people: 'independent',
+      players: 'satellite',
       referees: 'independent',
       rivalries: 'satellite',
       stadiums: 'independent',
@@ -439,16 +465,22 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
 
     // Boş bir sonuç "hiç uyumsuzluk yok" diye okunurdu — bakacak bir şey
     // bulamayan kapı (SAPMA-024). Sayı ayrıca iddia ediliyor.
-    expect(foreignKeys).toHaveLength(12);
+    expect(foreignKeys).toHaveLength(16);
 
     // Nullability GERÇEKTEN okundu mu — boş dizi sessizce "SET NULL uygulanamaz"
     // derdi ve üçüncü olgu hiç sınanmamış olurdu (D3).
     expect(foreignKeys.every((fk) => fk.column_nullability.length > 0)).toBe(true);
 
-    // ⚠️ Bugünkü şemada nullable olan ÜÇ FK var ve üçü de bağımsız bir
-    // varlıktan çıkıyor — yani `SET NULL` dalı BURADA ERİŞİLMİYOR. Sayı
-    // iddia ediliyor ki 4.3 `players.club_id`'yi eklediğinde bu satır kırılsın
-    // ve üçüncü olgunun ilk gerçek vakası fark edilmeden geçmesin.
+    // ⚠️ **BU LİSTE 4.3'TE BEKLENDİĞİ GİBİ KIRILDI ve üçten BEŞE çıktı.**
+    // 4.2 onu *"`players.club_id` gelince kırılsın"* diye koymuştu; kırıldı ve
+    // güncellendi — kural değişmedi.
+    //
+    // ⚠️ **LİSTE `allNullable` HAKKINDA, ALDIKLARI EYLEM HAKKINDA DEĞİL.**
+    // Beşin yalnızca BİRİ `SET NULL` alıyor (`players_club_id`); diğer dördü
+    // RESTRICT, çünkü kaynakları `independent` ve kural ② ③'ten önce geliyor.
+    // `people_second_nationality_country_id` bunun en net örneği: nullable,
+    // listede, ama `SET NULL` **almıyor**. İki farklı şey söyleniyor ve
+    // karıştırılmamaları için ikisi de ayrı ayrı iddia ediliyor.
     const nullableForeignKeys = foreignKeys
       .filter((fk) => foreignKeyNullability(fk.column_nullability).allNullable)
       .map((fk) => fk.name);
@@ -456,7 +488,18 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       'clubs_competition_id_competitions_id_fk',
       'clubs_stadium_id_stadiums_id_fk',
       'competitions_country_id_countries_id_fk',
+      'people_second_nationality_country_id_countries_id_fk',
+      'players_club_id_clubs_id_fk',
     ]);
+
+    // ⚠️ `SET NULL` alan FK sayısı AYRICA iddia ediliyor: 4.2 kuralı yazdı ama
+    // canlı katalogda o dala düşen TEK BİR FK YOKTU (dal entegrasyonda
+    // erişilmiyordu). 4.3 ilk vakayı getirdi; sayı burada sabitleniyor ki dal
+    // bir gün sessizce boşalırsa fark edilsin.
+    const setNullForeignKeys = foreignKeys
+      .filter((fk) => fk.action === 'SET NULL')
+      .map((fk) => fk.name);
+    expect(setNullForeignKeys).toEqual(['players_club_id_clubs_id_fk']);
 
     const classLookup = (table: string): TableClass => classes.get(table) ?? 'independent';
     const mismatches = foreignKeys
@@ -1230,7 +1273,7 @@ describe('`club_kits.asset_id` — iki durumu da temsil edebiliyor', () => {
   });
 });
 
-describe('FAZ 3 ŞEMA ENVANTERİ — 11/11, sayı ÖLÇÜLÜYOR', () => {
+describe('ŞEMA ENVANTERİ — 4.3’te 11 → 13, sayı ÖLÇÜLÜYOR', () => {
   /**
    * SAPMA-021 envanteri **11**'de mutabakata bağlamıştı; sayı o gün üç ayrı
    * yerde üç farklı şekilde yazılıydı (ROADMAP 15, `spec/01` 11, Faz 2 kaydı 16).
@@ -1240,7 +1283,7 @@ describe('FAZ 3 ŞEMA ENVANTERİ — 11/11, sayı ÖLÇÜLÜYOR', () => {
    * migration takip tablosu bir master tablo değil (3.2a'nın tavuk-yumurta
    * çözümü).
    */
-  it('public şemasında TAM OLARAK 11 master tablo var', async () => {
+  it('public şemasında TAM OLARAK 13 master tablo var', async () => {
     const rows = await executor.rows<{ table_name: string }>(`
       SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -1256,11 +1299,14 @@ describe('FAZ 3 ŞEMA ENVANTERİ — 11/11, sayı ÖLÇÜLÜYOR', () => {
       'countries',
       'federations',
       'kit_templates',
+      // 🆕 4.3 — Faz 4’ün on bir master tablosunun ilk ikisi.
+      'people',
+      'players',
       'referees',
       'rivalries',
       'stadiums',
     ]);
-    expect(rows).toHaveLength(11);
+    expect(rows).toHaveLength(13);
   });
 
   it('takip tablosu KENDİ şemasında — master sayımını kirletmiyor', async () => {
@@ -1348,5 +1394,228 @@ describe('rivalries çift tekliği — SIRADAN BAĞIMSIZ', () => {
        WHERE "club_a_id" = "club_b_id"
     `);
     expect(Number(rows[0]?.n)).toBe(1);
+  });
+});
+
+/**
+ * ────────────────────────────────────────────────────────────────────────────
+ * FAZ 4.3 — `ON DELETE SET NULL` DAVRANIŞI, GERÇEK PG18'E KARŞI
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * ⚠️ **KURALIN KATALOGLA UYUŞMASI, VERİTABANININ ÖYLE DAVRANDIĞINI GÖSTERMEZ.**
+ * Yukarıdaki envanter testleri `pg_constraint`ten *"bu FK `SET NULL` taşıyor"*
+ * diye okuyor — bu, kısıtın **yazıldığını** gösterir, **çalıştığını** değil.
+ * `source` CHECK'i için 3.4'te verilen kararın aynısı: her kısıt onu ihlal eden
+ * (ya da tetikleyen) bir işlemle sınanır.
+ *
+ * 4.2 `SET NULL` dalını yazdı ama canlı katalogda o dala düşen **tek bir FK
+ * yoktu**, yani dal entegrasyonda hiç koşmamıştı. Bu blok o boşluğun karşılığı
+ * ve **iki yönlü**: `SET NULL` beklenen yerde çalışıyor, CASCADE beklenen yerde
+ * çalışıyor. Tek yönlü olsaydı *"her silme oyuncuyu bırakıyor"* diyen bozuk bir
+ * şemadan ayırt edilemezdi.
+ */
+describe('FAZ 4.3 — `players` `ON DELETE` DAVRANIŞI (iki yönlü)', () => {
+  /** Bir ülke + bir kulüp + bir kişi + bir oyuncu yazar; hepsi `slug` önekli. */
+  async function seedPlayerAt(slug: string, code: string): Promise<void> {
+    await insertCountry({ key: `${slug}-ulke`, code });
+    await executor.run(clubInsertSql([{ key: `${slug}-kulup`, countryCode: code }]));
+    await executor.run(personInsertSql([{ key: `${slug}-kisi`, countryCode: code }]));
+    await executor.run(playerInsertSql([{ personKey: `${slug}-kisi`, clubKey: `${slug}-kulup` }]));
+  }
+
+  async function playerRow(
+    slug: string,
+  ): Promise<{ n: number; club_id: number | null } | undefined> {
+    const rows = await executor.rows<{ n: number | string; club_id: number | null }>(`
+      SELECT count(*)::int AS n, min("club_id")::int AS club_id
+        FROM "players"
+       WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = '${slug}-kisi')
+    `);
+    const row = rows[0];
+    return row === undefined ? undefined : { n: Number(row.n), club_id: row.club_id };
+  }
+
+  it('SET NULL: kulüp silinince oyuncu DURUYOR ve `club_id` NULL oluyor', async () => {
+    await seedPlayerAt('setnull', 'Q41');
+
+    // Önce bağ gerçekten kurulmuş olmalı — yoksa test hiçbir şey ölçmez (D3).
+    expect((await playerRow('setnull'))?.club_id).not.toBeNull();
+
+    await executor.run(`DELETE FROM "clubs" WHERE "key" = 'setnull-kulup'`);
+
+    const after = await playerRow('setnull');
+    // Oyuncu DURUYOR — `spec/01`'in *"null = serbest oyuncu"* durumu.
+    expect(after?.n).toBe(1);
+    expect(after?.club_id).toBeNull();
+  });
+
+  it('KARŞI ÖRNEK — CASCADE: kişi silinince oyuncu GİDİYOR', async () => {
+    await seedPlayerAt('cascade', 'Q42');
+    expect((await playerRow('cascade'))?.n).toBe(1);
+
+    await executor.run(`DELETE FROM "people" WHERE "key" = 'cascade-kisi'`);
+
+    // Nöbetçi iki yönlü: `SET NULL` her silmeye uygulanmıyor.
+    expect((await playerRow('cascade'))?.n).toBe(0);
+  });
+
+  it('RESTRICT: vatandaşı olan bir ÜLKE silinemiyor — `people` bağımsız varlık', async () => {
+    await insertCountry({ key: 'restrict-ulke', code: 'Q43' });
+    await executor.run(personInsertSql([{ key: 'restrict-kisi', countryCode: 'Q43' }]));
+
+    await expect(
+      executor.run(`DELETE FROM "countries" WHERE "key" = 'restrict-ulke'`),
+    ).rejects.toThrow(/people_nationality_country_id_countries_id_fk/);
+  });
+
+  it('RESTRICT: İKİNCİ uyruk da koruyor — nullable olması SET NULL demek değil', async () => {
+    await insertCountry({ key: 'ikinci-a', code: 'Q44' });
+    await insertCountry({ key: 'ikinci-b', code: 'Q45' });
+    await executor.run(
+      personInsertSql([{ key: 'ikinci-kisi', countryCode: 'Q44', secondCountryCode: 'Q45' }]),
+    );
+
+    // ⚠️ Sütun NULLABLE ve yine de silme REDDEDİLİYOR. Kural ②'nin (kaynak
+    // `independent` → RESTRICT) ③'ten (nullable → SET NULL) önce gelmesinin
+    // DAVRANIŞ tarafındaki kanıtı: sezgi "nullable ise boşaltılır" derdi.
+    await expect(executor.run(`DELETE FROM "countries" WHERE "key" = 'ikinci-b'`)).rejects.toThrow(
+      /people_second_nationality_country_id_countries_id_fk/,
+    );
+  });
+
+  it('`person_id` BENZERSİZ — bir kişinin İKİNCİ oyuncu kaydı olamıyor', async () => {
+    await insertCountry({ key: 'tekil-ulke', code: 'Q46' });
+    await executor.run(personInsertSql([{ key: 'tekil-kisi', countryCode: 'Q46' }]));
+    await executor.run(playerInsertSql([{ personKey: 'tekil-kisi', clubKey: null }]));
+
+    // ⚠️ 1:0..1 ilişkinin TEK koruması bu. `players.id` ayrı bir `serial`
+    // olduğu için (gerekçe `players.ts` başlığında: ona bakan 13 tablo var)
+    // ikinci bir satır teknik olarak mümkün — ve tam da bu yüzden kısıt gerekli.
+    await expect(
+      executor.run(playerInsertSql([{ personKey: 'tekil-kisi', clubKey: null }])),
+    ).rejects.toThrow(/players_person_id_unique/);
+  });
+});
+
+describe('FAZ 4.3 — `people` KAPALI DEĞER KÜMELERİ (§3.1.2 ②)', () => {
+  it('geçersiz `gender` REDDEDİLİYOR', async () => {
+    await insertCountry({ key: 'g-ulke', code: 'Q47' });
+    await expect(
+      executor.run(personInsertSql([{ key: 'g-kisi', countryCode: 'Q47', gender: 'other' }])),
+    ).rejects.toThrow(/people_gender_check/);
+  });
+
+  it('geçersiz `person_type` ELEMANI REDDEDİLİYOR — `coach` kümede yok', async () => {
+    await insertCountry({ key: 'pt-ulke', code: 'Q48' });
+    await expect(
+      executor.run(
+        personInsertSql([{ key: 'pt-kisi', countryCode: 'Q48', personType: ['player', 'coach'] }]),
+      ),
+    ).rejects.toThrow(/people_person_type_check/);
+  });
+
+  /**
+   * ⚠️ BOŞ DİZİ — kısıtın İKİNCİ yarısı ve tek başına ölçülmesi gerekiyor.
+   *
+   * `<@` (alt küme) boş diziyi **kabul ediyor** (PG 18.6'da ölçüldü), yani
+   * yalnızca `<@` yazılsaydı *"hiçbir şey olmayan bir kişi"* sessizce girerdi —
+   * G-11'in *"kısmi koruma D3 yanılsaması üretir"* dersi. `cardinality(...) > 0`
+   * o yarıyı kapatıyor ve bu test onun **ayrı** nöbetçisi: kısıtın yalnızca bir
+   * yarısı silinirse bu test kırılır, diğeri geçmeye devam ederdi.
+   */
+  it('BOŞ `person_type` REDDEDİLİYOR — `<@` tek başına bunu geçirirdi', async () => {
+    await insertCountry({ key: 'bos-ulke', code: 'Q49' });
+    await expect(
+      executor.run(personInsertSql([{ key: 'bos-kisi', countryCode: 'Q49', personType: [] }])),
+    ).rejects.toThrow(/people_person_type_check/);
+  });
+
+  it('KARŞI ÖRNEK: dört rolün hepsi ve ÇOK ROLLÜ dizi kabul ediliyor', async () => {
+    await insertCountry({ key: 'ok-ulke', code: 'Q4A' });
+    await executor.run(
+      personInsertSql([
+        { key: 'ok-oyuncu', countryCode: 'Q4A', personType: ['player'] },
+        { key: 'ok-personel', countryCode: 'Q4A', personType: ['staff'] },
+        { key: 'ok-menajer', countryCode: 'Q4A', personType: ['manager'] },
+        { key: 'ok-baskan', countryCode: 'Q4A', personType: ['chairman'] },
+        // Oyuncu-menajer: dizinin var olma sebebi.
+        { key: 'ok-ikili', countryCode: 'Q4A', personType: ['player', 'manager'] },
+      ]),
+    );
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "people" WHERE "key" LIKE 'ok-%'
+    `);
+    expect(Number(rows[0]?.n)).toBe(5);
+  });
+
+  it('kısıt tanımı PERSON_TYPES ve GENDERS sabitleriyle AYNI değerleri taşıyor', async () => {
+    // Sabit tablo ile veritabanı ayrışabilir; eşitlik VARSAYILMIYOR, ölçülüyor.
+    const personTypeDef = await constraintDefinition('people_person_type_check');
+    for (const value of PERSON_TYPES) {
+      expect(personTypeDef).toContain(`'${value}'`);
+    }
+    // Boş dizi yasağı kısıtın parçası — tanımda görünmezse yarısı kaybolmuş demektir.
+    expect(personTypeDef).toContain('cardinality');
+
+    const genderDef = await constraintDefinition('people_gender_check');
+    for (const value of GENDERS) {
+      expect(genderDef).toContain(`'${value}'`);
+    }
+  });
+});
+
+describe('FAZ 4.3 — `players` KAPALI KÜME ve VARSAYILANSIZ BAYRAK', () => {
+  async function seedPerson(slug: string, code: string): Promise<void> {
+    await insertCountry({ key: `${slug}-ulke`, code });
+    await executor.run(personInsertSql([{ key: `${slug}-kisi`, countryCode: code }]));
+  }
+
+  it('geçersiz `primary_position` REDDEDİLİYOR — `CB` bu kümede yok', async () => {
+    await seedPerson('mevki', 'Q4B');
+    await expect(
+      executor.run(
+        playerInsertSql([{ personKey: 'mevki-kisi', clubKey: null, primaryPosition: 'CB' }]),
+      ),
+    ).rejects.toThrow(/players_primary_position_check/);
+  });
+
+  it('KARŞI ÖRNEK: on iki mevkinin hepsi kabul ediliyor', async () => {
+    await insertCountry({ key: 'tum-ulke', code: 'Q4C' });
+    await executor.run(
+      personInsertSql(
+        PLAYER_POSITIONS.map((position) => ({ key: `tum-${position}`, countryCode: 'Q4C' })),
+      ),
+    );
+    await executor.run(
+      playerInsertSql(
+        PLAYER_POSITIONS.map((position) => ({
+          personKey: `tum-${position}`,
+          clubKey: null,
+          primaryPosition: position,
+        })),
+      ),
+    );
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(DISTINCT "primary_position")::int AS n FROM "players"
+       WHERE "person_id" IN (SELECT "id" FROM "people" WHERE "key" LIKE 'tum-%')
+    `);
+    expect(Number(rows[0]?.n)).toBe(PLAYER_POSITIONS.length);
+  });
+
+  it('`is_newgen` VARSAYILAN ALMIYOR — belirtilmezse INSERT patlıyor', async () => {
+    await seedPerson('newgen', 'Q4D');
+
+    // `clubs.is_national` ile aynı ilke: bir varsayılan, kimsenin belirtmediği
+    // satıra "gerçek oyuncu" bilgisini UYDURURDU. Unutmak gürültülü olmalı.
+    await expect(
+      executor.run(`
+        INSERT INTO "players"
+          ("person_id","primary_position","height_cm","weight_kg","preferred_foot_right",
+           "preferred_foot_left","current_ability","potential_ability","pa_range_min","pa_range_max")
+        SELECT "id",'MC',180,75,18,8,130,150,140,160 FROM "people" WHERE "key" = 'newgen-kisi'
+      `),
+    ).rejects.toThrow(/is_newgen/);
   });
 });

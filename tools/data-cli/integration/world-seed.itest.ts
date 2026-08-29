@@ -353,19 +353,23 @@ describe('KAPSAM SINIRI — 3.8 ne YAPMIYOR', () => {
     expect(await countOf('federations')).toBe(0);
   });
 
-  it('seed YENİ MIGRATION yazmadı — zincir 5 adımda', async () => {
+  it('seed YENİ MIGRATION yazmadı — zincir 6 adımda', async () => {
     const rows = await executor.rows<{ n: string }>(
       'SELECT count(*)::text AS n FROM "fms_meta"."migrations"',
     );
-    expect(Number(rows[0]?.n)).toBe(5);
+    // ⚠️ İDDİA HÂLÂ 3.8 HAKKINDA: *"seed bir migration YAZMADI"*. Sayı zincirin
+    // bugünkü uzunluğu ve her yeni migration'da güncellenir — 4.3 `0005`i
+    // ekledi (5 → 6). Kırılması istenen davranış: seed bir gün sessizce
+    // migration yazarsa bu satır öter.
+    expect(Number(rows[0]?.n)).toBe(6);
   });
 
-  it('11 master tablonun hepsi hâlâ yerinde', async () => {
+  it('master tabloların hepsi hâlâ yerinde — 4.3`te 11 → 13', async () => {
     const rows = await executor.rows<{ n: string }>(
       `SELECT count(*)::text AS n FROM "information_schema"."tables"
         WHERE "table_schema" = 'public' AND "table_type" = 'BASE TABLE'`,
     );
-    expect(Number(rows[0]?.n)).toBe(11);
+    expect(Number(rows[0]?.n)).toBe(13);
   });
 
   it('seed edilen ülke sayısı, ROADMAP Faz 8`in ülke listesiyle aynı', () => {

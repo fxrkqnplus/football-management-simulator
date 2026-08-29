@@ -65,7 +65,7 @@ ROADMAP **15** diyordu, `spec/01` §3.1 bu kapsam için **11** tanımlıyordu,
 `PROJECT_MEMORY.md` Faz 2 kaydı §11 **"16 master tablo"** diyordu. Karar tablosu ve
 her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (SAPMA-021).
 
-## ER Diyagramı (11 tablo · 12 yabancı anahtar)
+## ER Diyagramı (13 tablo · 16 yabancı anahtar)
 
 ```mermaid
 erDiagram
@@ -78,6 +78,10 @@ erDiagram
     stadiums |o--o{ clubs : "stadium_id"
     countries |o--o{ competitions : "country_id"
     countries ||--o{ federations : "country_id"
+    countries ||--o{ people : "nationality_country_id"
+    countries |o--o{ people : "second_nationality_country_id"
+    clubs |o--o{ players : "club_id"
+    people ||--o| players : "person_id"
     countries ||--o{ referees : "country_id"
     clubs ||--o{ rivalries : "club_a_id"
     clubs ||--o{ rivalries : "club_b_id"
@@ -203,6 +207,46 @@ erDiagram
         timestamp_with_time_zone updated_at
     }
 
+    people {
+        integer id PK
+        text key UK
+        text source
+        jsonb external_ids
+        text first_name
+        text last_name
+        text common_name "null"
+        date birth_date
+        integer nationality_country_id FK
+        integer second_nationality_country_id FK "null"
+        text birth_city "null"
+        text portrait_asset_id "null"
+        integer portrait_seed
+        text gender
+        array person_type
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    players {
+        integer id PK
+        integer person_id FK,UK
+        integer club_id FK "null"
+        smallint squad_number "null"
+        text primary_position
+        smallint height_cm
+        smallint weight_kg
+        smallint preferred_foot_right
+        smallint preferred_foot_left
+        smallint current_ability
+        smallint potential_ability
+        smallint pa_range_min
+        smallint pa_range_max
+        boolean is_newgen
+        date retired_at "null"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
     referees {
         integer id PK
         text key UK
@@ -287,7 +331,7 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 şemada (`spec/01` §3.0 — tavuk-yumurta çözümü) ve `introspectSchema()` yalnızca
 `public`'i okuyor.
 
-## Tablolar (11)
+## Tablolar (13)
 
 | # | Tablo | Alt görev | `key`/`source`/`externalIds` | Not |
 |---|---|---|---|---|
@@ -301,35 +345,56 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 | 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` → ikisi de `clubs`, `CASCADE`. **3.7:** `(least,greatest)` UNIQUE ifade indeksi çift tekliğini sıradan bağımsız kapatıyor; kalan tek delik `(A,A)` → Faz 11 (G-11 daraldı) |
 | 9 | `kit_templates` | 3.6 | — | Oyunun kendi 20 SVG şablonu, pakette değil (`spec/12` §17.2'de `templates.json` **yok** — ölçüldü) — `code` **UNIQUE**, `key`in rolünü görüyor. `colorSlots` **CHECK (2,3)**: sayısal ama kapalı küme (§3.1.2 ②, 4. satır) |
 | 10 | `club_kits` | 3.6 | — | `(clubId, kitType)` **UNIQUE** · `kitType` CHECK · `templateId` → **RESTRICT** (sözlük tablosu, §3.1.2 ⑧). ⚠️ `assetId` `spec/01`'de **yoktu**, eklendi (SAPMA-026 EK): `spec/12` §17.4 gerçek forma görselini veriyor ve `null` = şablondan üret (K9) |
-| 11 | `referees` | 3.6 | ✅ | `personId` **Faz 4'te** → Faz 4'e kadar **isimsiz**. Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
+| 11 | `referees` | 3.6 | ✅ | `personId` **Faz 4.4'te** → o âna kadar **isimsiz**. Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
+| 12 | `people` | **4.3** | ✅ | Oyuncu/personel/menajer/başkan **ortak kimlik**. §3.1.0'ın altıncı taşıyıcısı — karar ölçüldü (4.0b Karar 3: `key`i `people` taşırsa FK kuralı 20/20, `players` taşırsa 17/20). `personType` **şemanın ilk dizi sütunu** (`text[]`, CHECK: boş olamaz + kapalı küme) · `gender` CHECK · ikinci uyruk **nullable ama RESTRICT** (kural ② ③'ten önce) |
+| 13 | `players` | **4.3** | — | `personId` **UNIQUE FK** → CASCADE · `clubId` **nullable** → **şemanın ilk `ON DELETE SET NULL`ı** (*"null = serbest oyuncu"*). ⚠️ Faz 3'ün 1:1 desenini **izlemiyor** (ayrı `serial id`) ve gerekçe ölçüldü: ona bakan 13 tablo var (5 master + 8 save), `club_facilities`'e bakan **0**. `primaryPosition` CHECK (12 mevki) · `isNewgen` **DEFAULT ALMIYOR**. `CA <= PA` ve PA bandı CHECK'leri **4.5'te** |
 
-> ✅ **ENVANTER KAPANDI — 11/11 (Faz 3.6).** Sayı gözle sayılmıyor:
+> ✅ **FAZ 3'ÜN ENVANTERİ KAPANDI — 11/11 (Faz 3.6); FAZ 4 ONU BÜYÜTÜYOR (13, 4.3).**
+> Sayı gözle sayılmıyor:
 > `packages/db/integration/schema-constraints.itest.ts` gerçek
 > `information_schema`'dan okuyup tablo adlarını tek tek iddia ediyor,
 > `round-trip.itest.ts` aynı listeyi çevrimin iki ucunda karşılaştırıyor ve
 > **3.10'dan itibaren** `er-diagram.itest.ts` sayıyı bu belgenin metninden de
 > okuyup katalogla karşılaştırıyor.
+> ⏳ **Faz 4'ün kalan dokuz master tablosu 4.5–4.7'de gelecek** (ROADMAP, SAPMA-030).
 > Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` ·
-> `0002_club_core` · `0003_visual_assets_referees` · `0004_search_indexes` — **beşinin de elle yazılmış
-> `down`u var**.
+> `0002_club_core` · `0003_visual_assets_referees` · `0004_search_indexes` ·
+> `0005_people_players` — **altısının da elle yazılmış `down`u var**.
 
 ## Yabancı anahtarlar — bir LİSTE değil, bir KURAL (3.9)
 
-On iki FK'nın `ON DELETE` davranışı elle sayılmıyor; `spec/01` §3.1.2 ③ + ⑧'den
+On altı FK'nın `ON DELETE` davranışı elle sayılmıyor; `spec/01` §3.1.2 ③ + ⑧'den
 **türetiliyor** (`packages/db/src/schema/fk-policy.ts`) ve entegrasyon testi
-türetilen değeri `pg_constraint`teki gerçekle karşılaştırıyor: **12/12, 0
-uyumsuzluk** (PG 18.6).
+türetilen değeri `pg_constraint`teki gerçekle karşılaştırıyor: **16/16, 0
+uyumsuzluk** (PG 18.6). Faz 4.3'ün dört yeni FK'sı **hiçbir liste
+güncellenmeden** denetlendi — kuralın var olma sebebi buydu.
 
 ```
-`key` var                → independent  (ondan çıkan FK  → RESTRICT)
-`key` yok + giden FK var → satellite    (ondan çıkan FK  → CASCADE)
-`key` yok + giden FK yok → dictionary   (ona GİDEN FK    → RESTRICT)
+① hedef dictionary                → RESTRICT
+② kaynak independent              → RESTRICT      ← ③'TEN ÖNCE
+③ FK'nın BÜTÜN sütunları nullable → SET NULL      (4.2'de eklendi)
+④ kaynak satellite (NOT NULL)     → CASCADE
+
+`key` var                → independent
+`key` yok + giden FK var → satellite
+`key` yok + giden FK yok → dictionary
 ```
+
+⚠️ **③'ün İLK CANLI VAKASI 4.3'te geldi: `players.club_id` → `SET NULL`.**
+4.2 kuralı yazdığında canlı katalogda o dala düşen tek bir FK yoktu. Kuralın
+katalogla uyuşması veritabanının öyle *davrandığını* göstermediği için davranış
+ayrıca ölçülüyor: kulüp silinince oyuncu **duruyor** ve `club_id` **NULL**,
+karşı örnekte kişi silinince oyuncu **gidiyor**.
+
+⚠️ **Nullable olmak `SET NULL` almak DEMEK DEĞİL.** Bugün beş FK'nın kaynak
+sütunları tümüyle nullable ama yalnızca **biri** `SET NULL` alıyor; diğer dördü
+`independent` bir tablodan çıktığı için ②'de RESTRICT'te duruyor
+(`people.second_nationality_country_id` bunun en net örneği).
 
 §3.1.2 ⑧'in *"sahipsiz"* kelimesi ölçülebilir bir koşula çevrildi ve
-`kit_templates` **adı hiçbir yerde yazılmadan** bulunuyor. Faz 4'ün
-`injury_types` / `staff_roles` tabloları aynı koşulu sağlayacak; hiçbir liste
-güncellenmeyecek.
+`kit_templates` **adı hiçbir yerde yazılmadan** bulunuyor. **Faz 12**'nin
+`injury_types` tablosu aynı koşulu sağlayacak; `staff_roles` **açılmıyor**
+(4.1'de ölçüldü — `staff.role` bir CHECK).
 
 ℹ️ Elle yazılmış tam envanter testi **korundu**: liste *"bugün şunlar var"*,
 kural *"olması gereken bu"* diyor. Yalnızca kural kalsaydı, kuralın kendisi

@@ -26,6 +26,20 @@
  * sorusu şemada cevapsız kalırdı. Birincil anahtarın kendisi FK olunca teklik
  * veritabanı seviyesinde garanti.
  *
+ * ⚠️ **BU KURAL EVRENSEL DEĞİL — Faz 4.3 onu ölçerek AYIRDI.** `players`
+ * `spec/01`'de **ayrı bir `serial id` + `person_id UNIQUE FK`** taşıyor, yani
+ * bu dosyanın tersini yapıyor. Ayraç bir sayı: **tabloya GELEN yabancı anahtar
+ * sayısı.** `club_facilities`e bakan tablo **0** (canlı katalogdan ölçüldü),
+ * yani kimliği yalnızca `clubs`a bağlanmak için var ve ayrı bir `serial` saf
+ * fazlalık olurdu. `players`a bakan tablo **13** (5 master + 8 save,
+ * `spec/01`'den sayıldı), yani `players.id` **taşıyıcı bir kimlik**.
+ *
+ * **Faz 12 hangisini emsal alacağını tablodan değil AYRAÇTAN okur:** *"bu
+ * tablonun kimliğini başka bir tablo referans alıyor mu?"* Hayır → PK = FK
+ * (bu dosya). Evet → ayrı `serial`, ve bedeli `players.ts` başlığında yazılı.
+ * Aynı fazda iki desen birden yaşıyor ve bu bilinçli: `player_attributes` (4.5)
+ * bu dosyanın desenini izleyecek.
+ *
  * ────────────────────────────────────────────────────────────────────────────
  * ALTI SÜTUN, HEPSİ 1-20 — CHECK YOK
  * ────────────────────────────────────────────────────────────────────────────

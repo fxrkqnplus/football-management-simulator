@@ -78,11 +78,28 @@ tanımlarının **hiçbirinde üçü de yoktu**. Sonradan eklemek on bir tabloya
 | `externalIds` | `jsonb NOT NULL DEFAULT '{}'` | Zod ile doğrulanır. Alanlar `spec/12` §17.3: `wikidata`, `apiFootball`, `transfermarkt` |
 
 **Bu üç sütunu TAŞIYAN tablolar** — pakette **kendi kaydı olarak görünen** varlıklar:
-`countries` · `competitions` · `clubs` · `stadiums` · `referees`
+`countries` · `competitions` · `clubs` · `stadiums` · `referees` · **`people`** (Faz 4.3)
 
 **TAŞIMAYAN tablolar** — bir sahibine 1:1 bağlı uydular; kimlikleri sahiplerinin
-kimliğidir ve onlara `clubId` üzerinden erişilir:
-`club_facilities` · `club_finances_base` · `club_kits` · `rivalries` · `federations` · `kit_templates`
+kimliğidir ve onlara `clubId` (Faz 4'te `personId`) üzerinden erişilir:
+`club_facilities` · `club_finances_base` · `club_kits` · `rivalries` · `federations` · `kit_templates` · **`players`** (Faz 4.3)
+
+> ⚠️ **`people` TAŞIR, `players` TAŞIMAZ — karar ÖLÇÜLEREK verildi (Faz 4.0b, Karar 3).**
+> İkisi aynı kararın iki yüzü ve fark bir sayı: `key`i **`people`** taşırsa
+> `fk-policy.ts` Faz 4'ün 20 planlanan yabancı anahtarında **20/20** doğru cevap
+> üretiyor, **`players`** taşırsa **17/20** (ikisi birden taşırsa 18/20). Mekanizma:
+> `key` taşıyan tablo `independent` sınıfına düşer ve ondan çıkan her FK RESTRICT
+> alır (§3.1.2 ③), yani `players` `key` taşısaydı `players.club_id` `SET NULL`
+> yerine, `players.person_id` CASCADE yerine RESTRICT alırdı.
+>
+> Anlam da aynı yeri gösteriyor: `spec/12` §17.4'ün `players.json` dosyası `key` ve
+> `externalIds` taşıyor ama pakette kendi kaydı olan varlık **kişidir** — aynı kişi
+> önce oyuncu, sonra menajer olabilir (`personType` bir dizi). `players.person_id`
+> UNIQUE, yani oyuncu kaydı kişinin kimliğinden türüyor.
+>
+> ℹ️ `spec/12` §17.4 pakette anahtarı `player-12847` biçiminde yazıyor ve o anahtar
+> `people.key`e düşecek. **Adlandırma tutarsızlığı Faz 9'un işi** (ingest eşlemesi
+> orada yazılıyor); Faz 4'te çözülmüyor.
 
 > `kit_templates` bilerek dışarıda: pakette değil, oyunun **kendi** 20 SVG şablonu
 > (`spec/12` §17.4 *"Görsel yoksa `kit_templates` sisteminden üretilir"*). `code`

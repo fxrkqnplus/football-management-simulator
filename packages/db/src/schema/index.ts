@@ -16,6 +16,10 @@ export type { DeleteAction, ForeignKeyFacts, TableClass, TableClassFacts } from 
 export { classifyTable, DELETE_ACTIONS, expectedDeleteAction, TABLE_CLASSES } from './fk-policy.js';
 export type { KitColorSlots } from './kit-templates.js';
 export { KIT_COLOR_SLOTS, kitTemplates } from './kit-templates.js';
+export type { Gender, PersonType } from './people.js';
+export { GENDERS, people, PERSON_TYPES } from './people.js';
+export type { PlayerPosition } from './players.js';
+export { PLAYER_POSITIONS, players } from './players.js';
 export { referees } from './referees.js';
 export { rivalries } from './rivalries.js';
 export { stadiums } from './stadiums.js';

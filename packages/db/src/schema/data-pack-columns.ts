@@ -11,10 +11,16 @@
  * | `external_ids` | `jsonb NOT NULL DEFAULT '{}'` | Zod ile doğrulanır |
  *
  * **Bu üç sütunu TAŞIYAN tablolar** (pakette kendi kaydı olarak görünen
- * varlıklar): `countries` · `competitions` · `clubs` · `stadiums` · `referees`.
- * **TAŞIMAYAN** (bir sahibine 1:1 bağlı uydular): `club_facilities` ·
+ * varlıklar): `countries` · `competitions` · `clubs` · `stadiums` · `referees` ·
+ * **`people`** (4.3).
+ * **TAŞIMAYAN** (bir sahibine bağlı uydular): `club_facilities` ·
  * `club_finances_base` · `club_kits` · `rivalries` · `federations` ·
- * `kit_templates`.
+ * `kit_templates` · **`players`** (4.3).
+ *
+ * ⚠️ **`people` / `players` ayrımı ÖLÇÜLDÜ** (4.0b Karar 3): `key`i `people`
+ * taşırsa FK kuralı Faz 4'ün 20 planlanan FK'sında 20/20, `players` taşırsa
+ * 17/20 doğru cevap veriyor. Gerekçenin tamamı `spec/01` §3.1.0'da ve
+ * `people.ts` başlığında.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * NEDEN ORTAK BİR MODÜL — beş tabloya kopyalamak yerine

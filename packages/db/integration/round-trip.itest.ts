@@ -78,6 +78,8 @@ import {
   clubKitInsertSql,
   countryInsertSql,
   kitTemplateInsertSql,
+  personInsertSql,
+  playerInsertSql,
   refereeInsertSql,
   rivalryInsertSql,
   stadiumInsertSql,
@@ -87,23 +89,42 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 /** Zincirin son migration'ı — snapshot karşılaştırması bunu okur. */
-const LATEST_SNAPSHOT = '0004_snapshot.json';
+const LATEST_SNAPSHOT = '0005_snapshot.json';
 const CHAIN_TAGS = [
   '0000_countries_initial',
   '0001_geography_institutions',
   '0002_club_core',
   '0003_visual_assets_referees',
   '0004_search_indexes',
+  '0005_people_players',
 ] as const;
 
 /** Zincirin tamamını geri almak için gereken adım sayısı. */
 const FULL_CHAIN_STEPS = CHAIN_TAGS.length;
 
 /**
+ * `tag`'i (ve ondan SONRAKİLERİ) geri almak için gereken adım sayısı.
+ *
+ * ⚠️ **ELLE YAZILAN SAYILAR BİR KEZ KAYDI — ölçüldü (Faz 4.3).** Bu testler
+ * `steps`i sabit yazıyordu ve 3.7 zincire `0004`ü eklerken **kodu artırdı ama
+ * yorumları güncellemedi**: dosyada "steps: 2" yazan bir yorumun
+ * altında `{ steps: 3 }` duruyordu — üç yerde birden. Yorum ile kod arasındaki
+ * bu boşluk sessiz değil ama **yanıltıcı**: sonraki oturum hangisinin doğru
+ * olduğunu bilemez.
+ *
+ * Sayı artık zincirin **kendisinden** türetiliyor. Yeni bir migration
+ * eklendiğinde hiçbir `steps` elle düzeltilmiyor — ve *"hangi migration geri
+ * alınıyor"* sorusu çağrı yerinde **adıyla** okunuyor.
+ */
+function stepsBackTo(tag: (typeof CHAIN_TAGS)[number]): number {
+  return CHAIN_TAGS.length - CHAIN_TAGS.indexOf(tag);
+}
+
+/**
  * Şemanın tam tablo listesi — açıkça yazılıyor, journal'dan okunmuyor
  * (`fixtures.ts` başlığındaki ayrım).
  *
- * ⚠️ **Faz 3'ün envanteri burada TAMAMLANIYOR: 11 tablo.** Sayı üç ayrı yerde
+ * ⚠️ **Faz 3'ün envanteri burada TAMAMLANMIŞTI: 11 tablo.** Sayı üç ayrı yerde
  * üç farklı şekilde yazılıydı ve 3.1'de 11'de mutabakata bağlanmıştı
  * (SAPMA-021). Bu liste o iddianın **koşan** hâli: gerçek veritabanından
  * okunuyor ve adıyla karşılaştırılıyor.
@@ -117,13 +138,40 @@ const ALL_TABLES = [
   'countries',
   'federations',
   'kit_templates',
+  // 🆕 Faz 4.3 — `0005`in iki tablosu. Faz 4'ün envanteri 11 master
+  // (ROADMAP, SAPMA-030); bu ikisiyle 13'e çıkıyor ve dokuzu daha 4.5–4.7'de
+  // gelecek.
+  'people',
+  'players',
   'referees',
   'rivalries',
   'stadiums',
 ] as const;
 
-/** SAPMA-021'in envanter sayısı — listeyle ayrışamaz. */
-const MASTER_TABLE_COUNT = 11;
+/** SAPMA-021'in envanter sayısı — listeyle ayrışamaz. 4.3'te 11 → 13. */
+const MASTER_TABLE_COUNT = 13;
+
+/**
+ * Faz 3'ün on bir tablosu — `0005` geri alındığında geriye kalan.
+ *
+ * `ALL_TABLES`ten türetilmiyor, **açıkça** yazılıyor: dosyanın kendi kuralı
+ * (`fixtures.ts` başlığı) şema İÇERİĞİNİ sınayan testlerde beklenen adların
+ * açık olmasını istiyor. Türetilseydi `ALL_TABLES`e yanlış bir tablo eklendiğinde
+ * bu liste de sessizce onu yansıtırdı.
+ */
+const PHASE_3_TABLES = [
+  'club_facilities',
+  'club_finances_base',
+  'club_kits',
+  'clubs',
+  'competitions',
+  'countries',
+  'federations',
+  'kit_templates',
+  'referees',
+  'rivalries',
+  'stadiums',
+] as const;
 
 /**
  * `comparedFacts` ALT SINIRI — D3 önlemi, her migration'da YENİDEN ÖLÇÜLÜR.
@@ -131,8 +179,15 @@ const MASTER_TABLE_COUNT = 11;
  * "Fark yok" ancak gerçekten bir şeye bakıldıysa anlamlı. Sayaç ölçülmüş
  * değerlerden geliyor: 3.2b'de `countries` tek başına **89**, 3.4'te üç tabloda
  * **466**, 3.5'te sekiz tabloda **1.223**, 3.6'da on bir tabloda **1.619**,
- * 3.7'de dört indeksle **1.627**. Sınır yükseltilmezse test "fark yok"
- * demeye devam eder ama **kaç şeye baktığı** sabitlenmemiş olur — D3.
+ * 3.7'de dört indeksle **1.627**, 4.3'te on üç tabloda **2.204**. Sınır
+ * yükseltilmezse test "fark yok" demeye devam eder ama **kaç şeye baktığı**
+ * sabitlenmemiş olur — D3.
+ *
+ * ⚠️ **4.3'ün artışı (+577) İKİ kaynaktan geliyor ve ikincisi bütün tabloları
+ * etkiliyor:** ① `people` + `players` (17 + 17 sütun, iki sequence, altı kısıt) ·
+ * ② `udtName` alanı **her sütuna** bir olgu ekliyor (`types.ts`teki gerekçe),
+ * yani tek başına şemadaki sütun sayısı kadar artış. Sayı yine **ölçüldü**:
+ * sınır `9_999_999`a kondu ve gerçek değer testin reddettiği çıktıdan okundu.
  *
  * ℹ️ **3.7'nin artışı yalnızca +8 ve bu BEKLENEN:** indeksler tablo/sütun
  * eklemiyor, yalnızca dört indeks olgusu (ad + tanım) getiriyor. Küçük artış,
@@ -144,7 +199,7 @@ const MASTER_TABLE_COUNT = 11;
  * erişilemeyecek bir değere (`9_999_999`) konur ve gerçek değer testin
  * reddettiği çıktıdan okunur. **Tahmin hiç yazılmaz.**
  */
-const COMPARED_FACTS_FLOOR = 1_627;
+const COMPARED_FACTS_FLOOR = 2_204;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;
@@ -366,6 +421,48 @@ async function seedAllTables(): Promise<void> {
       { key: 'hakem-2', countryCode: 'ENG', source: 'pack', strictness: 17 },
     ]),
   );
+
+  /**
+   * 🆕 Faz 4.3 — `people` ve `players`.
+   *
+   * ⚠️ **Üç kişi ÜÇ FARKLI ŞEKLİ temsil ediyor ve bu kasıtlı:** tek uyruklu ·
+   * **çift uyruklu** (`second_nationality_country_id` dolu — nullable FK'nın
+   * `null` OLMAYAN hâli) · **iki rollü** (`person_type` iki elemanlı — dizinin
+   * tek elemanlı olmadığı hâli). Tek şekilli bir fixture, çevrimi o şekilden
+   * başka bir şeyle hiç sınamazdı.
+   */
+  await executor.run(
+    personInsertSql([
+      { key: 'kisi-1', countryCode: 'TUR', firstName: 'Arda', lastName: 'Güler' },
+      {
+        key: 'kisi-2',
+        countryCode: 'ENG',
+        secondCountryCode: 'TUR',
+        commonName: 'Jimmy',
+        birthCity: null,
+        personType: ['player', 'manager'],
+      },
+      {
+        key: 'kisi-3',
+        countryCode: 'ESP',
+        gender: 'female',
+        personType: ['chairman'],
+        portraitAssetId: 'portrait/kisi-3',
+      },
+    ]),
+  );
+
+  /**
+   * ⚠️ **İkinci oyuncu SERBEST (`club_id IS NULL`) ve bu da kasıtlı:** ilk
+   * oyuncu `SET NULL`ın kaynağını, ikincisi **hedef durumunu** taşıyor. Çevrim
+   * ikisinin de üzerinden geçiyor.
+   */
+  await executor.run(
+    playerInsertSql([
+      { personKey: 'kisi-1', clubKey: 'galatasaray', primaryPosition: 'AMC' },
+      { personKey: 'kisi-2', clubKey: null, squadNumber: null, retiredAt: '2019-06-30' },
+    ]),
+  );
 }
 
 /** Seed'in yazdığı toplam satır sayısı — kayıp ölçümü testlerinin dayanağı. */
@@ -381,6 +478,8 @@ const SEEDED_ROWS = {
   kit_templates: 2,
   club_kits: 3,
   referees: 2,
+  people: 3,
+  players: 2,
 } as const;
 
 /**
@@ -426,8 +525,8 @@ async function trackedCount(): Promise<number> {
   return Number(rows[0]?.n ?? 0);
 }
 
-describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
-  it('up → ON BİR tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
+describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
+  it('up → ON ÜÇ tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
 
@@ -463,6 +562,53 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
    * baktığı `clubs`ı düşürüyor.
    */
   /**
+   * 0005 TEK BAŞINA — Faz 4'ün İLK migration'ının kendi kanıtı.
+   *
+   * 0002 ve 0003 ile aynı sınıf (yalnızca `CREATE TABLE`, dolayısıyla
+   * `identical: true` beklenir — §3.1.2 ⑤'in simetrik sonucu) ama ayrı bir test
+   * olmak zorunda: birleşik bir testte 0005'in `down`u 0004'ün arkasında
+   * görünmez olurdu.
+   *
+   * ⚠️ **Bu testin ayrıca ölçtüğü şey: `down`un SIRASI.** `players` `people`a
+   * bakıyor; `people` önce düşürülseydi `down` **gürültülü** patlardı
+   * (`cannot drop table people because other objects depend on it`). Yani test
+   * yeşilse `drizzle/down/0005_people_players.sql`in sırası doğrudur — ve bu,
+   * §3.1.2 ⑦'nin dördüncü koşan uygulaması.
+   */
+  it('yalnızca 0005 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+    const before = await introspectSchema(executor);
+
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0005_people_players'), allowDataLoss: true },
+    );
+
+    // Geri alma tam olarak İKİ tabloyu düşürdü — Faz 3'ün on biri ayakta.
+    const rolledBack = await introspectSchema(executor);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...PHASE_3_TABLES]);
+
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const comparison = compareSchemas(before, after);
+
+    expect(summarizeDifferences(comparison)).toMatch(/^fark yok/);
+    expect(comparison.identical).toBe(true);
+    expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
+
+    // ⚠️ DİZİ SÜTUNU ÇEVRİMDEN GEÇTİ — ve eleman tipi korundu. `dataType` tek
+    // başına bunu söyleyemez (`text[]` ve `integer[]` ikisi de `ARRAY`), o
+    // yüzden `udtName` ayrıca iddia ediliyor. Şemanın ilk dizi sütunu.
+    const personType = after.tables
+      .find((table) => table.name === 'people')
+      ?.columns.find((column) => column.name === 'person_type');
+    expect(personType?.dataType).toBe('ARRAY');
+    expect(personType?.udtName).toBe('_text');
+  });
+
+  /**
    * 0004 TEK BAŞINA — ve bu, zincirin İLK "tablo yaratmayan" migration'ı.
    *
    * Öncekiler tablo/sütun getiriyordu; 0004 yalnızca **uzantı, fonksiyon ve
@@ -475,11 +621,16 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
     await seedAllTables();
     const before = await introspectSchema(executor);
 
-    await migrateDown({ executor, source, logger }, { steps: 1, allowDataLoss: true });
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0004_search_indexes'), allowDataLoss: true },
+    );
 
-    // Tablolar duruyor — kaybolan yalnızca indeksler (ve uzantı + fonksiyon).
+    // ⚠️ 4.3'te bu iddia DEĞİŞTİ: 0005 de geri alındığı için `people`/`players`
+    // artık YOK. Tabloların kalanı duruyor — kaybolan yalnızca indeksler
+    // (ve uzantı + fonksiyon).
     const rolledBack = await introspectSchema(executor);
-    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...ALL_TABLES]);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...PHASE_3_TABLES]);
     const indexNames = rolledBack.tables.flatMap((table) =>
       table.indexes.map((index) => index.name),
     );
@@ -501,9 +652,13 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
     await seedAllTables();
     const before = await introspectSchema(executor);
 
-    await migrateDown({ executor, source, logger }, { steps: 2, allowDataLoss: true });
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0003_visual_assets_referees'), allowDataLoss: true },
+    );
 
     // Geri alma tam olarak ÜÇ tabloyu düşürdü — 0002'nin sekizi ayakta.
+    // (0005'in ikisi ve 0004'ün indeksleri de gitti; onların kendi testleri var.)
     const rolledBack = await introspectSchema(executor);
     expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([
       'club_facilities',
@@ -543,8 +698,12 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
     await seedAllTables();
     const before = await introspectSchema(executor);
 
-    // ⚠️ `steps: 2` — 3.6'da zincir uzadı; 0003 önce, 0002 sonra geri alınıyor.
-    await migrateDown({ executor, source, logger }, { steps: 3, allowDataLoss: true });
+    // ⚠️ Sayı `stepsBackTo`'dan geliyor, elle yazılmıyor — gerekçesi o
+    // fonksiyonun başlığında (elle yazılan sayılar 3.7'de yorumlarından kaydı).
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0002_club_core'), allowDataLoss: true },
+    );
 
     // Geri alma gerçekten sekiz tabloyu düşürdü — 0001'in üçü ayakta.
     const rolledBack = await introspectSchema(executor);
@@ -636,10 +795,12 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
 
-    // ⚠️ `steps: 3` — 3.6'da zincir uzadı. 0003 → 0002 → 0001 sırayla geri
-    // alınıyor; `countries` ayakta kalıyor ve `attnum` deliği ölçülebilir
-    // hâlde duruyor.
-    await migrateDown({ executor, source, logger }, { steps: 4, allowDataLoss: true });
+    // 0005 → 0004 → 0003 → 0002 → 0001 sırayla geri alınıyor; `countries`
+    // ayakta kalıyor ve `attnum` deliği ölçülebilir hâlde duruyor.
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0001_geography_institutions'), allowDataLoss: true },
+    );
 
     const rolledBack = await introspectSchema(executor);
     expect(rolledBack.tables.map((table) => table.name)).toEqual(['countries']);
@@ -716,13 +877,16 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
    *
    * Davranış **gürültülü**: sessizce yanlış veri değil, açık bir hata. Test onu
    * sabitliyor ki sonraki bir oturum bunu yeni bir regresyon sanmasın.
-   * Tam zincir (`steps: 2`) veriyle sorunsuz çalışıyor — yukarıdaki ilk test.
+   * Tam zincir veriyle sorunsuz çalışıyor — yukarıdaki ilk test.
    */
   it('0001 geri alınıp VERİ VARKEN yeniden uygulanırsa GÜRÜLTÜLÜ patlıyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
 
-    await migrateDown({ executor, source, logger }, { steps: 4, allowDataLoss: true });
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0001_geography_institutions'), allowDataLoss: true },
+    );
 
     // Satırlar duruyor — kaybolan yalnızca sütunlar.
     const remaining = await executor.rows<{ n: number | string }>(
@@ -760,8 +924,11 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
 
     // Tanım: birebir aynı — ve karşılaştırma bunu görüyor.
     expect(compareSchemas(schemaBefore, schemaAfter).identical).toBe(true);
-    // ⚠️ DOKUZ sequence, ON BİR tablo: `club_facilities` ve `club_finances_base`
+    // ⚠️ ON BİR sequence, ON ÜÇ tablo: `club_facilities` ve `club_finances_base`
     // `serial id` TAŞIMIYOR (`club_id` hem PK hem FK), yani sequence üretmiyorlar.
+    // 🆕 4.3 ikisini de `serial id`li ekledi — `players`ın ayrı bir `id`si
+    // olması ölçülmüş bir karar (`players.ts` başlığı: ona bakan 13 tablo var,
+    // `club_facilities`'e bakan 0).
     expect(schemaAfter.sequences.map((sequence) => sequence.name).sort()).toEqual([
       'club_kits_id_seq',
       'clubs_id_seq',
@@ -769,6 +936,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0003)', () => {
       'countries_id_seq',
       'federations_id_seq',
       'kit_templates_id_seq',
+      'people_id_seq',
+      'players_id_seq',
       'referees_id_seq',
       'rivalries_id_seq',
       'stadiums_id_seq',
@@ -903,7 +1072,7 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
       .map((item) => `${item.table}.${item.column ?? '?'}`)
       .sort();
 
-    // SEKİZ tablo da düşüyor (0000'in `down`u `countries`i de götürüyor).
+    // ON ÜÇ tablo da düşüyor (0000'in `down`u `countries`i de götürüyor).
     expect(droppedTables).toEqual([...ALL_TABLES]);
     // `countries` tablo olarak düştüğü için sütunları AYRICA sayılmıyor —
     // `computeLoss` tabloyu bir bütün olarak raporluyor. Yani karışık vakada
@@ -923,7 +1092,7 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
 
     const result = await migrateDown(
       { executor, source, logger },
-      { steps: 4, dryRun: true, allowDataLoss: true },
+      { steps: stepsBackTo('0001_geography_institutions'), dryRun: true, allowDataLoss: true },
     );
 
     const byKind = {
@@ -933,9 +1102,9 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
         .map((item) => `${item.table}.${item.column ?? '?'}`),
     };
 
-    // ON tablo düşüyor: 0003'ün üçü + 0002'nin beşi + 0001'in ikisi. `countries`
-    // ayakta kalıyor, o yüzden sütun kalemleri burada GÖRÜNÜR (yukarıdaki testte
-    // değil).
+    // ON İKİ tablo düşüyor: 0005'in ikisi + 0003'ün üçü + 0002'nin beşi +
+    // 0001'in ikisi. `countries` ayakta kalıyor, o yüzden sütun kalemleri burada
+    // GÖRÜNÜR (yukarıdaki testte değil).
     expect(byKind.table.sort()).toEqual([
       'club_facilities',
       'club_finances_base',
@@ -944,6 +1113,8 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
       'competitions',
       'federations',
       'kit_templates',
+      'people',
+      'players',
       'referees',
       'rivalries',
       'stadiums',
@@ -1192,6 +1363,65 @@ describe('çok adımlı çevrim (fixture zinciri)', () => {
 
     expect(comparison.identical).toBe(false);
     expect(summarizeDifferences(comparison)).toContain('probe_name_idx');
+  });
+
+  /**
+   * ⚠️ ③ DİZİ ELEMAN TİPİ — ②'NİN SINIFI AMA `data_type` ONU GÖREMİYOR (Faz 4.3).
+   *
+   * `people.person_type` şemanın ilk dizi sütunu ve onu eklerken bir **körlük**
+   * ölçüldü: `introspect.ts` yalnızca `information_schema.columns.data_type`
+   * okuyordu, ve PostgreSQL 18.6 `text[]` ile `integer[]` için **aynı** değeri
+   * (`ARRAY`) döndürüyor. Eleman tipi yalnızca `udt_name`de (`_text` / `_int4`).
+   *
+   * Yani bir sütunu `text[]`'ten `integer[]`'a çeviren bir `down` ②'nin sessiz
+   * sınıfına giriyordu **ve karşılaştırma da onu görmüyordu** — iki savunmanın
+   * ikisi de kör. Bu test o boşluğun kapandığının kanıtı.
+   *
+   * ⚠️ **Testin can alıcı satırı `dataType` iddiası:** fark üretilirken
+   * `data_type` **değişmiyor**. Eğer `udtName` karşılaştırmadan çıkarılırsa bu
+   * test kırılır ve alanın gerekliliği varsayılmaz, **gösterilir**.
+   */
+  it('③ SESSİZ bozuk down (DİZİ ELEMAN TİPİ) — `data_type` kör, `udt_name` yakalıyor', async () => {
+    const broken = await fixtureChain([
+      {
+        tag: '0000_arr_base',
+        up: 'CREATE TABLE "arr_probe" ("id" serial PRIMARY KEY, "tags" text[] NOT NULL);',
+        down: 'DROP TABLE "arr_probe";',
+      },
+      {
+        tag: '0001_arr_extend',
+        up: 'ALTER TABLE "arr_probe" ADD COLUMN "codes" integer[];',
+        // BOZUK: kendi sütununu düşürüyor AMA 0000'in `tags` sütununu da
+        // `integer[]`e çeviriyor. Sonraki `up` yalnızca `codes`u geri getirir;
+        // `tags`ın eleman tipini kimse geri almaz.
+        down: [
+          'ALTER TABLE "arr_probe" DROP COLUMN "codes";',
+          `ALTER TABLE "arr_probe" ALTER COLUMN "tags" TYPE integer[] USING '{}'::integer[];`,
+        ].join('\n'),
+      },
+    ]);
+
+    await migrateUp({ executor, source: broken, logger });
+    const before = await introspectSchema(executor);
+
+    await migrateDown({ executor, source: broken, logger }, { steps: 1, allowDataLoss: true });
+    // Hiçbir hata YOK — ②'yle aynı sessiz sınıf.
+    await migrateUp({ executor, source: broken, logger });
+
+    const after = await introspectSchema(executor);
+
+    const tagsBefore = before.tables[0]?.columns.find((column) => column.name === 'tags');
+    const tagsAfter = after.tables[0]?.columns.find((column) => column.name === 'tags');
+    // ⚠️ ESKİ ALAN HİÇBİR ŞEY SÖYLEMİYOR — körlüğün kendisi burada iddia ediliyor.
+    expect(tagsBefore?.dataType).toBe('ARRAY');
+    expect(tagsAfter?.dataType).toBe('ARRAY');
+    // Farkı YALNIZCA yeni alan gösteriyor.
+    expect(tagsBefore?.udtName).toBe('_text');
+    expect(tagsAfter?.udtName).toBe('_int4');
+
+    const comparison = compareSchemas(before, after);
+    expect(comparison.identical).toBe(false);
+    expect(summarizeDifferences(comparison)).toContain('tags.udtName');
   });
 
   it('① GÜRÜLTÜLÜ bozuk down (eksik kalan) — sonraki up patlıyor', async () => {

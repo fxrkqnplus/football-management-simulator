@@ -86,6 +86,11 @@ const columnFields = (
 ): Readonly<Record<string, string | number | boolean | null>> => ({
   position: column.position,
   dataType: column.dataType,
+  // ⚠️ 4.3'te eklendi — `dataType` bir dizinin ELEMAN TİPİNİ göremiyor
+  // (`text[]` ve `integer[]` ikisi de `ARRAY`). Gerekçe `types.ts`te, negatif
+  // testi `round-trip.itest.ts`te. Mutasyonla ölçüldü: çıkarılınca 6 test
+  // kırılıyor ve biri tam da o negatif test.
+  udtName: column.udtName,
   maxLength: column.maxLength,
   numericPrecision: column.numericPrecision,
   numericScale: column.numericScale,

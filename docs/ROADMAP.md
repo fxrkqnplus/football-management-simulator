@@ -1820,10 +1820,19 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       `SET NULL` üretimi, sıra `dictionary → independent → nullable → satellite`.
       Migration yok. Faz 3'ün **12 gerçek FK'sı regresyon kümesi**; V1'in bozduğu üç
       vaka **negatif test**. → kriter 2
-- [ ] **4.3** **`people` + `players`** (`0005`) — §3.1.0 sütunları `people`'a,
+- [x] **4.3** **`people` + `players`** (`0005`) — §3.1.0 sütunları `people`'a,
       `person_id` UNIQUE. ⚠️ **`ON DELETE SET NULL` DAVRANIŞ testi** gerçek PG18'e
       karşı: kulüp sil → oyuncu **duruyor**, `club_id` **NULL**; karşı örnek kişi sil →
       oyuncu **gidiyor**. → kriter 1, 6
+      **SONUÇ:** envanter **11 → 13 tablo**, FK **12 → 16**; dört FK'nın dördü de
+      kuraldan **tahmin edildiği gibi** çıktı (RESTRICT · RESTRICT · CASCADE ·
+      **SET NULL**) — hiçbir liste güncellenmeden. `SET NULL` dalının **ilk canlı
+      vakası** (`players.club_id`) ve davranışı gerçek PG18.6'ya karşı iki yönlü
+      ölçüldü. 🆕 **`person_type` şemanın ilk DİZİ sütunu** ve bir körlük açığa
+      çıkardı: `introspect.ts` yalnızca `data_type` okuyordu, `text[]` ile
+      `integer[]` ikisi de `ARRAY` — `udt_name` eklendi ve negatif testle
+      kanıtlandı. `comparedFacts` **1.627 → 2.204** (ölçüldü, tahmin edilmedi).
+      → `docs/reports/faz-04/4.3-people-players.md`
 - [ ] **4.4** **Üç ileri FK** (`0006`) — sütun **ve** kısıt aynı migration'da.
       `managers.user_id` **YAZILMAZ** (Faz 13). → kriter 2
 - [ ] **4.5** **`player_attributes` (47) + `player_hidden_attributes` (10)** (`0007`) —
@@ -1848,6 +1857,16 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       **seçici + seçici olmayan** iki terim · mimari etiketi (amd64, üretim ARM64).
       → kriter 3
 - [ ] **4.11** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR. → kriter 6
+      ⚠️ **`SPEC-COVERAGE-GAPS` ↔ ROADMAP TUTARLILIK KONTROLÜ BURADA KOŞULUR**
+      *(karar 4.3'te verildi ve buraya yazıldı — kütüğe kayıt yetmez, hedef fazın
+      kapsamında görünmeli; 4.0'ın ① bulgusu tam olarak buydu).*
+      **Ne yapılacak:** `docs/SPEC-COVERAGE-GAPS.md`'deki **her** G-satırı için,
+      atandığı fazın ROADMAP kapsamında **adıyla** geçtiği `grep` ile doğrulanır
+      (bugün G-01…G-16). Eşleşmeyen satır **o alt görevde** hedef fazın kapsamına
+      yazılır. **Kontrol koşan bir adımdır, bir temenni değil** (SAPMA-033: bir
+      kuralın kontrol eden adımı yoksa, ateşlendiğinde hiçbir şey olmaz).
+      ⚠️ Tarama, kapatılmış satırları da (G-03, G-08) **listeler ama atlar** —
+      kapanmış bir satırın hedef fazda görünmesi gerekmez.
 
 **Her migration üç şey daha getirir:** `drizzle/down/<tag>.sql` (yoksa koşucu
 veritabanına **dokunmadan durur**) · round-trip testine bir `it()` · ER diyagramı

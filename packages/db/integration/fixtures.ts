@@ -446,6 +446,127 @@ export function refereeInsertSql(rows: readonly RefereeFixture[]): string {
 }
 
 /**
+ * `people` satırı — Faz 4.3.
+ *
+ * ⚠️ `personType` bir **dizi** ve tipli literal ZORUNLU: çok satırlı bir
+ * `VALUES` listesinde tipsiz bir `ARRAY[...]` ortak tip çözümünde `text[]`e
+ * düşmeyebilir. Dosya başlığındaki kural (*"kaybolabilecek her tipe cast
+ * yazılır"*) dizilerde de geçerli — ve burada bedeli daha ağır olurdu, çünkü
+ * `person_type` sütunu bir CHECK taşıyor ve yanlış tip **kısıt hatası** olarak
+ * görünürdü, tip hatası olarak değil.
+ */
+export interface PersonFixture {
+  readonly key: string;
+  readonly countryCode: string;
+  readonly secondCountryCode?: string | null;
+  readonly source?: string;
+  readonly externalIds?: string;
+  readonly firstName?: string;
+  readonly lastName?: string;
+  readonly commonName?: string | null;
+  readonly birthDate?: string;
+  readonly birthCity?: string | null;
+  readonly portraitAssetId?: string | null;
+  readonly portraitSeed?: number;
+  readonly gender?: string;
+  readonly personType?: readonly string[];
+}
+
+/** `people`ın TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
+export function personInsertSql(rows: readonly PersonFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        quote(row.key),
+        quote(row.source ?? 'pack'),
+        `${quote(row.externalIds ?? '{}')}::jsonb`,
+        quote(row.firstName ?? 'Ad'),
+        quote(row.lastName ?? 'Soyad'),
+        textOrNull(row.commonName === undefined ? null : row.commonName),
+        `${quote(row.birthDate ?? '1998-03-14')}::date`,
+        idOf('countries', 'code', row.countryCode),
+        idOf(
+          'countries',
+          'code',
+          row.secondCountryCode === undefined ? null : row.secondCountryCode,
+        ),
+        textOrNull(row.birthCity === undefined ? 'İstanbul' : row.birthCity),
+        textOrNull(row.portraitAssetId === undefined ? null : row.portraitAssetId),
+        String(row.portraitSeed ?? 1),
+        quote(row.gender ?? 'male'),
+        `ARRAY[${(row.personType ?? ['player']).map(quote).join(',')}]::text[]`,
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "people"
+      ("key","source","external_ids","first_name","last_name","common_name","birth_date",
+       "nationality_country_id","second_nationality_country_id","birth_city",
+       "portrait_asset_id","portrait_seed","gender","person_type")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `players` satırı — Faz 4.3.
+ *
+ * `personKey` `people.key`i çözüyor, `clubKey` `clubs.key`i. `clubKey`
+ * verilmezse oyuncu **serbest** (`club_id IS NULL`) — `spec/01`'in kendi
+ * ifadesi ve `ON DELETE SET NULL`ın hedef durumu.
+ */
+export interface PlayerFixture {
+  readonly personKey: string;
+  readonly clubKey?: string | null;
+  readonly squadNumber?: number | null;
+  readonly primaryPosition?: string;
+  readonly heightCm?: number;
+  readonly weightKg?: number;
+  readonly preferredFootRight?: number;
+  readonly preferredFootLeft?: number;
+  readonly currentAbility?: number;
+  readonly potentialAbility?: number;
+  readonly paRangeMin?: number;
+  readonly paRangeMax?: number;
+  readonly isNewgen?: boolean;
+  readonly retiredAt?: string | null;
+}
+
+/** `players`ın TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
+export function playerInsertSql(rows: readonly PlayerFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        idOf('people', 'key', row.personKey),
+        idOf('clubs', 'key', row.clubKey === undefined ? null : row.clubKey),
+        intOrNull(row.squadNumber === undefined ? 10 : row.squadNumber),
+        quote(row.primaryPosition ?? 'MC'),
+        String(row.heightCm ?? 180),
+        String(row.weightKg ?? 75),
+        String(row.preferredFootRight ?? 18),
+        String(row.preferredFootLeft ?? 8),
+        String(row.currentAbility ?? 130),
+        String(row.potentialAbility ?? 150),
+        String(row.paRangeMin ?? 140),
+        String(row.paRangeMax ?? 160),
+        String(row.isNewgen ?? false),
+        row.retiredAt == null ? 'NULL::date' : `${quote(row.retiredAt)}::date`,
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "players"
+      ("person_id","club_id","squad_number","primary_position","height_cm","weight_kg",
+       "preferred_foot_right","preferred_foot_left","current_ability","potential_ability",
+       "pa_range_min","pa_range_max","is_newgen","retired_at")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
  * Gerçek migration zincirinin etiketleri — journal'dan **okunuyor**.
  *
  * Koşucunun davranışını sınayan testler (`runner.itest.ts`) "hangi etiketler

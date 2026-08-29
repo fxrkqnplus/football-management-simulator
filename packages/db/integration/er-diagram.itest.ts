@@ -72,9 +72,16 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 const SCHEMA_DOC = fileURLToPath(new URL('../../../docs/schema/world.md', import.meta.url));
 
-/** Bugünün ölçülmüş şema büyüklüğü — Faz 4 bunları güncelleyecek. */
-const EXPECTED_TABLE_COUNT = 11;
-const EXPECTED_FOREIGN_KEY_COUNT = 12;
+/**
+ * Bugünün ölçülmüş şema büyüklüğü.
+ *
+ * 🆕 **4.3'te beklendiği gibi kırıldı: 11 → 13 tablo, 12 → 16 FK.** Sayılar
+ * tahmin edilmedi — `drizzle-kit generate` çıktısından ve `pg_constraint`ten
+ * okundu (`people` + `players`; dört yeni FK: iki uyruk, `person_id`, `club_id`).
+ * Faz 4'ün kalan dokuz master tablosu 4.5–4.7'de gelecek ve burayı yine kıracak.
+ */
+const EXPECTED_TABLE_COUNT = 13;
+const EXPECTED_FOREIGN_KEY_COUNT = 16;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;

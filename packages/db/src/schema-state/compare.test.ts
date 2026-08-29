@@ -7,6 +7,7 @@ const column = (name: string, overrides: Partial<ColumnFacts> = {}): ColumnFacts
   name,
   position: 1,
   dataType: 'text',
+  udtName: 'text',
   maxLength: null,
   numericPrecision: null,
   numericScale: null,
@@ -87,6 +88,36 @@ describe('compareSchemas', () => {
       before: 'text',
       after: 'integer',
     });
+  });
+
+  /**
+   * ⚠️ DİZİ ELEMAN TİPİ — `dataType` DEĞİŞMEDEN fark üretiyor (Faz 4.3).
+   *
+   * PG 18.6'ya karşı ölçüldü: `text[]` ve `integer[]` **ikisi de**
+   * `data_type = 'ARRAY'`, ayrım yalnızca `udt_name`de (`_text` / `_int4`).
+   * Bu test o ayrımı sabitliyor — `dataType` ikisinde de aynı bırakılıyor ki
+   * farkın **tek kaynağı** `udtName` olsun. Uçtan uca karşılığı
+   * `round-trip.itest.ts` → *"③ SESSİZ bozuk down (DİZİ ELEMAN TİPİ)"*.
+   */
+  it('değişen DİZİ ELEMAN tipini yakalar — `dataType` aynı kalsa bile', () => {
+    const before = schema({
+      tables: [
+        table('people', {
+          columns: [column('person_type', { dataType: 'ARRAY', udtName: '_text' })],
+        }),
+      ],
+    });
+    const after = schema({
+      tables: [
+        table('people', {
+          columns: [column('person_type', { dataType: 'ARRAY', udtName: '_int4' })],
+        }),
+      ],
+    });
+    const result = compareSchemas(before, after);
+    expect(result.differences).toEqual([
+      { path: 'table.people.column.person_type.udtName', before: '_text', after: '_int4' },
+    ]);
   });
 
   it('düşen NOT NULL kısıtını yakalar', () => {

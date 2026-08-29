@@ -184,7 +184,7 @@ describe('migrateDown — gerçek Postgres', () => {
     );
 
     expect(result.dryRun).toBe(true);
-    // `countries` iki satırla, diğerleri boş: yapısal kayıp ON BİR tabloda da
+    // `countries` iki satırla, diğerleri boş: yapısal kayıp ON ÜÇ tabloda da
     // var, satır riski yalnızca `countries`te. Liste açıkça yazılıyor —
     // burada test edilen şey "koşucunun davranışı" değil "şemanın içeriği"
     // (ayrım `integration/fixtures.ts` başlığında). Bu liste her yeni
@@ -198,6 +198,9 @@ describe('migrateDown — gerçek Postgres', () => {
       { kind: 'table', table: 'countries', rowsAtRisk: 2 },
       { kind: 'table', table: 'federations', rowsAtRisk: 0 },
       { kind: 'table', table: 'kit_templates', rowsAtRisk: 0 },
+      // 🆕 Faz 4.3 — `0005`in iki tablosu; ikisi de boş, satır riski yok.
+      { kind: 'table', table: 'people', rowsAtRisk: 0 },
+      { kind: 'table', table: 'players', rowsAtRisk: 0 },
       { kind: 'table', table: 'referees', rowsAtRisk: 0 },
       { kind: 'table', table: 'rivalries', rowsAtRisk: 0 },
       { kind: 'table', table: 'stadiums', rowsAtRisk: 0 },

@@ -23,6 +23,8 @@ interface RawColumn {
   readonly column_name: string;
   readonly ordinal_position: number | string;
   readonly data_type: string;
+  /** Temel tipin katalog adı — dizilerde ELEMAN tipini taşıyan tek alan. */
+  readonly udt_name: string;
   readonly character_maximum_length: number | string | null;
   readonly numeric_precision: number | string | null;
   readonly numeric_scale: number | string | null;
@@ -70,7 +72,7 @@ export async function introspectSchema(
   const schema = schemaName.replace(/'/g, "''");
 
   const columns = await executor.rows<RawColumn>(`
-    SELECT table_name, column_name, ordinal_position, data_type,
+    SELECT table_name, column_name, ordinal_position, data_type, udt_name,
            character_maximum_length, numeric_precision, numeric_scale,
            is_nullable, column_default
       FROM information_schema.columns
@@ -115,6 +117,7 @@ export async function introspectSchema(
         name: column.column_name,
         position: Number(column.ordinal_position),
         dataType: column.data_type,
+        udtName: column.udt_name,
         maxLength: asText(column.character_maximum_length),
         numericPrecision: asText(column.numeric_precision),
         numericScale: asText(column.numeric_scale),
