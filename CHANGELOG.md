@@ -6,6 +6,66 @@ sürümleme: [Semantic Versioning](https://semver.org/lang/tr/).
 
 ## [Yayınlanmamış]
 
+### Eklendi — Faz 3: Veritabanı Şeması I — Dünya Çekirdeği
+
+- **11 master tablo** (`countries`, `federations`, `competitions`, `clubs`,
+  `club_facilities`, `club_finances_base`, `stadiums`, `rivalries`,
+  `kit_templates`, `club_kits`, `referees`) — sayı gözle değil
+  `information_schema`'dan **ölçülerek** iddia ediliyor (SAPMA-021: üç belge üç
+  farklı sayı söylüyordu)
+- **Migration koşucusu** (`packages/db/src/migrate/`): Zod'lu journal, planlama,
+  `up`/`down`, `--dry-run`. Takip tablosu kendi şemasında (`fms_meta.migrations`).
+  ⚠️ `drizzle-kit` `down` **üretmiyor** — beş migration'ın **beşinin de elle
+  yazılmış `down`u** var
+- **Geri almanın veri kaybı ETİKETLENMİYOR, ÖLÇÜLÜYOR** (`loss.ts`): geri alma
+  bir işlemde uygulanır, şema öncesi/sonrası karşılaştırılır, kaybolan
+  tablo/sütunlar ve **kaç satırı** etkilediği sayılır; `allowDataLoss` yoksa
+  işlem **geri alınır ve reddedilir**
+- **Round-trip kanıtı** (`schema-state/`): derin introspection + saf
+  karşılaştırıcı. `up` → **veri yaz** → `down` → `up` çevriminde tam zincirde
+  **1.627 olgu, fark yok**. Karşılaştırıcı `comparedFacts` **döndürüyor** — kör
+  bir kontrolün *"fark yok"* demesiyle karışmasın diye
+- **K4 tip seviyesinde** (`client/`): görünmez marka, `MasterDb` (yazma metotları
+  **tipte yok**), `WritableDb` (master tablo → parametre `never`). `is_master`
+  bayrak sütunu **kullanılmadı**. `arch:check`e dokuzuncu kural
+  (`master-table-marking`) + kanaryası
+- **`ON DELETE` bir LİSTE değil bir KURAL** (`schema/fk-policy.ts`): on iki FK'nın
+  davranışı `spec/01` §3.1.2 ③+⑧'den **türetiliyor**, girdiler katalogdan okunuyor,
+  türetilen değer `pg_constraint`teki gerçekle karşılaştırılıyor — **12/12, 0
+  uyumsuzluk**
+- **Türkçe arama zemini**: `pg_trgm` 1.6 + `unaccent` 1.1 + `IMMUTABLE`
+  sarmalayıcı. Düz `pg_trgm` Türkçe aramayı **sağlamıyor** (ölçüldü: `'Beşiktaş'
+  % 'besiktas'` → `f`); `unaccent`li GIN indeksiyle **0,92 ms** (indekssiz 6,13 ms)
+- **Dört indeks**, biri `LEAST/GREATEST` ifade `UNIQUE`i — `rivalries` çift
+  tekliğini **sıralama sözleşmesi dayatmadan** kapatıyor
+- **Seed betiği** (`tools/data-cli/src/seed.ts`): 6 ülke + 11 yarışma,
+  **deterministik** (K2) ve **idempotent**. İdempotentlik *"patlamadı"* ile değil
+  **ONARIM ile** kanıtlandı
+- **Entegrasyon test katmanı** (`pnpm test:db`, G-03 **kapandı**): Vitest +
+  `testcontainers`, gerçek **PostgreSQL 18.6**, CI'da ayrı iş — **amd64 + arm64**
+  (K14). Faz kapanışında **163 test / 8 dosya**
+- **ER diyagramı ÜRETİLİYOR, çizilmiyor** (`schema-state/er-diagram.ts`):
+  `docs/schema/world.md`'deki mermaid bloğu canlı katalogdan üretiliyor ve bir
+  entegrasyon testi belgeyi katalogla **birebir** karşılaştırıyor. Elle çizilmiş
+  bir diyagram şemanın **üçüncü** temsili olurdu ve üçüncüsünü hiçbir şey
+  denetlemez
+- **Rapor arşivi** (`docs/reports/`): her alt görev raporu terminale basılmadan
+  **önce** dosyaya yazılıyor — append-only, otorite değil
+
+### Değişti — Faz 3
+
+- **PostgreSQL 16 → 18.6** (SAPMA-019) ve collation `--locale=C` →
+  `builtin`/`C.UTF-8` (SAPMA-020 — `C` ctype Türkçe `ILIKE`'ı **sessizce
+  bozuyordu**, dosyadaki yorumun iddiası ölçümle çürütüldü)
+- `docs/spec/01-database.md`: **§3.0** migration disiplini · **§3.1.0** veri
+  paketi sütunları (`key`/`source`/`externalIds`, `key` benzersizliği **tablo
+  başına**) · **§3.1.2** şema yazım kuralları (**on madde**) · **§3.4.1** K4
+  sözleşmesi
+- `docs/spec/09-quality-protocol.md`: §11.4 desen envanterine üç satır, §11.5'e
+  mutasyon serisi ve iki yeni yöntem kuralı (*"bir mutasyonun hiçbir şeyi
+  kırmaması iki farklı şey demek olabilir"* · *"N satırda indeks kullanılıyor bir
+  kural değildir — ayraç seçiciliktir"*)
+
 ### Eklendi — Faz 2: Hata Kontrol ve Gözlemlenebilirlik Protokolü
 
 - **Tipli hata sınıfları** (`packages/shared/src/errors.ts`): `DomainError`,

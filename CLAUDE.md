@@ -19,7 +19,8 @@
 | `PROJECT_MEMORY.md` | Oturumlar arası devir teslim | Her oturum başı + sonu |
 | `docs/ROADMAP.md` | 50 faz, kapsam, kabul kriterleri | Her oturum başı |
 | `docs/SESSION-TEMPLATE.md` | Oturum akışı + faz→spec eşlemesi | Her oturum başı |
-| `docs/OUTPUT-FORMAT.md` | Alt görev rapor formatı | Her alt görev sonu |
+| `docs/OUTPUT-FORMAT.md` | Alt görev rapor formatı + rapor arşivi kuralı | Her alt görev sonu |
+| `docs/reports/` | Alt görev raporlarının **ham arşivi** (append-only, otorite değil) | Her alt görev sonu — rapor terminale basılmadan ÖNCE buraya yazılır |
 | `docs/DEPENDENCY-WATCH.md` | Sürüm takip listesi | Her faz başı |
 | `docs/V2-BACKLOG.md` | Kapsam dışı fikirler | Fikir çıkınca |
 | `docs/spec/01-database.md` | Veritabanı şeması | Faz 3,4,7-9,11,12,46 |
@@ -212,7 +213,7 @@ Her PR açıklaması: faz numarası, kapsam özeti, kabul kriteri kontrol listes
   "backend": {
     "framework": "NestJS 11 (Express 5 — joker rota sözdizimi değişti: /*splat)",
     "orm":       "drizzle-orm 0.45 + drizzle-kit 0.31",   // 1.0 hâlâ RC, girilmedi
-    "db":        "PostgreSQL 16",
+    "db":        "PostgreSQL 18",                          // 16 → 18, Faz 3.0 (SAPMA-019)
     "cache":     "ioredis 5.11",                          // 6.x → BORÇ-001, Faz 16
     "queue":     "bullmq 5.81",                           // 6.x → BORÇ-002, Faz 16
     "validation":"zod 4",

@@ -52,6 +52,22 @@ Bir fikir çıktığında alttaki "Sonradan Eklenenler" bölümüne şu formatta
     TS 7.1 programatik API'yi getirdiğinde zaten tek derleyiciye geçilerek çözülebilir.
   - Tahmini büyüklük: küçük
 
+- **Kulüp onur listesi / tarihsel sezon arşivi** — bir kulübün oyun başlamadan
+  **önceki** geçmişi: "2020-21 şampiyonu X", sezon sezon lig sıralaması, kazanılan
+  kupalar. Kulüp detay ekranında bir "onur listesi" sekmesi olarak.
+  - Nereden çıktı: Faz 3.1, `competition_seasons` tablosunun incelenmesi (SAPMA-021)
+  - Neden v1'de değil: **v1'de hiçbir tüketicisi yok** — tarandı ve ölçüldü:
+    `spec/01` sezonu skaler `seasonYear` olarak taşıyor ve tarihsel tek master tablosu
+    `player_stats_history` (o da **oyuncu** istatistiği, nitelik türetimi girdisi) ·
+    `spec/12` veri paketi formatında tarihsel sezon dizisi **yok** · ROADMAP Faz 8
+    tamamen güncel durum verisi istiyor · **ROADMAP'te bir "kulüp detay ekranı" bile
+    yok** · "kupa vitrini" Faz 47'de ve **menajere** ait (`manager_career`).
+    Oyun içinde üretilen sezon arşivi ayrı bir konu ve Faz 46 rollover'ın işi.
+    Tabloyu bugün açmak, hiçbir şeyin yazmadığı bir tablo açmak olurdu (K12).
+  - v2'de ne gerekir: master `competition_history` tablosu + veri paketi formatına
+    tarihsel sezon dizisi + kulüp detay ekranı
+  - Tahmini büyüklük: orta (veri toplama tarafı asıl maliyet)
+
 ---
 
 ## Not: Veri Paketleri v1'dedir

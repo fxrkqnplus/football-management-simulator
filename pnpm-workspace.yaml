@@ -3,6 +3,69 @@ packages:
   - 'packages/*'
   - 'tools/*'
 
+# KURULUM BETİĞİ POLİTİKASI — Faz 3.0.
+#
+# pnpm 11 bağımlılıkların `install`/`postinstall` betiklerini varsayılan olarak
+# ÇALIŞTIRMAZ ve karara bağlanmamış bir betik kaldığında `pnpm install` **exit 1**
+# döner (`ERR_PNPM_IGNORED_BUILDS`). `drizzle-kit` üç ayrı esbuild sürümünü ağaca
+# soktu (0.18.20 · 0.25.12 · 0.28.2) ve kurulum kapısı anında kırıldı — CI de
+# kırılırdı, çünkü kararın saklandığı `node_modules/.modules.yaml` `.gitignore`'da.
+#
+# İki seçenek vardı: betiği ÇALIŞTIRMAK ya da çalıştırmadığımızı KAYDA GEÇİRMEK.
+# Karar tahminle değil ölçümle verildi — üç sürümün ikilisi betiksiz doğrudan
+# çalıştırıldı:
+#
+#   esbuild@0.18.20 --version -> 0.18.20   ✅
+#   esbuild@0.25.12 --version -> 0.25.12   ✅
+#   esbuild@0.28.2  --version -> 0.28.2    ✅
+#
+# Betiğe ihtiyaç yok: esbuild ikilisi platforma özgü bir optionalDependency
+# (`@esbuild/win32-x64`) olarak geliyor — düz bir dosya, derlenmiyor. Betiği
+# çalıştırmak, ihtiyaç duyulmayan bir yerde keyfî kod çalıştırma izni vermek
+# olurdu ve depo **public** (CLAUDE.md §1.5). Bu yüzden `false`.
+#
+# ⚠️ ANAHTAR `ignoredBuiltDependencies` DEĞİL — pnpm 11'de o ayar ESKİ ve
+# SESSİZCE YOK SAYILIYOR. İlk denemede `ignoredBuiltDependencies: [esbuild]`
+# yazıldı, kurulum hâlâ exit 1 döndü; ikinci denemede `onlyBuiltDependencies: []`
+# de eklendi, yine exit 1. Cevap pnpm'in kendi dağıtımından okundu:
+#
+#   LEGACY_BUILD_SETTINGS = ["onlyBuiltDependencies", "onlyBuiltDependenciesFile",
+#                            "neverBuiltDependencies", "ignoredBuiltDependencies"]
+#
+# `pnpm approve-builds` bu dördünü siliyor (`deletedLegacyKeys`) ve yerine tek bir
+# `allowBuilds` haritası yazıyor. Yazılmış ama hiçbir şey yapmayan bir ayar, bu
+# projenin en pahalı hata sınıfı (`PROJECT_MEMORY.md` → ORTAM TUZAKLARI).
+#
+# ⚠️ pnpm bu bloğu KENDİSİ yazdı: `esbuild: set this to true or false` iskeletini
+# kurulum sırasında bu dosyaya ekledi. Yani `pnpm install` izlenen bir dosyayı
+# değiştirebiliyor; commit öncesi `git diff pnpm-workspace.yaml` bakılmalı.
+#
+# Yeni bir bağımlılık kurulum betiği getirirse buraya AÇIK bir satır eklenir.
+# Varsayılan `false`'tır ve `true` yazmak bilinçli bir karardır.
+allowBuilds:
+  # `drizzle-kit` üzerinden geldi. İkili platforma özgü optionalDependency'den
+  # geliyor, derlenmiyor — üç sürümün de betiksiz çalıştığı ölçüldü (yukarı bak).
+  esbuild: false
+
+  # Aşağıdaki üçü `testcontainers` üzerinden geldi (ssh2 → dockerode zinciri).
+  # ⚠️ K14 GEREKÇESİ — bu satırlar ARM64 uyumunun kendisi:
+  #
+  # `cpu-features` betiği `node-gyp rebuild` çalıştırıyor, yani GERÇEK bir C++
+  # derlemesi. `ssh2`nin betiği (`node install.js`) aynı yerli bağlamayı kurmaya
+  # çalışıyor. Üretim Oracle Ampere A1 (aarch64) üzerinde ve CI arm64 imajı
+  # üretiyor — orada derleyici zinciri gerektiren bir bağımlılık, kurulumu
+  # kırılgan hale getirir.
+  #
+  # Engellemek güvenli, çünkü `cpu-features` ssh2'nin **optionalDependencies**'inde
+  # (ölçüldü: `ssh2.optionalDependencies = {cpu-features, nan}`) — ssh2 onsuz saf
+  # JS kriptoya düşer. `protobufjs`in betiği zaten saf JS.
+  #
+  # Sonuç ölçüldü: 135 yeni paketin hiçbirinde derlenmiş `.node` ikilisi YOK.
+  # Derlenecek bir şey olmayınca ARM'da kırılacak bir şey de yok.
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
+
 # Sürüm kataloğu — tek doğruluk kaynağı.
 # Paketler "typescript": "catalog:" yazar, sürümü burada tutarız. Böylece
 # TypeScript pini (ADR-0003: ~6.0.3, typescript-eslint peer sınırı <6.1.0)

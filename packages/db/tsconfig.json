@@ -1,13 +1,24 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
+    // rootDir/outDir BURADA YOK, `tsconfig.build.json`'da (Faz 3.2a).
+    //
+    // Gerekçe `apps/web/tsconfig.json`'daki ile aynı: `rootDir` tanımlıysa
+    // `src/` dışındaki her dosya tip denetiminden KAÇAR. Bu pakette o dosyalar
+    // `drizzle.config.ts` ve `integration/` — ikisi de ürün kodu değil ama
+    // ikisi de derlenmeli. `apps/web`ten farkı, bu paketin `tsc` ile emit
+    // ETMESİ; bu yüzden `rootDir` silinmiyor, yalnızca emit eden yapılandırmaya
+    // taşınıyor.
+    //
+    // Ölçülmüş bedel: taşınmadan önce `pnpm typecheck` `integration/` dizinini
+    // HİÇ görmüyordu (`tsc --listFiles` ile sayıldı: 0 dosya) ve `pnpm lint`
+    // "was not found by the project service" veriyordu.
+    "noEmit": true,
     // TS 6'da types alanı varsayılan BOŞ. @types/node kurulu olsa bile burada
     // yazılmazsa 'process', 'Buffer', 'node:*' görünmez ve hata mesajı
     // "Cannot find name 'process'" olur — sebebi ise bu satırın eksikliğidir.
     "types": ["node"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "integration/**/*", "drizzle.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

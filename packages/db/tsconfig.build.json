@@ -1,13 +1,29 @@
 {
-  // Derleme yapılandırması: test dosyaları dist'e girmez.
-  // Tip denetimi (tsconfig.json) testleri KAPSAR — yalnızca emit dışında tutulur.
+  // Derleme yapılandırması: yalnızca `src/` altındaki ürün kodu `dist/`e girer.
+  // Tip denetimi (tsconfig.json) DAHA GENİŞ bir küme kapsar — `drizzle.config.ts`
+  // ve `integration/` de denetlenir ama emit EDİLMEZ.
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // rootDir/outDir burada, tsconfig.json'da değil (gerekçe orada yazılı).
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false
+  },
+  "include": ["src/**/*"],
   "exclude": [
     "dist",
     "node_modules",
+    "integration",
+    "drizzle.config.ts",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.test.mts",
-    "src/**/*.test.cts"
+    "src/**/*.test.cts",
+    // ⚠️ `.test-d.ts` AYRI BİR DESEN — `*.test.ts` onunla EŞLEŞMEZ (Faz 3.3'te
+    // ölçüldü: dört dosya `dist/`e sızdı). Tip seviyesi kontrol deneyleri
+    // derleme çıktısına girmez; tek tüketicileri `tsc`nin kendisi.
+    // SAPMA-009'un sınıfı: yeni bir dosya soneki repoya girdiğinde desen
+    // taşıyan HER yer gözden geçirilir (`docs/spec/09` §11.4 envanteri).
+    "src/**/*.test-d.ts"
   ]
 }

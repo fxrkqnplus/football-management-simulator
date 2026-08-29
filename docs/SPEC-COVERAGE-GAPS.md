@@ -30,7 +30,7 @@ kapsamıyla karşılaştırıldı.
 |---|---|---|---|---|
 | G-01 | `spec/09` §11.5 — `pnpm perf:budget` (*"Faz 6+"*) | §11.6'daki 15 satırlık performans bütçesini **ölçen ve ihlalde kıran** bir komut. ROADMAP §0.4 "Performans bütçesi ihlal edilmemiş (ihlal = faz kapanmaz)" diyor — yani her faz kapanışında koşması gereken bir kapı. Hiçbir faz onu **kurmuyor**; `arch:check` ile birebir aynı durum. | **Faz 6** (ilk ölçülebilir ekran) — ölçüm altyapısı; **Faz 49** (mobil cila + performans) genişletir | ✅ ROADMAP Faz 6 kapsamına eklendi |
 | G-02 | `spec/09` §11.5 — `pnpm test:e2e` (*"Faz 17+"*) + §11.4 "Uçtan uca / Playwright" | Playwright **kurulumu** ve ilk kritik akış testi. ROADMAP'te Playwright yalnızca iki yerde geçiyor: yığın listesi (satır 124) ve **Faz 50**'nin tam senaryo paketi. Yani spec Faz 17'den itibaren koşulmasını isterken, ilk kurulum 33 faz sonrasına düşüyor. | **Faz 17** (ana kabuk — ilk gezilebilir akış) | ✅ ROADMAP Faz 17 kapsamına eklendi |
-| G-03 | `spec/09` §11.4 — "Entegrasyon / Vitest + **testcontainers** / Gerçek Postgres ile uçtan uca modül" | Gerçek Postgres'e karşı entegrasyon testi katmanı. `testcontainers` kelimesi **ROADMAP'in tamamında geçmiyor**. Şema Faz 3-4'te, `WorldView` Faz 12'de yazılıyor — ikisi de "gerçek DB'ye karşı doğrulandı" iddiasını taşıyamaz. | **Faz 3** (ilk migration — kurulum) veya **Faz 12** (WorldView) | ✅ ROADMAP Faz 3 kapsamına eklendi |
+| G-03 | `spec/09` §11.4 — "Entegrasyon / Vitest + **testcontainers** / Gerçek Postgres ile uçtan uca modül" | Gerçek Postgres'e karşı entegrasyon testi katmanı. `testcontainers` kelimesi **ROADMAP'in tamamında geçmiyor**. Şema Faz 3-4'te, `WorldView` Faz 12'de yazılıyor — ikisi de "gerçek DB'ye karşı doğrulandı" iddiasını taşıyamaz. | **Faz 3** (ilk migration — kurulum) veya **Faz 12** (WorldView) | ✅ **KAPANDI (Faz 3).** `pnpm test:db` kuruldu (`vitest.integration.config.ts`, iki proje), CI'da ayrı `Entegrasyon` işi **amd64 + arm64**, faz kapanışında **163 test / 8 dosya** gerçek PostgreSQL 18.6 konteynerine karşı |
 | G-04 | `spec/09` §11.4 — "Yük / **k6** / API / 20 eşzamanlı kullanıcı, tur atlama" | Yük testi katmanı. `k6` **ROADMAP'in tamamında geçmiyor**. CLAUDE.md §1.1 "sistem 200 kullanıcıya kadar bozulmadan çalışacak şekilde tasarlanır" diyor — bu iddianın tek ölçüm aracı bu satır. | **Faz 50** (bütünsel denetim ve yayın) | ✅ ROADMAP Faz 50 kapsamına eklendi |
 | G-05 | `spec/09` §11.4 — "Görsel / Playwright / Ekranlar / Anlık görüntü karşılaştırma (mobil + masaüstü)" | Görsel regresyon testi. ROADMAP'te "görsel regresyon", "anlık görüntü karşılaştırma" veya eşdeğeri **hiç geçmiyor**. Faz 49 erişilebilirlik ve Lighthouse'u kapsıyor ama görsel snapshot'ı değil. | **Faz 49** (mobil cila) — G-02'nin Playwright kurulumuna bağımlı | ✅ ROADMAP Faz 49 kapsamına eklendi |
 | G-06 | `spec/10` §13.5 — sınır tablosunda `Sentry \| 5.000 olay/ay \| 4.000` | Faz 47'nin "Telemetri ve Sağlık" listesi disk, DB, R2, Resend, CPU/RAM/kuyruk sayıyor — **Sentry satırı yok**. Kabul kriteri "%80 eşiğinde uyarı tetikleniyor" var ama uyarılacak metrik listesinde Sentry bulunmuyor, yani kriter Sentry'yi kapsamadan da işaretlenebilir. | **Faz 47** (panel uyarısı) + **Faz 50** (admin e-postası zinciri) | ✅ ROADMAP Faz 47 ve 50 kapsamına eklendi |
@@ -47,6 +47,130 @@ uçtan uca denendi ve zincirin bir halkası **yok** çıktı.
 | # | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
 |---|---|---|---|---|
 | G-08 | `spec/09` §11.1 zinciri — *"API middleware AsyncLocalStorage'a koyar → **Tüm loglar otomatik taşır**"*, ve Faz 2'nin 2. kabul kriterinin doğrulaması: *"tarayıcıda tıkla → `X-Correlation-Id` → **sunucu logu**"* | **İstek başına bir sunucu log satırı** (erişim logu). Mekanizma var ve çalışıyor — ama **mutlu yolda hiçbir şey loglamıyor**, yani eşleşecek bir "sunucu logu" üretilmiyor. Ölçüm (2.3b, gerçek tarayıcı): tarayıcı `01a03965-5248-…` üretti, iki `console` satırında logladı, `X-Correlation-Id` ile gönderdi, sunucu **aynı kimliği yanıt başlığında geri verdi** (ekranda "zincir kapandı: evet"), ama `grep` ile sunucu logunda o kimlik **0 kez** bulundu. Karşıt kanıt: başlık **geçersiz** gönderilince middleware `correlation.invalidHeader` uyarısını basıyor ve satır kimliği taşıyor — yani ALS→logger kablolaması sağlam, eksik olan tek şey mutlu yolda **loglayan bir şeyin olmaması**. ROADMAP'in tamamında "istek logu / erişim logu" geçmiyor; 2.4 (exception filter) yalnızca **hata** yolunu logluyor. | **Faz 2** — en doğal yeri 2.4 (istek boru hattına zaten dokunuyor) veya 2.3'e ek bir madde | ✅ **ÇÖZÜLDÜ — 2.3c** (ayrı alt görev olarak; 2.4'e madde olarak **eklenmedi**: 2.4 hata yolunu, 2.3c mutlu yolu yazıyor, aynı commit'te olsalar bir aksaklıkta hangisinin bozulduğu sorulurdu). `apps/api/src/common/middleware/request-log.middleware.ts`. Faz 2'nin **2. kabul kriteri `[x]`** — dört halka gerçek tarayıcı + derlenmiş API ile kanıtlandı |
+
+---
+
+## Tarama 3 — Faz 3.0 (2026-08-26)
+
+Yöntem: Faz 3 açılışında `docs/spec/12-data-packs.md` (veri paketleri) şemadan ne
+istediği açısından satır satır okundu ve `docs/spec/01-database.md` §3.1 ile
+karşılaştırıldı.
+
+| #    | Spec referansı                                                                                         | Ne istiyor                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Hangi faza ait olmalı                                                                     | Durum                                                                                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G-09 | `spec/12` §17.5 adım 7 — *"İndeksle → **`asset_index`** tablosuna kaydet (id, tip, kaynak, hash)"*     | Varlık hattının ürettiği her görselin kaydedileceği bir indeks tablosu. **`spec/01`'de yok, `docs/ROADMAP.md`'nin hiçbir fazında geçmiyor** — yani hiç kimsenin işi. `spec/12` §17.5'in tamamı bu tabloya yazmakla bitiyor ve §17.9 kabul kriteri *"eksik varlık oranı raporlanıyor"* diyor; o oranın sayılacağı yer burası.                                                                                                                                              | **Faz 7** (DataProvider) — tabloyu **dolduran** hat orada; Faz 8-9 ingest onu kullanacak     | ⏳ ROADMAP'e işlenmedi — **Faz 3'te bilinçli olarak AÇILMIYOR.** Hiçbir şeyin yazmadığı bir tablo açmak, tüketicisi olmayan bir sütun açmakla aynı sınıf (Faz 2 §5 **D3**).      |
+
+**Faz 3'ün buna bağlı kararı:** `crestAssetId`, `portraitAssetId`, `logoAssetId`,
+`flagAssetId` alanları `spec/01`'deki gibi düz `text` kalıyor — `asset_index`'e FK
+verilip verilmeyeceği tabloyu açan fazda kararlaştırılır.
+
+> ℹ️ Aynı taramanın **boşluk olmayan** bulguları ROADMAP Faz 3'e doğrudan işlendi:
+> `spec/12` §17.1'in *"her varlık kaydında `source` alanı"* ve §17.3'ün `key` +
+> `externalIds` gereksinimleri `spec/01`'in master tablolarında yoktu. Bunlar
+> "hiçbir fazın işi değil" sınıfına girmiyor — Faz 3'ün **kendi** şema işi — o
+> yüzden burada değil, ROADMAP Faz 3 tablo envanterinde.
+
+---
+
+## Tarama 4 — Faz 3.5 (2026-08-27)
+
+Yöntem: `clubs` tablosunun nullability kararları verilirken ortaya çıkan
+**koşullu** kısıtlar tarandı; sütun seviyesinde ifade edilemeyen her kural için
+"bunu kim doğrulayacak?" sorusu soruldu.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-10 | `spec/01` §3.1 — `clubs.competitionId` · `clubs.stadiumId` · `clubs.isNational` | Faz 3.5'te ikisi de **nullable** yapıldı, çünkü milli takımların (Faz 41) ne ligi ne sabit ev sahası var. Bu, kulüp takımları için bir **tutarlılık boşluğu** bırakıyor: *"`is_national = false` olan bir kulüp ligsiz veya stadyumsuz kalabilir mi?"* Cevap **hayır** olmalı ama bu koşullu bir kural — sütun seviyesinde `NOT NULL` ile ifade edilemez ve §3.1.2 ② gereği CHECK'e de konmuyor. Bugün **hiçbir şey** onu denetlemiyor. | **Faz 11** (`pnpm validate:world`) — veri doğrulayıcısının doğal işi; Faz 8 ingest'i o kuralın ilk müşterisi | ⏳ ROADMAP'e işlenmedi — Faz 11 açılışında karara bağlanır. Kararın gerekçesi `packages/db/src/schema/clubs.ts` başlığında. |
+
+> **Neden bir boşluk, bir borç değil:** borç *"yapılması gerekeni erteledik"*
+> demektir; burada yapılacak şeyin **yeri** başka bir fazda ve o faz henüz
+> gelmedi. Faz 3'ün kapsamı şema, doğrulayıcı değil (K12). Kaydın buraya
+> düşmesinin sebebi tam olarak bu dosyanın var olma sebebi: sütun kararı bugün
+> verildi, denetimi başka bir fazın işi, ve **arada kaybolabilirdi**.
+
+---
+
+## Tarama 5 — Faz 3.6 (2026-08-28)
+
+Yöntem: Faz 3'ün son üç tablosu yazılırken *"bu kuralı kim denetleyecek?"*
+sorusu her koşullu/çapraz kısıt için tekrarlandı.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-11 | `spec/01` §3.1 — `rivalries.clubAId` · `clubBId` | 3.5'te teklik/kendine-referans koruması **bilerek konmadı**: kısmi bir `UNIQUE (a,b)` `(B,A)` ters çiftini sessizce geçirir (D3) ve tam koruma (`CHECK a < b` + `UNIQUE`) Faz 8 ingest'ine hiçbir spec'in istemediği bir **sıralama sözleşmesi** dayatır. Bugün üç hata biçimi denetimsiz: `(A,A)`, `(A,B)` tekrarı, `(B,A)` ters tekrarı. | **Faz 11** (`pnpm validate:world`) | ⚠️ **3.7'DE DARALDI — kapanmadı.** İki hata biçimi kapandı: `rivalries_pair_unique_idx` bir **`LEAST/GREATEST` ifade indeksi** ve `(A,B)` ile `(B,A)`'yı **aynı** anahtara indirgiyor. 3.5'in iki gerekçesi de düştü: koruma kısmi değil **tam**, ve ingest'e **hiçbir sıralama sözleşmesi** dayatmıyor — üçüncü bir yol vardı ve 3.5'te düşünülmemişti. **Kalan tek delik `(A,A)`:** bir ifade indeksi onu engelleyemez (tek satır olarak geçerli bir anahtar üretir), bir **değer** kuralıdır → Faz 11. Kalan delik `schema-constraints.itest.ts`te **koşan bir testle** görünür tutuluyor. |
+| G-12 | `spec/01` §3.1 — `club_kits.color3` ↔ `kit_templates.colorSlots` | 3.6'da `color3` **nullable** yazıldı: iki yuvalı bir şablonda üçüncü renk yoktur. Ama *"`colorSlots = 3` ise `color3` dolu olmalı, `= 2` ise boş olmalı"* bir **çapraz tablo** kuralıdır ve sütun kısıtıyla ifade edilemez. Bugün hiçbir şey denetlemiyor. | **Faz 11** — G-10 ile aynı sınıf (koşullu kural → doğrulayıcı) | ⏳ ROADMAP'e işlenmedi. Karar `packages/db/src/schema/club-kits.ts` sütun yorumunda. |
+
+> **G-10, G-11 ve G-12 aynı sınıf ve bu bir desendir:** üçü de *"şema bu kuralı
+> ifade edemez"* dediği için Faz 11'e düşüyor. Faz 11 açılışında bu üçü **birlikte**
+> okunmalı — tek tek karşılaşılırsa her biri ayrı bir sürpriz gibi görünür.
+>
+> ⚠️ **3.7'nin dersi bu desene bir uyarı ekliyor:** G-11 *"şema bunu ifade edemez"*
+> diye sınıflandırılmıştı ve **yanlıştı** — ifade edebiliyordu, yalnızca yol
+> (ifade indeksi) o gün düşünülmemişti. Faz 11'e devredilen her satır için soru
+> yeniden sorulmalı: *"gerçekten ifade edilemiyor mu, yoksa bir yol mu
+> kaçırdık?"*
+
+---
+
+## Tarama 6 — Faz 3.7 (2026-08-28)
+
+Yöntem: indeksler kurulurken *"hangi sorgu bunu kullanacak"* sorusu ROADMAP'in
+arama isteyen fazlarına karşı tek tek soruldu.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-13 | `docs/ROADMAP.md` Faz 17 — *"Global arama (`/`): oyuncu + kulüp + personel + **lig + turnuva** — tek kutu, Türkçe karakter toleranslı (pg_trgm)"* | Beş varlık türünde trigram araması. **İkisi bugünkü şemayla yapılamaz:** `competitions`ın görünen adı `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`) — onun üzerinde trigram araması anlamsız. Aynı sorun `rivalries.nameKey`te de var. Yani arama, veritabanında **bulunmayan** bir metin üzerinde yapılmak zorunda. | **Faz 5** (i18n altyapısı) çeviri kaynağını belirler; **Faz 17** arama mekanizmasını seçer | ⏳ ROADMAP'e işlenmedi. 3.7 `competitions`a trigram indeksi **koymadı** — indekslenecek bir metin yok. Seçenekler Faz 17'ye bırakıldı (çeviriler üzerinde istemci tarafı arama · çevrilmiş adı taşıyan bir arama tablosu · `nameKey`i tamamlayan bir `displayName` sütunu). Karar `packages/db/src/schema/competitions.ts` yorumunda. |
+
+---
+
+### ℹ️ G-01'E YÖNTEM NOTU — Faz 3.9 (2026-08-28)
+
+> **Yeni bir boşluk değil, G-01'in ilerideki kurulumuna bırakılmış ölçülmüş
+> yöntem.** 3.9 projenin **ilk gerçek performans ölçümünü** yaptı ve `pnpm
+> perf:budget`i kurmak cazipti — **kurulmadı** (K12: kapı G-01 ile Faz 6'ya
+> atanmış). Kurulmayan şeyin yerine, o gün yeniden keşfedilmesin diye yöntem
+> yazıldı. Kod değil, not.
+>
+> ℹ️ **Sınır temiz:** `spec/09` §11.6'nın 15 satırında **veritabanı sorgusu
+> yok** (sayıldı); *"< 20 ms"* `docs/ROADMAP.md` Faz 3'ün kendi kriteri. Yani
+> 3.9 §11.6'ya girmedi, kendi kriterini ölçtü.
+>
+> **Bir `EXPLAIN` ölçümünün geçerli olması için üç şey (3.9'da ölçüldü):**
+>
+> | # | Tuzak | 3.9'da ölçülen |
+> |---|---|---|
+> | ① | Soğuk koşu diski ölçer, sorguyu değil | Bu hacimde fark **yok** (0,059 → 0,055 ms). Isıtma yine de yapılır — zararsızlığı *"muhtemelen"* değil **ölçülerek** biliniyor |
+> | ② | `ANALYZE` enstrümantasyonu süreyi domine edebilir | `TIMING OFF` ile fark **yok** (0,050–0,054 ms her ikisinde) |
+> | ③ | **`ANALYZE` yapılmamış tabloda planlayıcı KÖR** | **Tek gerçek tuzak.** `reltuples = -1` iken dört sorgunun **dördü de** indeksi seçiyor; `ANALYZE` sonrası dördü de Seq Scan'e düşüyor |
+>
+> ⚠️ **③'ün yönü tehlikeli ve kuralın var olma sebebi bu:** yanlış cevap, doğru
+> cevaptan **daha iyi** görünüyor. `ANALYZE`sız bir ölçüm *"indeksler
+> kullanılıyor"* der ve rapora `✅` olarak geçer. PG 14+ `reltuples = -1` ile
+> *"hiç ANALYZE edilmedi"*yi *"edildi ve boş"*tan (`0`) ayırıyor — ölçüm
+> öncesi bakılacak alan bu.
+>
+> **Ve iki okuma kuralı:**
+> - **Bir süre sayısı, ölçüldüğü HACİM yazılmadan anlamsızdır.** 3.9 kriteri
+>   iki etiketli iddiaya böldü (A: seed verisi, kriteri kapatır · B: sentetik
+>   hacim, indeksin gerekçesi) çünkü tek satırda birleştirilseler ölçülmemiş
+>   bir hacim ölçülmüş gibi görünürdü.
+> - **Plan seçimi hacme değil SEÇİCİLİĞE bağlı.** Aynı tabloda, aynı 3.001
+>   satırda: seçici terim GIN indeksini kullanıyor, seçici olmayan terim Seq
+>   Scan'e düşüyor. *"N satırda indeks kullanılıyor"* bir kural değildir.
+> - **Ölçümün MİMARİSİ raporun parçasıdır (K14).** Süreler amd64'te alındı,
+>   üretim ARM64. Mutlak süre taşınabilir değil; bütçe kararı taşınabilir.
+
+---
+
+## Tarama 7 — Faz 3.8 (2026-08-28)
+
+Yöntem: seed'in yazması gereken **her sütun** için *"bu değeri hangi spec
+söylüyor"* sorusu tek tek soruldu. On bir sütunun onunun cevabı vardı; birinin
+yoktu.
+
+| #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| ---- | -------------- | ---------- | --------------------- | ----- |
+| G-14 | `docs/spec/12-data-packs.md` §17.1 + `docs/spec/01-database.md` §3.1.0 — `source` kapalı kümesi: `pack \| api \| wikidata \| openfootball \| procedural` | Her varlığın verisinin **nereden geldiğini** taşımak. Ama küme **elle yazılmış bootstrap seed verisini** kapsamıyor: §17.1'in listesi sağlayıcı zincirinden türetilmiş, hepsi bir **sağlayıcıyı** adlandırıyor. Faz 3.8'in 17 satırı hiçbir sağlayıcıdan gelmiyor — repoda elle yazıldılar. | **Faz 7** (DataProvider soyutlaması) — sağlayıcı zinciri orada kuruluyor, kümenin doğru yeri orası | ⏳ ROADMAP'e işlenmedi. **3.8 `procedural` seçti ve gerekçesi ölçülebilir bir soruya dayanıyor:** alanın tüketicisi (§17.1 *"Veri Editörü'nde hangi varlığın nereden geldiği görünür — eksikleri kapatmak kolaylaşır"*) şunu soruyor: *"bu satır için hâlâ gerçek veri gerekiyor mu?"* `pack` **hayır** derdi ve Faz 8 ingesti bu satırları otoriter paket verisi sanardı; `procedural` **evet** der. Ayrıca `procedural` bugünkü durumun birebir tarifi: `ACTIVE_PACK` boş, K9'un yedek koşulu geçerli. **Altıncı bir değer (`seed`) eklemek CHECK kısıtını değiştirmek, yani yeni bir migration demekti** — 3.8'in kapsamı dışında (K12). Faz 7 kümeyi yeniden değerlendirirse seed `DO UPDATE` yaptığı için tek koşuda düzelir. Karar `tools/data-cli/src/seed/world-seed-data.ts` başlığında. |
 
 ---
 

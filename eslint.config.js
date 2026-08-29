@@ -50,6 +50,25 @@ export default tseslint.config(
           // ileride eklenecekler) hiçbir paket tsconfig'ine dahil değil.
           // Bunlar olmadan projectService "was not found by the project
           // service" hatası verir. Glob `**` içermemeli.
+          //
+          // ⚠️ BU LİSTE 3.2a'DA GERİ DARALTILDI — ve bu bir düzeltme.
+          //
+          // 3.0'da `packages/db/drizzle.config.ts` buraya eklenmişti, çünkü
+          // `apps/web` emsali (tsconfig `include`) `rootDir: "src"` yüzünden
+          // TS6059 veriyordu. O geçici çözümün gizli bedeli 3.2a'da ölçüldü:
+          // `packages/db/integration/` de aynı sebeple tip denetiminden
+          // KAÇIYORDU (`tsc --listFiles` → 0 dosya) ve lint aynı hatayı
+          // veriyordu.
+          //
+          // Gerçek çözüm `rootDir`i EMİT EDEN yapılandırmaya taşımaktı
+          // (`packages/db/tsconfig.build.json`); `apps/web`in kendi yorumu
+          // zaten bunu söylüyordu: *"rootDir tanımlıysa yapılandırma dosyası
+          // tip denetiminden kaçar."* Taşındıktan sonra iki dosya da paketin
+          // kendi tsconfig'ine girdi ve bu istisnaya gerek kalmadı.
+          //
+          // **Ders:** `allowDefaultProject`e bir satır eklemek, o dosyayı tip
+          // denetiminin dışında bırakan asıl sebebi GİZLER — ve aynı sebep
+          // bir sonraki dosyada sessizce tekrarlar.
           allowDefaultProject: ['*.config.ts'],
         },
         tsconfigRootDir: import.meta.dirname,

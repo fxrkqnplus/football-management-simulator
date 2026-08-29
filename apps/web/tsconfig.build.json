@@ -1,6 +1,0 @@
-{
-  // Derleme yapılandırması: test dosyaları dist'e girmez.
-  // Tip denetimi (tsconfig.json) testleri KAPSAR — yalnızca emit dışında tutulur.
-  "extends": "./tsconfig.json",
-  "exclude": ["dist", "node_modules", "src/**/*.test.ts"]
-}

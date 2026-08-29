@@ -14,3 +14,11 @@ LICENSE
 #      onun için doğrudan bir kalite özelliği
 # Kod bloklarının içi zaten inceleme sırasında gözden geçiriliyor.
 *.md
+
+# Drizzle'ın ÜRETTİĞİ migration artefaktları — Faz 3.2a.
+# `drizzle-kit generate` bu dosyaları her koşuda yeniden yazıyor; biçimlendirmek
+# tekrar eden bir sürtünme yaratır (üret → biçimlendir → tekrar üret → tekrar
+# biçimlendir) ve diff'i araç çıktısıyla karıştırır. Aynı gerekçe `pnpm-lock.yaml`
+# için de geçerli. `down/` altındaki dosyalar ELLE yazılıyor ama `.sql`i Prettier
+# zaten biçimlendirmiyor.
+packages/db/drizzle/

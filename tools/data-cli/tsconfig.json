@@ -1,8 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
+    // rootDir/outDir BURADA YOK, `tsconfig.build.json`'da — `packages/db` ile
+    // birebir aynı gerekçe (Faz 3.2a, orada ölçülmüş): `rootDir` tanımlıysa
+    // `src/` dışındaki her dosya tip denetiminden **kaçar**. Bu pakette o dosya
+    // Faz 3.8'den itibaren `integration/` — ürün kodu değil ama derlenmeli,
+    // yoksa `pnpm lint` "was not found by the project service" verir ve
+    // entegrasyon testi tip denetiminin tamamen dışında kalır.
+    "noEmit": true,
     // TS 6'da types alanı varsayılan BOŞ. @types/node kurulu olsa bile burada
     // yazılmazsa 'process', 'Buffer', 'node:*' görünmez ve hata mesajı
     // "Cannot find name 'process'" olur — sebebi ise bu satırın eksikliğidir.
@@ -11,6 +16,6 @@
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "integration/**/*"],
   "exclude": ["dist", "node_modules"]
 }

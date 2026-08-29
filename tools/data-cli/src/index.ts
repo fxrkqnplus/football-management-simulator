@@ -1,11 +1,15 @@
 /**
  * @fms/data-cli — Veri ingest ve doğrulama aracı.
  *
- * Faz 1 iskeleti: henüz kod yok, içerik Faz 7 (DataProvider) ile başlar.
+ * Faz 1'de bilerek boştu (`export {}`); ilk gerçek içerik **Faz 3.8**'in seed
+ * hattı. Geri kalanı Faz 7 (DataProvider) ile gelecek.
  *
- * Bilerek BOŞ. Önceden buradaki yer tutucu sabit, kapsam raporunda test
- * edilmemiş gerçek kod gibi görünüyordu ve packages/engine'i %0'a çekiyordu.
- * Kapsam kapısının doğru şeyi ölçmesi için var olmayan kodun raporda da
- * olmaması gerekir.
+ * ⚠️ **Bu dosyanın boş olması bir kapsam iddiasını SINANMAMIŞ bırakmıştı.**
+ * `docs/spec/09` §11.4 *"`tools/` kapsam eşiğine dahil değildir"* diyordu; ölçüm
+ * bunu çürüttü — `vitest.config.ts` `coverage.include` üçüncü deseni
+ * `tools` altındaki her paketin `src` ağacını topluyor ve bu dosya kapsam
+ * raporunda **zaten vardı**, yalnızca girdisi
+ * `0/0` olduğu için kimse fark etmemişti. Bakacak bir şey bulamayan bir kapı
+ * "temiz" diyordu (SAPMA-024'ün kardeşi). Kayıt: **SAPMA-027**.
  */
-export {};
+export * from './seed/index.js';

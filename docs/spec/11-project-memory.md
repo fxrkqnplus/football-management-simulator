@@ -239,6 +239,41 @@ aynı mantığı).
 > durur. SAPMA-001'de iki yer vardı ve ikincisi (Faz 10) niteliği **adıyla**
 > sayıyordu — sayıyı arayan bir taramanın kaçırabileceği bir biçim.
 
+### ⚠️ KENDİ YAZDIĞIN PLAN, KAYNAK DEĞİLDİR (Faz 3.1 — desen **D7**)
+
+**Kural:** bir iddiayı doğrularken `grep` eşleşmesinin **hangi dosyada** olduğuna
+bakılır. Eşleşme `docs/ROADMAP.md` veya `PROJECT_MEMORY.md`'deyse o **kaynak
+değil, kendi sesindir** — bir önceki oturumda oraya sen yazdın. Kaynak
+`docs/spec/` altındadır.
+
+**Nasıl ortaya çıktı (Faz 3.1, günlük #7).** Bir varsayım — *"ROADMAP Faz 8 kulüp
+detay ekranında sezon sezon performans geçmişi istiyor"* — bir önceki turda plan
+metnine yazıldı. Ertesi alt görevde bu iddia `grep` ile arandı ve **tek eşleşme o
+metnin kendisiydi.** Bir an için doğrulanmış göründü. Faz 8'in kapsamı baştan sona
+okununca gerçek çıktı: madde orada **yok**, hatta ROADMAP'te bir "kulüp detay
+ekranı" bile yok.
+
+**Neden D2'den (ölçüm aracı yanlış cevap üretir) ayrı bir sınıf:** orada araç
+bozuktur; burada **araç doğru çalışır**, `grep` gerçekten var olan bir satırı
+bulur. Bozuk olan **kaynaktır**. Bu yüzden D2'nin önlemi (aracı doğrula) burada
+işe yaramaz.
+
+**Neden bu projede özellikle tehlikeli:** ROADMAP her fazda büyüyor ve içine
+yazılan her varsayım, sonraki taramalar için kalıcı bir "kaynak" hâline geliyor.
+47 faz daha var; kirlilik birikir.
+
+**Somut eylem kuralı:**
+
+| Eşleşme nerede | Ne anlama gelir |
+|---|---|
+| `docs/spec/**` | **Kaynak.** Spesifikasyon bunu istiyor |
+| `CLAUDE.md` | **Kaynak.** Anayasa |
+| `docs/ROADMAP.md`, `PROJECT_MEMORY.md` | **Kendi sesin.** Doğrulama değil; kim, hangi commit'te yazdı diye bak |
+| Kod yorumu | Yazıldığı andaki gerekçe — ölçüm değilse iddiadır |
+
+Şüphe varsa: `git log -S '<iddia>' -- <dosya>` ile satırın **hangi commit'te**
+girdiğine bakılır. Kendi son commit'inse, kaynak değildir.
+
 ## 12.5 Faz Kaydı Şablonu
 
 Her faz için bu şablon **eksiksiz** doldurulur:

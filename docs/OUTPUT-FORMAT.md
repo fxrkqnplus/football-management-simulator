@@ -58,6 +58,14 @@ Yukarıdaki özet bu bölüm olmadan da anlaşılır olmalı.]
   içindeki blok her alt görev sonunda yeniden yazılır.
 - **Kanıtlar bölümünde test edilmemiş bir kapı test edilmiş gibi yazılmaz.**
   "test edilmedi" yazmak, yanlış "✅"den iyidir.
+- **Bir kapı koştu ama BAKACAK BİR ŞEY BULAMADIYSA bu onay değildir** (Faz 3.2a,
+  SAPMA-024). Somut vaka: `.prettierignore` `*.md` taşıyor, yani belge ağırlıklı
+  bir alt görevde `pnpm format:check` **değişen hiçbir dosyaya bakmadan**
+  `All matched files use Prettier code style!` diyor. Ölçüldü: 168 izlenen
+  dosyanın **31'i** yok sayılıyor, 29'u Markdown. Böyle bir commit'te rapor
+  `format ✅` değil, **`format — Markdown kapsam dışı, bu commit'te denetlenen
+  dosya yok`** yazar. Aynı soru her kapı için sorulur: *"bu kapı benim
+  DEĞİŞTİRDİĞİM dosyalara baktı mı?"*
 - Bir alt görev 🟢 ise ve kullanıcı "devam" derse sıradakine geçilir — tekrar
   plan sunulmaz, plan zaten `docs/ROADMAP.md`'de onaylıdır.
 
@@ -83,6 +91,52 @@ kalemden** (`Messages`, `System tools`, …) alınmaz.
 > yeni bir alanda hatırlanacağı anlamına gelmiyor** — bu yüzden kural, ihlal
 > edildiği yerin yanına ikinci kez yazıldı.
 
+## Rapor arşivi (zorunlu)
+
+> **Faz 3.10'da eklendi.** Rapor **önce dosyaya yazılır, sonra terminale
+> basılır**; terminale basılan metin o dosyanın **aynısıdır**.
+
+**Neden:** rapor bugüne kadar yalnızca terminale basılıyordu ve iki kayıp
+vardı. ① Terminal → pano → sohbet yolunda metin **bozuluyor** — ölçüldü: son
+üç raporun üçünde de kelimeler kaynadı, satırlar kırpıldı. ② Oturum penceresi
+kapanınca rapor tamamen kayboluyor; `PROJECT_MEMORY.md` özeti taşıyor ama
+**ham raporu taşımıyor**.
+
+**Yer ve ad:**
+
+```
+docs/reports/<faz-slug>/<alt-görev-no>-<kısa-slug>.md
+docs/reports/faz-03/3.10-er-diyagrami-ve-faz-kapanisi.md
+```
+
+**Dosyanın başında künye bloğu:**
+
+```markdown
+> **Alt görev:** 3.10 — ER diyagramı + faz kapanışı + PR
+> **Tarih:** YYYY-MM-DD · **Dal:** feature/faz-03-database
+> **İçerik commit'i:** <hash> · **CI koşusu:** <id> · **PR:** #<n>
+> **Bağlam yüzdesi:** <ölçüm> veya "ölçülemedi"
+```
+
+⚠️ **`İçerik commit'i` alt görevin İŞİNİ taşıyan commit'tir, raporu taşıyan
+commit değil.** Bir dosya kendi commit hash'ini taşıyamaz; ilk kullanımda
+(3.10) buraya doldurulması imkânsız bir yer tutucu yazıldı ve sözleşme aynı
+gün daraltıldı. Raporu ekleyen commit `git log` ile zaten bulunur.
+
+Künyenin altında **raporun tamamı**: özet **ve** `DETAY` bölümü, birebir.
+Kısaltma yok.
+
+**Sözleşme** (tamamı `docs/reports/README.md`'de):
+
+- **Commit edilir**, `.gitignore`'a eklenmez — oturum kurtarma `git log`
+  üzerinden yürüyor; izlenmeyen bir klasör aynı yolla kurtarılamaz.
+- **Append-only:** yazıldıktan sonra geriye dönük düzenlenmez. Düzeltme
+  sonraki rapora ve `PROJECT_MEMORY.md`'nin *"Bilinen kayıt düzeltmeleri"*
+  bölümüne gider.
+- **Arşiv otorite DEĞİLDİR** — çelişkide `PROJECT_MEMORY.md` kazanır.
+- 3.0–3.9 **geriye dönük doldurulmadı**; kural 3.10'da başladı ve boşluk
+  `docs/reports/README.md`'de açıklanıyor.
+
 ## Faz sonu eki
 
 Fazın son alt görevinde (X.10 gibi) yukarıdakine **ek olarak**:
@@ -93,4 +147,5 @@ Fazın son alt görevinde (X.10 gibi) yukarıdakine **ek olarak**:
 **Performans:** [ölçülen metrikler, bütçeyle karşılaştırmalı]
 **PROJECT_MEMORY:** faz kaydı yazıldı [x] · ANLIK DURUM güncellendi [x]
 **PR:** #[n] açıldı [x]
+**Rapor arşivi:** docs/reports/<faz-slug>/<no>-<slug>.md yazıldı [x]
 ```

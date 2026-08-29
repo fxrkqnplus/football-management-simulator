@@ -107,10 +107,40 @@ function slugify(name: string): string {
     .replace(/[^a-z0-9]/g,'')
     .trim();
 }
-// "Galatasaray S.K." → "galatasaray"
-// "Beşiktaş JK"      → "besiktas"
+// "Galatasaray S.K." → "galatasaraysk"   ⚠️ aşağıya bakınız
+// "Beşiktaş JK"      → "besiktasjk"      ⚠️ aşağıya bakınız
 // "FC Bayern München"→ "bayernmunchen"
 ```
+
+> ⚠️ **DÜZELTME (Faz 3.1, SAPMA-022) — bu örneklerin ikisi YANLIŞTI.**
+> Yukarıdaki fonksiyon **birebir kopyalanıp çalıştırıldı**; kendi belgelediği üç
+> örnekten **ikisini tutturmuyor**:
+>
+> | Girdi | Spec'in iddiası | **Ölçülen** |
+> |---|---|---|
+> | `Galatasaray S.K.` | `galatasaray` | **`galatasaraysk`** |
+> | `Beşiktaş JK` | `besiktas` | **`besiktasjk`** |
+> | `FC Bayern München` | `bayernmunchen` | `bayernmunchen` ✅ |
+>
+> **Sebepleri farklı ve ikisi de gerçek:**
+> - `S.K.` — durak sözcük deseni `\b(…|sk|…)\b` kelime sınırı istiyor, ama dizge
+>   `s.k.` biçiminde; noktalar ancak **bir sonraki adımda** siliniyor. Yani durak
+>   sözcük eleme, noktalama temizliğinden **önce** çalışıyor ve kaçırıyor.
+> - `JK` — durak sözcük listesinde **hiç yok**. Liste `fc sk ac as cf sc afc cd ud
+>   ssc club kulubu kulübü spor` ile sınırlı; `jk`, `sk` gibi Kuzey Avrupa ve Türk
+>   kısaltmaları eksik.
+>
+> **Ayrıca ölçüldü — Türkçe değiştirmelerin altısı ÖLÜ KOD.** `normalize('NFD')` +
+> birleştirici işaret silme **önce** çalıştığı için `ş ğ ü ö ç` ve `İ` zaten
+> `s g u o c` ve `I` olmuş oluyor; sonraki açık `.replace()` çağrıları hiçbir şeyle
+> eşleşmiyor. **Tek istisna `ı` (U+0131, noktasız i):** kanonik ayrışması yok,
+> NFD'den sağ çıkıyor — yani listedeki yük taşıyan tek satır o. Yorumdaki *"Türkçe
+> İ/ı özel durumu"* ifadesi bu yüzden yarı doğru: `İ` için gereksiz, `ı` için şart.
+>
+> **Bu bölüm Faz 3'te DÜZELTİLMEDİ, yalnızca ölçüm kaydedildi (K12).** Algoritmanın
+> tüketicisi Faz 7–9 (ingest) ve orada durak sözcük listesi gerçek paket verisiyle
+> kalibre edilecek; bugün elle düzeltmek, sınanacak veri olmadan tahmin yazmak
+> olurdu. **Faz 7 açılışında ilk iş bu bloğu okumaktır.**
 
 ### `explicit`
 Pakette açık eşleme tablosu bulunur — en güvenilir yol:

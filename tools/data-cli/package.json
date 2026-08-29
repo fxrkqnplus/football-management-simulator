@@ -6,10 +6,18 @@
   "description": "Veri ingest, doğrulama ve üretim komut satırı aracı",
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seed": "node --env-file-if-exists=../../.env dist/seed.js"
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "@testcontainers/postgresql": "12.1.0",
+    "drizzle-orm": "0.45.2",
+    "testcontainers": "12.1.0"
+  },
+  "dependencies": {
+    "@fms/db": "workspace:*",
+    "@fms/shared": "workspace:*"
   }
 }

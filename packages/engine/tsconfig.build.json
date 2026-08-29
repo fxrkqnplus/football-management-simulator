@@ -8,6 +8,11 @@
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.test.mts",
-    "src/**/*.test.cts"
+    "src/**/*.test.cts",
+    // ⚠️ `.test-d.ts` AYRI BİR DESEN — `*.test.ts` onunla EŞLEŞMEZ.
+    // Faz 3.3'te `packages/db`de ölçüldü: dört tip-seviyesi kontrol deneyi
+    // `dist/`e sızdı. Bu pakette bugün öyle bir dosya YOK; satır o gün
+    // sessizce sızmasın diye şimdiden burada (SAPMA-009 sınıfı).
+    "src/**/*.test-d.ts"
   ]
 }
