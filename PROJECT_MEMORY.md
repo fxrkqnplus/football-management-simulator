@@ -21,13 +21,13 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | **FAZ 4 — Veritabanı Şeması II: Oyuncu, Sözleşme, Personel.** Açılış oturumu (**4.0**) tamamlandı: doğrulama + üç süreç boşluğunun kapatılması. ⏸️ **Alt görev listesi ONAY BEKLİYOR** — onaylanmadan `docs/ROADMAP.md`'ye yazılmaz ve **ilk koda dokunulmaz** (K11) |
-| **Son tamamlanan** | ✅ **4.0 — üç süreç boşluğu, tek commit.** ① `docs/SPEC-COVERAGE-GAPS.md`'nin **hiçbir okuyucusu yoktu** ve yedi satır (G-07·G-09·G-10·G-11·G-12·G-13·G-14) atandıkları fazın kapsamında görünmüyordu → hepsi ROADMAP'e (Faz 7·11·17·50) yazıldı **ve** kütüğe iki okuyucu bağlandı ② nitelik CHECK çelişkisi karara bağlandı (**SAPMA-028**) ③ `source` kümesi iki yerde dört değer sayıyordu (**SAPMA-029**) |
+| **Aktif faz / alt görev** | **FAZ 4 — Veritabanı Şeması II: Oyuncu, Sözleşme, Personel.** Açılış oturumu **4.0** kapandı (üç süreç boşluğu); **4.0b** kayıp planı yeniden üretti. ⏸️ **Alt görev listesi ONAY BEKLİYOR** — onaylanmadan `docs/ROADMAP.md`'ye yazılmaz ve **ilk koda dokunulmaz** (K11) |
+| **Son tamamlanan** | ✅ **4.0b — CI işlendi, süreç boşluğu kapatıldı, plan yeniden üretildi.** ① 4.0'ın CI koşusu **liste sorgusuyla** çıkarıldı ② `docs/OUTPUT-FORMAT.md`'ye yeni kural: **onay bekleyen içerik raporun `DETAY` bölümünde yaşar** — 4.0'ın planı yalnızca terminalde yaşadığı için kaybolmuştu ③ yedi tablonun **tüketici araması** ve dört karar yeniden üretildi (ölçüm ①/② tekrarlanmadı, arşivden okundu). ℹ️ Önceki: **4.0** — üç süreç boşluğu (`0682c5f`), kayıt (`6063544`) |
 | **Tarih** | 2026-08-29 |
 | **Genel ilerleme** | **3 / 50 faz (%6)** — Faz 3 kapandı ve `develop`'a merge edildi (PR #4), Faz 4 açıldı |
 | **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** duruyor ve bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama **KAPANMIŞ SAYILMIYOR**, aşağıdaki kalıcı bloğa bak. Gerçek sınavı **Faz 6** |
 | **Dallar** | `main` → `develop` → **`feature/faz-04-schema-ii`** (`develop`'tan açıldı). Faz 3 → PR #4 ✅ **MERGE EDİLDİ** (`b24c535`, merge commit, squash değil). ℹ️ Merge mesajı GitHub'ın varsayılan *"Merge pull request #4"* metnini taşımıyor — öz `gh` ile doğrulandı, tepe commit'in **iki ebeveyni** de doğru |
-| **CI — SIFIRDAN yeniden çıkarıldı (4.0)** | ✅ **Faz 3'ün açık bıraktığı "kaydedilemeyen son halka" KAPANDI.** Kaydedilemeyen üç commit (`bd53b60`·`0763e99`·`7916ac2`) **üçü de yeşil**; `develop`'ta merge koşusu `33226162769` (`b24c535`) → **6/6 iş yeşil, amd64 + arm64** (K14). `develop`'ın **4 push koşusunun dördü de** yeşil, kırmızı yok. `feature/faz-03-database`: 34 koşu → 28 `push` (25 ✅ · 2 ❌ · 1 iptal) + 6 `pull_request` (5 ✅ · 1 iptal); iki kırmızının ikisi de `1c93890`'dan **önce**. **`1c93890`'dan beri 18 ardışık yeşil push koşusu** — 3.10'un kaydı `4a0eb43`'te "on dört" diyordu ve o listemde **tam 14. sırada**: yöntem birebir yeniden üretildi. **Liste sorgusuyla sayıldı, elle artırılmadı** |
+| **CI — liste sorgusuyla, 4.0b'de tazelendi** | ✅ **4.0'ın koşusu İŞLENDİ: `33228266356`** (`6063544`, `push`) → **6/6 iş yeşil** (`Kalite kapıları` · `Entegrasyon` · `İmaj`, her biri **amd64 + arm64**). Dalda **tek koşu**: `pull_request` olayı yok (PR faz sonunda), iptal edilen koşu yok. **`1c93890`'dan beri 20 ardışık yeşil push koşusu, 0 kırmızı** — 18 (`feature/faz-03-database`) + 1 (`develop` merge `33226162769`) + 1 (bu dal). Elle artırılmadı. ℹ️ Faz 3'ün *"kaydedilemeyen son halka"* notu 4.0'da kapanmıştı; bu satırı taşıyan commit'in koşusu yine kaydedilemiyor — sonsuz gerileme yapısal |
 | **typecheck / lint / format / build / arch** | ✅ typecheck **10/10** · lint 0 · format 0 · **build 8/8 SOĞUK** (`.turbo/cache` silindi, `Cached: 0` doğrulandı, **5,627 s**) · **arch 9 kural** — `rule:` belirteçlerinden **sayıldı**, varsayılmadı |
 | **Kapı kapsamı — ÖLÇÜLDÜ, varsayılmadı** | ⚠️ Bu commit **yalnızca Markdown** değiştiriyor ve `.prettierignore` `*.md` taşıyor (SAPMA-024): **`format:check` bu commit'te değişen HİÇBİR dosyaya bakmadı** — bu yüzden rapora `format ✅` değil, *"kapsam dışı"* yazılır. `lint`/`typecheck`/`test` de aynı sınıf: koştular, ama bu commit'in yüzeyine dokunmadılar. Değişikliği denetleyen tek şey **ölçümlerin kendisi** (`grep` ile önce boşluk gösterildi, sonra kapatıldı) |
 | **install** | ✅ **4.0 YENİ BAĞIMLILIK EKLEMEDİ** — `pnpm install --frozen-lockfile` → `Already up to date`; `pnpm-lock.yaml` ve `pnpm-workspace.yaml` **diff yok**. ℹ️ pnpm 11.24.0 çıkmış; kilit 11.23.0'da, karar verilmedi |
@@ -551,6 +551,23 @@ ikamesi sanıldı ve metin sessizce bozuldu.
 > (`cat a b > c`) — 3.10'da `docs/schema/world.md` böyle kuruldu ve orada hiçbir
 > sorun çıkmadı.
 
+> ⚠️ **Faz 4.0b: SEKİZİNCİ VAKA — ve kural yazılıyken ihlal edildi.**
+> Bu sefer araç `node -e "…"` idi. `PROJECT_MEMORY.md`'nin üç ANLIK DURUM
+> satırı bir betikle değiştirildi ve metindeki her ters tırnaklı parça
+> (`` `docs/ROADMAP.md` ``, CI koşu numaraları, dal adları, iş adları)
+> **sessizce boşaldı**: `→ **6/6 iş yeşil** ( · · , her biri…)`.
+>
+> ⚠️ **Betik BAŞARI raporladı** (`degistirilen satir: 3`) — hasarı yalnızca
+> stderr'deki `command not found` satırları ele verdi, ve onlar da başka bir
+> komutun çıktısı sanılabilirdi. Hiçbir kapı ötmedi: `format:check` Markdown'a
+> bakmıyor (SAPMA-024), `lint`/`typecheck`/`test` bu dosyayı görmüyor.
+>
+> **Kural değişmedi, kapsamı netleşti:** `python -c`, `node -e`, heredoc ve
+> tırnaklı dize **aynı sınıftır** — hiçbiri bir kaçış yolu değil. Markdown
+> düzenlemesi için tek güvenli araç `Edit`/`Write`.
+> **Asıl ders:** bir kuralın yazılı olması, **yeni bir araçta** hatırlanacağı
+> anlamına gelmiyor. Yedi vakanın hepsi farklı bir taşıyıcıyla geldi.
+
 **⑥ `vite preview` repo kökünden çalıştırılamaz** — `envDir` göreli.
 İki derlemeyi karşılaştırırken aralarında `rm -rf apps/web/dist` (SAPMA-011).
 
@@ -801,6 +818,26 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 **Bilinen kayıt düzeltmeleri:**
 
+> ⚠️ **DÜZELTME (Faz 4.0b) — `docs/reports/faz-04/4.0-*.md` künyesindeki iki
+> alan BAYAT ve öyle kalıyor.**
+> Künye *"**CI koşusu:** ÖLÇÜLECEK (push sonrası)"* ve *"push [ ]"* diyor;
+> ikisi de rapor yazıldığı anda doğruydu — push rapordan **sonra** yapıldı.
+> Güncel değerler: push **yapıldı** (`6063544`), CI koşusu **`33228266356`**
+> (`6063544`, `push` olayı) → **6/6 iş yeşil, amd64 + arm64**. Dalda başka
+> koşu yok: `pull_request` olayı **yok** (PR faz sonunda açılır), iptal edilen
+> koşu **yok**. **Arşiv append-only olduğu için künye DEĞİŞTİRİLMEDİ.**
+> ℹ️ `ÖLÇÜLECEK` bırakmak D1'in doğru biçimiydi — uydurulmuş bir koşu numarası
+> yerine ölçülmemiş bir alan kaldı ve bu oturumda ölçüldü.
+>
+> ⚠️ **DÜZELTME (Faz 4.0b) — 4.0 raporunun onay bekleyen içeriği KAYBOLDU.**
+> Rapor *"KARARIN GEREKİYOR: 4 madde — ADIM 4 planında sunuldu"* diyordu ve o
+> plan yalnızca terminaldeydi; oturum limitine takılınca kayboldu. **İş
+> kaybolmadı** (iki commit `origin`'de, iki pahalı ölçüm arşivin §4/§5'inde),
+> kaybolan yalnızca alt görev listesi, tüketici araması ve dört kararın
+> metniydi — 4.0b'de yeniden üretildi. Kural `docs/OUTPUT-FORMAT.md`'ye
+> yazıldı: **onay bekleyen içerik raporun `DETAY` bölümünde yaşar.**
+> Arşiv raporu **değiştirilmedi**.
+
 > ⚠️ **DÜZELTME (Faz 3.10) — `docs/reports/faz-03/3.10-*.md` arşiv raporu
 > BİR BULGUYU İÇERMİYOR ve içermemeli.**
 > Rapor yazılıp commit edildikten **sonra** ER nöbetçisinin **kurtarma yolunun**
@@ -971,6 +1008,8 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 4 | 4.0b | **ROADMAP Faz 4 kabul kriteri 3 bugünkü şemayla ÖLÇÜLEMEZ** — *"…değer<15M sorgusu < 50 ms"* | `marketValue` **`player_state`** tablosunda ve o `spec/01` **§3.2 save katmanı** — Faz 12. Üstelik türev: kalan sözleşme ayı, form, sakatlık cezası (spec/02 §4.7) — hiçbiri master'da yok, yani master'a bir `market_value` sütunu **konamaz** | Kriter Faz 4'te ölçülebilir biçimine daraltılır, `değer<15M` yüklemi Faz 30/32'ye taşınır → **SAPMA (4.1'de açılacak)** | Bir kabul kriteri yazılırken *"bunu ölçecek sütun bu fazda var mı?"* sorulur. Faz 3'ün *"hacimsiz süre iddiası"* dersinin akrabası: burada eksik olan hacim değil **veri** |
+| 3 | 4.0b | **`PROJECT_MEMORY.md`'nin üç ANLIK DURUM satırı SESSİZCE BOŞALDI** — ters tırnaklı her parça (`` `docs/ROADMAP.md` ``, koşu numaraları, dal adları) kayboldu, cümleler `→ **6/6 iş yeşil** ( · · , her biri…)` hâline geldi | **F2'nin SEKİZİNCİ vakası.** Metin `node -e "…"` çağrısının **çift tırnaklı** argümanı içindeydi; bash çift tırnak içinde de komut ikamesi yapıyor. Betik `degistirilen satir: 3` diyerek **başarı raporladı**; hatayı yalnızca stderr'deki `command not found` satırları ele verdi | Üç satır `Edit` aracıyla onarıldı; ters tırnak dengesi ve boş inline kod (` `` `) programatik doğrulandı | **Kural zaten yazılıydı ve ihlal edildi** (ORTAM TUZAKLARI ⑤, 3.10'un yedinci vakası): *"Markdown metni kabuktan hiç geçmez — `Write`/`Edit` ile yazılır."* Ders yeni değil: **bir kuralın yazılı olması, yeni bir araç kullanımında hatırlanacağı anlamına gelmiyor.** Somut ek: `node -e` bir kaçış yolu **değildir**, `python -c` ile aynı sınıf |
 | 2 | (hata değil, **ölçüm bulgusu**) `docs/DEPENDENCY-WATCH.md` başlığı *"Her faz açılışında bu tablo kontrol edilir (`docs/SESSION-TEMPLATE.md` ÖN KONTROL)"* diyor; şablonda o satır **yok** | Bir belgenin *"beni şurası okur"* demesi, orada okunduğunu **göstermiyor** — atıf tek yönlü yazılmış, karşı taraf hiç güncellenmemiş | Şablona ÖN KONTROL adım 7 olarak eklendi | Aynı sınıfın **ikinci** vakası (birincisi `SPEC-COVERAGE-GAPS.md`). Kural: bir belge kendi okuyucusunu adlandırıyorsa, o okuyucuda **karşı atıf** `grep` ile doğrulanır |
 | 1 | (hata değil, **ölçüm bulgusu**) `docs/SPEC-COVERAGE-GAPS.md`'nin **hiçbir okuyucusu yoktu** ve yedi satır atandıkları fazda görünmüyordu | Kütük Faz 2.0'da açıldı, ama ne `CLAUDE.md` belge haritasında ne `SESSION-TEMPLATE.md` ritüelinde adı geçiyordu. G-01…G-06 doğru işlenmişti; desen Tarama 3–7'de **unutuldu** — bir okuyucunun yokluğunda beklenen şey | Yedi satır ROADMAP'e (Faz 7 · 11 · 17 · 50) yazıldı **ve** kütüğe iki okuyucu bağlandı | `SPEC-COVERAGE-GAPS.md` Kural 5: satır **aynı alt görevde** hem kütüğe hem ROADMAP'e yazılır. SAPMA-008 sınıfının **üçüncü** tekrarıydı |
 
