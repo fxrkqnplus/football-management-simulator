@@ -526,10 +526,10 @@ Kırılan tek test, bozuk bir `down`u yakalayan **negatif** testti. **On beş po
 test kör bir karşılaştırıcıyla da geçiyordu** — çünkü hepsi `identical: true`
 bekliyor ve kör bir karşılaştırıcı bunu bedavaya sağlıyor.
 
-### 📈 MUTASYON SERİSİ — dört ölçüm, bir eğilim (Faz 3.2b → 3.6)
+### 📈 MUTASYON SERİSİ — sekiz ölçüm, bir eğilim (Faz 3.2b → 3.10)
 
 Aynı mutasyon (`compareSchemas` → her zaman `identical: true`) her şema alt
-görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; dört rakam bir eğilim:
+görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; sekiz rakam bir eğilim:
 
 | Alt görev | Şema | Kırılan / toplam `test:db` | Oran |
 |---|---|---|---|
@@ -538,6 +538,18 @@ görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; dört rakam bir eğil
 | **3.5** | 8 tablo | **11 / 77** | %14,3 |
 | **3.6** | 11 tablo | **16 / 103** | %15,5 |
 | **3.7** | 11 tablo + 4 indeks | **19 / 126** | **%15,1** ⬇ |
+| **3.8** | değişmedi (seed) | **19 / 146** | %13,0 ⬇ |
+| **3.9** | değişmedi (ölçüm) | **19 / 160** | %11,9 ⬇ |
+| **3.10** | değişmedi (belge) | **19 / 163** | %11,7 ⬇ |
+
+> ⚠️ **SON ÜÇ SATIRDA PAY 19'DA SABİT VE BU BEKLENEN.** 3.8, 3.9 ve 3.10'un
+> hiçbiri migration yazmadı — round-trip yüzeyi büyümedi, yani körelen
+> karşılaştırıcının ötebileceği yer sayısı da büyümedi. Payda büyüdüğü için
+> oran düştü. **Alarm veren durum bu değil:** şema **büyürken** payın sabit
+> kalması alarmdır, çünkü o zaman yeni yüzey negatif testsiz gelmiş olur.
+>
+> 3.10'un eklediği üç test (`er-diagram.itest.ts`) `compareSchemas`'ı **hiç
+> çağırmıyor** ve çağırmamalı — kendi nöbetçileri var (aşağıda ölçüldü).
 
 **Ne söylüyor:** test tabanı 16'dan 126'ya çıkarken kör bir kontrolün yakalandığı
 yer oranı **%6'dan ~%15'e** çıktı. Yani testler yalnızca **çoğalmadı**,
@@ -583,6 +595,78 @@ Aynı disiplin `arch:check` kanaryasının doğuş sebebiydi (Faz 2.3b): saf
 fonksiyonun beş birim testi yeşilken kuralın **kablolaması** kopabiliyordu.
 Fark şu ki orada eksik olan bir *kanarya*, burada bir *negatif iddia* — ikisi de
 aynı sorunun biçimleri: **yeşil bir test, kontrolün baktığını göstermez.**
+
+### ⚠️ BİR MUTASYONUN "HİÇBİR ŞEYİ KIRMAMASI" İKİ FARKLI ŞEY DEMEK OLABİLİR (Faz 3.9)
+
+**Kural:** bir mutasyon hiçbir testi kırmadığında iki olasılık vardır ve
+**refleks yanlış olanı seçer**:
+
+1. **Nöbetçi yok** — gerçekten bir delik var, test yazılmalı.
+2. **Mutasyon ölçtüğün yola hiç dokunmuyor** — delik yok, mutasyon yanlış
+   yerde yapıldı.
+
+İkincisini birincisi sanmak **var olmayan bir delik icat eder** ve onu kapatmak
+için yazılan test hiçbir şey korumaz. Bu, "yanlış sebeple kırılan kapı"nın
+(`PROJECT_MEMORY.md` Faz 3 günlük #25) ayna görüntüsü: orada kapı doğru
+görünüp yanlış sebeple ötüyordu, burada susuyor.
+
+**Bu repodaki somut biçimi — ölçülmüş (3.9, günlük #43).** Şemanın **iki**
+temsili var:
+
+| Temsil | Nerede | Çalışan veritabanını kuruyor mu |
+|---|---|---|
+| Drizzle TS tanımları | `packages/db/src/schema/` | **Hayır** |
+| Migration SQL'i | `packages/db/drizzle/` | **Evet** |
+
+`clubs.ts`teki `onDelete: 'cascade'` → `'restrict'` mutasyonu **hiçbir testi
+kırmadı** — çünkü kısıtı `0002_club_core.sql` kuruyor ve entegrasyon testi
+`pg_constraint`ten okuyor. Delik yoktu; mutasyon yanlış temsile yapılmıştı.
+
+**Karşı ölçüm (3.10):** aynı soru doğru temsile sorulunca cevap değişiyor.
+`0003_visual_assets_referees.sql`teki `kit_templates.name_key` sütunundan
+`NOT NULL` kaldırıldı → **163 entegrasyon testinin 7'si** kırıldı (2'si ER
+diyagramı nöbetçisi, 5'i round-trip/snapshot), `pnpm test` **742/742 sessiz**,
+`pnpm typecheck` sessiz.
+
+**Uygulama kuralı:** bir şema iddiasını mutasyonla sınarken mutasyon
+**katalogu kuran** temsile yapılır. TS tarafındaki bir değişikliğin sessiz
+kalması bir bulgu değil, ölçümün yanlış yere yapılmış olmasıdır.
+
+⚠️ **Faz 4 sürekli şema mutasyonu yapacak** (`people`, sözleşme, personel
+tabloları + üç ileri FK). Bu ayrım orada her alt görevde gerekecek.
+
+### ⚠️ "N SATIRDA İNDEKS KULLANILIYOR" BİR KURAL DEĞİLDİR — AYRAÇ SEÇİCİLİKTİR (Faz 3.9)
+
+**Kural:** bir planlayıcı kararı **hacimden** okunmaz. Bir indeksin kullanılıp
+kullanılmaması sorgunun **seçiciliğine** bağlı ve seçicilik, satır sayısından
+**bağımsız bir boyuttur**.
+
+**Ölçüm (3.9, günlük #45).** Aynı tabloda, aynı **3.001** satırda:
+
+| Sorgu terimi | Eşleşen satır | Plan |
+|---|---|---|
+| `'besiktas'` | 1 | **Bitmap Index Scan** (GIN) |
+| `'kulup1234'` | binlerce (üretilmiş `Kulup N` adları) | **Seq Scan** |
+
+İkisi de **doğru karar**. Planlayıcı seçici olmayan bir sorguda indeksi
+kullansaydı daha yavaş olurdu.
+
+⚠️ **GERİYE DÖNÜK DÜZELTME — 3.7'nin kanıtı tesadüfen seçici bir terimle
+alınmıştı.** 3.7 *"3.000 satırda planlayıcı GIN'i seçiyor"* diye yazdı ve iddia
+**yanlış değildi**; ama gerekçesi bilinmiyordu — `'besiktas'` seçici olduğu
+için seçiliyordu, hacim yüzünden değil. Aynı hacimde seçici olmayan bir terim
+seçilseydi 3.7'nin kanıtı **alınamazdı**. Bir kanıtın sonradan güçlenmesi,
+önce şanslı olduğunu gizlemez.
+
+**Uygulama kuralı:** bir plan iddiası yazılırken **iki** vaka birden ölçülür ve
+ikisi de teste girer (seçici + seçici olmayan). Tek örnekten kural çıkarmak, o
+örneğin tesadüfen paylaştığı bir özellikten kural okumaktır.
+
+ℹ️ İlgili ama **ayrı** bir tuzak (aynı alt görevde ölçüldü): bir plan eşiği
+**azaltarak** ölçülmez. `DELETE` `pg_class.relpages`i bayat bırakıyor;
+planlayıcının maliyet modeli satır sayısını değil **sayfa sayısını** okuduğu
+için rampa tersine dönmüş görünüyor. Eşik `TRUNCATE` + artan `INSERT` + her
+adımda `VACUUM ANALYZE` ile ölçülür.
 
 ### ⚠️ CI'A YENİ BİR İŞ EKLENDİĞİNDE, MEVCUT İŞLERİN ÖRTÜK HAZIRLIK ADIMLARI ÇIKARILIR (Faz 3.2a)
 

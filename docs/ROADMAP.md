@@ -1057,7 +1057,31 @@ docs/SPEC-COVERAGE-GAPS.md                               [2.0] spec boşluk enva
       kullanıyor, `'kulup1234'` kullanmıyor. İkisi de doğru karar.
       ⚠️ Süreler **amd64**'te ölçüldü; üretim ARM64 (K14). Aynı testler CI'ın `arm64`
       işinde de yeşil — mutlak süre taşınabilir değil, bütçe kararı taşınabilir.
-- [ ] Şema dokümanı ve mermaid diyagramı üretildi
+- [x] Şema dokümanı ve mermaid diyagramı üretildi
+      **Faz 3.10'da kapandı — ve *"üretildi"* kelimesi harfi harfine alındı.**
+      `docs/schema/world.md` dolduruldu; içindeki mermaid bloğu **elle
+      çizilmedi**, `packages/db/src/schema-state/er-diagram.ts` (saf) tarafından
+      `introspectSchema()`'nın gerçek `information_schema` + `pg_catalog`
+      okumasından **üretildi**.
+      ⚠️ **Gerekçe 3.9'un kendi bulgusu:** şemanın zaten **iki** temsili var —
+      Drizzle TS tanımları ve migration SQL'i — ve çalışan veritabanını yalnızca
+      ikincisi kuruyor. Elle çizilmiş bir mermaid **üçüncü** temsil olurdu;
+      üçüncüsünü hiçbir şey denetlemez ve bir sonraki şema değişikliğinde
+      **sessizce** yalan söylemeye başlardı.
+      **Nöbetçi:** `packages/db/integration/er-diagram.itest.ts` — ① belgedeki
+      blok canlı katalogdan üretilenin **birebir aynısı** ② belge **metninden
+      sayılan** tablo/ilişki sayısı katalogla **ve** mutlak değerlerle (**11 /
+      12**) aynı ③ negatif: belgeden bir varlık silinince karşılaştırma kırılıyor.
+      ⚠️ **İkinci ayak gereksiz değil:** yalnızca ① olsaydı iki taraf da boşken
+      de geçerdi (kör kontrol sınıfı, `spec/09` §11.5, ölçülmüş oran 16'da 1).
+      **Negatif testle kanıtlandı (3.10, gerçek belge üzerinde):** `stadiums`
+      varlığı silindi → **3 testin 3'ü** kırıldı ve fark
+      `entities: 10 ≠ 11` olarak **adıyla** raporlandı; geri alınınca 3/3 yeşil.
+      **İkinci mutasyon — nöbetçinin DOĞRU temsile baktığı ölçüldü:** migration
+      SQL'inden (`0003`) `kit_templates.name_key`in `NOT NULL`ı kaldırıldı →
+      **163 entegrasyon testinin 7'si** kırıldı, ikisi bu nöbetçi;
+      `pnpm test` **sessiz** (o anda 742/742), `pnpm typecheck` **sessiz**.
+      Günlük #43'ün dersinin karşı ölçümü.
 
 **Bağımlılık:** Faz 1, 2
 
@@ -1602,7 +1626,65 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       **değil**, bütçe kararı taşınabilir.
       **Bilerek YAPILMAYANLAR:** yeni indeks · yeni migration · `COLLATE`li indeks
       (Faz 32) · `pnpm perf:budget` (Faz 6, G-01) · seed'in büyütülmesi (Faz 8–9)
-- [ ] **3.10** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR
+- [x] **3.10** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR.
+      **SONUÇ: kabul kriteri 5 KAPANDI — FAZ 3 TAMAMLANDI (5/5).**
+      **Eklenen:** `packages/db/src/schema-state/er-diagram.ts` (saf üretici,
+      **18 birim testi**) · `packages/db/integration/er-diagram.itest.ts`
+      (nöbetçi, 3 test) · `docs/schema/world.md` **371 satır**, diyagram
+      **176 satır** · `docs/reports/` arşivi (karar ⑦) · `spec/09` §11.5'e
+      **iki yeni yöntem kuralı**.
+      ⚠️ **DİYAGRAM ÜRETİLDİ, ÇİZİLMEDİ.** Kaynak canlı katalog
+      (`introspectSchema` → `information_schema` + `pg_catalog`), yani
+      diyagramın anlattığı şey **çalışan veritabanının kendisi**. Gerekçe:
+      elle çizilmiş bir mermaid şemanın **üçüncü** temsili olurdu ve
+      üçüncüsünü hiçbir şey denetlemez (3.9 günlük #43).
+      ⚠️ **HER İŞARET BİR TÜRETME, HİÇBİRİ ELLE LİSTE DEĞİL.** Kardinalitenin
+      sol ucu `pg_attribute.attnotnull`dan, sağ ucu kısıt sütun listelerinden;
+      `UK` **yalnızca tek sütunlu** `UNIQUE`ten (çok sütunlu `(club_id,
+      kit_type)` için sütun başına `UK` yazmak *"club_id tek başına
+      benzersiz"* demek olurdu — **yanlış**); tip adı `data_type`tan
+      **sanitize edilerek** (`timestamp_with_time_zone`). Kısaltma **tablosu
+      bilerek kullanılmadı**: Faz 4 yeni bir tip getirdiğinde güncellenmeyi
+      unutur (günlük #30/#36 sınıfı) ve unutulduğunda mermaid sessizce bozulur.
+      ⚠️ **Sağ uç her zaman `o` ile başlıyor** (*"sıfır veya"*): katalog bir
+      çocuk satırının **var olma zorunluluğunu** bilmiyor. `|{` yazmak
+      ölçülmemiş bir iddia olurdu (D1).
+      ⚠️ **Ayrıştırılamayan bir kısıt SESSİZCE ATLANMIYOR, fırlatıyor.**
+      Atlansaydı diyagram bir FK eksik çizilir ve sayı karşılaştırması o
+      eksikle **tutarlı** olurdu — hiçbir şey ötmezdi (SAPMA-024 sınıfı).
+      **Ölçümler (hepsi bugün yeniden alındı, ara ölçümlerden kopyalanmadı):**
+      `pnpm test` 724 → **744** (51 → 52 dosya) · `pnpm test:db` 160 → **163**
+      (7 → 8 dosya) · kapsam **dört metrik de YÜKSELDİ**: satır %85,53 →
+      **%86,99** · ifade %85,68 → **%87,04** · dal %88,25 → **%88,68** ·
+      fonksiyon %78,61 → **%80,00** (eşik %70, DÜŞÜRÜLMEDİ, dosya dışlanmadı;
+      `er-diagram.ts` **%100 satır, %100 fonksiyon**) · `arch:check`
+      **9 kural, değişmedi** · soğuk build 8/8, `Cached: 0` doğrulandı,
+      **iki koşu: 10,90 s ve 7,01 s** (⚠️ fazda ölçülen aralık 5,80–21,29 s).
+      ℹ️ **Kapsamdaki ilk boşluk ölçümle bulundu ve kapatıldı:** ilk koşuda
+      `er-diagram.ts` **satır 113**'te (`PRIMARY KEY`/`UNIQUE` ayrıştırma
+      hatası) kapsanmamıştı — yani "sessizce atlamıyor, fırlatıyor" iddiasının
+      iki yolundan **biri hiç koşulmamıştı**. İki test eklendi.
+      **Mutasyonla doğrulandı (üç ayrı mutasyon):** ① belgeden `stadiums`
+      varlığı silindi → **3/3** kırıldı, fark `entities: 10 ≠ 11` ② migration
+      SQL'inden `NOT NULL` kaldırıldı → **163'ün 7'si** kırıldı, `pnpm test`
+      **sessiz** (o anda 742/742) ③ karşılaştırıcı köreltildi → **163'ün 19'u**; seri
+      %6,3 → %10,0 → %14,3 → %15,5 → %15,1 → %13,0 → %11,9 → **%11,7**.
+      **Pay 19'da sabit ve bu BEKLENEN:** 3.10 migration yazmadı, round-trip
+      yüzeyi büyümedi. Yeni üç test `compareSchemas`ı hiç çağırmıyor ve
+      çağırmamalı — kendi nöbetçileri var.
+      **D5:** derlenmiş `dist/` düz `node` ile gerçek PG18.6'ya karşı —
+      5 migration, 11 tablo, 12 FK, diyagram üretildi ve
+      `entities=11 relationships=12` ölçüldü.
+      ⚠️ **KAPI KAPSAMI ÖLÇÜLDÜ:** commit **15 dosya** değiştiriyor — **11
+      Markdown + 4 `.ts`**. `.prettierignore` `*.md` taşıyor (SAPMA-024), yani
+      `format:check` on bir dosyanın **hiçbirine bakmadı**. **Ama dört `.ts`e
+      baktı ve işini yaptı:** ilk koşuda `er-diagram.ts`'i **reddetti**, `lint`
+      **üç gerçek hata** buldu. Belgelerin doğruluğunu denetleyen tek kapı
+      **ER nöbetçisi**.
+      **Bilerek YAPILMAYANLAR:** yeni tablo/migration/indeks · diyagrama CHECK
+      kısıtı ve indeks çizimi (metinsel tablolarda, mermaid ER'de yeri yok) ·
+      `mermaid` paketi ile render doğrulaması (yeni bağımlılık, K12 — sözdizimi
+      bilerek en dar alt kümede tutuldu) · merge (kullanıcı yapar)
 
 > **⚠️ `packages/db` kapsamı bu fazda bir KANIT sayılmaz.** Drizzle şema dosyaları modül
 > düzeyi ifadelerden ibarettir: bir testin onları **import etmesi** kapsamı %100 yapar,

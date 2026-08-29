@@ -91,6 +91,47 @@ kalemden** (`Messages`, `System tools`, …) alınmaz.
 > yeni bir alanda hatırlanacağı anlamına gelmiyor** — bu yüzden kural, ihlal
 > edildiği yerin yanına ikinci kez yazıldı.
 
+## Rapor arşivi (zorunlu)
+
+> **Faz 3.10'da eklendi.** Rapor **önce dosyaya yazılır, sonra terminale
+> basılır**; terminale basılan metin o dosyanın **aynısıdır**.
+
+**Neden:** rapor bugüne kadar yalnızca terminale basılıyordu ve iki kayıp
+vardı. ① Terminal → pano → sohbet yolunda metin **bozuluyor** — ölçüldü: son
+üç raporun üçünde de kelimeler kaynadı, satırlar kırpıldı. ② Oturum penceresi
+kapanınca rapor tamamen kayboluyor; `PROJECT_MEMORY.md` özeti taşıyor ama
+**ham raporu taşımıyor**.
+
+**Yer ve ad:**
+
+```
+docs/reports/<faz-slug>/<alt-görev-no>-<kısa-slug>.md
+docs/reports/faz-03/3.10-er-diyagrami-ve-faz-kapanisi.md
+```
+
+**Dosyanın başında künye bloğu:**
+
+```markdown
+> **Alt görev:** 3.10 — ER diyagramı + faz kapanışı + PR
+> **Tarih:** YYYY-MM-DD · **Dal:** feature/faz-03-database
+> **Commit(ler):** <hash> · **CI koşusu:** <id> · **PR:** #<n>
+> **Bağlam yüzdesi:** <ölçüm> veya "ölçülemedi"
+```
+
+Künyenin altında **raporun tamamı**: özet **ve** `DETAY` bölümü, birebir.
+Kısaltma yok.
+
+**Sözleşme** (tamamı `docs/reports/README.md`'de):
+
+- **Commit edilir**, `.gitignore`'a eklenmez — oturum kurtarma `git log`
+  üzerinden yürüyor; izlenmeyen bir klasör aynı yolla kurtarılamaz.
+- **Append-only:** yazıldıktan sonra geriye dönük düzenlenmez. Düzeltme
+  sonraki rapora ve `PROJECT_MEMORY.md`'nin *"Bilinen kayıt düzeltmeleri"*
+  bölümüne gider.
+- **Arşiv otorite DEĞİLDİR** — çelişkide `PROJECT_MEMORY.md` kazanır.
+- 3.0–3.9 **geriye dönük doldurulmadı**; kural 3.10'da başladı ve boşluk
+  `docs/reports/README.md`'de açıklanıyor.
+
 ## Faz sonu eki
 
 Fazın son alt görevinde (X.10 gibi) yukarıdakine **ek olarak**:
@@ -101,4 +142,5 @@ Fazın son alt görevinde (X.10 gibi) yukarıdakine **ek olarak**:
 **Performans:** [ölçülen metrikler, bütçeyle karşılaştırmalı]
 **PROJECT_MEMORY:** faz kaydı yazıldı [x] · ANLIK DURUM güncellendi [x]
 **PR:** #[n] açıldı [x]
+**Rapor arşivi:** docs/reports/<faz-slug>/<no>-<slug>.md yazıldı [x]
 ```

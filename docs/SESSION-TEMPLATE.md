@@ -30,8 +30,11 @@ BAĞLAM (bu sırayla)
 10. Alt görevleri TEK TEK yap. Her birinden sonra DUR ve onay bekle (K11).
 11. Her alt görevde: kod + birim testi + i18n anahtarları AYNI commit'te.
     ⚠️ Alt görev kapanış listesi: ROADMAP'te [x] · PROJECT_MEMORY ANLIK DURUM
-       güncellendi · yeni SORUN/BORÇ/SAPMA kütüğe yazıldı · commit + push ·
-       rapor docs/OUTPUT-FORMAT.md biçiminde.
+       güncellendi · yeni SORUN/BORÇ/SAPMA kütüğe yazıldı ·
+       **rapor docs/reports/<faz-slug>/<no>-<slug>.md'ye YAZILDI** ·
+       commit + push · rapor terminale basıldı (dosyanın AYNISI).
+    ⚠️ Rapor ÖNCE dosyaya yazılır, SONRA terminale basılır — biçim ve gerekçe
+       docs/OUTPUT-FORMAT.md → "Rapor arşivi (zorunlu)".
 12. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
 
 FAZ KAPANIŞI

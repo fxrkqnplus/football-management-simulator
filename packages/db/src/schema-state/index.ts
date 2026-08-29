@@ -7,6 +7,13 @@ export {
   realSchemaToFacts,
   snapshotToFacts,
 } from './drizzle-snapshot.js';
+export type { ErDiagramCounts } from './er-diagram.js';
+export {
+  countErDiagram,
+  extractMermaidBlock,
+  mermaidTypeName,
+  renderErDiagram,
+} from './er-diagram.js';
 export { introspectSchema, readSequencePosition } from './introspect.js';
 export type {
   ColumnFacts,

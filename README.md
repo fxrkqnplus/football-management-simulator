@@ -83,6 +83,8 @@ docs/
 ├── HOSTING-FALLBACK.md       Yedek barındırma planı (İSKELET)
 ├── ADR/                      Mimari karar kayıtları (0001-0004)
 ├── MASTER-SPEC.md            Tüm spesifikasyonun tek dosyalık arşivi
+├── reports/                  Alt görev raporlarının HAM arşivi (append-only, 3.10'dan itibaren)
+├── schema/                   Veritabanı şema belgeleri — ER diyagramı gerçek şemadan ÜRETİLİR
 └── spec/
     ├── 01-database.md        ~45 tablo, Drizzle şeması, Master/Delta mimarisi
     ├── 02-attributes.md      47 görünür + 10 gizli nitelik, CA/PA, türetme formülleri
