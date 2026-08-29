@@ -541,6 +541,35 @@ görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; sekiz rakam bir eğil
 | **3.8** | değişmedi (seed) | **19 / 146** | %13,0 ⬇ |
 | **3.9** | değişmedi (ölçüm) | **19 / 160** | %11,9 ⬇ |
 | **3.10** | değişmedi (belge) | **19 / 163** | %11,7 ⬇ |
+| **4.2** | değişmedi (kural) | **19 / 163** | %11,7 → |
+
+> ⚠️ **MUTASYONUN TARİFİ DE BİR İDDİADIR — 4.2'de ölçülerek bulundu (D2).**
+> Yukarıdaki başlık mutasyonu *"`compareSchemas` → her zaman `identical: true`"*
+> diye tarif ediyordu ve bu tarif **yetersiz**. 4.2'de birebir uygulandı ve
+> **18/163** çıktı, seri **19** diyor. Bir an *"pay düştü, alarm"* diye okundu.
+>
+> **Ölçüm iki varyantı ayırdı** (ikisi de `HEAD`'de, kod hiç değişmeden koşuldu —
+> 4.0/4.0b/4.1 yalnızca belge yazmıştı, yani taban çizgisi 3.10'unkiyle aynı):
+>
+> | Körleştirme | Kırılan | Neden |
+> |---|---|---|
+> | yalnızca `identical: true` | **18** | `differences` dolu kalıyor; onun **içeriğini** iddia eden test hâlâ geçiyor |
+> | `identical: true` **ve** `differences: []` | **19** | fark listesini iddia eden test de kırılıyor |
+>
+> Serinin kayıtlı değerleri **ikinci** varyanttan geliyor. Fark bir regresyon
+> değil, **ölçüm düzeneğinin farkı** — ve düzeneğin kendisi yazılı olmadığı için
+> bir sonraki ölçüm onu yeniden keşfetmek zorunda kaldı.
+>
+> **Kural (somut):** bir mutasyon serisi kaydedilirken mutasyonun **tam metni**
+> yazılır, niyeti değil. *"Karşılaştırıcıyı körelt"* iki farklı kod üretir ve
+> iki farklı sayı verir. **Bu, *"bir kapının kurtarma yolu da bir iddiadır"*
+> kuralının (Faz 3.10) ölçüm tarafındaki kardeşi:** sınanmamış bir tarif,
+> sınanmamış bir kurtarma yolu kadar sessizce yanlış sonuca götürür.
+>
+> ```ts
+> // SERİNİN MUTASYONU — birebir bu:
+> return { differences: [], identical: true, comparedFacts: counter.value };
+> ```
 
 > ⚠️ **SON ÜÇ SATIRDA PAY 19'DA SABİT VE BU BEKLENEN.** 3.8, 3.9 ve 3.10'un
 > hiçbiri migration yazmadı — round-trip yüzeyi büyümedi, yani körelen

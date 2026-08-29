@@ -53,6 +53,7 @@ import { DATA_SOURCES } from '../src/schema/data-pack-columns.js';
 import type { DeleteAction, TableClass } from '../src/schema/fk-policy.js';
 import { classifyTable, expectedDeleteAction } from '../src/schema/fk-policy.js';
 import { KIT_COLOR_SLOTS } from '../src/schema/kit-templates.js';
+import { foreignKeyNullability } from '../src/schema-state/foreign-key-nullability.js';
 import {
   clubFacilitiesInsertSql,
   clubFinancesInsertSql,
@@ -403,11 +404,17 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       stadiums: 'independent',
     });
 
+    // ⚠️ ÜÇÜNCÜ OLGU 4.2'DE EKLENDİ: FK'nın kaynak sütunlarının nullability'si.
+    // `conkey` sütun numaralarını taşıyor; `pg_attribute.attnotnull` her birinin
+    // NOT NULL olup olmadığını. Dizi olarak dönüyor ki yüklem TS tarafında,
+    // TEK BİR TANIMDAN (`foreignKeyNullability`) türetilsin — SQL'de `bool_and`
+    // yazmak ikinci bir tanım açardı ve ER diyagramınınkiyle ayrışabilirdi.
     const foreignKeys = await executor.rows<{
       name: string;
       source_table: string;
       target_table: string;
       action: DeleteAction;
+      column_nullability: boolean[];
     }>(`
       SELECT c.conname                     AS name,
              src.relname                   AS source_table,
@@ -415,7 +422,14 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
              CASE c.confdeltype
                WHEN 'c' THEN 'CASCADE'  WHEN 'r' THEN 'RESTRICT'
                WHEN 'n' THEN 'SET NULL' ELSE 'NO ACTION'
-             END                           AS action
+             END                           AS action,
+             ARRAY(
+               SELECT NOT a.attnotnull
+                 FROM unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord)
+                 JOIN pg_attribute a
+                   ON a.attrelid = c.conrelid AND a.attnum = k.attnum
+                ORDER BY k.ord
+             )                             AS column_nullability
         FROM pg_constraint c
         JOIN pg_class src ON src.oid = c.conrelid
         JOIN pg_class tgt ON tgt.oid = c.confrelid
@@ -427,11 +441,33 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
     // bulamayan kapı (SAPMA-024). Sayı ayrıca iddia ediliyor.
     expect(foreignKeys).toHaveLength(12);
 
+    // Nullability GERÇEKTEN okundu mu — boş dizi sessizce "SET NULL uygulanamaz"
+    // derdi ve üçüncü olgu hiç sınanmamış olurdu (D3).
+    expect(foreignKeys.every((fk) => fk.column_nullability.length > 0)).toBe(true);
+
+    // ⚠️ Bugünkü şemada nullable olan ÜÇ FK var ve üçü de bağımsız bir
+    // varlıktan çıkıyor — yani `SET NULL` dalı BURADA ERİŞİLMİYOR. Sayı
+    // iddia ediliyor ki 4.3 `players.club_id`'yi eklediğinde bu satır kırılsın
+    // ve üçüncü olgunun ilk gerçek vakası fark edilmeden geçmesin.
+    const nullableForeignKeys = foreignKeys
+      .filter((fk) => foreignKeyNullability(fk.column_nullability).allNullable)
+      .map((fk) => fk.name);
+    expect(nullableForeignKeys.sort()).toEqual([
+      'clubs_competition_id_competitions_id_fk',
+      'clubs_stadium_id_stadiums_id_fk',
+      'competitions_country_id_countries_id_fk',
+    ]);
+
     const classLookup = (table: string): TableClass => classes.get(table) ?? 'independent';
     const mismatches = foreignKeys
       .filter((fk) => {
         const expectedAction = expectedDeleteAction(
-          { name: fk.name, sourceTable: fk.source_table, targetTable: fk.target_table },
+          {
+            name: fk.name,
+            sourceTable: fk.source_table,
+            targetTable: fk.target_table,
+            allSourceColumnsNullable: foreignKeyNullability(fk.column_nullability).allNullable,
+          },
           classLookup,
         );
         return expectedAction !== fk.action;

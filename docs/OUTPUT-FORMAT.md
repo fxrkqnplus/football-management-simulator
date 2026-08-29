@@ -142,9 +142,20 @@ docs/reports/faz-03/3.10-er-diyagrami-ve-faz-kapanisi.md
 ```markdown
 > **Alt görev:** 3.10 — ER diyagramı + faz kapanışı + PR
 > **Tarih:** YYYY-MM-DD · **Dal:** feature/faz-03-database
-> **İçerik commit'i:** <hash> · **CI koşusu:** <id> · **PR:** #<n>
+> **İçerik commit'i:** <hash> · **CI koşusu:** yazım anında bilinmiyor · **PR:** #<n>
 > **Bağlam yüzdesi:** <ölçüm> veya "ölçülemedi"
 ```
+
+⚠️ **`CI koşusu` ve `push` alanları YAZIM ANINDA BİLİNEMEZ — bu bir eksiklik
+değil, bir sıra sonucu** (Faz 4.2'de netleştirildi). Rapor **push'tan önce**
+yazılıyor; koşu numarası ancak push'tan sonra doğuyor. Üç raporun üçünde de
+künye `push [ ]` ve `CI koşusu: ÖLÇÜLECEK` dedi ve üçü de push edildi.
+
+**Kural:** bu iki alan `yazım anında bilinmiyor — güncel durum ANLIK DURUM'da`
+diye işaretlenir. Arşiv **append-only** olduğu için sonradan düzeltilmez;
+güncel değer `PROJECT_MEMORY.md`'nin *"Bilinen kayıt düzeltmeleri"* bölümüne
+yazılır. *"Bilinemez"* ile *"ölçülmedi"* farklı şeyler ve künye hangisi
+olduğunu söylemeli — `ÖLÇÜLECEK` ikincisini ima ediyordu.
 
 ⚠️ **`İçerik commit'i` alt görevin İŞİNİ taşıyan commit'tir, raporu taşıyan
 commit değil.** Bir dosya kendi commit hash'ini taşıyamaz; ilk kullanımda

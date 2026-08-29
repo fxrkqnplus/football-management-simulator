@@ -1816,7 +1816,7 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       beş tablo **Faz 12**'ye, biri **Faz 13**'e, `değer<15M` yüklemi **Faz 30/32**'ye
       *yazılır* (kütüğe kayıt yetmez) · `spec/01`'e eksik tanımlar ·
       üç SAPMA · G-15/G-16 · `SESSION-TEMPLATE`'e **§0.5 süre kontrolü**
-- [ ] **4.2** **`fk-policy.ts` V3'e genişletilir** — üçüncü olgu `is_nullable`,
+- [x] **4.2** **`fk-policy.ts` V3'e genişletilir** — üçüncü olgu `is_nullable`,
       `SET NULL` üretimi, sıra `dictionary → independent → nullable → satellite`.
       Migration yok. Faz 3'ün **12 gerçek FK'sı regresyon kümesi**; V1'in bozduğu üç
       vaka **negatif test**. → kriter 2

@@ -36,10 +36,54 @@
  *   `key` yok + giden FK var       → `satellite`
  *   `key` yok + giden FK yok       → `dictionary`
  *
+ * ────────────────────────────────────────────────────────────────────────────
+ * FAZ 4.2 — ÜÇÜNCÜ OLGU (`SET NULL`) ve SIRANIN ÖLÇÜLMÜŞ OLMASI
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Faz 3'te kural 12 FK'da **0 uyumsuzlukla** çalıştı, ama o 12 FK'nın hepsinde
+ * bir uydunun FK'sı **sahibini** gösteriyordu. Faz 4 bu tesadüfü bozuyor:
+ * `players.club_id` (*"null = serbest oyuncu"*), `staff.club_id`,
+ * `managers.club_id`, `people.second_nationality_country_id` — hepsi bir
+ * **referans**, sahiplik değil. İki olgulu kural bunlara **CASCADE** derdi:
+ * *bir kulüp silinince oyuncuları da silinirdi.*
+ *
+ * Ölçüldü (Faz 4.0, kâğıt üstünde, migration yazılmadan): bugünkü kural Faz 4'ün
+ * 20 planlanan FK'sında **7 veri kaybettiren cevap** üretiyor. Üçüncü olgu
+ * (`allSourceColumnsNullable`) eklenince **20/20**, 0 veri kaybı.
+ *
+ * ⚠️ **SIRA BİR TERCİH DEĞİL, ÖLÇÜM SONUCU:**
+ *
+ *   ① hedef `dictionary`              → RESTRICT
+ *   ② kaynak `independent`            → RESTRICT      ← ③'TEN ÖNCE
+ *   ③ FK'nın bütün sütunları nullable → SET NULL
+ *   ④ kaynak `satellite` (NOT NULL)   → CASCADE
+ *
+ * ③'ü ①'in hemen ardına koymak (planda **V1**) Faz 3'ün **üç** FK'sını bozuyor
+ * (`competitions.country_id`, `clubs.competition_id`, `clubs.stadium_id` —
+ * üçü de nullable, üçü de gerçekte RESTRICT): 12/12 → **9/12**. Regresyon kümesi
+ * `fk-policy.test.ts` ve `schema-constraints.itest.ts`te; sıra değişirse ikisi
+ * de kırılır. **Erken dönüşlerin sırası bu yüzden okunabilirlik için yeniden
+ * düzenlenmez.**
+ *
+ * ⚠️ **Nullability tanımı BURADA DEĞİL** — `schema-state/foreign-key-nullability.ts`
+ * tek yerde türetiyor ve iki tüketicisi var (ER kardinalitesi *"herhangi biri"*,
+ * bu kural *"hepsi"* okur). Bu modül onu **önceden hesaplanmış bir olgu** olarak
+ * alıyor ve katalogdan hiçbir şey okumuyor — saf kalıyor.
+ *
  * **Ölçüldü (PG 18.6, 11 tablo):** `key` yok + giden FK yok koşulunu sağlayan
  * **tek** tablo `kit_templates`. Yani türetme, ⑧'in elle adlandırdığı tabloyu
- * hiçbir yerde adı geçmeden buluyor. Faz 4'ün `injury_types` / `staff_roles`
- * tabloları aynı koşulu sağlayacak.
+ * hiçbir yerde adı geçmeden buluyor.
+ *
+ * ⚠️ **DÜZELTME (Faz 4.1):** bu paragraf *"Faz 4'ün `injury_types` /
+ * `staff_roles` tabloları aynı koşulu sağlayacak"* diyordu ve **yarısı yanlış
+ * çıktı**. `staff_roles` **açılmıyor** — `spec/01` `staff.role`u 12 değerlik
+ * satır içi kapalı küme yazıyor, yani §3.1.2 ②'nin **CHECK**'i yeter; satırları
+ * yalnızca bir etiket taşıyor. `injury_types` ise satırlarında **veri** taşıyor
+ * (süre aralığı, ciddiyet) → gerçek sözlük tablosu, ama **Faz 12**'ye taşındı:
+ * tek FK kaynağı `injuries` ve o save-scoped, yani bu kuralın söyleyecek bir
+ * şeyi ancak orada oluyor. Yeni ayraç: *"kapalı küme **etiket** mi, **veri
+ * taşıyan satır** mı?"* (SAPMA-030; desen **F3** — bir kuralın örneklerinden
+ * çıkarılan genelleme, ölçülene kadar bir tahmindir.)
  *
  * ⚠️ **Bu bir liste DEĞİL ama listeyi de SİLMİYOR.** İkisi farklı şey söylüyor:
  * liste *"bugün şunlar var"*, kural *"olması gereken bu"*. Yalnızca kural
@@ -77,6 +121,20 @@ export interface ForeignKeyFacts {
   readonly name: string;
   readonly sourceTable: string;
   readonly targetTable: string;
+  /**
+   * Kaynak sütunların **hepsi** nullable mı — yani `ON DELETE SET NULL`
+   * uygulanabilir mi (Faz 4.2'de eklendi, ÜÇÜNCÜ olgu).
+   *
+   * ⚠️ *"Herhangi biri nullable"* DEĞİL. PostgreSQL `SET NULL`da FK'nın
+   * **bütün** sütunlarını `NULL` yapar; biri `NOT NULL` ise silme çalışma
+   * zamanında reddedilir. Ayrım ve tek tanım:
+   * `schema-state/foreign-key-nullability.ts` → `allNullable`.
+   *
+   * ⚠️ Bu modül katalogdan **okumaz** — `hasKeyColumn` ve
+   * `hasOutgoingForeignKey` gibi bu da **önceden hesaplanmış bir olgudur**.
+   * Kural saf kalıyor; okumayı çağıran taraf yapıyor.
+   */
+  readonly allSourceColumnsNullable: boolean;
 }
 
 /**
@@ -108,11 +166,40 @@ export function expectedDeleteAction(
   foreignKey: ForeignKeyFacts,
   classOf: (table: string) => TableClass,
 ): DeleteAction {
+  // ① HEDEF SÖZLÜK → RESTRICT. Kaynağın sınıfından bağımsız (⑧).
   if (classOf(foreignKey.targetTable) === 'dictionary') return 'RESTRICT';
 
-  switch (classOf(foreignKey.sourceTable)) {
-    case 'independent':
-      return 'RESTRICT';
+  const sourceClass = classOf(foreignKey.sourceTable);
+
+  // ② KAYNAK BAĞIMSIZ VARLIK → RESTRICT.
+  //
+  // ⚠️ BU DENETİM ③'TEN ÖNCE GELMEK ZORUNDA VE SIRA ÖLÇÜLEREK BULUNDU (4.0).
+  // ③'ü buraya, ①'in hemen ardına koyan varyant (planda "V1") Faz 3'ün ÜÇ
+  // gerçek FK'sını bozuyor — üçü de nullable ve üçü de bağımsız bir varlıktan
+  // çıkıyor, yani `SET NULL` alırlardı:
+  //     competitions.country_id · clubs.competition_id · clubs.stadium_id
+  // Gerçek davranışları RESTRICT. Ölçüm: V1 → 9/12, V3 (bu sıra) → 12/12.
+  //
+  // Sezgi tersini söylüyor ("nullable ise SET NULL"), ve bu F3'ün ölçülmüş bir
+  // örneği: bir kural örneklerinden geriye okunursa yanlış öğrenilir. Bağımsız
+  // bir varlığın nullable FK'sı "sahiplik" değil "isteğe bağlı referans"tır ve
+  // silen tarafın onu ELE ALMASI beklenir — sessizce boşaltılması değil.
+  if (sourceClass === 'independent') return 'RESTRICT';
+
+  // ③ FK'NIN BÜTÜN SÜTUNLARI NULLABLE → SET NULL (Faz 4.2'de eklendi).
+  //
+  // Buraya ulaşan FK bir UYDUDAN çıkıyor ve nullable — yani bağ "sahiplik"
+  // değil bir REFERANS. `spec/01` bunu açıkça yazıyor: `players.clubId` için
+  // *"null = serbest oyuncu"*. CASCADE verilseydi bir kulüp silindiğinde
+  // oyuncuları da silinirdi; doğru davranış onları serbest bırakmak.
+  if (foreignKey.allSourceColumnsNullable) return 'SET NULL';
+
+  // ⚠️ `independent` burada ARTIK TİPTE YOK — ②'nin erken dönüşü onu daralttı
+  // ve `case 'independent'` yazmak TS2678 veriyor. Yani sıranın bağlayıcılığı
+  // yalnızca yorumda değil, TİP SEVİYESİNDE de görünür: ②'yi ③'ün altına
+  // taşımak derlemeyi kırar. Ücretsiz gelen bir nöbetçi.
+  switch (sourceClass) {
+    // ④ KAYNAK UYDU + NOT NULL → CASCADE. Kimliği sahibinin kimliğidir.
     case 'satellite':
       return 'CASCADE';
     case 'dictionary':
