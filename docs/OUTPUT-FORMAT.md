@@ -69,6 +69,34 @@ Yukarıdaki özet bu bölüm olmadan da anlaşılır olmalı.]
 - Bir alt görev 🟢 ise ve kullanıcı "devam" derse sıradakine geçilir — tekrar
   plan sunulmaz, plan zaten `docs/ROADMAP.md`'de onaylıdır.
 
+### ⚠️ ONAY BEKLEYEN İÇERİK RAPORUN İÇİNDE YAŞAR (Faz 4.0b'de eklendi)
+
+**Kural:** *"KARARIN GEREKİYOR"* maddesi **raporun dışında gösterilen** bir
+içeriğe atıf yapıyorsa — bir plan, bir seçenek listesi, bir karar tablosu — o
+içerik raporun `DETAY` bölümüne **aynen** girer. Özet ya da bağlantı yetmez.
+**Yalnızca terminalde yaşayan bir onay maddesi arşivlenmemiş sayılır.**
+
+**Neden — ödenmiş bedel (Faz 4.0).** Rapor arşivi 3.10'da tam olarak bu kaybı
+önlemek için kuruldu ve **işini yaptı**: 4.0'ın raporu, iki pahalı ölçümü
+(tablo envanteri ve FK kuralı kuru çalıştırması) bozulmadan taşıdı. Ama aynı
+raporun *"KARARIN GEREKİYOR: 4 madde — **ADIM 4 planında sunuldu**"* satırı
+repoda **hiçbir yerde bulunmayan** bir içeriğe atıf yapıyordu: plan yalnızca
+terminaldeydi ve oturum limitine takılınca kayboldu. Alt görev listesi, yedi
+tablonun tüketici araması ve dört kararın metni yeniden üretilmek zorunda kaldı.
+
+⚠️ **Plan `docs/ROADMAP.md`'de DE değildi ve bu doğruydu** — K11 onaylanmamış
+bir listenin oraya yazılmasını yasaklıyor. Yani onay bekleyen içeriğin
+**hiçbir kalıcı yeri yoktu**: ROADMAP'e erken, arşive hiç. Bu kural o boşluğu
+kapatıyor — arşiv onay **öncesini** de taşır, ROADMAP onay **sonrasını**.
+
+**D3'ün akrabası:** orada bir kapı bakmadığı hâlde yeşil diyor; burada bir
+**güvence** ("rapor arşivlendi") doğru, ama o an önemli olan şeyi kapsamıyor.
+Soru genişliyor: *"arşivlendi mi?"* yanına *"arşivlenen şey, kaybolduğunda
+canımı yakacak şey mi?"*
+
+**Faz açılış raporları için somut karşılığı:** ADIM 4 planı — alt görev
+listesi, karar tabloları, onay bekleyen sorular — **raporun parçasıdır**.
+
 ### Bağlam yüzdesi (Faz 2.6 sonunda eklendi)
 
 Raporun sonundaki bağlam yüzdesi **`/context` çıktısındaki TOPLAM kullanım
