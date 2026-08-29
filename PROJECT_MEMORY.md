@@ -26,7 +26,7 @@
 | **Tarih** | 2026-08-29 |
 | **Genel ilerleme** | **3 / 50 faz (%6)** — Faz 3 kapandı, sırada Faz 4 (Oyuncu, Sözleşme, Personel) |
 | **Bloke eden var mı?** | Hayır — ama **bir bekleme var: PR merge'ünü kullanıcı yapar.** ⚠️ Bir **açık risk** duruyor ve bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama **KAPANMIŞ SAYILMIYOR**, aşağıdaki kalıcı bloğa bak. Gerçek sınavı **Faz 6** |
-| **Son commit** | `test(db): nöbetçinin kurtarma yolu ölçüldü — hata mesajı üretilmiş metnin TAMAMINI taşıyor` (fazın **son** commit'i — ANLIK DURUM'u yazan commit en sonda olsun diye, Faz 1'de unutulmuştu). Öncekiler: `bd53b60` (CI tablosu) · `e3be777` (künye sözleşmesi) · `9579c3f` (rapor arşivlendi, PR #4) · **`4a0eb43` (3.10'un İÇERİĞİ — kod ve belgeler bu commit'te)** |
+| **Son commit** | `docs(memory): arşiv raporunun kapsam sınırı kayıt düzeltmelerine yazıldı` (fazın **son** commit'i — ANLIK DURUM'u yazan commit en sonda olsun diye, Faz 1'de unutulmuştu). Öncekiler: `0763e99` (nöbetçinin kurtarma yolu) · `bd53b60` (CI tablosu) · `e3be777` (künye sözleşmesi) · `9579c3f` (rapor arşivlendi, PR #4) · **`4a0eb43` (3.10'un İÇERİĞİ — kod ve belgeler bu commit'te)** |
 | **⚠️ 3.10'un son bulgusu — bir kurtarma yolu da ÖLÇÜLMELİ** | Nöbetçi kırıldığında ne yapılacağı `world.md`'ye ve test başlığına *"fark çıktısındaki üretilmiş metni kopyala"* diye yazılmıştı. **Ölçüm bunu çürüttü:** Vitest **bağlamı sınırlı bir birleşik fark** basıyor (`@@ -131,25 +131,10 @@`), metnin tamamını değil — ve yön **ters okunmaya açık**: `- Expected` = **üretilmiş** (doğru), `+ Received` = **bayat belge**. Karıştırılırsa bayat metin geri yazılır ve **test yeşile döner**: sessiz bir yanlış düzeltme. **Düzeltme:** karşılaştırma artık üretilmiş metnin **tamamını** kendi hata mesajında taşıyor (`----- ÜRETİLMİŞ METİN -----` işaretleri arasında) ve gerçek bir mutasyonla doğrulandı. **Genel kural: bir nöbetçi yazarken KIRILDIĞINDA NE YAPILACAĞI da bir iddiadır ve sınanmalıdır** — nöbetçinin kendisi kadar. Bu, D3'ün yeni bir biçimi: kapı doğru ötüyor, ama ötüşün **söylediği şey** yanlış |
 | **Devreden açık karar** | **YOK.** 3.10 hiçbir karar bırakmadı. Faz 4'ün kaynağı faz kaydının **§11'i** — sekiz madde, hepsi ölçümle gerekçeli |
 | **Dallar** | `main` → `develop` → **`feature/faz-03-database`** (25 commit ileride, 0 geride). Faz 2 → PR #3 ✅ merge `c97ebd0`. **Faz 3 → [PR #4](https://github.com/fxrkqnplus/football-management-simulator/pull/4) AÇIK, hedef `develop`.** ⏸️ **Birleştirme biçimi MERGE COMMIT (squash DEĞİL) ve merge'ü KULLANICI yapar** — squash, her alt görevin kendi commit'iyle kapandığı geçmişi siler ve oturum kurtarma `git log` üzerinden yürüyor |
@@ -805,6 +805,18 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 ```
 
 **Bilinen kayıt düzeltmeleri:**
+
+> ⚠️ **DÜZELTME (Faz 3.10) — `docs/reports/faz-03/3.10-*.md` arşiv raporu
+> BİR BULGUYU İÇERMİYOR ve içermemeli.**
+> Rapor yazılıp commit edildikten **sonra** ER nöbetçisinin **kurtarma yolunun**
+> yetersiz olduğu ölçüldü (Vitest metnin tamamını basmıyor; `- Expected` /
+> `+ Received` yönü ters okunmaya açık ve ters okunursa test **yeşile döner**).
+> Düzeltme `0763e99` commit'inde yapıldı ve kural `spec/09` §11.5'e yazıldı.
+> **Arşiv raporu append-only olduğu için DEĞİŞTİRİLMEDİ** — o dosya yazıldığı
+> andaki durumun kaydı. Güncel durum ANLIK DURUM'da ve `spec/09` §11.5'te.
+> ℹ️ Rapor künyesindeki *"İçerik commit'i: `4a0eb43`"* de aynı sebeple olduğu
+> gibi duruyor; fazın tam commit listesi ANLIK DURUM'un *"Son commit"*
+> satırında.
 
 > ⚠️ **DÜZELTME (Faz 3.8) — bu dosyanın KENDİ 3.8 notu ⑥ yanlıştı.**
 > *"KAPSAM — `tools/` EŞİĞE GİRMİYOR … `seed.ts` kapsamı düşürmez ve yükseltmez.
