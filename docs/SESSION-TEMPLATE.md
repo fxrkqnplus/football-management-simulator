@@ -12,40 +12,53 @@ BAĞLAM (bu sırayla)
    Açık sorun / teknik borç / sapma kütüklerini gözden geçir.
 2. docs/ROADMAP.md içindeki Faz [XX] bölümünü oku.
 3. Şu spesifikasyonları oku: docs/spec/[ilgili dosyalar]
-4. CLAUDE.md zaten yüklü (anayasa).
+4. docs/SPEC-COVERAGE-GAPS.md → "Hangi faza ait olmalı" sütunu Faz [XX] olan
+   satırları oku. Bunlar ROADMAP kapsamına da yazılıdır; kütük "neden" ve
+   ölçümü taşır, ROADMAP "ne yapılacak"ı.
+   ⚠️ Bu adım Faz 4.0'da eklendi. Kütük Faz 2.0'da açıldı ama HİÇBİR ritüel
+      onu okumakla yükümlü değildi — altı boşluk (G-07, G-09, G-10, G-12,
+      G-13, G-14) atandıkları fazın kapsamında hiç görünmüyordu. Kütüğün
+      önlemek için yaratıldığı hatanın kendisi, kütüğün başına geldi.
+5. CLAUDE.md zaten yüklü (anayasa).
 
 ÖN KONTROL (koda dokunmadan önce)
-5. `pnpm typecheck && pnpm lint && pnpm test` → hepsi temiz mi?
+6. `pnpm typecheck && pnpm lint && pnpm test` → hepsi temiz mi?
    Temiz değilse DUR ve bildir.
-6. Faz [XX]'in bağımlılıkları tamamlanmış mı? (ROADMAP "Bağımlılık" satırı)
-7. Açık sorunlardan bu fazı etkileyen var mı? Ödenmesi bu faza düşen teknik borç var mı?
-8. Faz kapsamını kendi cümlelerinle özetle ve bana onaylat.
+7. docs/DEPENDENCY-WATCH.md → "Ele alınacak faz" sütunu Faz [XX] olan satırlar.
+   ⚠️ Bu adım da Faz 4.0'da eklendi ve aynı sınıf: o dosyanın KENDİ başlığı
+      "Her faz açılışında bu tablo kontrol edilir (docs/SESSION-TEMPLATE.md
+      ÖN KONTROL)" diyordu, ama bu şablonda öyle bir satır YOKTU.
+8. Faz [XX]'in bağımlılıkları tamamlanmış mı? (ROADMAP "Bağımlılık" satırı)
+9. Açık sorunlardan bu fazı etkileyen var mı? Ödenmesi bu faza düşen teknik borç var mı?
+10. Faz kapsamını kendi cümlelerinle özetle ve bana onaylat.
 
 ÇALIŞMA
-9.  Kapsamı alt görevlere böl, listeyi bana göster, onay al.
+11. Kapsamı alt görevlere böl, listeyi bana göster, onay al.
     ⚠️ Onaylanan liste, İLK KODA DOKUNMADAN ÖNCE docs/ROADMAP.md'deki ilgili faz
        bölümüne yazılır. Plan sohbette yaşamaz. Her alt görev bitince orada [x]
        işaretlenir. Gerekçe: commit'ler "ne yapıldı"yı kurtarır, ROADMAP alt görev
        listesi "sırada ne var"ı kurtarır — oturum kurtarma ikisini de gerektirir.
-10. Alt görevleri TEK TEK yap. Her birinden sonra DUR ve onay bekle (K11).
-11. Her alt görevde: kod + birim testi + i18n anahtarları AYNI commit'te.
+12. Alt görevleri TEK TEK yap. Her birinden sonra DUR ve onay bekle (K11).
+13. Her alt görevde: kod + birim testi + i18n anahtarları AYNI commit'te.
     ⚠️ Alt görev kapanış listesi: ROADMAP'te [x] · PROJECT_MEMORY ANLIK DURUM
        güncellendi · yeni SORUN/BORÇ/SAPMA kütüğe yazıldı ·
        **rapor docs/reports/<faz-slug>/<no>-<slug>.md'ye YAZILDI** ·
        commit + push · rapor terminale basıldı (dosyanın AYNISI).
     ⚠️ Rapor ÖNCE dosyaya yazılır, SONRA terminale basılır — biçim ve gerekçe
        docs/OUTPUT-FORMAT.md → "Rapor arşivi (zorunlu)".
-12. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
+14. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
 
 FAZ KAPANIŞI
-13. Kabul kriterlerini tek tek doğrula, sonuçları göster.
-14. `pnpm typecheck lint test build arch:check` + faza özel doğrulama komutları.
-15. **PROJECT_MEMORY.md'ye faz kaydını yaz** (Bölüm 12.5 şablonu, 11 başlığın hepsi).
-16. **ANLIK DURUM bloğunu tamamen yeniden yaz.**
-17. Yeni sorun/borç/sapma varsa ilgili kütüğe ekle (SORUN-XXX, BORÇ-XXX, SAPMA-XXX).
-18. CHANGELOG.md güncelle, ROADMAP.md'de fazı [x] işaretle.
-19. PR aç: feature/faz-[XX]-[slug] → develop
-20. Kısa demo notu + (arayüz fazıysa) ekran görüntüsü.
+15. Kabul kriterlerini tek tek doğrula, sonuçları göster.
+16. `pnpm typecheck lint test build arch:check` + faza özel doğrulama komutları.
+17. **PROJECT_MEMORY.md'ye faz kaydını yaz** (Bölüm 12.5 şablonu, 11 başlığın hepsi).
+18. **ANLIK DURUM bloğunu tamamen yeniden yaz.**
+19. Yeni sorun/borç/sapma varsa ilgili kütüğe ekle (SORUN-XXX, BORÇ-XXX, SAPMA-XXX).
+20. **docs/SPEC-COVERAGE-GAPS.md** — bu fazda kapanan satırların `Durum`u güncellendi mi?
+    Yeni boşluk bulunduysa yeni bir "Tarama N" bölümü açıldı mı? (Satır SİLİNMEZ.)
+21. CHANGELOG.md güncelle, ROADMAP.md'de fazı [x] işaretle.
+22. PR aç: feature/faz-[XX]-[slug] → develop
+23. Kısa demo notu + (arayüz fazıysa) ekran görüntüsü.
 
 KURALLAR
 - Her alt görev raporu docs/OUTPUT-FORMAT.md biçiminde verilir (zorunlu).

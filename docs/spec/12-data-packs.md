@@ -25,8 +25,24 @@ DATA_MODE=clean  →  Prosedürel birincil, paket yok
 5. ProceduralProvider     YEDEK — yalnızca yukarıdakiler bulamazsa
 ```
 
-Her varlık kaydında `source` alanı tutulur (`pack` | `api` | `wikidata` | `procedural`).
+Her varlık kaydında `source` alanı tutulur
+(`pack` | `api` | `wikidata` | `openfootball` | `procedural`).
 Veri Editörü'nde hangi varlığın nereden geldiği görünür — eksikleri kapatmak kolaylaşır.
+
+> ⚠️ **DÜZELTME (Faz 4.0, SAPMA-029) — bu liste `openfootball`'ı ATLAMIŞTI.**
+> Satır **dört** değer sayıyordu ve **kendi sağlayıcı zinciriyle** çelişiyordu: on beş
+> satır yukarıdaki zincir **beş** sağlayıcı listeliyor ve dördüncüsü
+> `OpenFootballProvider`. Yani bir varlık ondan gelseydi yazılacak `source` değeri
+> **yoktu**. Doğru küme `docs/spec/01` §3.1.0'da (Faz 3.1, SAPMA-023) beş değerle
+> tanımlandı ve `packages/db/src/schema/data-pack-columns.ts` → `DATA_SOURCES` bir
+> **CHECK kısıtıyla** onu zorluyor. Aynı yanlış değer `docs/ROADMAP.md` Faz 7 kabul
+> kriterinde de duruyordu — bir **kabul kriteri**, yani en yetkili yer — ve aynı alt
+> görevde düzeltildi (`spec/11` §12.4: bir düzeltme, sınıfının geçtiği **her** yeri
+> kapsar).
+>
+> ℹ️ **Altıncı bir değer sorusu AYRI bir konudur ve birleştirilmedi:** elle yazılan
+> bootstrap seed verisi hiçbir sağlayıcıdan gelmiyor (Faz 3.8 `procedural` seçti).
+> Kaydı `docs/SPEC-COVERAGE-GAPS.md` **G-14**, karar yeri **Faz 7**.
 
 **Prosedürel üretim asla kaybolmaz.** Newgen oyuncular (Faz 40) ve pakette olmayan varlıklar
 için her zaman gerekir. Gerçek veriyle birlikte çalışır.

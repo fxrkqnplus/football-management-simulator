@@ -13,6 +13,21 @@
 > **Nasıl okunur:** Bir satır ROADMAP'e işlendiğinde **silinmez**, `Durum` sütunu
 > güncellenir. Bu dosya "neyi kaçırmışız"ın kaydıdır; temizlenirse değerini kaybeder.
 >
+> **Kim okur (Faz 4.0'da eklendi — ve bu satırın yokluğu bu dosyanın başına gelen
+> hataydı):** `CLAUDE.md` belge haritası ve `docs/SESSION-TEMPLATE.md` faz açılış
+> ritüeli, **her faz başı, o faza atanmış satırlar**. Faz 4.0'a kadar bu dosyanın
+> **hiçbir okuyucusu yoktu**: kütük Faz 2.0'da açıldı, ama ne anayasada ne de
+> oturum şablonunda adı geçiyordu ve altı satır (**G-07, G-09, G-10, G-12, G-13,
+> G-14**) atandıkları fazın ROADMAP kapsamında **hiç görünmüyordu**. Yani Faz 7
+> oturumu G-09/G-14'ü, Faz 11 G-10/G-11/G-12'yi, Faz 17 G-13'ü, Faz 50 G-07'yi
+> hiç görmeyecekti. Bu, SAPMA-008'in bu kütüğü yarattığı sınıfın **üçüncü**
+> tekrarıydı (`spec/11` §12.4: *"kütüğe kayıt yeterli değil — sonraki oturum
+> kütüğü değil, ROADMAP'i okuyup iş yapar"*).
+>
+> ⚠️ **Bu yüzden bir satır iki yerde birden yaşar ve ikisi de gerekli:** ROADMAP
+> *"ne yapılacak"*ı taşır (iş oradan çıkar), kütük *"neden ve nasıl ölçüldü"*yü
+> taşır (karar oradan anlaşılır). Yalnızca kütüğe yazmak, işin yapılmaması demek.
+>
 > **Kapsam uyarısı:** Bu **tam envanter değildir.** Faz 2.0'da yapılan tarama
 > `docs/spec/09` (kalite protokolü) ve `docs/spec/10` (dağıtım) üzerinde yoğunlaştı;
 > ölçüt "gözle görülür boşluk" idi. Sonraki fazlar kendi spec'lerini okurken yeni
@@ -34,7 +49,7 @@ kapsamıyla karşılaştırıldı.
 | G-04 | `spec/09` §11.4 — "Yük / **k6** / API / 20 eşzamanlı kullanıcı, tur atlama" | Yük testi katmanı. `k6` **ROADMAP'in tamamında geçmiyor**. CLAUDE.md §1.1 "sistem 200 kullanıcıya kadar bozulmadan çalışacak şekilde tasarlanır" diyor — bu iddianın tek ölçüm aracı bu satır. | **Faz 50** (bütünsel denetim ve yayın) | ✅ ROADMAP Faz 50 kapsamına eklendi |
 | G-05 | `spec/09` §11.4 — "Görsel / Playwright / Ekranlar / Anlık görüntü karşılaştırma (mobil + masaüstü)" | Görsel regresyon testi. ROADMAP'te "görsel regresyon", "anlık görüntü karşılaştırma" veya eşdeğeri **hiç geçmiyor**. Faz 49 erişilebilirlik ve Lighthouse'u kapsıyor ama görsel snapshot'ı değil. | **Faz 49** (mobil cila) — G-02'nin Playwright kurulumuna bağımlı | ✅ ROADMAP Faz 49 kapsamına eklendi |
 | G-06 | `spec/10` §13.5 — sınır tablosunda `Sentry \| 5.000 olay/ay \| 4.000` | Faz 47'nin "Telemetri ve Sağlık" listesi disk, DB, R2, Resend, CPU/RAM/kuyruk sayıyor — **Sentry satırı yok**. Kabul kriteri "%80 eşiğinde uyarı tetikleniyor" var ama uyarılacak metrik listesinde Sentry bulunmuyor, yani kriter Sentry'yi kapsamadan da işaretlenebilir. | **Faz 47** (panel uyarısı) + **Faz 50** (admin e-postası zinciri) | ✅ ROADMAP Faz 47 ve 50 kapsamına eklendi |
-| G-07 | `spec/10` §13.4 — *"süresi `docs/RUNBOOK.md`'ye yazılır"* | `docs/RUNBOOK.md` diye bir dosya isteniyor; ne repoda var, ne `CLAUDE.md` belge haritasında, ne de Faz 50 kapsamında adıyla geçiyor (Faz 50 yalnızca "süresi belgelenmiş" diyor). **Düşük öncelikli** — tatbikatın kendisi kapsamda, eksik olan çıktı dosyasının adı. | **Faz 50** | ⏳ ROADMAP'e işlenmedi — Faz 50 açılışında karara bağlanır |
+| G-07 | `spec/10` §13.4 — *"süresi `docs/RUNBOOK.md`'ye yazılır"* | `docs/RUNBOOK.md` diye bir dosya isteniyor; ne repoda var, ne `CLAUDE.md` belge haritasında, ne de Faz 50 kapsamında adıyla geçiyor (Faz 50 yalnızca "süresi belgelenmiş" diyor). **Düşük öncelikli** — tatbikatın kendisi kapsamda, eksik olan çıktı dosyasının adı. | **Faz 50** | ✅ **ROADMAP Faz 50 kapsamına eklendi (Faz 4.0).** Dosya adıyla ve içeriğiyle yazıldı; kabul kriteri de *"süresi `docs/RUNBOOK.md`'ye yazılmış"* olarak daraltıldı. |
 
 ---
 
@@ -58,7 +73,7 @@ karşılaştırıldı.
 
 | #    | Spec referansı                                                                                         | Ne istiyor                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Hangi faza ait olmalı                                                                     | Durum                                                                                                                                                                        |
 | ---- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G-09 | `spec/12` §17.5 adım 7 — *"İndeksle → **`asset_index`** tablosuna kaydet (id, tip, kaynak, hash)"*     | Varlık hattının ürettiği her görselin kaydedileceği bir indeks tablosu. **`spec/01`'de yok, `docs/ROADMAP.md`'nin hiçbir fazında geçmiyor** — yani hiç kimsenin işi. `spec/12` §17.5'in tamamı bu tabloya yazmakla bitiyor ve §17.9 kabul kriteri *"eksik varlık oranı raporlanıyor"* diyor; o oranın sayılacağı yer burası.                                                                                                                                              | **Faz 7** (DataProvider) — tabloyu **dolduran** hat orada; Faz 8-9 ingest onu kullanacak     | ⏳ ROADMAP'e işlenmedi — **Faz 3'te bilinçli olarak AÇILMIYOR.** Hiçbir şeyin yazmadığı bir tablo açmak, tüketicisi olmayan bir sütun açmakla aynı sınıf (Faz 2 §5 **D3**).      |
+| G-09 | `spec/12` §17.5 adım 7 — *"İndeksle → **`asset_index`** tablosuna kaydet (id, tip, kaynak, hash)"*     | Varlık hattının ürettiği her görselin kaydedileceği bir indeks tablosu. **`spec/01`'de yok, `docs/ROADMAP.md`'nin hiçbir fazında geçmiyor** — yani hiç kimsenin işi. `spec/12` §17.5'in tamamı bu tabloya yazmakla bitiyor ve §17.9 kabul kriteri *"eksik varlık oranı raporlanıyor"* diyor; o oranın sayılacağı yer burası.                                                                                                                                              | **Faz 7** (DataProvider) — tabloyu **dolduran** hat orada; Faz 8-9 ingest onu kullanacak     | ✅ **ROADMAP Faz 7 kapsamına eklendi (Faz 4.0).** Faz 3'te bilinçli olarak açılmadı — hiçbir şeyin yazmadığı bir tablo, tüketicisi olmayan bir sütunla aynı sınıf (Faz 2 §5 **D3**). Yazan taraf (varlık işleme hattı) **Faz 7'de doğuyor**; tablo orada açılır, tanımı `spec/01`'e yazılır ve varlık kimliği sütunlarına FK verilip verilmeyeceği orada kararlaştırılır. |
 
 **Faz 3'ün buna bağlı kararı:** `crestAssetId`, `portraitAssetId`, `logoAssetId`,
 `flagAssetId` alanları `spec/01`'deki gibi düz `text` kalıyor — `asset_index`'e FK
@@ -80,7 +95,7 @@ Yöntem: `clubs` tablosunun nullability kararları verilirken ortaya çıkan
 
 | #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
 | ---- | -------------- | ---------- | --------------------- | ----- |
-| G-10 | `spec/01` §3.1 — `clubs.competitionId` · `clubs.stadiumId` · `clubs.isNational` | Faz 3.5'te ikisi de **nullable** yapıldı, çünkü milli takımların (Faz 41) ne ligi ne sabit ev sahası var. Bu, kulüp takımları için bir **tutarlılık boşluğu** bırakıyor: *"`is_national = false` olan bir kulüp ligsiz veya stadyumsuz kalabilir mi?"* Cevap **hayır** olmalı ama bu koşullu bir kural — sütun seviyesinde `NOT NULL` ile ifade edilemez ve §3.1.2 ② gereği CHECK'e de konmuyor. Bugün **hiçbir şey** onu denetlemiyor. | **Faz 11** (`pnpm validate:world`) — veri doğrulayıcısının doğal işi; Faz 8 ingest'i o kuralın ilk müşterisi | ⏳ ROADMAP'e işlenmedi — Faz 11 açılışında karara bağlanır. Kararın gerekçesi `packages/db/src/schema/clubs.ts` başlığında. |
+| G-10 | `spec/01` §3.1 — `clubs.competitionId` · `clubs.stadiumId` · `clubs.isNational` | Faz 3.5'te ikisi de **nullable** yapıldı, çünkü milli takımların (Faz 41) ne ligi ne sabit ev sahası var. Bu, kulüp takımları için bir **tutarlılık boşluğu** bırakıyor: *"`is_national = false` olan bir kulüp ligsiz veya stadyumsuz kalabilir mi?"* Cevap **hayır** olmalı ama bu koşullu bir kural — sütun seviyesinde `NOT NULL` ile ifade edilemez ve §3.1.2 ② gereği CHECK'e de konmuyor. Bugün **hiçbir şey** onu denetlemiyor. | **Faz 11** (`pnpm validate:world`) — veri doğrulayıcısının doğal işi; Faz 8 ingest'i o kuralın ilk müşterisi | ✅ **ROADMAP Faz 11 kapsamına eklendi (Faz 4.0)** — G-11 ve G-12 ile **aynı blokta**, çünkü üçü aynı sınıf ve birlikte okunmalı. Kararın gerekçesi `packages/db/src/schema/clubs.ts` başlığında. |
 
 > **Neden bir boşluk, bir borç değil:** borç *"yapılması gerekeni erteledik"*
 > demektir; burada yapılacak şeyin **yeri** başka bir fazda ve o faz henüz
@@ -97,8 +112,8 @@ sorusu her koşullu/çapraz kısıt için tekrarlandı.
 
 | #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
 | ---- | -------------- | ---------- | --------------------- | ----- |
-| G-11 | `spec/01` §3.1 — `rivalries.clubAId` · `clubBId` | 3.5'te teklik/kendine-referans koruması **bilerek konmadı**: kısmi bir `UNIQUE (a,b)` `(B,A)` ters çiftini sessizce geçirir (D3) ve tam koruma (`CHECK a < b` + `UNIQUE`) Faz 8 ingest'ine hiçbir spec'in istemediği bir **sıralama sözleşmesi** dayatır. Bugün üç hata biçimi denetimsiz: `(A,A)`, `(A,B)` tekrarı, `(B,A)` ters tekrarı. | **Faz 11** (`pnpm validate:world`) | ⚠️ **3.7'DE DARALDI — kapanmadı.** İki hata biçimi kapandı: `rivalries_pair_unique_idx` bir **`LEAST/GREATEST` ifade indeksi** ve `(A,B)` ile `(B,A)`'yı **aynı** anahtara indirgiyor. 3.5'in iki gerekçesi de düştü: koruma kısmi değil **tam**, ve ingest'e **hiçbir sıralama sözleşmesi** dayatmıyor — üçüncü bir yol vardı ve 3.5'te düşünülmemişti. **Kalan tek delik `(A,A)`:** bir ifade indeksi onu engelleyemez (tek satır olarak geçerli bir anahtar üretir), bir **değer** kuralıdır → Faz 11. Kalan delik `schema-constraints.itest.ts`te **koşan bir testle** görünür tutuluyor. |
-| G-12 | `spec/01` §3.1 — `club_kits.color3` ↔ `kit_templates.colorSlots` | 3.6'da `color3` **nullable** yazıldı: iki yuvalı bir şablonda üçüncü renk yoktur. Ama *"`colorSlots = 3` ise `color3` dolu olmalı, `= 2` ise boş olmalı"* bir **çapraz tablo** kuralıdır ve sütun kısıtıyla ifade edilemez. Bugün hiçbir şey denetlemiyor. | **Faz 11** — G-10 ile aynı sınıf (koşullu kural → doğrulayıcı) | ⏳ ROADMAP'e işlenmedi. Karar `packages/db/src/schema/club-kits.ts` sütun yorumunda. |
+| G-11 | `spec/01` §3.1 — `rivalries.clubAId` · `clubBId` | 3.5'te teklik/kendine-referans koruması **bilerek konmadı**: kısmi bir `UNIQUE (a,b)` `(B,A)` ters çiftini sessizce geçirir (D3) ve tam koruma (`CHECK a < b` + `UNIQUE`) Faz 8 ingest'ine hiçbir spec'in istemediği bir **sıralama sözleşmesi** dayatır. Bugün üç hata biçimi denetimsiz: `(A,A)`, `(A,B)` tekrarı, `(B,A)` ters tekrarı. | **Faz 11** (`pnpm validate:world`) | ⚠️ **3.7'DE DARALDI — kapanmadı.** İki hata biçimi kapandı: `rivalries_pair_unique_idx` bir **`LEAST/GREATEST` ifade indeksi** ve `(A,B)` ile `(B,A)`'yı **aynı** anahtara indirgiyor. 3.5'in iki gerekçesi de düştü: koruma kısmi değil **tam**, ve ingest'e **hiçbir sıralama sözleşmesi** dayatmıyor — üçüncü bir yol vardı ve 3.5'te düşünülmemişti. **Kalan tek delik `(A,A)`:** bir ifade indeksi onu engelleyemez (tek satır olarak geçerli bir anahtar üretir), bir **değer** kuralıdır → Faz 11. Kalan delik `schema-constraints.itest.ts`te **koşan bir testle** görünür tutuluyor. ✅ **Kalan delik ROADMAP Faz 11 kapsamına eklendi (Faz 4.0)**, G-10 ve G-12 ile aynı blokta. ⚠️ Satır **kapanmış sayılmaz** — kapanacağı yer Faz 11'in doğrulayıcısıdır, ROADMAP'e yazılması yalnızca *"kimsenin işi değil"* durumunu bitirir. |
+| G-12 | `spec/01` §3.1 — `club_kits.color3` ↔ `kit_templates.colorSlots` | 3.6'da `color3` **nullable** yazıldı: iki yuvalı bir şablonda üçüncü renk yoktur. Ama *"`colorSlots = 3` ise `color3` dolu olmalı, `= 2` ise boş olmalı"* bir **çapraz tablo** kuralıdır ve sütun kısıtıyla ifade edilemez. Bugün hiçbir şey denetlemiyor. | **Faz 11** — G-10 ile aynı sınıf (koşullu kural → doğrulayıcı) | ✅ **ROADMAP Faz 11 kapsamına eklendi (Faz 4.0)** — G-10, G-11 ile aynı blokta. Karar `packages/db/src/schema/club-kits.ts` sütun yorumunda. |
 
 > **G-10, G-11 ve G-12 aynı sınıf ve bu bir desendir:** üçü de *"şema bu kuralı
 > ifade edemez"* dediği için Faz 11'e düşüyor. Faz 11 açılışında bu üçü **birlikte**
@@ -119,7 +134,7 @@ arama isteyen fazlarına karşı tek tek soruldu.
 
 | #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
 | ---- | -------------- | ---------- | --------------------- | ----- |
-| G-13 | `docs/ROADMAP.md` Faz 17 — *"Global arama (`/`): oyuncu + kulüp + personel + **lig + turnuva** — tek kutu, Türkçe karakter toleranslı (pg_trgm)"* | Beş varlık türünde trigram araması. **İkisi bugünkü şemayla yapılamaz:** `competitions`ın görünen adı `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`) — onun üzerinde trigram araması anlamsız. Aynı sorun `rivalries.nameKey`te de var. Yani arama, veritabanında **bulunmayan** bir metin üzerinde yapılmak zorunda. | **Faz 5** (i18n altyapısı) çeviri kaynağını belirler; **Faz 17** arama mekanizmasını seçer | ⏳ ROADMAP'e işlenmedi. 3.7 `competitions`a trigram indeksi **koymadı** — indekslenecek bir metin yok. Seçenekler Faz 17'ye bırakıldı (çeviriler üzerinde istemci tarafı arama · çevrilmiş adı taşıyan bir arama tablosu · `nameKey`i tamamlayan bir `displayName` sütunu). Karar `packages/db/src/schema/competitions.ts` yorumunda. |
+| G-13 | `docs/ROADMAP.md` Faz 17 — *"Global arama (`/`): oyuncu + kulüp + personel + **lig + turnuva** — tek kutu, Türkçe karakter toleranslı (pg_trgm)"* | Beş varlık türünde trigram araması. **İkisi bugünkü şemayla yapılamaz:** `competitions`ın görünen adı `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`) — onun üzerinde trigram araması anlamsız. Aynı sorun `rivalries.nameKey`te de var. Yani arama, veritabanında **bulunmayan** bir metin üzerinde yapılmak zorunda. | **Faz 5** (i18n altyapısı) çeviri kaynağını belirler; **Faz 17** arama mekanizmasını seçer | ✅ **ROADMAP Faz 17 kapsamına eklendi (Faz 4.0).** 3.7 `competitions`a trigram indeksi **koymadı** — indekslenecek bir metin yok. Seçenekler Faz 17'ye bırakıldı (çeviriler üzerinde istemci tarafı arama · çevrilmiş adı taşıyan bir arama tablosu · `nameKey`i tamamlayan bir `displayName` sütunu). Karar `packages/db/src/schema/competitions.ts` yorumunda. ✅ **ROADMAP Faz 17 kapsamına eklendi (Faz 4.0)** — üç seçenek kapsam maddesinde sayıldı ve *"arama beş varlık türünün beşini de kapsıyor"* diye bir **kabul kriteri** eklendi, yani faz bu boşluk sessizce açık kalarak kapanamaz. |
 
 ---
 
@@ -170,7 +185,43 @@ yoktu.
 
 | #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
 | ---- | -------------- | ---------- | --------------------- | ----- |
-| G-14 | `docs/spec/12-data-packs.md` §17.1 + `docs/spec/01-database.md` §3.1.0 — `source` kapalı kümesi: `pack \| api \| wikidata \| openfootball \| procedural` | Her varlığın verisinin **nereden geldiğini** taşımak. Ama küme **elle yazılmış bootstrap seed verisini** kapsamıyor: §17.1'in listesi sağlayıcı zincirinden türetilmiş, hepsi bir **sağlayıcıyı** adlandırıyor. Faz 3.8'in 17 satırı hiçbir sağlayıcıdan gelmiyor — repoda elle yazıldılar. | **Faz 7** (DataProvider soyutlaması) — sağlayıcı zinciri orada kuruluyor, kümenin doğru yeri orası | ⏳ ROADMAP'e işlenmedi. **3.8 `procedural` seçti ve gerekçesi ölçülebilir bir soruya dayanıyor:** alanın tüketicisi (§17.1 *"Veri Editörü'nde hangi varlığın nereden geldiği görünür — eksikleri kapatmak kolaylaşır"*) şunu soruyor: *"bu satır için hâlâ gerçek veri gerekiyor mu?"* `pack` **hayır** derdi ve Faz 8 ingesti bu satırları otoriter paket verisi sanardı; `procedural` **evet** der. Ayrıca `procedural` bugünkü durumun birebir tarifi: `ACTIVE_PACK` boş, K9'un yedek koşulu geçerli. **Altıncı bir değer (`seed`) eklemek CHECK kısıtını değiştirmek, yani yeni bir migration demekti** — 3.8'in kapsamı dışında (K12). Faz 7 kümeyi yeniden değerlendirirse seed `DO UPDATE` yaptığı için tek koşuda düzelir. Karar `tools/data-cli/src/seed/world-seed-data.ts` başlığında. |
+| G-14 | `docs/spec/12-data-packs.md` §17.1 + `docs/spec/01-database.md` §3.1.0 — `source` kapalı kümesi: `pack \| api \| wikidata \| openfootball \| procedural` | Her varlığın verisinin **nereden geldiğini** taşımak. Ama küme **elle yazılmış bootstrap seed verisini** kapsamıyor: §17.1'in listesi sağlayıcı zincirinden türetilmiş, hepsi bir **sağlayıcıyı** adlandırıyor. Faz 3.8'in 17 satırı hiçbir sağlayıcıdan gelmiyor — repoda elle yazıldılar. | **Faz 7** (DataProvider soyutlaması) — sağlayıcı zinciri orada kuruluyor, kümenin doğru yeri orası | ✅ **ROADMAP Faz 7 kapsamına eklendi (Faz 4.0).** **3.8 `procedural` seçti ve gerekçesi ölçülebilir bir soruya dayanıyor:** alanın tüketicisi (§17.1 *"Veri Editörü'nde hangi varlığın nereden geldiği görünür — eksikleri kapatmak kolaylaşır"*) şunu soruyor: *"bu satır için hâlâ gerçek veri gerekiyor mu?"* `pack` **hayır** derdi ve Faz 8 ingesti bu satırları otoriter paket verisi sanardı; `procedural` **evet** der. Ayrıca `procedural` bugünkü durumun birebir tarifi: `ACTIVE_PACK` boş, K9'un yedek koşulu geçerli. **Altıncı bir değer (`seed`) eklemek CHECK kısıtını değiştirmek, yani yeni bir migration demekti** — 3.8'in kapsamı dışında (K12). Faz 7 kümeyi yeniden değerlendirirse seed `DO UPDATE` yaptığı için tek koşuda düzelir. Karar `tools/data-cli/src/seed/world-seed-data.ts` başlığında. ✅ **ROADMAP Faz 7 kapsamına eklendi (Faz 4.0)** — sağlayıcı zincirinin kurulduğu faz kümenin sahibidir. ⚠️ **AYRI ama aynı gün bulunan bir hata:** `spec/12` §17.1 ve ROADMAP Faz 7 kabul kriteri `source` kümesini **dört** değer sayıyordu (`openfootball` eksik) — bu G-14 değil, SAPMA-023'ün tamamlanmamış yayılımıydı; ikisi de düzeltildi (**SAPMA-029**). G-14 hâlâ *"altıncı bir değer gerekiyor mu"* sorusudur. |
+
+---
+
+## Tarama 8 — Faz 4.0 (2026-08-29)
+
+Yöntem: tarama değil, **kütüğün kendi durumunun ölçümü**. Faz 4 açılışında iki `grep`
+koşuldu ve ikisi de bu dosyanın işlemediğini gösterdi:
+
+| Ölçüm | Komut | Sonuç |
+|---|---|---|
+| Kütüğün okuyucusu var mı | `grep -n "SPEC-COVERAGE" CLAUDE.md docs/SESSION-TEMPLATE.md` | **boş** (exit 1) — hiçbir ritüel onu okumuyor |
+| ⏳ satırlar atandıkları fazda görünüyor mu | `grep -n "G-09\|G-10\|G-11\|G-12\|G-13\|G-14" docs/ROADMAP.md` | 8 eşleşme, **hepsi Faz 3 bölümünün içinde** (satır 1153–1499). **G-07 hiç geçmiyor.** |
+
+Karşılaştırma: **G-01…G-06 doğru işlenmişti** (Faz 6 · 17 · 47 · 49 · 50 kapsamlarında
+adlarıyla duruyorlar). Yani desen Tarama 1'de kuruldu ve Tarama 3–7'de **unutuldu** —
+tam olarak bir okuyucunun yokluğunda beklenen şey.
+
+**Yapılan (iki iş, biri diğerinin yerine geçmez):**
+
+1. **Yedi satır atandıkları fazın ROADMAP kapsamına yazıldı** — G-07 → Faz 50 ·
+   G-09, G-14 → Faz 7 · G-10, G-11, G-12 → Faz 11 (tek blokta, çünkü aynı sınıf) ·
+   G-13 → Faz 17. G-13 ve G-07 ayrıca birer **kabul kriteri** aldı; G-11 ROADMAP'e
+   yazıldı ama `Durum`u **kapanmadı** olarak kaldı — o Faz 11'in doğrulayıcısında kapanır.
+2. **Kütüğe bir okuyucu bağlandı** — `CLAUDE.md` belge haritası + "Her Oturumun İlk İşi"
+   listesi ve `docs/SESSION-TEMPLATE.md` faz açılış ritüeli (adım 4) + faz kapanış
+   kontrol listesi (adım 20).
+
+**Aynı sınıftan ikinci bir vaka bu ölçüm sırasında bulundu ve düzeltildi:**
+`docs/DEPENDENCY-WATCH.md` kendi başlığında *"Her faz açılışında bu tablo kontrol edilir
+(`docs/SESSION-TEMPLATE.md` ÖN KONTROL)"* diyordu — ama şablonda öyle bir satır **yoktu**
+(ölçüldü: `grep` boş). Bir belgenin *"beni şurası okur"* demesi, orada okunduğunu
+göstermiyor. Şablona adım 7 olarak eklendi.
+
+> **Ders (bu dosyanın kendi hikâyesinden):** bir envanteri **tutmak** ile bir envanterin
+> **okunmasını sağlamak** ayrı iki iştir, ve ikincisi unutulduğunda birincisi hiçbir şey
+> yapmaz — üstelik sessizce, çünkü dosya dolu ve düzenli görünmeye devam eder.
 
 ---
 
@@ -181,3 +232,7 @@ yoktu.
 3. Bir boşluk bilinçli olarak kapsam dışı bırakılıyorsa `Durum` **"kapsam dışı — gerekçe"**
    olur ve gerekçe `docs/V2-BACKLOG.md`'ye de yazılır (K12).
 4. Tarama tekrarlandığında yeni bir "Tarama N" bölümü açılır; eskisi korunur.
+5. **Bir satır AYNI alt görevde hem buraya hem ROADMAP'e yazılır** (Faz 4.0'da eklendi).
+   *"Sonra işlerim"* diye bırakılan satır işlenmiyor — ölçüldü: yedi satırın yedisi
+   böyle kaldı ve dördü **beş faz boyunca** kimsenin işi olmadı. `Durum` sütunu
+   `⏳ ROADMAP'e işlenmedi` diyorsa o satır bir kayıt değil, **açık bir borçtur**.

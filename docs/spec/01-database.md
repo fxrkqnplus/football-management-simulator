@@ -541,8 +541,15 @@ player_attributes: {
   aerialReach, commandOfArea, communication, eccentricity, handling,
   kicking, oneOnOnes, reflexes, rushingOut, tendencyToPunch, throwing: smallint
 }
-// CHECK: her sütun 1-20 arasında
+// ⚠️ CHECK YOK — §3.1.2 ② (Faz 4.0'da düzeltildi, SAPMA-028). Bu satır önce
+//    "CHECK: her sütun 1-20 arasında" diyordu ve §3.1.2 ② ile çelişiyordu:
+//    sayısal ARALIK bir kalibrasyondur, CHECK almaz. Emsal ölçülmüş — 3.6'da
+//    altı hakem niteliği (1-20) de almadı. Aralık denetimi Faz 11'in işi
+//    (`pnpm validate:world`). İlişki değişmezleri (`CA <= PA`,
+//    `pa_range_min <= pa_range_max`) `players` tablosunda CHECK ALIR.
 // INDEX: (primaryPosition, currentAbility), (finishing), (passing), (pace) — transfer araması için
+//    ⚠️ İlk iki sütun `players` tablosunda, son üçü burada: indeks TEK BİR tabloya
+//    konur. Bu satır iki tabloyu karıştırıyor; doğru dağılım Faz 4'te kararlaştırılır.
 
 // player_hidden_attributes — 10 gizli nitelik
 player_hidden_attributes: {

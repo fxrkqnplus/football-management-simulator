@@ -1720,13 +1720,28 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
   Yalnızca sütunu eklemek, Faz 3'ün *"tüm yabancı anahtarlar tanımlı"* kriterini
   görünürde sağlayıp gerçekte delerdi — kararın gerekçesi Faz 3 tablo envanterinde.
   Bu tamamlanana kadar hakemlerin **adı yok** (ilk görüntülendikleri yer Faz 26).
+- ⚠️ **NİTELİK ARALIKLARI CHECK ALMAZ — ama İLİŞKİ değişmezleri ALIR** *(SAPMA-028)*
+  Bu kriter Faz 4.0'da değiştirildi; eski hâli *"Tüm nitelikler 1–20 aralığında CHECK
+  kısıtıyla korunuyor"* idi ve **iki kaynakla birden** çelişiyordu.
+  - **Ayraç `spec/01` §3.1.2 ②:** *"bu değeri yarın bir denge ayarı değiştirebilir mi?"*
+    Evet → CHECK yok. Bir aralık **kalibrasyondur**; migration'a çakılırsa Faz 23/30
+    denge ayarı o gün bir `DROP CONSTRAINT` ister.
+  - **Ölçülmüş emsal:** 3.6'da altı hakem niteliği (1-20) CHECK **almadı**, gerekçesi
+    *"Faz 26'nın kalibre edeceği ölçekler"*. `competitions.reputation` (0-200) ve
+    `stadiums.pitch_quality` (1-20) da almadı. Faz 4 aynı sınıfa **farklı** davranamaz.
+  - **Aralık denetiminin yeri Faz 11** (`pnpm validate:world`) — ROADMAP Faz 11 zaten
+    *"CA ≤ PA, nitelikler 1–20"* diyor; aynı iş iki faza iki mekanizmayla atanmıştı.
+  - ⚠️ **`CA <= PA` ve `pa_range_min <= pa_range_max` CHECK ALIR ve bu kriter
+    değişmedi.** Bunlar bir aralık değil bir **ilişki değişmezi**: hiçbir denge ayarı
+    CA'yı PA'nın üstüne çıkarmaz — çıkarırsa tanım ihlal edilmiş olur. Ayracın iki
+    kriteri **farklı taraflara** koyması, kuralın iyi bir kural olduğunun kanıtıdır.
 
 **Kabul kriterleri:**
 - [ ] 5.000 sahte oyuncu seed → şema tutarlı
 - [ ] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri)
 - [ ] "20–24 yaş, sağ bek, CA>120, değer<15M" sorgusu < 50 ms
-- [ ] Tüm nitelikler 1–20 aralığında CHECK kısıtıyla korunuyor
-- [ ] CA/PA ilişkisi CHECK ile korunuyor (`CA <= PA`)
+- [ ] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)*
+- [ ] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`**
 - [ ] Şema dokümanı güncellendi
 
 **Bağımlılık:** Faz 3
@@ -1831,13 +1846,31 @@ docs/glossary.md
 - Hız sınırlama + üstel geri çekilme (exponential backoff) + devre kesici (circuit breaker)
 - **Görsel işleme hattı:** indir → doğrula → yeniden boyutlandır (arma 256/128/64, portre 256/128/64, bayrak 64/32) → WebP + AVIF → `/data/assets/`
 - `tools/data-cli` komutları: `fetch`, `verify`, `stats`, `clear-cache`
+- **`asset_index` tablosu — varlık hattının çıktı kaydı** *(G-09, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `docs/spec/12` §17.5 adım 7 *"İndeksle → `asset_index` tablosuna kaydet (id, tip, kaynak,
+  hash)"* diyor; tablo `docs/spec/01`'de **yok** ve ROADMAP'in hiçbir fazında geçmiyordu.
+  §17.9'un *"eksik varlık oranı raporlanıyor"* kriterinin sayılacağı yer burası. Faz 3
+  bunu bilerek açmadı — hiçbir şeyin yazmadığı bir tablo, tüketicisi olmayan bir sütunla
+  aynı sınıf (D3). Yazan taraf **bu fazda** doğuyor, tablo burada açılır ve tanımı
+  `docs/spec/01`'e yazılır. Faz 3'ün bağlı kararı: `crestAssetId` · `portraitAssetId` ·
+  `logoAssetId` · `flagAssetId` · `club_kits.assetId` bugün düz `text`; bu tabloya **FK
+  verilip verilmeyeceği burada** kararlaştırılır.
+- **`source` kapalı kümesinin yeniden değerlendirilmesi — bootstrap seed verisi**
+  *(G-14, `docs/SPEC-COVERAGE-GAPS.md`)*
+  `DATA_SOURCES` beş değerin hepsi bir **sağlayıcıyı** adlandırıyor, ama Faz 3.8'in 17
+  seed satırı hiçbir sağlayıcıdan gelmiyor — repoda elle yazıldılar. 3.8 `procedural`
+  seçti (dürüst tek seçenek: *"bu satır için hâlâ gerçek veri gerekiyor mu?"* → **evet**);
+  altıncı bir değer (`seed`) CHECK kısıtını değiştirmek, yani yeni bir migration
+  demekti ve 3.8'in kapsamı dışındaydı (K12). Bu faz sağlayıcı zincirini kurduğu için
+  kümenin sahibi burasıdır: ya `seed` eklenir ya `procedural` kalıcılaşır. Seed
+  `DO UPDATE` yaptığı için değişiklik tek koşuda uygulanır.
 
 **Kabul kriterleri:**
 - [ ] Sağlayıcı sırası config'den değişiyor, kod değişmiyor
 - [ ] Bir sağlayıcı hata verince zincir bir sonrakine geçiyor, oyun çalışmaya devam ediyor
 - [ ] `DATA_MODE=full` + paket varken zincir LocalPack'i birinci sırada kullanıyor
 - [ ] Tüm sağlayıcılar kapalıyken `ProceduralProvider` devreye giriyor ve tam bir dünya üretiyor
-- [ ] Her varlığın `source` alanı doğru dolduruluyor (`pack` | `api` | `wikidata` | `procedural`)
+- [ ] Her varlığın `source` alanı doğru dolduruluyor (`pack` | `api` | `wikidata` | `openfootball` | `procedural`)
 - [ ] `data-cli verify` eksik varlıkları raporluyor
 - [ ] Görsel hattı 1.000 varlığı işleyip WebP+AVIF üretiyor
 
@@ -1979,6 +2012,30 @@ docs/glossary.md
   - Her lig doğru takım sayısına sahip
   - CA ≤ PA, nitelikler 1–20
   - Turnuva takvimleri çakışmıyor
+- **⚠️ ŞEMA BU ÜÇ KURALI İFADE EDEMEDİ — Faz 3'ten devredilen boşluklar**
+  *(`docs/SPEC-COVERAGE-GAPS.md`)*
+  Üçü de aynı sınıf (*"koşullu / çapraz tablo kuralı, sütun kısıtıyla yazılamaz"*) ve
+  **birlikte okunmalı** — tek tek karşılaşılırsa her biri ayrı bir sürpriz gibi görünür.
+  ⚠️ 3.7'nin dersi: her satır için soru **yeniden sorulur** — *"gerçekten ifade
+  edilemiyor mu, yoksa bir yol mu kaçırdık?"* G-11 tam olarak böyle daraldı.
+  - **G-10 — `clubs` koşullu nullability.** `competition_id` ve `stadium_id` 3.5'te
+    **nullable** yapıldı (milli takımların ne ligi ne sabit ev sahası var, Faz 41). Bu
+    kulüp takımları için bir boşluk bıraktı: *"`is_national = false` olan bir kulüp
+    ligsiz veya stadyumsuz kalabilir mi?"* Cevap **hayır** olmalı. Gerekçe
+    `packages/db/src/schema/clubs.ts` başlığında.
+  - **G-11 — `rivalries` çift tekliği (DARALDI, kapanmadı).** 3.7 bir `LEAST/GREATEST`
+    ifade indeksi koydu; `(A,B)` tekrarı ve `(B,A)` ters tekrarı **kapandı**. Kalan tek
+    delik **`(A,A)`** — bir kulübün kendi rakibi olması. Doğrulayıcının işi.
+  - **G-12 — `club_kits.color3` ↔ `kit_templates.color_slots`.** `color3` nullable
+    (iki yuvalı şablonda üçüncü renk yoktur), ama *"`color_slots = 3` ise `color3`
+    dolu, `= 2` ise boş"* bir **çapraz tablo** kuralı. Bugün hiçbir şey denetlemiyor.
+    Karar `packages/db/src/schema/club-kits.ts` sütun yorumunda.
+- ℹ️ **`CA ≤ PA` ve `1–20` burada İKİNCİ KEZ denetleniyor — bu çakışma değil, bilinçli.**
+  Faz 4'te `CA <= PA` ve `pa_range_min <= pa_range_max` veritabanı **CHECK**'i alır
+  (ilişki değişmezi); nitelik **aralıkları** CHECK almaz (§3.1.2 ② — aralık bir
+  kalibrasyondur, denge ayarı onu değiştirebilir) ve **tek denetim yeri burasıdır**.
+  İkisinin farkı: CHECK yanlış satırın **yazılmasını** engeller, doğrulayıcı var olan
+  veriyi **okunur bir rapora** çevirir ve düzeltme bağlantısı verir. Ayrıntı: SAPMA-028.
 - Doğrulayıcı raporu: hata / uyarı / bilgi seviyeleri, tıklanabilir düzeltme bağlantısı
 - Değişiklik geçmişi (undo/redo) + fark görüntüleyici
 
@@ -2265,6 +2322,15 @@ docs/glossary.md
 - **Gelen Kutusu:** e-posta benzeri, kategoriler (Yönetim / Oyuncu / Transfer / Basın / Sakatlık / Sistem), okundu-okunmadı, aksiyon butonları (kabul/ret/cevapla), toplu işlem, filtre
 - **Haber akışı:** önem sırasına göre, kategorili, filtrelenebilir, sonsuz kaydırma
 - **Global arama (`/` kısayolu):** oyuncu + kulüp + personel + lig + turnuva — tek kutu, Türkçe karakter toleranslı (pg_trgm), son aramalar
+- **⚠️ ARAMANIN İKİ VARLIK TÜRÜ BUGÜNKÜ ŞEMAYLA YAPILAMIYOR** *(G-13, `docs/SPEC-COVERAGE-GAPS.md`)*
+  Yukarıdaki beş türden **lig + turnuva** aranamıyor: `competitions`ın görünen adı
+  `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`) — üzerinde trigram
+  araması anlamsız. Aynı sorun `rivalries.name_key`te de var. Faz 3.7 bu yüzden
+  `competitions`a trigram indeksi **koymadı**: indekslenecek bir metin yok. Üç seçenek
+  Faz 17'ye bırakıldı ve **burada karara bağlanır**: ① çeviriler üzerinde istemci tarafı
+  arama · ② çevrilmiş adı taşıyan bir arama tablosu · ③ `name_key`i tamamlayan bir
+  `display_name` sütunu (③ seçilirse bir migration ve `docs/spec/01` güncellemesi gerekir).
+  Karar gerekçesi `packages/db/src/schema/competitions.ts` yorumunda.
 - **Klavye kısayolları:** `Space` devam et, `1-9` bölüm, `/` arama, `Esc` kapat, `Ctrl+S` manuel kayıt
 - Bildirim sistemi (toast + rozet)
 - Ekran geçiş animasyonları (ölçülü, "hareketi azalt" ayarına saygılı)
@@ -2282,6 +2348,7 @@ docs/glossary.md
 - [ ] `pnpm test:e2e` çalışıyor; ilk kritik akış hem masaüstü hem 375px projesinde yeşil, CI'da koşuyor *(G-02)*
 - [ ] Inbox 500 mesajda akıcı, filtre < 100 ms
 - [ ] Arama "besiktas" yazınca "Beşiktaş" buluyor, sonuç < 150 ms
+- [ ] **Arama beş varlık türünün BEŞİNİ de kapsıyor** — lig ve turnuva dahil; seçilen çözüm ve gerekçesi yazılı *(G-13)*
 - [ ] Tüm klavye kısayolları çalışıyor
 - [ ] 375px genişlikte hiçbir yatay taşma yok
 - [ ] Ekran geçişi < 200 ms
@@ -3541,6 +3608,13 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   - Sağlık kontrolü uç noktaları (`/health`, `/ready`) + ücretsiz uptime izleme
   - **Yedekleme:** günlük otomatik `pg_dump` (sıkıştırılmış) → **R2** (ücretsiz 10 GB), 30 günlük saklama, haftalık tam varlık arşivi
   - **Geri yükleme tatbikatı:** yedekten sıfır sunucuya tam geri yükleme **bir kez test edilir ve süresi ölçülür**
+  - **`docs/RUNBOOK.md` — tatbikatın yazılı çıktısı** *(G-07, `docs/SPEC-COVERAGE-GAPS.md`)*
+    `docs/spec/10` §13.4 *"süresi `docs/RUNBOOK.md`'ye yazılır"* diyor; dosya ne repoda
+    var, ne `CLAUDE.md` belge haritasında, ne de bu fazın kapsamında **adıyla** geçiyordu
+    (yalnızca *"süresi belgelenmiş"* deniyordu). Tatbikatın kendisi zaten kapsamda —
+    eksik olan **çıktı dosyasının adı ve içeriği**: adım adım geri yükleme prosedürü,
+    ölçülen süre, ve tatbikatta çıkan sürprizler. Dosya oluşturulunca `CLAUDE.md` belge
+    haritasına da bir satır eklenir.
   - Kaynak izleme: CPU/RAM/disk alarmı (disk %80 dolunca uyarı, 200 GB sınırı takibi)
   - **`docs/HOSTING-FALLBACK.md`:** Oracle limitleri tekrar düşürürse taşınacak alternatif ücretsiz/ucuz sağlayıcılar ve taşıma prosedürü
 - **Yasal sayfalar:** Aydınlatma metni, Gizlilik Politikası, Kullanım Koşulları, Çerez Politikası
@@ -3570,7 +3644,7 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] HTTPS alan adı üzerinden erişilebiliyor, Cloudflare proxy aktif, origin IP gizli
 - [ ] Sunucu sağlamlaştırma tamamlanmış (SSH anahtar-only, ufw, fail2ban, iptables kalıcı)
 - [ ] Günlük yedek R2'ye gidiyor
-- [ ] **Geri yükleme tatbikatı yapılmış** — sıfır sunucudan tam geri yükleme başarılı, süresi belgelenmiş
+- [ ] **Geri yükleme tatbikatı yapılmış** — sıfır sunucudan tam geri yükleme başarılı, süresi `docs/RUNBOOK.md`'ye yazılmış *(G-07)*
 - [ ] Dengeli modda 20 kullanıcı eşzamanlı oynarken sistem stabil (CPU < %80, kuyruk < 20 sn) — *`k6` senaryosuyla ölçülür (G-04)*
 - [ ] Aylık maliyet **$0** — tüm servisler ücretsiz kademede, hiçbir sınır aşılmıyor
 - [ ] `spec/10` §13.5'teki **altı** sınırın hepsi (Sentry dahil) izleniyor; eşiğe gelince admin e-postası gidiyor *(G-06)*
