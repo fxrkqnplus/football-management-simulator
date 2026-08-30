@@ -43,6 +43,13 @@
       "when": 1788036214228,
       "tag": "0005_people_players",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788051726035,
+      "tag": "0006_forward_person_fks",
+      "breakpoints": true
     }
   ]
 }

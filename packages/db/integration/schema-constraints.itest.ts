@@ -63,6 +63,7 @@ import {
   clubKitInsertSql,
   type CountryFixture,
   countryInsertSql,
+  federationInsertSql,
   kitTemplateInsertSql,
   personInsertSql,
   playerInsertSql,
@@ -303,6 +304,10 @@ describe('`federations` UYDU TABLO — veri paketi sütunlarını taşımıyor',
       'asset_id',
       'created_at',
       'updated_at',
+      // 🆕 4.4 — `ALTER TABLE ADD COLUMN` fiziksel sona ekledi (§3.1.2 ④).
+      // ⚠️ Yeni sütun bir FK ama §3.1.0 sütunu DEĞİL: `federations` hâlâ bir
+      // uydu ve `key`/`source`/`external_ids` taşımıyor. İki soru ayrı.
+      'president_person_id',
     ]);
     expect(names).not.toContain('key');
     expect(names).not.toContain('source');
@@ -318,10 +323,10 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
    * Sekiz tabloda dokuz FK var ve **hangisinin hangi davranışı aldığı** artık
    * bir liste — §3.1.2 ③'ün (uydu CASCADE, bağımsız varlık RESTRICT) tam
    * uygulaması. Tam liste iddia ediliyor: fazlası da eksiği de testi kırar,
-   * yani Faz 4'ün ekleyeceği `chairman_person_id` FK'sı burayı güncellemeyi
-   * unutamaz.
+   * yani Faz 4'ün eklediği `chairman_person_id` FK'sı burayı güncellemeyi
+   * unutamadı — **4.4'te tam olarak öyle oldu** (16 → 19).
    */
-  it('ON ALTI FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
+  it('ON DOKUZ FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
     const rows = await executor.rows<{ conname: string; def: string }>(`
       SELECT conname, pg_get_constraintdef(oid) AS def
         FROM pg_constraint
@@ -341,12 +346,20 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       // §3.1.2 ③'ün ikili ayrımı bu vakayı kapsamıyor. CASCADE, bir şablon
       // silinince kulübün forma satırını ALAKASIZ bir sebeple yok ederdi.
       'club_kits_template_id_kit_templates_id_fk → RESTRICT',
+      // 🆕 4.4 — İLERİ FK #2. `clubs` `independent` (kendi `key`i var) → kural ②
+      // ③'ten ÖNCE çalışıyor, yani sütun NULLABLE olduğu hâlde SET NULL DEĞİL.
+      'clubs_chairman_person_id_people_id_fk → RESTRICT',
       // kulüp bağımsız varlıklara bakıyor → RESTRICT
       'clubs_competition_id_competitions_id_fk → RESTRICT',
       'clubs_country_id_countries_id_fk → RESTRICT',
       'clubs_stadium_id_stadiums_id_fk → RESTRICT',
       'competitions_country_id_countries_id_fk → RESTRICT',
+      // ⚠️ AYNI TABLODAN İKİ FK, İKİ FARKLI CEVAP — kuralın sahipliği referanstan
+      // ayırdığının ilk canlı kanıtı. `country_id` NOT NULL → ④ CASCADE
+      // (sahiplik); `president_person_id` nullable → ③ SET NULL (referans).
       'federations_country_id_countries_id_fk → CASCADE',
+      // 🆕 4.4 — İLERİ FK #1 ve şemanın İKİNCİ `SET NULL`ı.
+      'federations_president_person_id_people_id_fk → SET NULL',
       // 🆕 4.3 — `people` kendi `key`ini taşıyor → bağımsız varlık → RESTRICT.
       // ⚠️ İKİNCİSİ NULLABLE VE YİNE DE `SET NULL` DEĞİL: kural ② (kaynak
       // `independent`) ③'ten (nullable → SET NULL) ÖNCE geliyor. Sıranın
@@ -360,6 +373,9 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       'players_person_id_people_id_fk → CASCADE',
       // hakem kendi `key`ini taşıyor → bağımsız varlık → RESTRICT
       'referees_country_id_countries_id_fk → RESTRICT',
+      // 🆕 4.4 — İLERİ FK #3, üçün TEK `NOT NULL`u. Kaynak `independent` → ②
+      // RESTRICT; `SET NULL` zaten uygulanamazdı (sütun `NOT NULL`).
+      'referees_person_id_people_id_fk → RESTRICT',
       // aynı tabloya İKİ FK — adlar sütundan ayrışıyor, çakışma yok
       'rivalries_club_a_id_clubs_id_fk → CASCADE',
       'rivalries_club_b_id_clubs_id_fk → CASCADE',
@@ -465,41 +481,51 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
 
     // Boş bir sonuç "hiç uyumsuzluk yok" diye okunurdu — bakacak bir şey
     // bulamayan kapı (SAPMA-024). Sayı ayrıca iddia ediliyor.
-    expect(foreignKeys).toHaveLength(16);
+    expect(foreignKeys).toHaveLength(19);
 
     // Nullability GERÇEKTEN okundu mu — boş dizi sessizce "SET NULL uygulanamaz"
     // derdi ve üçüncü olgu hiç sınanmamış olurdu (D3).
     expect(foreignKeys.every((fk) => fk.column_nullability.length > 0)).toBe(true);
 
-    // ⚠️ **BU LİSTE 4.3'TE BEKLENDİĞİ GİBİ KIRILDI ve üçten BEŞE çıktı.**
-    // 4.2 onu *"`players.club_id` gelince kırılsın"* diye koymuştu; kırıldı ve
-    // güncellendi — kural değişmedi.
+    // ⚠️ **BU LİSTE 4.3'TE ÜÇTEN BEŞE, 4.4'TE BEŞTEN YEDİYE ÇIKTI.** 4.2 onu
+    // *"`players.club_id` gelince kırılsın"* diye koymuştu; iki kez kırıldı ve
+    // iki kez güncellendi — kural hiç değişmedi.
     //
     // ⚠️ **LİSTE `allNullable` HAKKINDA, ALDIKLARI EYLEM HAKKINDA DEĞİL.**
-    // Beşin yalnızca BİRİ `SET NULL` alıyor (`players_club_id`); diğer dördü
-    // RESTRICT, çünkü kaynakları `independent` ve kural ② ③'ten önce geliyor.
-    // `people_second_nationality_country_id` bunun en net örneği: nullable,
-    // listede, ama `SET NULL` **almıyor**. İki farklı şey söyleniyor ve
-    // karıştırılmamaları için ikisi de ayrı ayrı iddia ediliyor.
+    // Yedinin yalnızca İKİSİ `SET NULL` alıyor (`players_club_id` ve
+    // `federations_president_person_id`); diğer beşi RESTRICT, çünkü kaynakları
+    // `independent` ve kural ② ③'ten önce geliyor.
+    //
+    // 🆕 **4.4 BU AYRIMIN EN KESKİN ÇİFTİNİ GETİRDİ:**
+    // `clubs_chairman_person_id` ve `federations_president_person_id` **aynı
+    // migration**'da, **aynı hedefe** (`people`), **aynı nullability** ile
+    // eklendi — biri listede ve `SET NULL` **almıyor**, diğeri listede ve
+    // **alıyor**. Tek fark kaynağın sınıfı. İki liste ayrı ayrı iddia edilmese
+    // bu fark görünmezdi.
     const nullableForeignKeys = foreignKeys
       .filter((fk) => foreignKeyNullability(fk.column_nullability).allNullable)
       .map((fk) => fk.name);
     expect(nullableForeignKeys.sort()).toEqual([
+      'clubs_chairman_person_id_people_id_fk',
       'clubs_competition_id_competitions_id_fk',
       'clubs_stadium_id_stadiums_id_fk',
       'competitions_country_id_countries_id_fk',
+      'federations_president_person_id_people_id_fk',
       'people_second_nationality_country_id_countries_id_fk',
       'players_club_id_clubs_id_fk',
     ]);
 
-    // ⚠️ `SET NULL` alan FK sayısı AYRICA iddia ediliyor: 4.2 kuralı yazdı ama
+    // ⚠️ `SET NULL` alan FK'lar AYRICA iddia ediliyor: 4.2 kuralı yazdı ama
     // canlı katalogda o dala düşen TEK BİR FK YOKTU (dal entegrasyonda
-    // erişilmiyordu). 4.3 ilk vakayı getirdi; sayı burada sabitleniyor ki dal
-    // bir gün sessizce boşalırsa fark edilsin.
+    // erişilmiyordu). 4.3 ilk vakayı getirdi, 4.4 ikincisini; sayı burada
+    // sabitleniyor ki dal bir gün sessizce boşalırsa fark edilsin.
     const setNullForeignKeys = foreignKeys
       .filter((fk) => fk.action === 'SET NULL')
       .map((fk) => fk.name);
-    expect(setNullForeignKeys).toEqual(['players_club_id_clubs_id_fk']);
+    expect(setNullForeignKeys).toEqual([
+      'federations_president_person_id_people_id_fk',
+      'players_club_id_clubs_id_fk',
+    ]);
 
     const classLookup = (table: string): TableClass => classes.get(table) ?? 'independent';
     const mismatches = foreignKeys
@@ -522,10 +548,11 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
 
   it('CASCADE: ülke silinince federasyonu da gidiyor', async () => {
     await insertCountry({ key: 'k-cascade', code: 'CC1' });
-    await executor.run(`
-      INSERT INTO "federations" ("country_id","name")
-      SELECT "id", 'Sonda Federasyonu' FROM "countries" WHERE "key" = 'k-cascade'
-    `);
+    // 🆕 4.4 — ham `INSERT` yerine fixture. `0006` tabloya bir sütun daha
+    // ekledi ve o an bu dosyadaki ham kopya ile `round-trip`teki kopya AYNI
+    // ANDA güncellenmek zorunda kalırdı; sınıf tek yere indirildi
+    // (`fixtures.ts` başlığındaki #23 kuralı).
+    await executor.run(federationInsertSql([{ countryCode: 'CC1', name: 'Sonda Federasyonu' }]));
     await executor.run(`DELETE FROM "countries" WHERE "key" = 'k-cascade'`);
 
     const rows = await executor.rows<{ n: number | string }>(
@@ -1038,9 +1065,15 @@ describe('⑤ KAPALI değer kümeleri — 3.6’nın iki yeni CHECK’i', () => 
 
   it('geçersiz `referees.source` REDDEDİLİYOR', async () => {
     await executor.run(countryInsertSql([{ key: 'k-ref-src', code: 'RF1' }]));
+    // 🆕 4.4 — `person_id` `NOT NULL`, yani hakem satırı bir kişi olmadan
+    // yazılamıyor. Kişi ÖNCE yazılıyor ki reddin sebebi TEK olsun (dosya
+    // başlığındaki kural): burada sınanan şey `source` CHECK'i, FK değil.
+    await executor.run(personInsertSql([{ key: 'p-ref-src', countryCode: 'RF1' }]));
     await expect(
       executor.run(
-        refereeInsertSql([{ key: 'r-bad-source', countryCode: 'RF1', source: 'manual' }]),
+        refereeInsertSql([
+          { key: 'r-bad-source', countryCode: 'RF1', personKey: 'p-ref-src', source: 'manual' },
+        ]),
       ),
     ).rejects.toThrow(/referees_source_check/);
   });
@@ -1149,9 +1182,9 @@ describe('§3.1.0 — 3.6’nın tabloları doğru tarafta', () => {
     expect(names).not.toContain('external_ids');
   });
 
-  it('referees ÜÇÜNÜ DE taşıyor ve `person_id` YOK (Faz 4)', async () => {
-    const rows = await executor.rows<{ column_name: string }>(`
-      SELECT column_name FROM information_schema.columns
+  it('referees ÜÇÜNÜ DE taşıyor ve `person_id` ARTIK VAR (Faz 4.4)', async () => {
+    const rows = await executor.rows<{ column_name: string; is_nullable: string }>(`
+      SELECT column_name, is_nullable FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = 'referees'
        ORDER BY ordinal_position
     `);
@@ -1160,8 +1193,34 @@ describe('§3.1.0 — 3.6’nın tabloları doğru tarafta', () => {
     expect(names).toContain('key');
     expect(names).toContain('source');
     expect(names).toContain('external_ids');
-    // Üçüncü ve son ileri FK — sütun ve FK Faz 4'te BİRLİKTE eklenecek.
-    expect(names).not.toContain('person_id');
+    // ⚠️ 4.3'e kadar bu satır `not.toContain('person_id')` diyordu ve o gün
+    // DOĞRUYDU — üçüncü ve son ileri FK henüz yazılmamıştı. 4.4 sütunu ve FK'yı
+    // BİRLİKTE ekledi; iddia tersine döndü ve nullability'si de ayrıca
+    // sabitleniyor (üçün TEK `NOT NULL`u).
+    expect(names).toContain('person_id');
+    expect(rows.find((row) => row.column_name === 'person_id')?.is_nullable).toBe('NO');
+  });
+
+  /**
+   * 🆕 4.4 — İKİ NULLABLE İLERİ FK, aynı §3.1.0 sorusunun diğer yarısı.
+   *
+   * `federations` veri paketi sütunlarını taşımıyor (uydu) ama `clubs` taşıyor
+   * (bağımsız varlık) — ikisi de aynı gün `people`a bakan bir sütun aldı ve
+   * ikisinin de nullability'si `spec/01`'de **açıkça** yazılı (`FK?` ve
+   * `FK nullable`). Türetme kuralına (SAPMA-026) düşülmedi, spec doğrudan
+   * söylüyor.
+   */
+  it.each([
+    ['federations', 'president_person_id'],
+    ['clubs', 'chairman_person_id'],
+  ])('%s.%s NULLABLE — `spec/01` açıkça öyle yazıyor', async (table, column) => {
+    const rows = await executor.rows<{ is_nullable: string }>(`
+      SELECT is_nullable FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = '${table}' AND column_name = '${column}'
+    `);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.is_nullable).toBe('YES');
   });
 });
 
@@ -1215,8 +1274,21 @@ describe('`ON DELETE` — sözlük tablosu vakası', () => {
   });
 
   it('RESTRICT: hakemi olan bir ÜLKE silinemiyor', async () => {
-    await executor.run(countryInsertSql([{ key: 'k-ref-del', code: 'RD1' }]));
-    await executor.run(refereeInsertSql([{ key: 'r-del', countryCode: 'RD1' }]));
+    await executor.run(
+      countryInsertSql([
+        { key: 'k-ref-del', code: 'RD1' },
+        { key: 'k-ref-del-uyruk', code: 'RD2' },
+      ]),
+    );
+    // ⚠️ **KİŞİ BAŞKA BİR ÜLKENİN VATANDAŞI VE BU KASITLI (4.4).** Hakemin
+    // kişisi de RD1'li olsaydı, RD1'i silme girişimi `people` FK'sına da
+    // takılırdı ve hangi kısıtın önce öttüğü PostgreSQL'in denetim sırasına
+    // kalırdı. Test burada `referees_country_id`i sınıyor; reddin sebebi TEK
+    // olmalı (dosya başlığındaki #17 kuralı).
+    await executor.run(personInsertSql([{ key: 'p-ref-del', countryCode: 'RD2' }]));
+    await executor.run(
+      refereeInsertSql([{ key: 'r-del', countryCode: 'RD1', personKey: 'p-ref-del' }]),
+    );
 
     await expect(executor.run(`DELETE FROM "countries" WHERE "key" = 'k-ref-del'`)).rejects.toThrow(
       /referees_country_id_countries_id_fk/,
@@ -1617,5 +1689,148 @@ describe('FAZ 4.3 — `players` KAPALI KÜME ve VARSAYILANSIZ BAYRAK', () => {
         SELECT "id",'MC',180,75,18,8,130,150,140,160 FROM "people" WHERE "key" = 'newgen-kisi'
       `),
     ).rejects.toThrow(/is_newgen/);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FAZ 4.4 — ÜÇ İLERİ FK'NIN DAVRANIŞI (kabul kriteri 2)
+//
+// ⚠️ **KURALIN KATALOGLA UYUŞMASI, VERİTABANININ ÖYLE DAVRANDIĞINI GÖSTERMEZ.**
+// Yukarıdaki envanter testi `pg_constraint`ten `SET NULL`/`RESTRICT` okuyor —
+// yani kısıtın YAZILDIĞINI. Buradaki testler onun İŞLEDİĞİNİ ölçüyor: gerçek
+// satırlar yazılıyor, gerçek `DELETE` çalıştırılıyor, sonuç okunuyor.
+//
+// Üç FK üç FARKLI cevap taşıyor ve üçü de ayrı ayrı sınanıyor. Yalnızca
+// `SET NULL` sınansaydı, ② kuralının ③'ten önce gelmesi (bu fazın en kolay
+// karışan yeri) davranış tarafında hiç görünmezdi.
+//
+// ⚠️ Ülke kodları var olan kümeyle **programatik olarak** karşılaştırıldı
+// (günlük #10): paylaşılan veritabanına yazan her fixture, benzersiz olması
+// gereken değerlerini var olan kümeye karşı doğrular.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('FAZ 4.4 — üç ileri FK, ÜÇ FARKLI `ON DELETE` DAVRANIŞI', () => {
+  /** Bir ülke + bir kişi yazar; ikisi de `slug` önekli. */
+  async function seedCountryAndPerson(slug: string, code: string): Promise<void> {
+    await insertCountry({ key: `${slug}-ulke`, code });
+    await executor.run(
+      personInsertSql([{ key: `${slug}-kisi`, countryCode: code, personType: ['chairman'] }]),
+    );
+  }
+
+  it('SET NULL: federasyon BAŞKANI silinince federasyon DURUYOR, sütun NULL oluyor', async () => {
+    await seedCountryAndPerson('fedset', 'Q50');
+    await executor.run(
+      federationInsertSql([{ countryCode: 'Q50', presidentPersonKey: 'fedset-kisi' }]),
+    );
+
+    // Önce bağ gerçekten kurulmuş olmalı — yoksa test hiçbir şey ölçmez (D3).
+    const linked = await executor.rows<{ n: number | string; president: number | null }>(`
+      SELECT count(*)::int AS n, min("president_person_id")::int AS president
+        FROM "federations"
+       WHERE "country_id" = (SELECT "id" FROM "countries" WHERE "key" = 'fedset-ulke')
+    `);
+    expect(Number(linked[0]?.n)).toBe(1);
+    expect(linked[0]?.president).not.toBeNull();
+
+    await executor.run(`DELETE FROM "people" WHERE "key" = 'fedset-kisi'`);
+
+    const after = await executor.rows<{ n: number | string; president: number | null }>(`
+      SELECT count(*)::int AS n, min("president_person_id")::int AS president
+        FROM "federations"
+       WHERE "country_id" = (SELECT "id" FROM "countries" WHERE "key" = 'fedset-ulke')
+    `);
+    // Federasyon DURUYOR — CASCADE olsaydı gitmişti, RESTRICT olsaydı silme
+    // reddedilirdi. Doğru sonuç: *"başkanı bilinmiyor"*.
+    expect(Number(after[0]?.n)).toBe(1);
+    expect(after[0]?.president).toBeNull();
+  });
+
+  it('KARŞI ÖRNEK — aynı federasyon satırı ÜLKESİ silinince GİDİYOR (CASCADE)', async () => {
+    // ⚠️ **BAŞKAN BAŞKA BİR ÜLKENİN VATANDAŞI VE BU ÖLÇÜLEREK ÖĞRENİLDİ.** İlk
+    // yazımda kişi de Q51'liydi ve `DELETE` `people_nationality_country_id`
+    // RESTRICT'ine takıldı — yani test CASCADE'i değil, alakasız bir kısıtı
+    // ölçüyordu. Reddin (ya da geçişin) sebebi TEK olmalı.
+    await insertCountry({ key: 'fedcas-ulke', code: 'Q51' });
+    await seedCountryAndPerson('fedcas-baskan', 'Q56');
+    await executor.run(
+      federationInsertSql([{ countryCode: 'Q51', presidentPersonKey: 'fedcas-baskan-kisi' }]),
+    );
+
+    // ⚠️ Nöbetçi iki yönlü VE aynı tablo üzerinde: `SET NULL` her silmeye
+    // uygulanmıyor. `country_id` NOT NULL → sahiplik → CASCADE. Bir tablo, iki
+    // FK, iki farklı cevap.
+    await executor.run(`DELETE FROM "countries" WHERE "key" = 'fedcas-ulke'`);
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "federations"
+       WHERE "name" = 'Q51 Futbol Federasyonu'
+    `);
+    expect(Number(rows[0]?.n)).toBe(0);
+  });
+
+  it('RESTRICT: KULÜP BAŞKANININ kişisi silinemiyor — nullable ≠ SET NULL', async () => {
+    await seedCountryAndPerson('clubchair', 'Q52');
+    await executor.run(
+      clubInsertSql([
+        { key: 'clubchair-kulup', countryCode: 'Q52', chairmanPersonKey: 'clubchair-kisi' },
+      ]),
+    );
+
+    // ⚠️ **BU FAZIN EN KESKİN KARŞILAŞTIRMASI.** Sütun `federations`ınkiyle
+    // AYNI migration'da, AYNI hedefe, AYNI nullability ile eklendi — ve silme
+    // burada REDDEDİLİYOR. Tek fark kaynağın sınıfı: `clubs` kendi `key`ini
+    // taşıyor (`independent`), yani kural ② ③'ten önce çalışıyor. Sezgi
+    // ("nullable ise boşaltılır") burada yanlış cevabı verirdi.
+    await expect(
+      executor.run(`DELETE FROM "people" WHERE "key" = 'clubchair-kisi'`),
+    ).rejects.toThrow(/clubs_chairman_person_id_people_id_fk/);
+  });
+
+  it('RESTRICT: HAKEMİN kişisi silinemiyor — üçün tek `NOT NULL`u', async () => {
+    await seedCountryAndPerson('refperson', 'Q53');
+    await executor.run(
+      refereeInsertSql([
+        { key: 'refperson-hakem', countryCode: 'Q53', personKey: 'refperson-kisi' },
+      ]),
+    );
+
+    await expect(
+      executor.run(`DELETE FROM "people" WHERE "key" = 'refperson-kisi'`),
+    ).rejects.toThrow(/referees_person_id_people_id_fk/);
+  });
+
+  it('`referees.person_id` ZORUNLU — kişisiz hakem satırı yazılamıyor', async () => {
+    await insertCountry({ key: 'refnull-ulke', code: 'Q54' });
+
+    // Hakemler Faz 4'e kadar isimsizdi; 4.4'ten sonra isimsiz bir hakem satırı
+    // TEMSİL EDİLEMİYOR. Bu, `clubs.chairman_person_id`in tam tersi sözleşme ve
+    // ayrım `spec/01`'in kendi yazımından geliyor (`personId FK` işaretsiz).
+    await expect(
+      executor.run(`
+        INSERT INTO "referees"
+          ("key","source","external_ids","country_id","strictness","foul_tolerance",
+           "home_bias","consistency","advantage_play","big_game_experience")
+        SELECT 'refnull-hakem','procedural','{}'::jsonb,"id",12,11,10,14,13,9
+          FROM "countries" WHERE "key" = 'refnull-ulke'
+      `),
+    ).rejects.toThrow(/person_id/);
+  });
+
+  it('KARŞI ÖRNEK: başkansız kulüp ve başkansız federasyon KABUL EDİLİYOR', async () => {
+    await insertCountry({ key: 'nochair-ulke', code: 'Q55' });
+    await executor.run(federationInsertSql([{ countryCode: 'Q55' }]));
+    await executor.run(clubInsertSql([{ key: 'nochair-kulup', countryCode: 'Q55' }]));
+
+    // İki sütun da nullable: *"başkanı bilinmiyor"* geçerli bir durum ve
+    // uydurulmuş bir kimlik, eksik bir kimlikten kötüdür (SAPMA-026 ③).
+    const rows = await executor.rows<{ chairman: number | null; president: number | null }>(`
+      SELECT
+        (SELECT "chairman_person_id" FROM "clubs" WHERE "key" = 'nochair-kulup')   AS chairman,
+        (SELECT "president_person_id" FROM "federations"
+          WHERE "country_id" = (SELECT "id" FROM "countries" WHERE "key" = 'nochair-ulke')) AS president
+    `);
+    expect(rows[0]?.chairman).toBeNull();
+    expect(rows[0]?.president).toBeNull();
   });
 });

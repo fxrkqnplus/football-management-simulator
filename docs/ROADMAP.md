@@ -1795,7 +1795,7 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 
 **Kabul kriterleri:**
 - [ ] 5.000 sahte oyuncu seed → şema tutarlı
-- [ ] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri)
+- [x] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri) — **4.4**, `0006`; üçü **üç farklı** davranış aldı (SET NULL · RESTRICT · RESTRICT) ve üçünün de **davranışı** gerçek PG 18.6'ya karşı ölçüldü, yalnızca katalogdan okunmadı
 - [ ] **"20–24 yaş, sağ bek, CA>120" sorgusu 5.000 oyuncu hacminde < 50 ms** *(SAPMA-031 — `değer<15M` yüklemi çıkarıldı)*
 - [ ] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)*
 - [ ] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`**
@@ -1833,8 +1833,28 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       `integer[]` ikisi de `ARRAY` — `udt_name` eklendi ve negatif testle
       kanıtlandı. `comparedFacts` **1.627 → 2.204** (ölçüldü, tahmin edilmedi).
       → `docs/reports/faz-04/4.3-people-players.md`
-- [ ] **4.4** **Üç ileri FK** (`0006`) — sütun **ve** kısıt aynı migration'da.
-      `managers.user_id` **YAZILMAZ** (Faz 13). → kriter 2
+- [x] **4.4** **Üç ileri FK** (`0006`) — sütun **ve** kısıt aynı migration'da.
+      `managers.user_id` **YAZILMAZ** (Faz 13). → **kriter 2 ✅ KAPANDI**
+      **SONUÇ:** FK **16 → 19**, tablo **13'te sabit**. ⚠️ **Üçü RESTRICT DEĞİL —
+      4.3'ün tahmini yanlıştı ve sebebi yöntemseldi:** tahmin *hedefin* sınıfına
+      (`people` = `independent`) bakıyordu, oysa kural ① dışında **kaynağın**
+      sınıfına bakıyor. Kural koşturuldu, sonra ölçüldü, üçü de tuttu:
+      `federations.president_person_id` **SET NULL** (uydu + nullable → ③) ·
+      `clubs.chairman_person_id` **RESTRICT** (independent → ②, nullable olmasına
+      rağmen) · `referees.person_id` **RESTRICT** (independent, üçün tek `NOT NULL`u).
+      `federations` artık **bir CASCADE + bir SET NULL** taşıyor — kuralın
+      sahipliği referanstan **aynı tablo içinde** ayırdığının ilk canlı kanıtı.
+      🆕 **Fazın ilk `ALTER TABLE`'ı** ve §3.1.2 ④/⑤ ilk kez birlikte devrede:
+      `attnum` deliği artık **her kısmi geri almada** görünüyor, o yüzden dört
+      var olan çevrim testi `identical: true`dan **farkların tam listesine**
+      geçti — mutasyon payı **20 → 25** (%11,2 → **%13,2**), ilk kez pay ve oran
+      birlikte arttı. ⚠️ `referees.person_id` `NOT NULL` olduğu için `0006` **dolu
+      bir `referees` tablosunda yeniden uygulanamıyor** (0001'in `countries.source`
+      vakasının aynısı); gürültülü, kendi testi var. `comparedFacts`
+      **2.204 → 2.243** (ölçüldü). 🆕 **G-17** (markalı kimlik tipleri → Faz 12,
+      kullanıcı kararı) ve **G-18** (hakemin `person_type`ı → Faz 8) açıldı ve
+      **ikisi de hedef fazın kapsamına yazıldı**.
+      → `docs/reports/faz-04/4.4-uc-ileri-fk.md`
 - [ ] **4.5** **`player_attributes` (47) + `player_hidden_attributes` (10)** (`0007`) —
       nitelik CHECK'i **YOK** (SAPMA-028); `players`'a `CA <= PA` ve
       `pa_range_min <= pa_range_max` CHECK'leri. 47+10 envanteri `spec/02` §4.1'den
@@ -2035,9 +2055,22 @@ docs/glossary.md
 - Transfer pencereleri: ülkeye göre gerçek tarihler
 - **Gerçek varlıklar birincil (`DATA_MODE=full`):** kulüp armaları, lig logoları, kupa görselleri, ülke bayrakları veri paketinden yüklenir — bkz. `docs/spec/12-data-packs.md`
 - **Prosedürel yedek:** arma bulunamazsa 3 renkten SVG arma üret (12 kalkan şekli × 8 desen × 6 sembol)
+- **⚠️ HAKEMİN `person_type`I — kapalı küme hakemi ifade etmiyor** *(G-18, Faz 4.4'te açıldı)*
+  4.4 `referees.person_id`i **`NOT NULL`** yazdı, yani artık **her hakem bir
+  `people` satırıdır**. Ama `people.person_type` kapalı kümesi
+  `player | staff | manager | chairman` ve hiçbiri hakemi anlatmıyor;
+  `people_person_type_check` boş diziyi de reddediyor (4.3'te bilerek). Sonuç:
+  **hakem satırı yazan ilk taraf bir değer uydurmak zorunda** — SAPMA-026'nın
+  yasakladığı şey. Hakem verisi bu fazda geliyor (3.8'in kendi notu:
+  *"kulüp/stadyum/hakem verisi (Faz 8–9)"*), yani kararın sahibi burası.
+  Üç seçenek: ① kümeye `'referee'` eklenir (CHECK değişir → yeni migration)
+  ② hakemler `people` taşımaz (üç ileri FK kararını geri alır) ③ `spec/01`'in
+  `people` başlığı hakemi de kapsayacak şekilde düzeltilir.
+  **4.4 kümeyi değiştirmedi** (K12): şema çalışıyor, boşluk bir **anlam** boşluğu.
 
 **Kabul kriterleri:**
 - [ ] 6 lig, 118+ kulüp, 20+ turnuva veritabanında
+- [ ] **Hakemlerin `people` satırları yazılıyor ve `person_type` kararı verilmiş** *(G-18)*
 - [ ] Her kulübün arması ve 3 rengi mevcut (eksikse prosedürel üretilmiş)
 - [ ] `data-cli stats` → eksik varlık oranı < %5
 - [ ] Her ligin kural seti JSON şemasına uygun ve doğrulanmış
@@ -2221,6 +2254,19 @@ docs/glossary.md
   Alternatif ilişkiyi **ters çevirmek** (`users.manager_id`), böylece bağ tamamen save
   tarafında kalır. **Bu fazın kararı** (delta mimarisi burada kuruluyor), uygulaması
   **Faz 13**. Faz 4 sütunu bu belirsizlik çözülmeden yazmadı (SAPMA-032).
+- **⚠️ MARKALI KİMLİK TİPLERİ — `people.id` ile `players.id` karışması** *(G-17, Faz 4.4'te açıldı)*
+  İkisi de `integer` ve birini diğerinin yerine vermek **yabancı anahtarla
+  yakalanamaz**: o kimlikte bir kişi büyük olasılıkla vardır, yalnızca **yanlış
+  kişidir**. FK *"böyle bir satır var mı"* diye sorar, *"doğru satır mı"* diye
+  değil. Bugünkü tek savunma bir **isimlendirme disiplini** (`*_person_id` /
+  `*_player_id`) ve hiçbir kapı onu denetlemiyor.
+  **Neden burası:** markalı (branded/nominal) tipler ancak kimliklerin bir
+  **sınırdan** geçtiği yerde işe yarar ve o sınır `WorldView`/`WorldMutation` —
+  motorun ve API'nin kimlikleri aldığı yer. Şema katmanına konsaydı her ham SQL
+  sorgusu onu delerdi.
+  ⚠️ **Maruziyet Faz 4'te katlandı:** 4.5–4.7 yedi tablo getiriyor ve hepsi
+  `playerId` ya da `personId` ile anahtarlı. Karar burada verilir; uygulama da
+  burada (`WorldView` yazılırken bedava, sonradan pahalı).
 - **Snapshot sıkıştırma:** delta sayısı 50.000'i aşınca mevcut durum tek JSONB blob'a yazılır, delta temizlenir
 - **Otomatik kayıt:** her ayın 1'i + her 5 turda bir + manuel (S48)
 - **Snapshot noktaları:** sezon başı otomatik + kullanıcının 1 manuel noktası

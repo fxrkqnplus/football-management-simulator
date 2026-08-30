@@ -353,15 +353,15 @@ describe('KAPSAM SINIRI — 3.8 ne YAPMIYOR', () => {
     expect(await countOf('federations')).toBe(0);
   });
 
-  it('seed YENİ MIGRATION yazmadı — zincir 6 adımda', async () => {
+  it('seed YENİ MIGRATION yazmadı — zincir 7 adımda', async () => {
     const rows = await executor.rows<{ n: string }>(
       'SELECT count(*)::text AS n FROM "fms_meta"."migrations"',
     );
     // ⚠️ İDDİA HÂLÂ 3.8 HAKKINDA: *"seed bir migration YAZMADI"*. Sayı zincirin
     // bugünkü uzunluğu ve her yeni migration'da güncellenir — 4.3 `0005`i
-    // ekledi (5 → 6). Kırılması istenen davranış: seed bir gün sessizce
-    // migration yazarsa bu satır öter.
-    expect(Number(rows[0]?.n)).toBe(6);
+    // ekledi (5 → 6), 4.4 `0006`yı ekledi (6 → 7). Kırılması istenen davranış:
+    // seed bir gün sessizce migration yazarsa bu satır öter.
+    expect(Number(rows[0]?.n)).toBe(7);
   });
 
   it('master tabloların hepsi hâlâ yerinde — 4.3`te 11 → 13', async () => {

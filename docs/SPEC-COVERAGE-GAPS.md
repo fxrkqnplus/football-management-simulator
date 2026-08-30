@@ -244,6 +244,27 @@ ROADMAP'in ileri fazlarına tek tek soruldu. On dokuzun tamamı cevaplandı; iki
 
 ---
 
+## Tarama 10 — Faz 4.4 (2026-08-30)
+
+Yöntem: tarama değil, **üç ileri FK'nın yazılmasıyla ortaya çıkan iki boşluğun
+kaydı**. Biri 4.3'ten devreden ve kullanıcı kararıyla açıldı (G-17), diğeri
+`referees.person_id` `NOT NULL` yazılınca **doğdu** (G-18).
+
+| # | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
+| --- | --- | --- | --- | --- |
+| G-17 | `docs/spec/01-database.md` §3.1 `people.id` ↔ `players.id` (ve §3.4 `WorldView` sınırı) | **İki farklı varlığın kimliği aynı TİPTE (`integer`) ve karışmaları yabancı anahtarla yakalanamaz.** Bir `players.id`yi `people.id` bekleyen bir parametreye vermek derlenir, koşar ve **yanlış kişiyi** bulur — o kimlikte bir kişi büyük olasılıkla vardır. FK yalnızca *"böyle bir satır var mı"* diye sorar, *"doğru satır mı"* diye değil. Bugünkü tek savunma bir **isimlendirme disiplini** (`*_person_id` / `*_player_id`), yani bir konvansiyon; hiçbir kapı denetlemiyor. Markalı kimlik tipleri (branded/nominal types) bunu tip seviyesinde kapatır ve doğal yeri `WorldView` sınırıdır — motor ve API'nin kimlikleri aldığı yer. ⚠️ **Maruziyet Faz 4'te katlanıyor:** 4.5–4.7 yedi tablo getiriyor ve hepsi `playerId` ya da `personId` ile anahtarlı; `personId` ile `playerId`yi aynı fonksiyonda taşıyan kod yolları tam da şimdi doğuyor. | **Faz 12** (`WorldView` / delta sınırı) | ✅ **ROADMAP Faz 12 kapsamına eklendi (Faz 4.4).** ⚠️ Risk 4.3'te ölçüldü ve o gün *"kaydetme"* önerildi; **kullanıcı itiraz etti ve haklıydı**: K12 **uygulamayı** yasaklıyor, **kaydetmeyi** değil — ve tek kalıcı kayıt yeri sanılan ANLIK DURUM her alt görevde yeniden yazılıyor (SAPMA-004). G-10/G-11/G-12 ile aynı sınıf: *"sütun seviyesinde ifade edilemeyen doğruluk boşluğu, ertelendi, kaydedildi."* |
+| G-18 | `docs/spec/01-database.md` §3.1 — `people.personType: ('player'\|'staff'\|'manager'\|'chairman')[]` ↔ `referees.personId FK` | **Bir hakemin `people` satırı hangi `person_type`ı taşır?** Spec'in kendi başlığı `people`ı *"oyuncu, personel, menajer, **başkan** ortak kimlik tablosu"* diye tanımlıyor — **hakem listede yok**. Ama aynı spec `referees`e bir `personId FK` veriyor ve 4.4 onu **`NOT NULL`** yazdı, yani artık her hakem bir `people` satırıdır. Kapalı kümede hakemi anlatan bir değer yok; `people_person_type_check` ise `cardinality > 0` istediği için **boş dizi de** kabul edilmiyor (4.3'te bilerek böyle yazıldı). Sonuç: hakem satırı yazan ilk taraf bir değer **uydurmak** zorunda — SAPMA-026'nın (*"kimsenin belirlemediği alana değer uydurma"*) tam olarak yasakladığı şey. Üç olası cevap ve hiçbiri yazılı değil: ① kümeye `'referee'` eklenir (CHECK değişir → yeni migration) ② hakemler `people` taşımaz, adlarını kendi tablosunda tutar (`personId` kaldırılır — Faz 3/4'ün üç ileri FK kararını geri alır) ③ `spec/01`'in `people` başlığı hakemi de kapsayacak şekilde düzeltilir. ⚠️ **4.4 kümeyi DEĞİŞTİRMEDİ** (K12): şema bugün çalışıyor, boşluk bir **anlam** boşluğu ve sahibi hakem verisini üreten fazdır. | **Faz 8** (Kurum Verisi İngesti — hakem verisinin geldiği yer; 3.8'in kendi notu *"kulüp/stadyum/hakem verisi (Faz 8–9)"*) · tüketici **Faz 26** | ✅ **ROADMAP Faz 8 kapsamına eklendi (Faz 4.4).** Boşluk `packages/db/src/schema/referees.ts` başlığında ve `integration/fixtures.ts`in `RefereeFixture` yorumunda da adıyla duruyor — fixture varsayılanı (`['player']`) bir modelleme iddiası **değil** ve bu açıkça yazılı. |
+
+> ⚠️ **G-18 BU FAZIN KENDİ ÜRETTİĞİ BİR BOŞLUK ve bu yeni bir desen.** G-01…G-16
+> hep *"spec istiyor ama kimse yapmıyor"* sınıfındaydı. Burada spec **kendi
+> içinde** tutarsız ve tutarsızlık ancak `referees.person_id` gerçekten
+> yazıldığında görünür oldu — yani bir kuralın deliği, o kuralın **ilk gerçek
+> uygulaması**yla ortaya çıkıyor. F3'ün (*"bir kural örneklerinden geriye
+> okunursa yanlış öğrenilir"*) kardeşi: burada eksik olan örnek değil, kümenin
+> kendisi.
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.

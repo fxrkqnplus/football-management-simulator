@@ -183,6 +183,14 @@ export interface ClubFixture {
   readonly supporterCount?: number;
   readonly supporterExpectation?: number;
   readonly isNational?: boolean;
+  /**
+   * 🆕 Faz 4.4 — kulüp başkanı (`people.key`). Verilmezse `null` = bilinmiyor.
+   *
+   * ⚠️ **`clubKey` gibi ZORUNLU DEĞİL ve bu kasıtlı:** sütun nullable, yani
+   * *"başkanı bilinmiyor"* geçerli bir durum. Karşılaştır: `RefereeFixture.personKey`
+   * **zorunlu**, çünkü `referees.person_id` `NOT NULL`.
+   */
+  readonly chairmanPersonKey?: string | null;
 }
 
 /** `clubs`un TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
@@ -210,6 +218,7 @@ export function clubInsertSql(rows: readonly ClubFixture[]): string {
         String(row.supporterCount ?? 1_000_000),
         String(row.supporterExpectation ?? 70),
         String(row.isNational ?? false),
+        idOf('people', 'key', row.chairmanPersonKey === undefined ? null : row.chairmanPersonKey),
       ].join(','),
     )
     .join('),\n      (');
@@ -219,7 +228,50 @@ export function clubInsertSql(rows: readonly ClubFixture[]): string {
       ("key","source","external_ids","competition_id","country_id","name","short_name",
        "abbreviation","founded_year","city","stadium_id","reputation","color_primary",
        "color_secondary","color_tertiary","crest_asset_id","crest_seed","supporter_count",
-       "supporter_expectation","is_national")
+       "supporter_expectation","is_national","chairman_person_id")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `federations` satırı — Faz 4.4'te fixture'a alındı.
+ *
+ * **Neden şimdi:** `federations` bugüne kadar testlerde ham `INSERT` ile
+ * yazılıyordu ve iki yerde kopyası vardı. `0006` tabloya
+ * `president_person_id`i ekliyor ve kopyalar aynı anda güncellenmek zorunda
+ * kalırdı — dosyanın başlığındaki #23 kuralının tam olarak tarif ettiği durum
+ * (*"bir düzeltme, hatanın görüldüğü yeri değil SINIFININ geçtiği her yeri
+ * kapsar"*). Sınıf tek bir yere indiriliyor.
+ *
+ * `presidentPersonKey` verilmezse `null` — sütun nullable ve `ON DELETE SET NULL`
+ * alan **tek** FK'nın kaynağı (bkz. `src/schema/federations.ts` başlığı).
+ */
+export interface FederationFixture {
+  readonly countryCode: string;
+  readonly name?: string;
+  readonly foundedYear?: number | null;
+  readonly assetId?: string | null;
+  readonly presidentPersonKey?: string | null;
+}
+
+/** `federations`ın TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
+export function federationInsertSql(rows: readonly FederationFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        idOf('countries', 'code', row.countryCode),
+        quote(row.name ?? `${row.countryCode} Futbol Federasyonu`),
+        intOrNull(row.foundedYear === undefined ? 1923 : row.foundedYear),
+        textOrNull(row.assetId === undefined ? null : row.assetId),
+        idOf('people', 'key', row.presidentPersonKey === undefined ? null : row.presidentPersonKey),
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "federations"
+      ("country_id","name","founded_year","asset_id","president_person_id")
     VALUES
       (${values})
   `;
@@ -402,10 +454,26 @@ export function clubKitInsertSql(rows: readonly ClubKitFixture[]): string {
   `;
 }
 
-/** `referees` satırı — altı nitelik 1-20, `person_id` YOK (Faz 4). */
+/**
+ * `referees` satırı — altı nitelik 1-20.
+ *
+ * ⚠️ **`personKey` ZORUNLU (Faz 4.4).** `referees.person_id` `NOT NULL`: bir
+ * hakem bir kişidir ve kişisiz bir hakem satırı yoktur. Diğer iki ileri FK
+ * (`clubs.chairman_person_id`, `federations.president_person_id`) nullable, o
+ * yüzden onların fixture alanları isteğe bağlı — üçü aynı migration'da geldi ama
+ * üçü aynı sözleşmeyi taşımıyor.
+ *
+ * ⚠️ **`personKey`in gösterdiği kişinin `person_type`ı BU TESTLERİN KONUSU
+ * DEĞİL** ve olamaz: kapalı küme `player | staff | manager | chairman` hakemi
+ * ifade etmiyor, CHECK ise boş diziyi reddediyor (G-18). Fixture'ın varsayılanı
+ * (`['player']`) bir **modelleme iddiası değil**, sadece `NOT NULL` bir sütunu
+ * dolduran geçerli bir değer — dosya başlığındaki kural: bir negatif testte
+ * reddin sebebi TEK olmalı.
+ */
 export interface RefereeFixture {
   readonly key: string;
   readonly countryCode: string;
+  readonly personKey: string;
   readonly source?: string;
   readonly externalIds?: string;
   readonly strictness?: number;
@@ -432,6 +500,7 @@ export function refereeInsertSql(rows: readonly RefereeFixture[]): string {
         String(row.consistency ?? 14),
         String(row.advantagePlay ?? 13),
         String(row.bigGameExperience ?? 9),
+        idOf('people', 'key', row.personKey),
       ].join(','),
     )
     .join('),\n      (');
@@ -439,7 +508,7 @@ export function refereeInsertSql(rows: readonly RefereeFixture[]): string {
   return `
     INSERT INTO "referees"
       ("key","source","external_ids","country_id","strictness","foul_tolerance",
-       "home_bias","consistency","advantage_play","big_game_experience")
+       "home_bias","consistency","advantage_play","big_game_experience","person_id")
     VALUES
       (${values})
   `;

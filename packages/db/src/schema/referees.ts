@@ -24,17 +24,40 @@
  * (K2); bir paket ileride `referees.json` getirirse eşleme yolu **zaten hazır**.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * `person_id` BUGÜN YOK — Faz 4 (üçüncü ve SON ileri FK)
+ * `person_id` 4.4'TE GELDİ — ÜÇÜNÜN TEK `NOT NULL`U VE TEK GERÇEK RİSKİ
  * ────────────────────────────────────────────────────────────────────────────
  *
- * `spec/01` bu sütunu `people` tablosuna işaret eden bir FK olarak tanımlıyor ve
- * `people` **Faz 4**'te geliyor. `federations.president_person_id` (3.4) ve
- * `clubs.chairman_person_id` (3.5) için aynısı yapıldı; ROADMAP Faz 4 üçünü de
- * **adıyla** sayıyor ve *"sütunu VE yabancı anahtarı BİRLİKTE eklemek zorunda"*
- * diyor — ayrıca bir kabul kriteri olarak yazılı.
+ * Sütun Faz 3'te bilerek yazılmadı; 4.4 onu ve FK'sını **birlikte** ekledi
+ * (`0006`). Hakemler artık isimli — bedeli ROADMAP'te yazılıydı (*"ilk
+ * görüntülendikleri yer Faz 26"*).
  *
- * **Bedeli ROADMAP'te açık:** hakemler Faz 4'e kadar **isimsiz** (ilk
- * görüntülendikleri yer Faz 26).
+ * ⚠️ **`NOT NULL` — ve üç ileri FK içinde tek olan bu.** `spec/01` sütunu
+ * işaretsiz yazıyor (`personId FK`, `?` veya `nullable` yok) ve SAPMA-026'nın
+ * türetme kuralı işaretsiz sütunu `NOT NULL` okur. Anlamı da aynı yeri
+ * gösteriyor: bir hakem **bir kişidir**, kişisi bilinmeyen bir hakem satırı
+ * yoktur. Karşılaştır: `federations.president_person_id` ve
+ * `clubs.chairman_person_id` `spec/01`'de açıkça nullable — *"başkanı
+ * bilinmiyor"* gerçek bir durum, *"hakemin kimliği bilinmiyor"* değil.
+ *
+ * ⚠️ **BUNUN ÖLÇÜLMÜŞ BİR BEDELİ VAR — `ADD COLUMN … NOT NULL` DOLU BİR TABLOYA
+ * UYGULANAMAZ.** `0006`nın `down`u sütunu düşürüyor ama **satırları düşürmüyor**;
+ * `up` yeniden koştuğunda var olan hakem satırlarına değer bulamıyor ve
+ * `column "person_id" of relation "referees" contains null values` ile patlıyor.
+ * Bu, `countries.source`un 0001'de yarattığı durumun **birebir aynısı** ve orada
+ * verilen karar burada da geçerli: davranış **gürültülü** (sessizce yanlış veri
+ * değil, açık bir hata) ve `round-trip.itest.ts` onu kendi testiyle sabitliyor —
+ * sonraki bir oturum bunu yeni bir regresyon sanmasın.
+ *
+ * ℹ️ **`UNIQUE` YOK — ve bu bir unutma değil.** `spec/01` `players`ı
+ * `personId FK UNIQUE` yazıyor, `referees`i yalnızca `personId FK`. Kimsenin
+ * belirlemediği bir kısıt uydurulmuyor (SAPMA-026).
+ *
+ * ⚠️ **AÇIK BOŞLUK (G-18): bir hakemin `people` satırı hangi `person_type`ı
+ * taşır?** Kapalı küme `player | staff | manager | chairman` ve hiçbiri hakemi
+ * anlatmıyor; `person_type` CHECK'i ise boş diziyi de reddediyor. Yani bu FK,
+ * hakem satırı yazan ilk tarafı bir değer **uydurmaya** zorluyor. Boşluk 4.4'te
+ * kaydedildi ve hakem verisinin geldiği faza atandı; 4.4 kümeyi değiştirmiyor
+ * (K12 — kayıt yeter, uygulama değil).
  *
  * ────────────────────────────────────────────────────────────────────────────
  * ALTI NİTELİK 1-20 — CHECK YOK
@@ -51,6 +74,7 @@ import { integer, pgTable, serial, smallint, timestamp } from 'drizzle-orm/pg-co
 import { masterTable } from '../client/master.js';
 import { countries } from './countries.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { people } from './people.js';
 
 export const referees = masterTable(
   pgTable(
@@ -79,6 +103,21 @@ export const referees = masterTable(
       bigGameExperience: smallint('big_game_experience').notNull(),
       createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      /**
+       * Hakemin kimliği. `NOT NULL` — gerekçesi ve ölçülmüş bedeli dosya
+       * başlığında.
+       *
+       * ⚠️ **SÜTUN SONDA — §3.1.2 ④.** Nöbetçisi `round-trip.itest.ts`teki
+       * *"referees fiziksel sütun sırası"* testi (3.6'da tam bu gün için yazıldı).
+       *
+       * `ON DELETE RESTRICT` — kural ② (kaynak `independent`). `referees` kendi
+       * `key`ini taşıyor; kişisi silinirken hakem satırı sessizce yok
+       * edilmemeli, silen taraf onu **ele almalı**. Ve `SET NULL` burada zaten
+       * uygulanamazdı: sütun `NOT NULL`.
+       */
+      personId: integer('person_id')
+        .notNull()
+        .references(() => people.id, { onDelete: 'restrict' }),
     },
     (table) => [sourceCheck('referees_source_check', table.source)],
   ),

@@ -77,6 +77,7 @@ import {
   clubInsertSql,
   clubKitInsertSql,
   countryInsertSql,
+  federationInsertSql,
   kitTemplateInsertSql,
   personInsertSql,
   playerInsertSql,
@@ -89,7 +90,7 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 /** Zincirin son migration'ı — snapshot karşılaştırması bunu okur. */
-const LATEST_SNAPSHOT = '0005_snapshot.json';
+const LATEST_SNAPSHOT = '0006_snapshot.json';
 const CHAIN_TAGS = [
   '0000_countries_initial',
   '0001_geography_institutions',
@@ -97,6 +98,7 @@ const CHAIN_TAGS = [
   '0003_visual_assets_referees',
   '0004_search_indexes',
   '0005_people_players',
+  '0006_forward_person_fks',
 ] as const;
 
 /** Zincirin tamamını geri almak için gereken adım sayısı. */
@@ -179,9 +181,14 @@ const PHASE_3_TABLES = [
  * "Fark yok" ancak gerçekten bir şeye bakıldıysa anlamlı. Sayaç ölçülmüş
  * değerlerden geliyor: 3.2b'de `countries` tek başına **89**, 3.4'te üç tabloda
  * **466**, 3.5'te sekiz tabloda **1.223**, 3.6'da on bir tabloda **1.619**,
- * 3.7'de dört indeksle **1.627**, 4.3'te on üç tabloda **2.204**. Sınır
- * yükseltilmezse test "fark yok" demeye devam eder ama **kaç şeye baktığı**
- * sabitlenmemiş olur — D3.
+ * 3.7'de dört indeksle **1.627**, 4.3'te on üç tabloda **2.204**, 4.4'te üç yeni
+ * sütun ve üç yeni FK ile **2.243**. Sınır yükseltilmezse test "fark yok" demeye
+ * devam eder ama **kaç şeye baktığı** sabitlenmemiş olur — D3.
+ *
+ * ℹ️ **4.4'ün artışı yalnızca +39 ve bu BEKLENEN.** 4.3 +577 getirmişti çünkü
+ * iki yeni TABLO ve her sütuna bir olgu ekleyen `udtName` vardı; 4.4 yeni tablo
+ * yaratmıyor. Üç sütun (her biri `ColumnFacts` alanları kadar olgu) ve üç FK
+ * kısıtı — küçük artış, migration'ın **şeklinin** doğrulaması.
  *
  * ⚠️ **4.3'ün artışı (+577) İKİ kaynaktan geliyor ve ikincisi bütün tabloları
  * etkiliyor:** ① `people` + `players` (17 + 17 sütun, iki sequence, altı kısıt) ·
@@ -199,7 +206,53 @@ const PHASE_3_TABLES = [
  * erişilemeyecek bir değere (`9_999_999`) konur ve gerçek değer testin
  * reddettiği çıktıdan okunur. **Tahmin hiç yazılmaz.**
  */
-const COMPARED_FACTS_FLOOR = 2_204;
+const COMPARED_FACTS_FLOOR = 2_243;
+
+/**
+ * `0006`NIN ÇEVRİMDE BIRAKTIĞI `attnum` KAYMALARI — §3.1.2 ⑤.
+ *
+ * ⚠️ **4.4'ün en geniş yankısı bu ve beklenen bir şeydi.** `0006` zincirin
+ * 0001'den beri ilk `ALTER`-only migration'ı; `down` sütunu düşürüyor, `up`
+ * yeniden ekliyor ve `pg_attribute.attnum` **geri kazanılmıyor**. Sonuç:
+ * 0006'nın içinden geçen **her** kısmi geri alma artık bu kaymaları taşıyor,
+ * yalnızca 0006'nın kendi testi değil.
+ *
+ * Hangi kaymanın görüneceği, o geri almada tablonun **ayakta kalıp kalmadığına**
+ * bağlı — düşen bir tablo yeniden yaratılınca `attnum` 1'den başlar ve delik
+ * kalmaz:
+ *
+ * | Geri alma | `federations` | `clubs` | `referees` | Kayma |
+ * |---|---|---|---|---|
+ * | 0006 | ayakta | ayakta | ayakta | **3** |
+ * | 0005 · 0004 | ayakta | ayakta | ayakta | **3** |
+ * | 0003 | ayakta | ayakta | **düşüyor** | **2** |
+ * | 0002 | ayakta | **düşüyor** | düşüyor | **1** |
+ * | 0001 | **düşüyor** | düşüyor | düşüyor | 0 (yerine `countries`in sekizi) |
+ * | tam zincir | düşüyor | düşüyor | düşüyor | **0** → `identical: true` |
+ *
+ * ⚠️ **`identical: true` YERİNE TAM LİSTE — ve bu bir GEVŞETME DEĞİL.** 3.4'te
+ * 0001 için verilen kararın aynısı: beklenen kaymaların dışında **tek bir fark**
+ * çıkarsa test kırılır, yani 0005'in ya da 0003'ün fazla giden bir `down`u yine
+ * yakalanır. Gevşetme, *"zaten fark bekliyorduk"* diye **sayısız** bir beklenti
+ * yazmak olurdu; burada her farkın yolu, öncesi ve sonrası sabit.
+ */
+const ALTER_0006_SHIFTS = {
+  clubs: ['table.clubs.column.chairman_person_id.position', '24', '25'],
+  federations: ['table.federations.column.president_person_id.position', '8', '9'],
+  referees: ['table.referees.column.person_id.position', '14', '15'],
+} as const;
+
+/** Ayakta kalan tabloların kaymaları — katalog sırası (tablo adına göre). */
+function expectedShifts(...tables: readonly (keyof typeof ALTER_0006_SHIFTS)[]): {
+  paths: string[];
+  values: string[][];
+} {
+  const rows = [...tables].sort().map((table) => ALTER_0006_SHIFTS[table]);
+  return {
+    paths: rows.map((row) => row[0]),
+    values: rows.map((row) => [row[1], row[2]]),
+  };
+}
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;
@@ -298,12 +351,65 @@ async function seedAllTables(): Promise<void> {
     ]),
   );
 
-  await executor.run(`
-    INSERT INTO "federations" ("country_id","name","founded_year","asset_id")
-    SELECT "id", 'Türkiye Futbol Federasyonu', 1923, NULL FROM "countries" WHERE "code" = 'TUR'
-    UNION ALL
-    SELECT "id", 'The Football Association', 1863, NULL FROM "countries" WHERE "code" = 'ENG'
-  `);
+  /**
+   * 🆕 Faz 4.4 — `people` ARTIK EN BAŞTA, `countries`in hemen ardında.
+   *
+   * 4.3'te bu blok dosyanın **sonundaydı** ve orada doğruydu: hiçbir Faz 3
+   * tablosu `people`a bakmıyordu. `0006` üç ileri FK'yı ekleyince yön değişti —
+   * `federations`, `clubs` ve `referees` artık `people`a bakıyor, yani kişiler
+   * onlardan **önce** yazılmak zorunda. `referees.person_id` `NOT NULL` olduğu
+   * için bu bir tercih değil: sıra yanlışsa seed gürültülü patlar.
+   *
+   * ⚠️ **Altı kişi ALTI FARKLI ŞEKLİ temsil ediyor ve bu kasıtlı:** tek uyruklu ·
+   * **çift uyruklu** (`second_nationality_country_id` dolu — nullable FK'nın
+   * `null` OLMAYAN hâli) · **iki rollü** (`person_type` iki elemanlı) · iki
+   * **başkan** (biri kulüp, biri federasyon — 4.4'ün iki nullable ileri FK'sının
+   * dolu hâli) · iki **hakem kişisi** (4.4'ün `NOT NULL` ileri FK'sı). Tek
+   * şekilli bir fixture, çevrimi o şekilden başka bir şeyle hiç sınamazdı.
+   *
+   * ℹ️ Hakem kişilerinin `person_type`ı fixture varsayılanı — kapalı küme hakemi
+   * ifade etmiyor (G-18) ve bu testlerin konusu o değil.
+   */
+  await executor.run(
+    personInsertSql([
+      { key: 'kisi-1', countryCode: 'TUR', firstName: 'Arda', lastName: 'Güler' },
+      {
+        key: 'kisi-2',
+        countryCode: 'ENG',
+        secondCountryCode: 'TUR',
+        commonName: 'Jimmy',
+        birthCity: null,
+        personType: ['player', 'manager'],
+      },
+      {
+        key: 'kisi-3',
+        countryCode: 'ESP',
+        gender: 'female',
+        personType: ['chairman'],
+        portraitAssetId: 'portrait/kisi-3',
+      },
+      { key: 'kisi-4', countryCode: 'TUR', personType: ['chairman'] },
+      { key: 'hakem-kisi-1', countryCode: 'TUR', source: 'procedural' },
+      { key: 'hakem-kisi-2', countryCode: 'ENG', source: 'procedural' },
+    ]),
+  );
+
+  /**
+   * ⚠️ **İki federasyondan yalnızca BİRİNİN başkanı var** — `president_person_id`
+   * nullable ve `ON DELETE SET NULL` alan tek FK. Dolu ve boş hâlin ikisi de
+   * çevrimden geçiyor; yalnızca dolu hâl yazılsaydı `null` yolu hiç sınanmazdı.
+   */
+  await executor.run(
+    federationInsertSql([
+      {
+        countryCode: 'TUR',
+        name: 'Türkiye Futbol Federasyonu',
+        foundedYear: 1923,
+        presidentPersonKey: 'kisi-4',
+      },
+      { countryCode: 'ENG', name: 'The Football Association', foundedYear: 1863 },
+    ]),
+  );
 
   const rules = SAMPLE_RULES.replace(/'/g, "''");
   await executor.run(`
@@ -346,6 +452,9 @@ async function seedAllTables(): Promise<void> {
         colorTertiary: '#FFFFFF',
         crestAssetId: 'crest/gal',
         reputation: 148,
+        // 🆕 4.4 — üç kulüpten YALNIZCA BİRİNİN başkanı var. `chairman_person_id`
+        // nullable; dolu ve boş hâlin ikisi de çevrimden geçiyor.
+        chairmanPersonKey: 'kisi-3',
       },
       {
         key: 'fenerbahce',
@@ -417,37 +526,13 @@ async function seedAllTables(): Promise<void> {
 
   await executor.run(
     refereeInsertSql([
-      { key: 'hakem-1', countryCode: 'TUR' },
-      { key: 'hakem-2', countryCode: 'ENG', source: 'pack', strictness: 17 },
-    ]),
-  );
-
-  /**
-   * 🆕 Faz 4.3 — `people` ve `players`.
-   *
-   * ⚠️ **Üç kişi ÜÇ FARKLI ŞEKLİ temsil ediyor ve bu kasıtlı:** tek uyruklu ·
-   * **çift uyruklu** (`second_nationality_country_id` dolu — nullable FK'nın
-   * `null` OLMAYAN hâli) · **iki rollü** (`person_type` iki elemanlı — dizinin
-   * tek elemanlı olmadığı hâli). Tek şekilli bir fixture, çevrimi o şekilden
-   * başka bir şeyle hiç sınamazdı.
-   */
-  await executor.run(
-    personInsertSql([
-      { key: 'kisi-1', countryCode: 'TUR', firstName: 'Arda', lastName: 'Güler' },
+      { key: 'hakem-1', countryCode: 'TUR', personKey: 'hakem-kisi-1' },
       {
-        key: 'kisi-2',
+        key: 'hakem-2',
         countryCode: 'ENG',
-        secondCountryCode: 'TUR',
-        commonName: 'Jimmy',
-        birthCity: null,
-        personType: ['player', 'manager'],
-      },
-      {
-        key: 'kisi-3',
-        countryCode: 'ESP',
-        gender: 'female',
-        personType: ['chairman'],
-        portraitAssetId: 'portrait/kisi-3',
+        personKey: 'hakem-kisi-2',
+        source: 'pack',
+        strictness: 17,
       },
     ]),
   );
@@ -478,7 +563,10 @@ const SEEDED_ROWS = {
   kit_templates: 2,
   club_kits: 3,
   referees: 2,
-  people: 3,
+  // 🆕 4.4: 3 → 6. Üç yeni kişi üç yeni rolü dolduruyor — federasyon başkanı
+  // (`kisi-4`) ve iki hakem kişisi. Kulüp başkanı için var olan `kisi-3`
+  // kullanılıyor (`person_type` zaten `['chairman']`).
+  people: 6,
   players: 2,
 } as const;
 
@@ -525,7 +613,33 @@ async function trackedCount(): Promise<number> {
   return Number(rows[0]?.n ?? 0);
 }
 
-describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
+/**
+ * 🆕 Faz 4.4 — `referees` satırlarını siler, ÇÜNKÜ `0006` YENİDEN UYGULANAMAZ.
+ *
+ * ⚠️ **Bu bir gevşetme değil, ölçülmüş bir SINIR** ve gerekçesi
+ * `src/schema/referees.ts` başlığında: `0006` `referees`e `person_id`i
+ * **`NOT NULL` ve varsayılansız** ekliyor; `down` sütunu düşürüyor ama
+ * **satırları düşürmüyor**. Dolu bir tabloda `up` yeniden koştuğunda
+ * `column "person_id" ... contains null values` ile patlar.
+ *
+ * Bu, `countries.source`un 0001'de yarattığı durumun birebir aynısı ve o gün
+ * verilen kararla aynı biçimde ele alınıyor: **davranışın kendi testi var**
+ * (*"0006 geri alınıp VERİ VARKEN yeniden uygulanırsa GÜRÜLTÜLÜ patlıyor"*).
+ * Yani engel bu yardımcıyla **gizlenmiyor**, başka bir testte açıkça iddia
+ * ediliyor.
+ *
+ * ⚠️ **Neden `seedAllTables()` çağrısını kaldırmak DEĞİL:** 0005/0004 çevrim
+ * testlerinin ölçtüğü şey *"dolu tablolarla down/up"*. Seed tamamen
+ * kaldırılsaydı on üç tablonun on üçü boş kalır ve bu testler veri kaybı yolunu
+ * hiç sınamazdı. Burada yalnızca **tek bir engel** kaldırılıyor ve adı yazılı.
+ * 0001'in aynı sınıftaki testi (*"TEK fark sütun NUMARALARI"*) seed'i baştan
+ * hiç çağırmıyor — orada engel `countries`ti, yani seed'in **tamamı**.
+ */
+async function clearRefereesForReup(): Promise<void> {
+  await executor.run(`DELETE FROM "referees"`);
+}
+
+describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('up → ON ÜÇ tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
@@ -554,6 +668,143 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
   });
 
   /**
+   * 0006 TEK BAŞINA — ve burada `identical: true` **BEKLENMİYOR**.
+   *
+   * ⚠️ **Zincirin 0001'den beri İLK `ALTER`-only migration'ı.** 0002, 0003 ve
+   * 0005 yalnızca `CREATE TABLE` içeriyordu: tablolar düşüp yeniden yaratılıyor,
+   * `attnum`lar 1'den başlıyor, delik kalmıyor → `identical: true`. 0006 ise üç
+   * var olan tabloya `ADD COLUMN` yapıyor ve §3.1.2 ⑤ devreye giriyor:
+   * `DROP COLUMN` sütun NUMARASINI geri kazanmaz, delik bırakır.
+   *
+   * Doğru iddia biçimi 3.4'te seçilmişti ve burada aynen tekrarlanıyor:
+   * farkların **TAM listesini** sabitlemek. Bu, `identical: true`dan **daha
+   * güçlü** — beklenen üç farkın dışında tek bir fark çıkarsa test kırılır,
+   * yani fazla giden bir `down` yine yakalanır.
+   *
+   * ⚠️ **İKİ ÇEVRİM SINIFI AYRI TESTLERDE KALIYOR ve bu bilinçli.** Bu test
+   * 0005'in testiyle birleştirilseydi, 0005'in fazla giden bir `down`u 0006'nın
+   * bilinen üç farkının **arkasında** *"zaten fark bekliyorduk"* diye okunurdu —
+   * 3.5'te 0002/0001 için verilen kararın aynısı.
+   *
+   * ℹ️ **`seedAllTables()` çağrılmıyor** ve sebebi 0001'in aynı sınıftaki
+   * testiyle birebir aynı: `referees.person_id` `NOT NULL` ve varsayılansız,
+   * yani dolu bir tabloda `up` yeniden koşamaz. O davranışın kendi testi var
+   * (hemen aşağıda).
+   */
+  it('yalnızca 0006 geri alınınca TEK fark sütun NUMARALARI — başka hiçbir şey', async () => {
+    await migrateUp({ executor, source, logger });
+    const before = await introspectSchema(executor);
+
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0006_forward_person_fks'), allowDataLoss: true },
+    );
+
+    // Geri alma HİÇBİR TABLO düşürmedi — kaybolan yalnızca üç sütun.
+    const rolledBack = await introspectSchema(executor);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...ALL_TABLES]);
+    const columnsOf = (table: string): string[] =>
+      rolledBack.tables.find((row) => row.name === table)?.columns.map((column) => column.name) ??
+      [];
+    expect(columnsOf('clubs')).not.toContain('chairman_person_id');
+    expect(columnsOf('federations')).not.toContain('president_person_id');
+    expect(columnsOf('referees')).not.toContain('person_id');
+
+    // Üç FK de gitti — sütunla birlikte kısıt da düşmüş olmalı.
+    const rolledBackForeignKeys = await executor.rows<{ conname: string }>(`
+      SELECT conname FROM pg_constraint
+       WHERE contype = 'f' AND connamespace = 'public'::regnamespace
+       ORDER BY conname
+    `);
+    expect(rolledBackForeignKeys.map((row) => row.conname)).not.toContain(
+      'referees_person_id_people_id_fk',
+    );
+    expect(rolledBackForeignKeys).toHaveLength(16);
+
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const comparison = compareSchemas(before, after);
+
+    // Farkların TAM listesi. Fazlası = `down` fazla gidiyor; eksiği = `attnum`
+    // davranışı değişmiş (yeni bir PG sürümü) ve not güncellenmeli.
+    expect(comparison.differences.map((difference) => difference.path)).toEqual([
+      'table.clubs.column.chairman_person_id.position',
+      'table.federations.column.president_person_id.position',
+      'table.referees.column.person_id.position',
+    ]);
+    expect(
+      comparison.differences.map((difference) => [difference.before, difference.after]),
+    ).toEqual([
+      ['24', '25'],
+      ['8', '9'],
+      ['14', '15'],
+    ]);
+    expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
+
+    // SIRA korunuyor — kayan yalnızca numara. Sütun hâlâ SONDA (§3.1.2 ④).
+    const federationsAfter = after.tables.find((table) => table.name === 'federations');
+    expect(federationsAfter?.columns.at(-1)?.name).toBe('president_person_id');
+  });
+
+  /**
+   * ⚠️ 0006'NIN ÖLÇÜLMÜŞ SINIRI — `ADD COLUMN … NOT NULL` DOLU BİR TABLOYA
+   * UYGULANAMAZ.
+   *
+   * `DROP COLUMN` satırları silmez, yalnızca hücreleri götürür. Yeniden `up`
+   * `ALTER TABLE "referees" ADD COLUMN "person_id" integer NOT NULL` çalıştırıyor
+   * ve var olan hakem satırlarına değer bulamıyor → **PATLIYOR**.
+   *
+   * Bu, 0001'in `countries.source` vakasının **birebir aynısı** ve aynı sebeple
+   * bir kusur değil: varsayılan konsaydı, kimsenin belirlemediği hakem
+   * satırlarına bir kimlik **uydurulurdu** (SAPMA-026). Alternatif (nullable)
+   * `spec/01`'i ihlal ederdi — bir hakem her zaman bir kişidir.
+   *
+   * Davranış **gürültülü**: sessizce yanlış veri değil, açık bir hata. Test onu
+   * sabitliyor ki sonraki bir oturum bunu yeni bir regresyon sanmasın.
+   *
+   * ⚠️ **Karşı örnek aynı testte:** iki nullable sütun (`chairman_person_id`,
+   * `president_person_id`) aynı `up` içinde dolu tablolara sorunsuz ekleniyor.
+   * Yani patlayan şey *"var olan tabloya sütun eklemek"* değil, **`NOT NULL`
+   * eklemek**. İkisi ayrılmasaydı sınır yanlış öğrenilirdi.
+   */
+  it('0006 geri alınıp VERİ VARKEN yeniden uygulanırsa GÜRÜLTÜLÜ patlıyor', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0006_forward_person_fks'), allowDataLoss: true },
+    );
+
+    // Satırlar duruyor — kaybolan yalnızca sütunlar.
+    const remaining = await executor.rows<{ n: number | string }>(
+      `SELECT count(*)::int AS n FROM "referees"`,
+    );
+    expect(Number(remaining[0]?.n)).toBe(SEEDED_ROWS.referees);
+
+    await expect(migrateUp({ executor, source, logger })).rejects.toThrow(/contains null values/);
+
+    // KARŞI ÖRNEK: engel yalnızca `referees`. Satırları silince aynı `up`
+    // sorunsuz koşuyor ve iki NULLABLE sütun dolu `clubs`/`federations`
+    // tablolarına eklenebiliyor.
+    await clearRefereesForReup();
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const clubsColumns = after.tables
+      .find((table) => table.name === 'clubs')
+      ?.columns.map((column) => column.name);
+    expect(clubsColumns).toContain('chairman_person_id');
+    expect(
+      Number(
+        (await executor.rows<{ n: number | string }>(`SELECT count(*)::int AS n FROM "clubs"`))[0]
+          ?.n,
+      ),
+    ).toBe(SEEDED_ROWS.clubs);
+  });
+
+  /**
    * 0003 TEK BAŞINA — Faz 3'ün SON migration'ının kendi kanıtı.
    *
    * 0002'nin testiyle aynı sınıf (yalnızca `CREATE TABLE`, dolayısıyla
@@ -575,7 +826,7 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
    * yeşilse `drizzle/down/0005_people_players.sql`in sırası doğrudur — ve bu,
    * §3.1.2 ⑦'nin dördüncü koşan uygulaması.
    */
-  it('yalnızca 0005 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+  it('yalnızca 0005 geri alınınca TEK fark 0006’nın ÜÇ kayması — dizi tipi korunuyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
     const before = await introspectSchema(executor);
@@ -589,13 +840,21 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
     const rolledBack = await introspectSchema(executor);
     expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...PHASE_3_TABLES]);
 
+    await clearRefereesForReup();
     await migrateUp({ executor, source, logger });
 
     const after = await introspectSchema(executor);
     const comparison = compareSchemas(before, after);
 
-    expect(summarizeDifferences(comparison)).toMatch(/^fark yok/);
-    expect(comparison.identical).toBe(true);
+    // ⚠️ 4.4'TE DEĞİŞTİ: `identical: true` ARTIK BEKLENMİYOR. Geri alma 0006'nın
+    // içinden geçiyor ve üç tablo da ayakta kalıyor, yani üç `attnum` kayması
+    // kaçınılmaz (`ALTER_0006_SHIFTS`). **0005'in kendi `down`u hâlâ tam olarak
+    // sınanıyor:** beklenen üç kaymanın dışında tek bir fark çıkarsa test kırılır.
+    const shifts = expectedShifts('clubs', 'federations', 'referees');
+    expect(comparison.differences.map((difference) => difference.path)).toEqual(shifts.paths);
+    expect(
+      comparison.differences.map((difference) => [difference.before, difference.after]),
+    ).toEqual(shifts.values);
     expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
 
     // ⚠️ DİZİ SÜTUNU ÇEVRİMDEN GEÇTİ — ve eleman tipi korundu. `dataType` tek
@@ -616,7 +875,7 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
    * tanımları karşılaştırmanın kapsamında (`introspect.ts` → `IndexFacts`), yani
    * `down`un bir indeksi geri getirmeyi unutması **yakalanır**.
    */
-  it('yalnızca 0004 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+  it('yalnızca 0004 geri alınınca TEK fark 0006’nın ÜÇ kayması — indeksler geri geliyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
     const before = await introspectSchema(executor);
@@ -637,17 +896,22 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
     expect(indexNames).not.toContain('clubs_name_trgm_idx');
     expect(indexNames).not.toContain('rivalries_pair_unique_idx');
 
+    await clearRefereesForReup();
     await migrateUp({ executor, source, logger });
 
     const after = await introspectSchema(executor);
     const comparison = compareSchemas(before, after);
 
-    expect(summarizeDifferences(comparison)).toMatch(/^fark yok/);
-    expect(comparison.identical).toBe(true);
+    // 4.4 — üç tablo da ayakta, üç kayma (bkz. `ALTER_0006_SHIFTS`).
+    const shifts = expectedShifts('clubs', 'federations', 'referees');
+    expect(comparison.differences.map((difference) => difference.path)).toEqual(shifts.paths);
+    expect(
+      comparison.differences.map((difference) => [difference.before, difference.after]),
+    ).toEqual(shifts.values);
     expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
   });
 
-  it('yalnızca 0003 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+  it('yalnızca 0003 geri alınınca TEK fark 0006’nın İKİ kayması — referees SIFIRLANIYOR', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
     const before = await introspectSchema(executor);
@@ -676,13 +940,21 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
     const after = await introspectSchema(executor);
     const comparison = compareSchemas(before, after);
 
-    expect(summarizeDifferences(comparison)).toMatch(/^fark yok/);
-    expect(comparison.identical).toBe(true);
+    // ⚠️ **BURADA KAYMA İKİ, ÜÇ DEĞİL — ve fark tam olarak bilgilendirici.**
+    // 0003'ün `down`u `referees` TABLOSUNU düşürüyor; yeniden yaratılınca
+    // `attnum` 1'den başlıyor ve `person_id` deliği kalmıyor. `clubs` ve
+    // `federations` ayakta kaldığı için onların kayması duruyor. Yani liste,
+    // *"hangi tablonun düştüğünü"* de söylüyor.
+    const shifts = expectedShifts('clubs', 'federations');
+    expect(comparison.differences.map((difference) => difference.path)).toEqual(shifts.paths);
+    expect(
+      comparison.differences.map((difference) => [difference.before, difference.after]),
+    ).toEqual(shifts.values);
     expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
   });
 
   /**
-   * 0002 TEK BAŞINA — ve burada `identical: true` BEKLENİYOR.
+   * 0002 TEK BAŞINA — ve 4.4'e kadar burada `identical: true` BEKLENİYORDU.
    *
    * 0001'in çevriminde `attnum` deliği kaçınılmazdı (§3.1.2 ⑤) çünkü orada
    * `ALTER TABLE … DROP COLUMN` vardı. 0002 **yalnızca `CREATE TABLE`**
@@ -692,8 +964,14 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
    * Bu ayrımın ayrı bir test olması gerekiyor. Tek bir birleşik testte 0002'nin
    * `down`u 0001'in bilinen sekiz farkının **arkasında** kalırdı: fazla giden
    * bir `down` "zaten fark bekliyorduk" diye okunurdu.
+   *
+   * ⚠️ **4.4'TE BEKLENTİ DEĞİŞTİ VE SEBEBİ 0002 DEĞİL.** Geri alma artık
+   * 0006'nın da içinden geçiyor ve `federations` bu derinlikte hâlâ ayakta —
+   * yani **tek** bir kayma kalıyor. `clubs` ve `referees` düşüp yeniden
+   * yaratıldığı için onlarınki yok. 0002'nin kendi `down`u hakkındaki iddia
+   * zayıflamadı: o tek kaymanın dışında bir fark çıkarsa test yine kırılır.
    */
-  it('0003+0002 geri alınıp yeniden uygulanınca şema BİREBİR aynı', async () => {
+  it('0003+0002 geri alınınca TEK fark 0006’nın BİR kayması — 0002 hâlâ temiz', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
     const before = await introspectSchema(executor);
@@ -718,8 +996,12 @@ describe('round-trip — gerçek migration zinciri (0000 → 0005)', () => {
     const after = await introspectSchema(executor);
     const comparison = compareSchemas(before, after);
 
-    expect(summarizeDifferences(comparison)).toMatch(/^fark yok/);
-    expect(comparison.identical).toBe(true);
+    // Yalnızca `federations` ayakta kaldı → yalnızca onun kayması var.
+    const shifts = expectedShifts('federations');
+    expect(comparison.differences.map((difference) => difference.path)).toEqual(shifts.paths);
+    expect(
+      comparison.differences.map((difference) => [difference.before, difference.after]),
+    ).toEqual(shifts.values);
     expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
   });
 
@@ -1137,6 +1419,51 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
       .reduce((total, [, rows]) => total + rows, 0);
     expect(result.loss.totalRowsAtRisk).toBe(droppedTableRows + 8 * SEEDED_ROWS.countries);
   });
+
+  /**
+   * 🆕 Faz 4.4 — SAF SÜTUN VAKASI, karışık vakanın TERSİ.
+   *
+   * 0001'in geri alması karışıktı: `DROP TABLE` ve `DROP COLUMN` bir aradaydı ve
+   * sütun kalemleri yalnızca `countries` **ayakta kaldığı için** görünüyordu.
+   * `0006` tek başına geri alındığında **hiçbir tablo düşmüyor** — üçü de ayakta
+   * ve kaybolan yalnızca üç sütun. Yani bu, `LossItem.kind === 'table'`
+   * listesinin **boş** olduğu ilk vaka.
+   *
+   * Boş bir liste tek başına *"kayıp yok"* diye okunurdu (SAPMA-024); o yüzden
+   * sütun listesi ayrıca ve **tam** iddia ediliyor.
+   */
+  it('SAF SÜTUN kaybı — 0006 tek başına geri alınınca hiçbir TABLO düşmüyor', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+
+    const result = await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0006_forward_person_fks'), dryRun: true, allowDataLoss: true },
+    );
+
+    const byKind = {
+      table: result.loss.items.filter((item) => item.kind === 'table').map((item) => item.table),
+      column: result.loss.items
+        .filter((item) => item.kind === 'column')
+        .map((item) => `${item.table}.${item.column ?? '?'}`),
+    };
+
+    expect(byKind.table).toEqual([]);
+    expect(byKind.column.sort()).toEqual([
+      'clubs.chairman_person_id',
+      'federations.president_person_id',
+      'referees.person_id',
+    ]);
+
+    // Sütun kaybında TABLONUN TAMAMI sayılır (`loss.ts`: üst sınır, bilerek) —
+    // her tablodan BİRER sütun düştüğü için toplam üç tablonun satır sayısı.
+    expect(result.loss.totalRowsAtRisk).toBe(
+      SEEDED_ROWS.clubs + SEEDED_ROWS.federations + SEEDED_ROWS.referees,
+    );
+
+    // Kuru çalıştırma hiçbir şey kaybetmedi.
+    expect(await trackedCount()).toBe(FULL_CHAIN_STEPS);
+  });
 });
 
 describe('snapshot ↔ gerçek şema (ikinci ve ayrı iddia)', () => {
@@ -1190,18 +1517,18 @@ describe('snapshot ↔ gerçek şema (ikinci ve ayrı iddia)', () => {
   });
 
   /**
-   * `clubs` FİZİKSEL SÜTUN SIRASI — Faz 4'ün uyacağı sözleşme.
+   * `clubs` FİZİKSEL SÜTUN SIRASI — 3.5'te yazılan nöbetçi 4.4'te ÖTTÜ.
    *
-   * Bugün sıra bedava doğru: 0002 `CREATE TABLE` yazıyor, yani fiziksel sıra =
-   * TS sırası. Ama **Faz 4 bu tabloya `chairman_person_id`i `ALTER TABLE ADD
-   * COLUMN` ile ekleyecek** ve o an §3.1.2 ④ devreye giriyor: sütun TS tanımının
-   * da SONUNA yazılmazsa snapshot ↔ gerçek şema karşılaştırması kırılır.
+   * 3.5'te sıra bedava doğruydu (0002 `CREATE TABLE` yazıyor, fiziksel sıra =
+   * TS sırası) ve bu test *"Faz 4 bu tabloya `chairman_person_id`i `ALTER TABLE
+   * ADD COLUMN` ile ekleyecek"* diye bir gün için yazılmıştı. O gün 4.4'te geldi:
+   * sütun TS tanımının da SONUNA yazılmasaydı snapshot ↔ gerçek şema
+   * karşılaştırması kırılırdı (§3.1.2 ④).
    *
-   * Bu test o günün nöbetçisi: listeyi buraya yazmak, kırılmanın **neden**
-   * olduğunu da yazmak demek. Sırası olmayan bir iddia, kırıldığında yalnızca
-   * "bir şey değişti" der.
+   * Listeyi buraya yazmak, kırılmanın **neden** olduğunu da yazmak demek. Sırası
+   * olmayan bir iddia, kırıldığında yalnızca "bir şey değişti" der.
    */
-  it('clubs fiziksel sütun sırası 0002 snapshot’ıyla AYNI — Faz 4 sona ekleyecek', async () => {
+  it('clubs fiziksel sütun sırası 0006 snapshot’ıyla AYNI', async () => {
     await migrateUp({ executor, source, logger });
     const real = await introspectSchema(executor);
     const clubsTable = real.tables.find((table) => table.name === 'clubs');
@@ -1230,18 +1557,51 @@ describe('snapshot ↔ gerçek şema (ikinci ve ayrı iddia)', () => {
       'is_national',
       'created_at',
       'updated_at',
+      // 🆕 4.4 — `ALTER TABLE ADD COLUMN` sütunu FİZİKSEL sona koydu ve TS
+      // tanımı da onu sona yazdı. Nöbetçi işini yaptı: bu satır, 3.5'te
+      // yazılmış bir beklentinin **karşılığı**.
+      'chairman_person_id',
+    ]);
+  });
+
+  /**
+   * 🆕 `federations` FİZİKSEL SÜTUN SIRASI — 4.4'te eklendi.
+   *
+   * ⚠️ **Bu test 3.4'te YAZILMAMIŞTI ve eksikliği 4.4'te görüldü.** `clubs`
+   * (3.5) ve `referees` (3.6) için nöbetçiler kurulmuştu; `federations` üç ileri
+   * FK'nın **birincisiydi** ve kendi nöbetçisi yoktu. Yani üç `ALTER` hedefinden
+   * ikisi korunuyordu, üçüncüsü değil — bir envanterin değeri hatırlanmasında
+   * değil **tamlığında** (3.5'in dersi).
+   *
+   * `president_person_id` bu tablonun ilk `ADD COLUMN`u ve §3.1.2 ④'ün üçüncü
+   * koşan uygulaması.
+   */
+  it('federations fiziksel sütun sırası 0006 snapshot’ıyla AYNI', async () => {
+    await migrateUp({ executor, source, logger });
+    const real = await introspectSchema(executor);
+    const federationsTable = real.tables.find((table) => table.name === 'federations');
+
+    expect(federationsTable?.columns.map((column) => column.name)).toEqual([
+      'id',
+      'country_id',
+      'name',
+      'founded_year',
+      'asset_id',
+      'created_at',
+      'updated_at',
+      'president_person_id',
     ]);
   });
 
   /**
    * `referees` FİZİKSEL SÜTUN SIRASI — Faz 4'ün ÜÇÜNCÜ ve son ALTER hedefi.
    *
-   * `clubs` testiyle aynı gerekçe: Faz 4 buraya `person_id`i `ALTER TABLE ADD
-   * COLUMN` ile ekleyecek ve §3.1.2 ④ gereği sütun TS tanımının da **sonuna**
-   * yazılmalı. Üç ileri FK'nın üçü de (`federations` · `clubs` · `referees`)
-   * aynı sınıf; ikisinin sırası artık burada sabit.
+   * `clubs` testiyle aynı gerekçe ve 4.4'te **karşılığı ödendi**: `person_id`
+   * `ALTER TABLE ADD COLUMN` ile eklendi ve §3.1.2 ④ gereği TS tanımının da
+   * **sonuna** yazıldı. Üç ileri FK'nın üçü de (`federations` · `clubs` ·
+   * `referees`) aynı sınıf; üçünün sırası artık burada sabit.
    */
-  it('referees fiziksel sütun sırası 0003 snapshot’ıyla AYNI — Faz 4 sona ekleyecek', async () => {
+  it('referees fiziksel sütun sırası 0006 snapshot’ıyla AYNI', async () => {
     await migrateUp({ executor, source, logger });
     const real = await introspectSchema(executor);
     const refereesTable = real.tables.find((table) => table.name === 'referees');
@@ -1260,6 +1620,8 @@ describe('snapshot ↔ gerçek şema (ikinci ve ayrı iddia)', () => {
       'big_game_experience',
       'created_at',
       'updated_at',
+      // 🆕 4.4 — üçün TEK `NOT NULL`u, yine SONDA.
+      'person_id',
     ]);
   });
 });

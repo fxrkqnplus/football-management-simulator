@@ -544,6 +544,7 @@ tarifi değil (4.2'de ölçülerek bulundu):
 | **3.10** | değişmedi (belge) | **19 / 163** | %11,7 ⬇ |
 | **4.2** | değişmedi (kural) | **19 / 163** | %11,7 → |
 | **4.3** | **13 tablo** (`people` + `players`) | **20 / 178** | %11,2 ⬇ |
+| **4.4** | 13 tablo + **3 ileri FK** (`0006`) | **25 / 190** | **%13,2** ⬆ |
 
 > ⚠️ **MUTASYONUN TARİFİ DE BİR İDDİADIR — 4.2'de ölçülerek bulundu (D2).**
 > Yukarıdaki başlık mutasyonu *"`compareSchemas` → her zaman `identical: true`"*
@@ -588,6 +589,38 @@ tarifi değil (4.2'de ölçülerek bulundu):
 > ℹ️ Oran %11,7 → %11,2 **düştü** çünkü payda 163 → 178 büyüdü (15 yeni test,
 > çoğu `compareSchemas`ı hiç çağırmayan davranış/CHECK testleri). Okuma kuralı
 > gereği bakılan sütun **pay**: 19 → 20.
+
+> ✅ **4.4'TE HEM PAY HEM ORAN ARTTI: 20 → 25 ve %11,2 → %13,2.** Seride oranın
+> ilk kez **payla birlikte** yükselişi bu, ve sebebi tek bir kelimeyle *"daha çok
+> test"* değil — **iddianın BİÇİMİ değişti**.
+>
+> `0006` zincirin 0001'den beri ilk `ALTER`-only migration'ı ve `attnum` deliği
+> (§3.1.2 ⑤) artık **her kısmi geri almada** görünüyor. Bu, dört var olan çevrim
+> testini `identical: true` iddiasından **farkların tam listesi** iddiasına
+> geçirdi. Fark kritik:
+>
+> | İddia | Körelen karşılaştırıcı ne yapar |
+> |---|---|
+> | `identical: true` | mutasyon bunu **sağlıyor** → test **geçer** |
+> | `differences` tam listesi | mutasyon listeyi boşaltıyor → test **kırılır** |
+>
+> Yani payın +5'inin dördü yeni test değil, **var olan dört testin körlükten
+> çıkması**. Beşincisi 0006'nın kendi çevrim testi.
+>
+> **Genel biçim:** bir testin mutasyona duyarlılığı, ne kadar şeye baktığından
+> çok **neyi iddia ettiğine** bağlı. `identical: true` bir **özet**tir ve
+> özetler körlenebilir; farkların tam listesi bir **envanter**dir ve envanterin
+> boşalması görünür. 3.4'te 0001 için bu biçim *"daha güçlü"* diye seçilmişti —
+> 4.4 o gerekçeyi **sayıyla** doğruladı.
+>
+> ⚠️ **Aynı alt görevin diğer iki mutasyonu bunu tamamlıyor** (doğru temsile,
+> yani **migration SQL'ine** uygulandı — TS şema dosyası çalışan veritabanını
+> kurmuyor, #43):
+>
+> | Mutasyon | Kırılan | Ne söylüyor |
+> |---|---|---|
+> | `federations` FK'sı `set null` → `cascade` | **3** | ikisi katalog testi, biri **DAVRANIŞ** testi — kural ve gerçeklik ayrı ayrı ötüyor |
+> | `referees.person_id`den `NOT NULL` kaldırıldı | **13** | nullability üç ayrı yerde nöbetçili: kural türetimi · snapshot ↔ gerçek şema · negatif `INSERT` |
 
 > ⚠️ **3.8, 3.9, 3.10 VE 4.2'DE PAY 19'DA SABİTTİ VE O DA BEKLENENDİ.** Bu dördün
 > hiçbiri migration yazmadı — round-trip yüzeyi büyümedi, yani körelen

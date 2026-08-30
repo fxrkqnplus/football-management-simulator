@@ -37,14 +37,24 @@
  * kaybolmasın.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * `chairman_person_id` BUGÜN YOK — Faz 4
+ * `chairman_person_id` 4.4'TE GELDİ — NULLABLE AMA `SET NULL` DEĞİL
  * ────────────────────────────────────────────────────────────────────────────
  *
- * `spec/01` bu sütunu `people` tablosuna işaret eden bir FK olarak tanımlıyor ve
- * `people` **Faz 4**'te geliyor. Sütunu bugün kısıtsız yazmak Faz 3'ün 3. kabul
- * kriterini (*"tüm yabancı anahtarlar tanımlı"*) **görünürde** sağlayıp gerçekte
- * delerdi. 3.4'te `federations.president_person_id` için aynısı yapıldı; karar
- * `docs/ROADMAP.md` Faz 3 tablo envanterinde ve Faz 4 maddesinde yazılı.
+ * Sütun Faz 3'te bilerek yazılmadı (kısıtsız bir sütun *"tüm yabancı anahtarlar
+ * tanımlı"* kriterini görünürde sağlayıp gerçekte delerdi); 4.4 sütunu ve kısıtı
+ * **birlikte** ekledi (`0006`).
+ *
+ * ⚠️ **Sütun nullable ve yine de `SET NULL` ALMIYOR — RESTRICT alıyor.** Sebep
+ * `fk-policy.ts`in sırası: ② (*kaynak `independent` → RESTRICT*) ③'ten
+ * (*bütün sütunlar nullable → SET NULL*) **önce** geliyor ve `clubs` kendi
+ * `key`ini taşıdığı için `independent`. Karşılaştır — aynı migration'daki
+ * `federations.president_person_id` **aynı hedefe**, **aynı nullability** ile
+ * bakıyor ve **SET NULL** alıyor; tek fark kaynağın sınıfı (`federations` bir
+ * uydu). İki FK, aynı gün, aynı tablo, iki farklı cevap.
+ *
+ * Aynı sınıfın önceki örnekleri: `competitions.country_id`,
+ * `clubs.competition_id`, `clubs.stadium_id`,
+ * `people.second_nationality_country_id`.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * SAYISAL ARALIKLAR CHECK ALMIYOR
@@ -71,6 +81,7 @@ import { masterTable } from '../client/master.js';
 import { competitions } from './competitions.js';
 import { countries } from './countries.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { people } from './people.js';
 import { searchNormalizedSql } from './search.js';
 import { stadiums } from './stadiums.js';
 
@@ -142,6 +153,19 @@ export const clubs = masterTable(
       isNational: boolean('is_national').notNull(),
       createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      /**
+       * Kulüp başkanı. `null` = bilinmiyor (`spec/01`: `chairmanPersonId FK nullable`).
+       *
+       * ⚠️ **SÜTUN SONDA — §3.1.2 ④.** `ALTER TABLE ADD COLUMN` fiziksel sona
+       * ekliyor; TS tanımı da sonda olmak zorunda, yoksa snapshot ↔ gerçek şema
+       * karşılaştırması kırılır. Nöbetçisi `round-trip.itest.ts`teki
+       * *"clubs fiziksel sütun sırası"* testi — 3.5'te tam bu gün için yazılmıştı.
+       *
+       * `ON DELETE RESTRICT` — nullable olmasına rağmen; gerekçe dosya başlığında.
+       */
+      chairmanPersonId: integer('chairman_person_id').references(() => people.id, {
+        onDelete: 'restrict',
+      }),
     },
     (table) => [
       sourceCheck('clubs_source_check', table.source),

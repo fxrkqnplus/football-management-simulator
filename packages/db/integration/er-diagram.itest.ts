@@ -79,9 +79,16 @@ const SCHEMA_DOC = fileURLToPath(new URL('../../../docs/schema/world.md', import
  * tahmin edilmedi — `drizzle-kit generate` çıktısından ve `pg_constraint`ten
  * okundu (`people` + `players`; dört yeni FK: iki uyruk, `person_id`, `club_id`).
  * Faz 4'ün kalan dokuz master tablosu 4.5–4.7'de gelecek ve burayı yine kıracak.
+ *
+ * 🆕 **4.4'te YALNIZCA FK SAYISI kırıldı: 16 → 19, tablo sayısı 13'te SABİT.**
+ * `0006` yeni tablo yaratmıyor, var olan üçüne birer sütun ve birer FK ekliyor
+ * (`federations.president_person_id` · `clubs.chairman_person_id` ·
+ * `referees.person_id`). İki sabitin **ayrı** olmasının değeri tam olarak bu:
+ * tek bir "şema büyüklüğü" sayısı olsaydı, bir tablo eklenip bir FK silinen bir
+ * değişiklik sessizce geçebilirdi.
  */
 const EXPECTED_TABLE_COUNT = 13;
-const EXPECTED_FOREIGN_KEY_COUNT = 16;
+const EXPECTED_FOREIGN_KEY_COUNT = 19;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;

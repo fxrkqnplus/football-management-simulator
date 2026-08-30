@@ -27,7 +27,7 @@ sessizce yalan söylemeye başlar.
 | **Üretici** | `packages/db/src/schema-state/er-diagram.ts` — saf, `SchemaFacts` alır, metin döner |
 | **Girdi** | `introspectSchema()` → gerçek `information_schema` + `pg_catalog` |
 | **Nöbetçi** | `packages/db/integration/er-diagram.itest.ts` (`pnpm test:db`, CI'da amd64 + arm64) |
-| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (11 / 12) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
+| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (13 / 19) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
 
 ⚠️ **Bu blok elle düzenlenmez.** Yeni bir migration burayı bayatlatır ve nöbetçi
 kırılır. **Doğru düzeltme:** testin hata mesajı üretilmiş metnin **tamamını**
@@ -65,7 +65,7 @@ ROADMAP **15** diyordu, `spec/01` §3.1 bu kapsam için **11** tanımlıyordu,
 `PROJECT_MEMORY.md` Faz 2 kaydı §11 **"16 master tablo"** diyordu. Karar tablosu ve
 her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (SAPMA-021).
 
-## ER Diyagramı (13 tablo · 16 yabancı anahtar)
+## ER Diyagramı (13 tablo · 19 yabancı anahtar)
 
 ```mermaid
 erDiagram
@@ -73,16 +73,19 @@ erDiagram
     clubs ||--o| club_finances_base : "club_id"
     clubs ||--o{ club_kits : "club_id"
     kit_templates ||--o{ club_kits : "template_id"
+    people |o--o{ clubs : "chairman_person_id"
     competitions |o--o{ clubs : "competition_id"
     countries ||--o{ clubs : "country_id"
     stadiums |o--o{ clubs : "stadium_id"
     countries |o--o{ competitions : "country_id"
     countries ||--o{ federations : "country_id"
+    people |o--o{ federations : "president_person_id"
     countries ||--o{ people : "nationality_country_id"
     countries |o--o{ people : "second_nationality_country_id"
     clubs |o--o{ players : "club_id"
     people ||--o| players : "person_id"
     countries ||--o{ referees : "country_id"
+    people ||--o{ referees : "person_id"
     clubs ||--o{ rivalries : "club_a_id"
     clubs ||--o{ rivalries : "club_b_id"
 
@@ -149,6 +152,7 @@ erDiagram
         boolean is_national
         timestamp_with_time_zone created_at
         timestamp_with_time_zone updated_at
+        integer chairman_person_id FK "null"
     }
 
     competitions {
@@ -195,6 +199,7 @@ erDiagram
         text asset_id "null"
         timestamp_with_time_zone created_at
         timestamp_with_time_zone updated_at
+        integer president_person_id FK "null"
     }
 
     kit_templates {
@@ -261,6 +266,7 @@ erDiagram
         smallint big_game_experience
         timestamp_with_time_zone created_at
         timestamp_with_time_zone updated_at
+        integer person_id FK
     }
 
     rivalries {
@@ -336,16 +342,16 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 | # | Tablo | Alt görev | `key`/`source`/`externalIds` | Not |
 |---|---|---|---|---|
 | 1 | `countries` | 3.2b / 3.4 | ✅ | İlk migration ve round-trip kanıtı bunun üzerinde |
-| 2 | `federations` | 3.4 | — | `presidentPersonId` **Faz 4'te** |
+| 2 | `federations` | 3.4 / **4.4** | — | `presidentPersonId` **4.4'te geldi** → **`ON DELETE SET NULL`**. ⚠️ Tablo artık **iki FK'nın iki farklı cevabını** taşıyor: `countryId` NOT NULL → CASCADE (*sahiplik*), `presidentPersonId` nullable → SET NULL (*referans*) |
 | 3 | `competitions` | 3.4 | ✅ | `rules jsonb` (Zod: `CompetitionRules`), ayrı tablo değil |
-| 4 | `clubs` | 3.5 | ✅ | `reputation` ve üç renk **sütun** olarak burada; `chairmanPersonId` **Faz 4'te**. ⚠️ `competitionId` ve `stadiumId` **nullable** — milli takımın (Faz 41, `isNational`) ne ligi ne sabit sahası var (SAPMA-026'nın türetme kuralı) |
+| 4 | `clubs` | 3.5 | ✅ | `reputation` ve üç renk **sütun** olarak burada; `chairmanPersonId` **4.4'te geldi** → nullable **ama `RESTRICT`** (kaynak `independent`; kural ② ③'ten önce). ⚠️ `competitionId` ve `stadiumId` **nullable** — milli takımın (Faz 41, `isNational`) ne ligi ne sabit sahası var (SAPMA-026'nın türetme kuralı) |
 | 5 | `club_facilities` | 3.5 | — | `clubId` 1:1 (PK = FK, ayrı `id` yok) |
 | 6 | `club_finances_base` | 3.5 | — | `clubId` 1:1 · başlangıç değerleri master, değişimi delta · `bigint` **`mode: 'bigint'`** (§3.1.2 ⑥) |
 | 7 | `stadiums` | 3.5 | ✅ | `builtYear`/`assetId` nullable |
 | 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` → ikisi de `clubs`, `CASCADE`. **3.7:** `(least,greatest)` UNIQUE ifade indeksi çift tekliğini sıradan bağımsız kapatıyor; kalan tek delik `(A,A)` → Faz 11 (G-11 daraldı) |
 | 9 | `kit_templates` | 3.6 | — | Oyunun kendi 20 SVG şablonu, pakette değil (`spec/12` §17.2'de `templates.json` **yok** — ölçüldü) — `code` **UNIQUE**, `key`in rolünü görüyor. `colorSlots` **CHECK (2,3)**: sayısal ama kapalı küme (§3.1.2 ②, 4. satır) |
 | 10 | `club_kits` | 3.6 | — | `(clubId, kitType)` **UNIQUE** · `kitType` CHECK · `templateId` → **RESTRICT** (sözlük tablosu, §3.1.2 ⑧). ⚠️ `assetId` `spec/01`'de **yoktu**, eklendi (SAPMA-026 EK): `spec/12` §17.4 gerçek forma görselini veriyor ve `null` = şablondan üret (K9) |
-| 11 | `referees` | 3.6 | ✅ | `personId` **Faz 4.4'te** → o âna kadar **isimsiz**. Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
+| 11 | `referees` | 3.6 / **4.4** | ✅ | `personId` **4.4'te geldi** → hakemler artık isimli. Üç ileri FK'nın **tek `NOT NULL`u** → `RESTRICT`; bedeli: `0006` dolu bir `referees` tablosunda yeniden uygulanamıyor (gürültülü, kendi testi var). Açık boşluk **G-18**: kapalı `person_type` kümesi hakemi ifade etmiyor. Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
 | 12 | `people` | **4.3** | ✅ | Oyuncu/personel/menajer/başkan **ortak kimlik**. §3.1.0'ın altıncı taşıyıcısı — karar ölçüldü (4.0b Karar 3: `key`i `people` taşırsa FK kuralı 20/20, `players` taşırsa 17/20). `personType` **şemanın ilk dizi sütunu** (`text[]`, CHECK: boş olamaz + kapalı küme) · `gender` CHECK · ikinci uyruk **nullable ama RESTRICT** (kural ② ③'ten önce) |
 | 13 | `players` | **4.3** | — | `personId` **UNIQUE FK** → CASCADE · `clubId` **nullable** → **şemanın ilk `ON DELETE SET NULL`ı** (*"null = serbest oyuncu"*). ⚠️ Faz 3'ün 1:1 desenini **izlemiyor** (ayrı `serial id`) ve gerekçe ölçüldü: ona bakan 13 tablo var (5 master + 8 save), `club_facilities`'e bakan **0**. `primaryPosition` CHECK (12 mevki) · `isNewgen` **DEFAULT ALMIYOR**. `CA <= PA` ve PA bandı CHECK'leri **4.5'te** |
 
@@ -407,7 +413,7 @@ yanlış olduğunda hiçbir şey ötmezdi.
 | `confederations`, `competition_rules`, `club_reputations`, `club_colors` tabloları | Hepsi 1:1 sütun; ayrı tablo her sorguya JOIN ekler, hiçbir sorgu onlardan geçmez (K12) | — (sütun olarak `spec/01`'de) |
 | `competition_seasons` | **Hiçbir tüketicisi yok** — `spec/01`, `spec/12`, ROADMAP Faz 8/46/47 tarandı. Sezon bu spec'te **skaler `seasonYear`**, puan durumu `matches`'tan türetiliyor | — · ürün fikri `docs/V2-BACKLOG.md`'ye |
 | `asset_index` | `spec/12` §17.5 istiyor ama tabloyu **dolduran hat** Faz 7'de. Hiçbir şeyin yazmadığı tablo, tüketicisi olmayan sütunla aynı sınıf | **Faz 7** (G-09) |
-| `federations.presidentPersonId`, `clubs.chairmanPersonId`, `referees.personId` | `people` Faz 4'te. Kısıtsız sütun, *"tüm FK'lar tanımlı"* kriterini görünürde sağlayıp gerçekte delerdi | **Faz 4** — sütun ve FK **birlikte** eklenecek |
+| ~~`federations.presidentPersonId`, `clubs.chairmanPersonId`, `referees.personId`~~ | `people` Faz 4'te. Kısıtsız sütun, *"tüm FK'lar tanımlı"* kriterini görünürde sağlayıp gerçekte delerdi | ✅ **YAPILDI — 4.4** (`0006`): sütun ve FK birlikte. Üçü **üç farklı** `ON DELETE` aldı: `SET NULL` · `RESTRICT` · `RESTRICT` |
 
 ## Kararların dayanağı
 
