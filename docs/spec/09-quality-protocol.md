@@ -545,6 +545,7 @@ tarifi değil (4.2'de ölçülerek bulundu):
 | **4.2** | değişmedi (kural) | **19 / 163** | %11,7 → |
 | **4.3** | **13 tablo** (`people` + `players`) | **20 / 178** | %11,2 ⬇ |
 | **4.4** | 13 tablo + **3 ileri FK** (`0006`) | **25 / 190** | **%13,2** ⬆ |
+| **4.5** | **15 tablo** + 57 nitelik sütunu + 2 CHECK (`0007`+`0008`) | **26 / 216** | %12,0 ⬇ |
 
 > ⚠️ **MUTASYONUN TARİFİ DE BİR İDDİADIR — 4.2'de ölçülerek bulundu (D2).**
 > Yukarıdaki başlık mutasyonu *"`compareSchemas` → her zaman `identical: true`"*
@@ -612,6 +613,42 @@ tarifi değil (4.2'de ölçülerek bulundu):
 > özetler körlenebilir; farkların tam listesi bir **envanter**dir ve envanterin
 > boşalması görünür. 3.4'te 0001 için bu biçim *"daha güçlü"* diye seçilmişti —
 > 4.4 o gerekçeyi **sayıyla** doğruladı.
+
+> ⚠️ **4.5'TE PAY BİR KEZ ALARM VERDİ: İKİ YENİ ÇEVRİM TESTİ PAYA HİÇ KATKI
+> YAPMADI — ve sebebi 4.4'ün dersinin SINIRIYDI.**
+>
+> `0007` ve `0008` zincire eklendi, ikisinin de çevrim testi yazıldı, ilk ölçüm
+> **25 / 215** verdi: pay 4.4'ün değerinde **sabit**. 4.4'ün okuması
+> (*"envanter iddiaları körlükten çıkarır"*) buradan bir artış vaat ediyordu.
+>
+> **Ölçüm sınırı gösterdi.** İki yeni test `differences: []` iddia ediyor —
+> **boş** bir envanter. Mutasyonun ürettiği değer tam olarak bu:
+> `{ differences: [], identical: true, … }`. Yani:
+>
+> | İddia | Körelen karşılaştırıcı ne yapar |
+> |---|---|
+> | `differences` **dolu** tam listesi (4.4) | listeyi boşaltıyor → test **kırılır** |
+> | `differences: []` (4.5'in yeni testleri) | **zaten** boş üretiyor → test **geçer** |
+>
+> **Genel biçim:** *"boş bir liste tek başına 'yok' diye okunur"* kuralının
+> mutasyon tarafındaki biçimi. Bir envanter iddiası körlükten ancak **fark
+> beklediğinde** çıkarır; fark beklemeyen bir envanter iddiası pozitif bir
+> testtir ve §11.5'in başındaki ölçüm onun için geçerlidir (3.2b: 16'da 15).
+> **Payı artıran şey envanterin biçimi değil, testin bir fark BEKLEMESİDİR.**
+>
+> ✅ **Alarm bir NEGATİF testle kapatıldı: 25 → 26.** `0007` zincire ilk kez
+> *başka bir tablonun kısıtını* ekleyen migration'ı, `0008` ilk kez bir kısıtın
+> **tanımını değiştiren** migration'ı getirdi — yani `constraint.definition`
+> şemaya yeni bir **olgu türü** olarak girdi. Onu ölçen bir negatif test yoktu:
+> karşılaştırıcının o alanı gerçekten okuduğu **varsayılıyordu** (D3). Test
+> (`④ SESSİZ bozuk down (KISIT TANIMI)`) bir `down`un CHECK'i **dar** geri
+> koyduğu sessiz vakayı üretiyor ve farkı yalnızca `definition`ın gösterdiğini
+> ayrıca iddia ediyor (kısıt adı ve tipi iki durumda da aynı) — 4.3'ün `udtName`
+> deseninin birebir tekrarı.
+>
+> ℹ️ Oran %13,2 → %12,0 **düştü** çünkü payda 190 → 216 büyüdü (26 yeni test;
+> çoğu CHECK reddi, 1:1 teklik ve envanter testleri — hiçbiri `compareSchemas`ı
+> çağırmıyor). Okuma kuralı gereği bakılan sütun **pay**: 25 → 26.
 >
 > ⚠️ **Aynı alt görevin diğer iki mutasyonu bunu tamamlıyor** (doğru temsile,
 > yani **migration SQL'ine** uygulandı — TS şema dosyası çalışan veritabanını

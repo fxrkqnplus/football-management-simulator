@@ -165,7 +165,26 @@ meta/0000_snapshot.json → checkConstraints: { probe_source_check: { … } }
 ```
 
 `ALTER TABLE … ADD CONSTRAINT … CHECK (…)` biçimi de üretiliyor (var olan bir
-tabloya sütun eklenirken). CHECK ifadesi bir **sabit diziden türetilir**
+tabloya sütun eklenirken).
+
+> ✅ **ÜÇÜNCÜ BİÇİM DE ÖLÇÜLDÜ — KISIT DEĞİŞİKLİĞİ (Faz 4.5).** Bir CHECK'in
+> **tanımı** değiştiğinde `drizzle-kit` onu `DROP CONSTRAINT` + `ADD CONSTRAINT`
+> çifti olarak üretiyor; `0008` bunun canlı örneği (`PERSON_TYPES` 4 → 5 değer).
+> Bu, ①'in ilk yazımında **ölçülmemişti**: o gün yalnızca *"kısıt yaratılıyor"*
+> sınandı, *"kısıt değişiyor"* değil.
+>
+> **İki sonucu var ve ikisi de ölçüldü:**
+> - `DROP` + `ADD` **sütun eklemiyor**, yani ⑤'in `attnum` deliğini **açmıyor**.
+>   Bir `ALTER` migration'ının kayma üretip üretmediğini belirleyen şey `ALTER`ın
+>   kendisi değil, **sütun** ekleyip düşürmesi.
+> - `ADD CONSTRAINT` var olan satırları **doğruluyor**. Bir kümeyi daraltan
+>   `down`, veriye uymuyorsa gürültülü patlar — ve `down` LIFO çalıştığı için
+>   zincirin en üstündeki böyle bir migration, dolu bir veritabanında **her**
+>   geri almayı bloke eder. Gerekçe `drizzle/down/0008_person_type_referee.sql`
+>   başlığında; alternatifler (`NOT VALID`, `down`un satır silmesi) tek tek
+>   elendi ve elenme sebepleri orada yazılı.
+
+CHECK ifadesi bir **sabit diziden türetilir**
 (`packages/db/src/schema/data-pack-columns.ts`), elle yazılmaz — böylece
 TypeScript tipi ile veritabanı kısıtı ayrışamaz. Ayrışma denemesi ölçüldü:
 diziye altıncı bir değer eklenip migration yeniden üretilmediğinde **birim testi
@@ -355,6 +374,20 @@ geri alması (tablo düşüp yeniden yaratıldığı için) `identical: true` ve
 > delik kalmıyor. İki beklenti **ayrı testlerde** tutuluyor: birleştirilselerdi
 > 0002'nin fazla giden bir `down`u, 0001'in bilinen sekiz farkının arkasında
 > *"zaten fark bekliyorduk"* diye okunurdu.
+>
+> ⚠️ **AYRAÇ `ALTER` DEĞİL, SÜTUN — Faz 4.5'te ölçülerek ayrıştırıldı.** 0006 tek
+> `ALTER` örneğiydi ve *"`ALTER` migration kayma üretir"* genellemesini davet
+> ediyordu. `0008` o okumayı bozuyor: bir `ALTER` ama yalnızca bir CHECK'in
+> tanımını değiştiriyor — hiçbir sütun eklenmiyor, hiçbiri düşmüyor, **kayma
+> yok** ve çevriminde `identical: true` **beklenir**. Bir kuralın
+> **örneklerinden geriye okunursa yanlış öğrenileceğinin** (desen F3) yeni bir
+> vakası; ②'nin dördüncü satırıyla aynı aile.
+>
+> ⚠️ **VE KAYMA BİR ZİNCİR ÖZELLİĞİ DEĞİL, BİR GERİ ALMA DERİNLİĞİ ÖZELLİĞİ.**
+> `0006` zincirde duruyor olsa bile, ondan **daha üstteki** bir migration'ın
+> kendi çevrimi kaymaları hiç görmez: geri alma 0006'ya dokunmuyorsa onun
+> delikleri çevrimin iki ucunda da aynıdır. `0007`nin testi bunu adıyla iddia
+> ediyor.
 
 **⑥ `bigint` SÜTUNLARI `{ mode: 'bigint' }` ALIR — `'number'` DEĞİL.**
 Drizzle'ın `bigint()`i bir mod istiyor ve **ikisi de aynı DDL'i üretiyor**
@@ -532,7 +565,13 @@ referees: {
 ### İnsanlar
 
 ```ts
-// people — oyuncu, personel, menajer, başkan ORTAK kimlik tablosu
+// people — oyuncu, personel, menajer, başkan, HAKEM ORTAK kimlik tablosu
+// ⚠️ "hakem" Faz 4.5'te EKLENDİ (G-18 kapandı, migration `0008`). 4.4
+//    `referees.personId`i `NOT NULL` yazınca her hakem bir `people` satırı oldu,
+//    ama ne bu başlık ne aşağıdaki kapalı küme hakemi anıyordu — hakem satırı
+//    yazan ilk taraf bir değer UYDURMAK zorunda kalırdı (SAPMA-026'nın yasağı).
+//    G-18'in üç seçeneğinden ① (kümeye `'referee'`) uygulandı; ③ (bu başlığın
+//    düzeltilmesi) onun doğal sonucu — küme hakemi tanıyorsa tanım da tanımalı.
 people: {
   id: serial PK
   firstName: text
@@ -545,7 +584,13 @@ people: {
   portraitAssetId: text nullable
   portraitSeed: integer          // prosedürel portre tohumu
   gender: 'male'|'female'
-  personType: ('player'|'staff'|'manager'|'chairman')[]
+  personType: ('player'|'staff'|'manager'|'chairman'|'referee')[]
+  // ⚠️ KÜMEYİ DARALTMANIN BEDELİ ÖLÇÜLDÜ (Faz 4.5). `0008`in `down`u kısıtı
+  //    dört değere geri çekiyor ve `ADD CONSTRAINT … CHECK` var olan satırları
+  //    DOĞRULUYOR — dolu bir `people` tablosunda `'referee'` varsa geri alma
+  //    GÜRÜLTÜLÜ patlar. Bu bir kusur değil, kısıtın var olma sebebi; ve etkisi
+  //    zincir çapında: `down` LIFO çalıştığı için dolu bir veritabanında
+  //    HİÇBİR geri alma başlayamaz. Davranışın kendi testi var.
 }
 
 // players

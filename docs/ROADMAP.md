@@ -1797,8 +1797,8 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 - [ ] 5.000 sahte oyuncu seed → şema tutarlı
 - [x] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri) — **4.4**, `0006`; üçü **üç farklı** davranış aldı (SET NULL · RESTRICT · RESTRICT) ve üçünün de **davranışı** gerçek PG 18.6'ya karşı ölçüldü, yalnızca katalogdan okunmadı
 - [ ] **"20–24 yaş, sağ bek, CA>120" sorgusu 5.000 oyuncu hacminde < 50 ms** *(SAPMA-031 — `değer<15M` yüklemi çıkarıldı)*
-- [ ] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)*
-- [ ] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`**
+- [x] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)* — **4.5**, `0007`; 57 nitelik sütununun (47 görünür + 10 gizli) hiçbiri CHECK almadı ve bu **negatif bir iddiayla** sabitlendi (`pg_constraint` katalogdan okunuyor, boş liste bekleniyor): *"kısıt eklemeyi unuttuk"* ile *"kısıt bilerek konmadı"* aynı şemayı üretir, ayıran tek şey koşan bir iddiadır. Kalibrasyon tarafının kısıtsızlığı `players`ta da ayrıca ölçüldü (CA=250 kabul ediliyor)
+- [x] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`** — **4.5**, `0007`; `ALTER TABLE … ADD CONSTRAINT` ile (tablo 4.3'te yaratılmıştı). **İKİ AYRI kısıt**, birleşik değil — hangi değişmezin ihlal edildiği hata mesajından okunsun. Reddi **negatif testle** kanıtlandı (CA>PA ve min>max ayrı ayrı reddediliyor) ve **sınır dahil** olduğu karşı örnekle gösterildi (CA=PA, min=max kabul ediliyor: `<` yazılsaydı ikisi de reddedilir ve hata ancak Faz 9 ingest'inde görülürdü). D5'te derlenmiş `dist` + düz `node` ile ayrı bir gerçek PG 18.6'ya karşı da koşuldu
 - [ ] Şema dokümanı güncellendi
 
 **Alt görevler** *(4.0/4.0b'de ölçüldü, kullanıcı onayıyla 2026-08-29'da işlendi — K11)*
@@ -1855,10 +1855,50 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       kullanıcı kararı) ve **G-18** (hakemin `person_type`ı → Faz 8) açıldı ve
       **ikisi de hedef fazın kapsamına yazıldı**.
       → `docs/reports/faz-04/4.4-uc-ileri-fk.md`
-- [ ] **4.5** **`player_attributes` (47) + `player_hidden_attributes` (10)** (`0007`) —
+- [x] **4.5** **`player_attributes` (47) + `player_hidden_attributes` (10)** (`0007`) —
       nitelik CHECK'i **YOK** (SAPMA-028); `players`'a `CA <= PA` ve
       `pa_range_min <= pa_range_max` CHECK'leri. 47+10 envanteri `spec/02` §4.1'den
-      **sayılarak** doğrulanır (SAPMA-001 bu sınıftı). → kriter 4, 5
+      **sayılarak** doğrulanır (SAPMA-001 bu sınıftı). → **kriter 4 ve 5 ✅ KAPANDI**
+      **SONUÇ:** envanter **13 → 15 tablo**, FK **19 → 21**. 47 ve 10 `spec/02`
+      §4.1'den **sayıldı** (14+14+8+11, benzersizlik ayrıca ölçüldü) ve envanter
+      bir **sayı** değil bir **liste** olarak yaşıyor (`VISIBLE_ATTRIBUTES` /
+      `HIDDEN_ATTRIBUTES`) — üç katmanlı iddia: sabit → TS alanı → katalog sütunu.
+      **1:1 ayracı KOŞTURULDU, kopyalanmadı:** *"tabloya gelen FK sayısı"* iki
+      tablo için de **0** (`spec/01`'de `attributesId`/`attribute_id` → 0 eşleşme)
+      → 3.5 deseni (`player_id` **PK = FK**), `players`ınki izlenmedi. FK kuralı
+      da koşturuldu → **CASCADE · CASCADE**, üretilen SQL'le 2/2.
+      ⚠️ **ALT GÖREV İKİ MIGRATION YAZDI ve bu bir İDDİA AYRIMI kararı:**
+      `0007` iki tablo + `players`ın iki ilişki değişmezi · **`0008` G-18'i
+      kapatıyor** — `PERSON_TYPES` 4 → 5 (`'referee'`). Birleştirilselerdi birinin
+      fazla giden bir `down`u diğerinin arkasında saklanabilirdi (§3.1.2 ⑤).
+      🆕 **G-18'in ATAMASI YANLIŞTI ve dayanağı D7'ydi:** Faz 8'in bloğu
+      gerekçesini *"3.8'in kendi notu"*na dayandırıyordu; Faz 8'in **gerçek**
+      ingest listesi ölçüldü ve hakem **yok** (Faz 9 da yalnızca oyuncu). Blok ve
+      kabul kriteri Faz 8'den **kaldırıldı**, boşluk burada kapatıldı — `people`
+      bu fazın kendi tablosu ve kapalı küme bu fazda eksik ölçüldü. Bir yalan
+      zaten repodaydı: `fixtures.ts` hakem kişilerine `['player']` yazıyordu.
+      🆕 **G-19 açıldı** — *"hiçbir faz hakem verisini ingest etmiyor"*; ROADMAP'in
+      tüm hakem atıfları fazlarına göre çıkarıldı (23/26/29/45 **tüketici**, 46
+      var olan kadroyu **bakım**, 8 ve 9'un listelerinde **yok**). Sahibi
+      **tahminle atanmadı**: karar noktası **Faz 7**'ye yazıldı.
+      🆕 **ZİNCİR ÇAPINDA BİR SINIR ÖLÇÜLDÜ:** `0008`in `down`u kısıtı daraltıyor
+      ve `ADD CONSTRAINT … CHECK` var olan satırları **doğruluyor** — dolu bir
+      `people` tablosunda geri alma **gürültülü patlıyor**, ve `down` LIFO
+      çalıştığı için zincirin **hiçbir** geri alması başlayamıyor. 0006'nın
+      sınırından yapısal olarak farklı (orada patlayan `up`tı). Alternatifler
+      (`NOT VALID`, `down`un satır silmesi) tek tek elendi; gerekçe
+      `drizzle/down/0008_person_type_referee.sql` başlığında.
+      🆕 **§3.1.2 ① ÜÇÜNCÜ BİÇİMİ ÖLÇTÜ** (CHECK **değişikliği** = `DROP`+`ADD`)
+      ve **⑤'in ayracı ayrıştı: `ALTER` değil SÜTUN.** `0008` bir `ALTER` ama
+      kayma üretmiyor → çevriminde `identical: true` **beklenir** ve ölçüldü.
+      **Mutasyon 25 → 26** (%13,2 → %12,0; payda 190 → 216). ⚠️ İlk ölçüm **25**
+      verdi (alarm): iki yeni çevrim testi `differences: []` iddia ediyor ve
+      mutasyon **tam olarak onu üretiyor** — *boş bir envanter körlükten
+      çıkarmaz*. Alarm bir **negatif** testle kapatıldı (`④ SESSİZ bozuk down
+      (KISIT TANIMI)`), 4.3'ün `udtName` deseni. `comparedFacts` **2.243 →
+      3.023** (ölçüldü). **Kapsam eğilimi ilk kez TERSİNE DÖNDÜ:** fonksiyon
+      %77,56 → **%77,68**, marj **7,68 puan**.
+      → `docs/reports/faz-04/4.5-nitelik-tablolari.md`
 - [ ] **4.6** **`player_positions` + `player_traits` + `player_stats_history`**
       (`0008`) — `player_stats_history` **`club_id` alır**. → kriter 1, 6
 - [ ] **4.7** **`staff` + `staff_attributes` + `managers` + `manager_attributes`**
@@ -2019,8 +2059,29 @@ docs/glossary.md
   demekti ve 3.8'in kapsamı dışındaydı (K12). Bu faz sağlayıcı zincirini kurduğu için
   kümenin sahibi burasıdır: ya `seed` eklenir ya `procedural` kalıcılaşır. Seed
   `DO UPDATE` yaptığı için değişiklik tek koşuda uygulanır.
+- **⚠️ HAKEM VERİSİNİ HİÇBİR FAZ INGEST ETMİYOR — SAHİBİ BURADA BELİRLENİR**
+  *(G-19, Faz 4.5'te açıldı)*
+  `referees` 3.6'dan beri `key` / `source` / `external_ids` taşıyor, yani §3.1.0'a
+  göre bir **paket varlığı** — ama onu dolduran hat yok. ROADMAP'in tüm hakem
+  atıfları fazlarına göre çıkarıldı (4.5'te ölçüldü): **Faz 23** hakem toleransını,
+  **Faz 26** hakem niteliklerini ve atamasını, **Faz 29** maç öncesi brifingi,
+  **Faz 45** basın sorusunu **tüketiyor**; **Faz 46** *"yeni sezon hakem kadrosu,
+  emekli olan hakemler"* diyerek var olan bir kadroyu **bakım** yapıyor —
+  yani onun **var olduğunu varsayıyor**. **Faz 8 ve Faz 9'un ingest listelerinde
+  hakem yok** (ikisi de tek tek okundu). SAPMA-008'in birebir sınıfı.
+  ⚠️ **SAHİP TAHMİNLE ATANMADI** (`competition_seasons` yöntemi, 3.1; ve K13):
+  Faz 8 makul bir adaydı ama 4.4 tam olarak oraya **bir nottan miras alarak**
+  atamıştı ve ölçüm onu yanlış çıkardı (D7). Bu faz sağlayıcı zincirini kurduğu
+  ve *"hangi kaynaktan ne çekilecek"* sorusunun **ilk kez cevaplanabildiği** yer
+  olduğu için **karar noktası burasıdır** — G-09 ve G-14 ile aynı desen.
+  **Burada karara bağlanacak:** ① hakem verisi için bir kaynak var mı
+  (`spec/12` §17.2'de `referees.json` **yok**, ölçüldü — yani bugünkü cevap
+  *"prosedürel"*) ② varsa ingest'i hangi faz üstlenir (8 veya 9) ③ yoksa
+  `ProceduralProvider`ın hakem üretimi hangi faza yazılır. **Karar bir fazın
+  kapsamına yazılmadan G-19 kapanmaz** — kütüğe kayıt yetmez.
 
 **Kabul kriterleri:**
+- [ ] **G-19 karara bağlanmış: hakem verisinin kaynağı ve ingest sahibi bir fazın kapsamında adıyla yazılı** *(G-19)*
 - [ ] Sağlayıcı sırası config'den değişiyor, kod değişmiyor
 - [ ] Bir sağlayıcı hata verince zincir bir sonrakine geçiyor, oyun çalışmaya devam ediyor
 - [ ] `DATA_MODE=full` + paket varken zincir LocalPack'i birinci sırada kullanıyor
@@ -2055,22 +2116,21 @@ docs/glossary.md
 - Transfer pencereleri: ülkeye göre gerçek tarihler
 - **Gerçek varlıklar birincil (`DATA_MODE=full`):** kulüp armaları, lig logoları, kupa görselleri, ülke bayrakları veri paketinden yüklenir — bkz. `docs/spec/12-data-packs.md`
 - **Prosedürel yedek:** arma bulunamazsa 3 renkten SVG arma üret (12 kalkan şekli × 8 desen × 6 sembol)
-- **⚠️ HAKEMİN `person_type`I — kapalı küme hakemi ifade etmiyor** *(G-18, Faz 4.4'te açıldı)*
-  4.4 `referees.person_id`i **`NOT NULL`** yazdı, yani artık **her hakem bir
-  `people` satırıdır**. Ama `people.person_type` kapalı kümesi
-  `player | staff | manager | chairman` ve hiçbiri hakemi anlatmıyor;
-  `people_person_type_check` boş diziyi de reddediyor (4.3'te bilerek). Sonuç:
-  **hakem satırı yazan ilk taraf bir değer uydurmak zorunda** — SAPMA-026'nın
-  yasakladığı şey. Hakem verisi bu fazda geliyor (3.8'in kendi notu:
-  *"kulüp/stadyum/hakem verisi (Faz 8–9)"*), yani kararın sahibi burası.
-  Üç seçenek: ① kümeye `'referee'` eklenir (CHECK değişir → yeni migration)
-  ② hakemler `people` taşımaz (üç ileri FK kararını geri alır) ③ `spec/01`'in
-  `people` başlığı hakemi de kapsayacak şekilde düzeltilir.
-  **4.4 kümeyi değiştirmedi** (K12): şema çalışıyor, boşluk bir **anlam** boşluğu.
+- ℹ️ **G-18 BLOĞU 4.5'TE BURADAN KALDIRILDI — atama yanlıştı ve dayanağı D7'ydi.**
+  4.4 hakemin `person_type`ı boşluğunu bu faza atamış ve gerekçesini *"hakem verisi
+  bu fazda geliyor (**3.8'in kendi notu**)"* diye yazmıştı. O not `PROJECT_MEMORY` /
+  ROADMAP'in **kendi sesi** — D7'nin *"kaynak değildir"* dediği şey. Bu fazın
+  **gerçek** kapsam listesi ölçüldü (yukarıdaki maddeler): ülke · lig · kupa ·
+  UEFA · kulüp verisi · görseller · rekabet ilişkileri · ülke kural setleri ·
+  transfer pencereleri. **Hakem yok** — ve buraya yazılan kabul kriteri
+  (*"hakemlerin `people` satırları yazılıyor"*) burada **karşılanamazdı**.
+  Boşluk **Faz 4.5'te kapatıldı** (`0008`, `PERSON_TYPES` 4 → 5): `people` Faz 4'ün
+  kendi tablosu ve kapalı küme orada eksik ölçülmüştü. ⚠️ **Ayrı bir boşluk açık
+  kaldı — G-19:** hiçbir faz hakem verisini **ingest etmiyor**; karar noktası
+  **Faz 7**'ye yazıldı (aşağıdaki bağımlılık fazı).
 
 **Kabul kriterleri:**
 - [ ] 6 lig, 118+ kulüp, 20+ turnuva veritabanında
-- [ ] **Hakemlerin `people` satırları yazılıyor ve `person_type` kararı verilmiş** *(G-18)*
 - [ ] Her kulübün arması ve 3 rengi mevcut (eksikse prosedürel üretilmiş)
 - [ ] `data-cli stats` → eksik varlık oranı < %5
 - [ ] Her ligin kural seti JSON şemasına uygun ve doğrulanmış
