@@ -1899,13 +1899,26 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       3.023** (ölçüldü). **Kapsam eğilimi ilk kez TERSİNE DÖNDÜ:** fonksiyon
       %77,56 → **%77,68**, marj **7,68 puan**.
       → `docs/reports/faz-04/4.5-nitelik-tablolari.md`
-- [ ] **4.6** **`player_positions` + `player_traits` + `player_stats_history`**
-      (`0008`) — `player_stats_history` **`club_id` alır**. → kriter 1, 6
+- [x] **4.6** **`player_positions` + `player_traits` + `player_stats_history`**
+      (~~`0008`~~ → **`0009`**, SAPMA-034) — `player_stats_history` **`club_id` aldı**.
+      → kriter 1, 6
+      **SONUÇ:** envanter **15 → 18 tablo**, FK **21 → 26**. FK kuralı KOŞTURULDU →
+      **5/5** (CASCADE ×4 + SET NULL), üretilen SQL'le karşılaştırıldı.
+      🆕 **§3.1.2 ②'nin ayracı AYNI ALT GÖREVDE İKİ FARKLI CEVAP üretti:**
+      `player_positions.position` (12 kod, `players.ts`ten ithal) ve `level`
+      (5 derece) **CHECK aldı**; `player_traits.trait_code` **almadı** — küme
+      `spec/02`'de tanımlı değil (0 eşleşme) ve ROADMAP *"~30"* diyor, yani
+      sayılamıyor. `competition_id`in **CASCADE** alması sezgiye aykırı ve
+      kuralın ②'sinin *"kaynağın sınıfı"* okumasının canlı kanıtı.
+      `comparedFacts` **3.023 → 3.570** (ölçüldü). 🆕 **Kod işinden ÖNCE
+      `bash-text-guard` kancası yazıldı** (kendi commit'i) — ORTAM TUZAKLARI ⑤'in
+      ateşlendiği anda görünür hâli, SAPMA-033'ün sınıfı.
+      → `docs/reports/faz-04/4.6-mevki-yetenek-istatistik.md`
 - [ ] **4.7** **`staff` + `staff_attributes` + `managers` + `manager_attributes`**
-      (`0009`) — `staff.role` **CHECK** (12 değer). → kriter 1, 6
+      (**`0010`**) — `staff.role` **CHECK** (12 değer). → kriter 1, 6
       ⚠️ **§0.5 KONTROL NOKTASI:** burada geçen gün sayısı **ölçülür ve raporlanır**;
       iki günü aştıysa 4.8–4.11 **Faz 4b** olarak ayrılır ve ROADMAP'e yazılır.
-- [ ] **4.8** **Transfer arama indeksleri** (`0010`) — kapsam `spec/01`'in indeks
+- [ ] **4.8** **Transfer arama indeksleri** (**`0011`**) — kapsam `spec/01`'in indeks
       satırından **değil** kriter 3'ün sorgusundan türetilir (o satır iki tabloyu
       karıştırıyor, 4.0'da ölçüldü). → kriter 3 hazırlığı
 - [ ] **4.9** **5.000 sahte oyuncu seed'i** + determinizm ölçümü (iki koşu birebir

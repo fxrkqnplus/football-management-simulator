@@ -817,6 +817,171 @@ export function playerHiddenAttributesInsertSql(
 }
 
 /**
+ * `player_positions` satırı — Faz 4.6.
+ *
+ * ⚠️ **BENZERSİZLİK PROGRAMATİK DOĞRULANIYOR — günlük #10'un kuralı.** Bu
+ * tablonun PK'si `(player_id, position)` bileşik ve testler **aynı
+ * veritabanını paylaşıyor** (`afterEach` temizliği yok). Gözle seçilmiş bir
+ * *"herhalde bu mevki boştur"*, 4.3'te `countries_code_unique` ile patlayan
+ * hatanın birebir aynısını üretirdi. `assertDistinctPairs` çağrısı çifti
+ * **girdide** kontrol ediyor; tabloda zaten var olan bir çiftle çakışma ise
+ * kısıt tarafından gürültülü yakalanır — ikisi farklı hata sınıfı ve ikisi de
+ * sessiz değil.
+ */
+export interface PlayerPositionFixture {
+  readonly personKey: string;
+  readonly position: string;
+  readonly level?: string;
+}
+
+/**
+ * Aynı `INSERT` içinde tekrarlanan bileşik anahtarı **erken** yakalar.
+ *
+ * ⚠️ Bu, kısıtın yerine geçmiyor — kısıt zaten var. Aradaki fark hata
+ * **mesajı**: veritabanı `duplicate key value violates unique constraint
+ * "player_positions_player_id_position_pk"` der ve hangi satırın kurgusunun
+ * bozuk olduğunu söylemez; burası fixture'ın kendi hatasını adıyla gösterir.
+ */
+function assertDistinctPairs(pairs: readonly string[], label: string): void {
+  const duplicates = pairs.filter((pair, index) => pairs.indexOf(pair) !== index);
+  if (duplicates.length > 0) {
+    throw new Error(`${label} fixture'ında tekrarlanan anahtar: ${duplicates.join(', ')}`);
+  }
+}
+
+export function playerPositionInsertSql(rows: readonly PlayerPositionFixture[]): string {
+  assertDistinctPairs(
+    rows.map((row) => `${row.personKey}/${row.position}`),
+    'player_positions',
+  );
+
+  const values = rows
+    .map((row) =>
+      [playerIdOfPerson(row.personKey), quote(row.position), quote(row.level ?? 'natural')].join(
+        ',',
+      ),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_positions" ("player_id","position","level")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_traits` satırı — Faz 4.6.
+ *
+ * `trait_code` bir CHECK taşımıyor (küme açık uçlu, gerekçe
+ * `src/schema/player-traits.ts` başlığında), yani buradaki değerler **serbest**.
+ * Yine de `spec/12` §17.4'ün gerçek biçimi kullanılıyor (snake_case, İngilizce):
+ * uydurma bir kod, formatın ne olduğu sorusunu sonraki oturuma açık bırakırdı.
+ */
+export interface PlayerTraitFixture {
+  readonly personKey: string;
+  readonly traitCode: string;
+}
+
+export function playerTraitInsertSql(rows: readonly PlayerTraitFixture[]): string {
+  assertDistinctPairs(
+    rows.map((row) => `${row.personKey}/${row.traitCode}`),
+    'player_traits',
+  );
+
+  const values = rows
+    .map((row) => [playerIdOfPerson(row.personKey), quote(row.traitCode)].join(','))
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_traits" ("player_id","trait_code")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_stats_history` satırı — Faz 4.6. **31 sütunluk `INSERT` TEK YERDE.**
+ *
+ * ⚠️ Var olma sebebi günlük **#28**: `0001` altı `NOT NULL` sütun ekledi ve üç
+ * ayrı dosyadaki `INSERT` kopyaları bir anda geçersizleşti (14 test). 31
+ * sütunluk bir `INSERT` dağıtılsaydı 32'nci sütunu ekleyen gün aynı bedel
+ * ödenirdi.
+ *
+ * ⚠️ **Sütun adları `player-stats-history.ts`ten TÜRETİLMİYOR** — 4.5'in
+ * `playerAttributesInsertSql` kararının aynısı. Türetilseydi şema dosyası
+ * bozulduğunda fixture da onunla birlikte bozulur ve envanter testi **fixture
+ * tarafından doğrulanmış gibi** görünürdü. Bağımsız yazıldığı için iki liste
+ * ayrışırsa `INSERT` gürültülü patlar (`column "..." does not exist`).
+ *
+ * Değerler bir **profil** taşıyor: hücumcu bir orta saha (gol/asist dolu,
+ * kaleci sütunları 0). Hepsi aynı sayı olsaydı sütun sırası karışsa bile hiçbir
+ * test ötmezdi.
+ */
+export interface PlayerStatsHistoryFixture {
+  readonly personKey: string;
+  readonly seasonYear: number;
+  readonly competitionKey: string;
+  /** `undefined` = sütun atlanmıyor, **`NULL` yazılıyor** (kulüp bilinmiyor). */
+  readonly clubKey?: string | null;
+  readonly goals?: number;
+  readonly xg?: string;
+}
+
+export function playerStatsHistoryInsertSql(rows: readonly PlayerStatsHistoryFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        playerIdOfPerson(row.personKey),
+        String(row.seasonYear),
+        idOf('competitions', 'key', row.competitionKey),
+        idOf('clubs', 'key', row.clubKey === undefined ? null : row.clubKey),
+        '34', // appearances
+        '2870', // minutes
+        String(row.goals ?? 12),
+        '9', // assists
+        quote(row.xg ?? '10.45'), // xg
+        quote('8.20'), // xa
+        '1840', // passes_attempted
+        '1573', // passes_completed
+        '212', // progressive_passes
+        '96', // dribbles_attempted
+        '58', // dribbles_completed
+        '241', // duels_won
+        '480', // duels_total
+        '31', // aerials_won
+        '88', // aerials_total
+        '44', // tackles
+        '37', // interceptions
+        '12', // blocks
+        '29', // fouls_committed
+        '5', // yellow_cards
+        '0', // red_cards
+        // Kaleci sütunları — saha oyuncusunda 0, "bilinmiyor" DEĞİL.
+        '0', // saves
+        '0', // goals_conceded
+        quote('0.00'), // xga
+        '0', // clean_sheets
+        '0', // penalties_saved
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_stats_history"
+      ("player_id","season_year","competition_id","club_id",
+       "appearances","minutes","goals","assists","xg","xa",
+       "passes_attempted","passes_completed","progressive_passes",
+       "dribbles_attempted","dribbles_completed","duels_won","duels_total",
+       "aerials_won","aerials_total","tackles","interceptions","blocks",
+       "fouls_committed","yellow_cards","red_cards",
+       "saves","goals_conceded","xga","clean_sheets","penalties_saved")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
  * Gerçek migration zincirinin etiketleri — journal'dan **okunuyor**.
  *
  * Koşucunun davranışını sınayan testler (`runner.itest.ts`) "hangi etiketler

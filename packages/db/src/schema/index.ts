@@ -22,6 +22,10 @@ export type { VisibleAttribute, VisibleAttributeCategory } from './player-attrib
 export { playerAttributes, VISIBLE_ATTRIBUTES } from './player-attributes.js';
 export type { HiddenAttribute } from './player-hidden-attributes.js';
 export { HIDDEN_ATTRIBUTES, playerHiddenAttributes } from './player-hidden-attributes.js';
+export type { PositionLevel } from './player-positions.js';
+export { playerPositions, POSITION_LEVELS } from './player-positions.js';
+export { playerStatsHistory } from './player-stats-history.js';
+export { playerTraits } from './player-traits.js';
 export type { PlayerPosition } from './players.js';
 export { PLAYER_POSITIONS, players } from './players.js';
 export { referees } from './referees.js';

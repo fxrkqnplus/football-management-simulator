@@ -64,6 +64,13 @@
       "when": 1788056794320,
       "tag": "0008_person_type_referee",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788090451329,
+      "tag": "0009_player_positions_traits_stats",
+      "breakpoints": true
     }
   ]
 }

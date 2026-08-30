@@ -27,7 +27,7 @@ sessizce yalan söylemeye başlar.
 | **Üretici** | `packages/db/src/schema-state/er-diagram.ts` — saf, `SchemaFacts` alır, metin döner |
 | **Girdi** | `introspectSchema()` → gerçek `information_schema` + `pg_catalog` |
 | **Nöbetçi** | `packages/db/integration/er-diagram.itest.ts` (`pnpm test:db`, CI'da amd64 + arm64) |
-| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (15 / 21) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
+| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (18 / 26) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
 
 ⚠️ **Bu blok elle düzenlenmez.** Yeni bir migration burayı bayatlatır ve nöbetçi
 kırılır. **Doğru düzeltme:** testin hata mesajı üretilmiş metnin **tamamını**
@@ -65,7 +65,22 @@ ROADMAP **15** diyordu, `spec/01` §3.1 bu kapsam için **11** tanımlıyordu,
 `PROJECT_MEMORY.md` Faz 2 kaydı §11 **"16 master tablo"** diyordu. Karar tablosu ve
 her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (SAPMA-021).
 
-## ER Diyagramı (15 tablo · 21 yabancı anahtar)
+**Faz 4 bugüne kadar yedi tablo ekledi** ve diyagram başlığındaki sayı (18) o
+yüzden 11'den büyük:
+
+| Alt görev | Tablolar | Migration |
+|---|---|---|
+| 4.3 | `people` · `players` | `0005` |
+| 4.5 | `player_attributes` · `player_hidden_attributes` | `0007` |
+| 4.6 | `player_positions` · `player_traits` · `player_stats_history` | `0009` |
+
+⚠️ **Bu tablo bir ENVANTER değil, bir izleme notudur** — koşan envanter
+`round-trip.itest.ts`teki `ALL_TABLES` ve `schema-constraints.itest.ts`teki
+`information_schema` sorgusu. İkisi ayrışırsa **testler** öter, bu satırlar
+değil. Kalan dört master tablo (`staff` · `staff_attributes` · `managers` ·
+`manager_attributes`) 4.7'de.
+
+## ER Diyagramı (18 tablo · 26 yabancı anahtar)
 
 ```mermaid
 erDiagram
@@ -84,6 +99,11 @@ erDiagram
     countries |o--o{ people : "second_nationality_country_id"
     players ||--o| player_attributes : "player_id"
     players ||--o| player_hidden_attributes : "player_id"
+    players ||--o{ player_positions : "player_id"
+    clubs |o--o{ player_stats_history : "club_id"
+    competitions ||--o{ player_stats_history : "competition_id"
+    players ||--o{ player_stats_history : "player_id"
+    players ||--o{ player_traits : "player_id"
     clubs |o--o{ players : "club_id"
     people ||--o| players : "person_id"
     countries ||--o{ referees : "country_id"
@@ -299,6 +319,57 @@ erDiagram
         smallint loyalty
         smallint adaptability
         smallint temperament
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    player_positions {
+        integer player_id PK,FK
+        text position
+        text level
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    player_stats_history {
+        integer id PK
+        integer player_id FK
+        integer season_year
+        integer competition_id FK
+        integer club_id FK "null"
+        integer appearances
+        integer minutes
+        integer goals
+        integer assists
+        numeric xg
+        numeric xa
+        integer passes_attempted
+        integer passes_completed
+        integer progressive_passes
+        integer dribbles_attempted
+        integer dribbles_completed
+        integer duels_won
+        integer duels_total
+        integer aerials_won
+        integer aerials_total
+        integer tackles
+        integer interceptions
+        integer blocks
+        integer fouls_committed
+        integer yellow_cards
+        integer red_cards
+        integer saves
+        integer goals_conceded
+        numeric xga
+        integer clean_sheets
+        integer penalties_saved
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    player_traits {
+        integer player_id PK,FK
+        text trait_code PK
         timestamp_with_time_zone created_at
         timestamp_with_time_zone updated_at
     }

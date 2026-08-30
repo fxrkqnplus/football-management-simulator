@@ -1,0 +1,45 @@
+-- 0009_player_positions_traits_stats — GERİ ALMA (elle yazıldı)
+--
+-- drizzle-kit `down` migration ÜRETMİYOR (Faz 3.0'da ölçüldü,
+-- docs/spec/01-database.md §3.0). Bu dosya elle yazılır; doğruluğunun
+-- karşılaştırılacağı yer `meta/0008_snapshot.json` — yani on beş tablo ayakta,
+-- bu üçü yok.
+--
+-- ⚠️ SAF `CREATE TABLE` MIGRATION'I — §3.1.2 ⑤'İN SİMETRİK SONUCU GEÇERLİ.
+--
+-- Hiçbir sütun eklenmiyor, hiçbiri düşürülmüyor: üç tablo düşüyor ve yeniden
+-- yaratılıyor, yani `pg_attribute.attnum` 1'den başlıyor ve delik kalmıyor.
+-- Bu migration'ın kendi çevriminde `identical: true` BEKLENİR.
+--
+-- ⚠️ VE ZİNCİRDEKİ `ALTER`LAR BU BEKLENTİYİ DEĞİŞTİRMİYOR — 4.5'in ölçtüğü
+-- ayrım. `0006` zincirde duruyor ve üç `attnum` kayması bırakıyor, ama bu geri
+-- alma 0006'ya HİÇ DOKUNMUYOR: kaymalar çevrimin iki ucunda da aynı ve
+-- karşılaştırma onları görmüyor. Kayma bir ZİNCİR özelliği değil, bir GERİ ALMA
+-- DERİNLİĞİ özelliği (`0007`nin testi bunu adıyla iddia ediyor, `0009`unki de).
+--
+-- ⚠️ 0008'İN SINIRI MİRAS ALINIYOR — VE BU MIGRATION ONU BÜYÜTMÜYOR.
+--
+-- `0008`in `down`u `people_person_type_check`i daraltıyor ve `ADD CONSTRAINT …
+-- CHECK` var olan satırları doğruluyor; `down` LIFO çalıştığı için dolu bir
+-- `people` tablosunda `'referee'` varken zincirin HİÇBİR geri alması
+-- başlayamıyor. Bu dosyanın kendi `down`u o sınırın ALTINDA kalıyor: buraya
+-- gelebilmek için önce 0009 düşmeli, ama tam zincir ya da 0008'e kadar giden
+-- her geri alma o kısıta çarpar. Testler `narrowRefereePersonTypesForDown()`
+-- ile engeli kaldırıyor; gerekçe o yardımcının başlığında.
+--
+-- ⚠️ SIRA — `DROP TABLE` CASCADE'SİZ VE BU BİLİNÇLİ (§3.1.2 ⑦).
+--
+-- Üç tablonun hiçbiri diğerine bakmıyor (üçü de yalnızca `players`a, biri ayrıca
+-- `competitions` ve `clubs`a), yani aralarında bir bağımlılık zinciri YOK ve
+-- sıra burada bir okunabilirlik tercihi — 0000/0001'deki gibi. `CASCADE`
+-- yazılmıyor: bu migration'ın YARATMADIĞI nesneleri de sessizce götürürdü
+-- (3.2b'nin "fazla giden down" sınıfı) ve açık sıra, gizlenen bağımlılığı
+-- görünür kılar.
+--
+-- `DROP TABLE` tabloya ait kısıtları (PK, CHECK, FK) zaten götürür; iki CHECK
+-- ayrıca düşürülmez — 0001'de düşürülüyorlardı çünkü orada tablo değil SÜTUN
+-- düşüyordu ve kısıt tabloya aitti, sütuna değil.
+
+DROP TABLE "player_stats_history";--> statement-breakpoint
+DROP TABLE "player_traits";--> statement-breakpoint
+DROP TABLE "player_positions";

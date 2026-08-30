@@ -91,8 +91,13 @@ const SCHEMA_DOC = fileURLToPath(new URL('../../../docs/schema/world.md', import
 // `player_hidden_attributes`) ve her birinin `players`a bakan tek FK'sı.
 // `0008` şema büyüklüğüne hiç dokunmuyor — yalnızca bir CHECK tanımını
 // genişletiyor, yani iki sayı da onun için değişmiyor.
-const EXPECTED_TABLE_COUNT = 15;
-const EXPECTED_FOREIGN_KEY_COUNT = 21;
+// 🆕 4.6: 15 → 18 tablo, 21 → 26 FK. Üç tablo ve **beş** FK — `player_positions`
+// ve `player_traits` birer tane (`players`), `player_stats_history` üç tane
+// (`players` · `competitions` · `clubs`). İki sayının ayrı olmasının değeri
+// burada yine görünüyor: tablo başına FK sayısı sabit DEĞİL, yani tek bir
+// "büyüklük" sayısı bu değişimi doğru anlatamazdı.
+const EXPECTED_TABLE_COUNT = 18;
+const EXPECTED_FOREIGN_KEY_COUNT = 26;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;

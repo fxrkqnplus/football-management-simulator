@@ -71,6 +71,7 @@ import {
   playerAttributesInsertSql,
   playerHiddenAttributesInsertSql,
   playerInsertSql,
+  playerStatsHistoryInsertSql,
   refereeInsertSql,
   rivalryInsertSql,
   stadiumInsertSql,
@@ -380,6 +381,22 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       // NULLABLE olduğu için kural ③'te duruyor ve `SET NULL` alıyor.
       'player_attributes_player_id_players_id_fk → CASCADE',
       'player_hidden_attributes_player_id_players_id_fk → CASCADE',
+      // 🆕 4.6 — ÜÇ TABLO, BEŞ FK, İKİ FARKLI CEVAP. Kural yine KOŞTURULDU ve
+      // üretilen migration SQL'iyle karşılaştırıldı → **5/5**.
+      'player_positions_player_id_players_id_fk → CASCADE',
+      // ⚠️ ŞEMANIN ÜÇÜNCÜ `SET NULL`I — ve aynı tablodan çıkan diğer ikisiyle
+      // yan yana okunmalı: aynı kaynak (`player_stats_history`), aynı sınıf
+      // (`satellite`), farklı cevap. Ayraç yine nullability: `club_id` nullable
+      // (*"o sezon hangi kulüpte"* bilinmeyebilir), diğer ikisi değil.
+      'player_stats_history_club_id_clubs_id_fk → SET NULL',
+      // ⚠️ **`competition_id`in CASCADE ALMASI SEZGİYE AYKIRI — ve tam olarak
+      // 4.3'ün 4.4 için yaptığı YANLIŞ TAHMİNİN sınıfı.** Refleks *"hedef
+      // bağımsız bir varlık, o hâlde RESTRICT"* demek olurdu; kural ② **hedefin
+      // değil KAYNAĞIN** sınıfına bakıyor. Hedefin sınıfı yalnızca ①'de (sözlük
+      // mü) soruluyor ve `competitions` sözlük değil.
+      'player_stats_history_competition_id_competitions_id_fk → CASCADE',
+      'player_stats_history_player_id_players_id_fk → CASCADE',
+      'player_traits_player_id_players_id_fk → CASCADE',
       // 🆕 4.3 — `players` bir uydu (`key` yok, giden FK var).
       // `club_id` NULLABLE → **ŞEMANIN İLK `SET NULL`I** (4.2'nin ③ dalı).
       'players_club_id_clubs_id_fk → SET NULL',
@@ -460,6 +477,12 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       // eleniyor. Sınıf katalogdan çıkıyor, hiçbir liste güncellenmeden.
       player_attributes: 'satellite',
       player_hidden_attributes: 'satellite',
+      // 🆕 4.6 — üçü de `key` taşımıyor ve `players`a giden bir FK'sı var →
+      // **satellite**. `player_stats_history` üç giden FK taşıyor ve sınıfı
+      // değişmiyor: koşul *"giden FK VAR MI"*, kaç tane olduğu değil.
+      player_positions: 'satellite',
+      player_stats_history: 'satellite',
+      player_traits: 'satellite',
       players: 'satellite',
       referees: 'independent',
       rivalries: 'satellite',
@@ -501,7 +524,7 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
 
     // Boş bir sonuç "hiç uyumsuzluk yok" diye okunurdu — bakacak bir şey
     // bulamayan kapı (SAPMA-024). Sayı ayrıca iddia ediliyor.
-    expect(foreignKeys).toHaveLength(21);
+    expect(foreignKeys).toHaveLength(26);
 
     // Nullability GERÇEKTEN okundu mu — boş dizi sessizce "SET NULL uygulanamaz"
     // derdi ve üçüncü olgu hiç sınanmamış olurdu (D3).
@@ -532,6 +555,10 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       'competitions_country_id_countries_id_fk',
       'federations_president_person_id_people_id_fk',
       'people_second_nationality_country_id_countries_id_fk',
+      // 🆕 4.6 — sekizinci nullable FK. Üç yeni tablonun beş FK'sından
+      // **yalnızca biri** nullable: mevki, özel yetenek ve istatistik satırının
+      // oyuncusu bilinmek zorunda, o sezon hangi kulüpte oynandığı değil.
+      'player_stats_history_club_id_clubs_id_fk',
       'players_club_id_clubs_id_fk',
     ]);
 
@@ -544,6 +571,10 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       .map((fk) => fk.name);
     expect(setNullForeignKeys).toEqual([
       'federations_president_person_id_people_id_fk',
+      // 🆕 4.6 — dalın ÜÇÜNCÜ vakası ve ilk kez bir tablo hem `SET NULL` hem
+      // `CASCADE` üretiyor (`player_stats_history`: `club_id` ↔ `player_id`).
+      // Aynı kaynak, aynı sınıf, farklı cevap — ayraç yalnızca nullability.
+      'player_stats_history_club_id_clubs_id_fk',
       'players_club_id_clubs_id_fk',
     ]);
 
@@ -1379,7 +1410,7 @@ describe('ŞEMA ENVANTERİ — 4.3’te 11 → 13, 4.5’te → 15; sayı ÖLÇ�
    * migration takip tablosu bir master tablo değil (3.2a'nın tavuk-yumurta
    * çözümü).
    */
-  it('public şemasında TAM OLARAK 15 master tablo var', async () => {
+  it('public şemasında TAM OLARAK 18 master tablo var', async () => {
     const rows = await executor.rows<{ table_name: string }>(`
       SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -1400,12 +1431,17 @@ describe('ŞEMA ENVANTERİ — 4.3’te 11 → 13, 4.5’te → 15; sayı ÖLÇ�
       // 🆕 4.5 — üçüncü ve dördüncü. Kalan yedi tablo 4.6–4.7’de.
       'player_attributes',
       'player_hidden_attributes',
+      // 🆕 4.6 — beşinci, altıncı ve yedinci. Kalan dört tablo 4.7’de
+      // (`staff` · `staff_attributes` · `managers` · `manager_attributes`).
+      'player_positions',
+      'player_stats_history',
+      'player_traits',
       'players',
       'referees',
       'rivalries',
       'stadiums',
     ]);
-    expect(rows).toHaveLength(15);
+    expect(rows).toHaveLength(18);
   });
 
   it('takip tablosu KENDİ şemasında — master sayımını kirletmiyor', async () => {
@@ -2270,5 +2306,309 @@ describe('FAZ 4.5 — `person_type` kümesi `referee` TAŞIYOR (G-18 kapandı)',
     expect(rows.length).toBeGreaterThan(0);
     const wrong = rows.filter((row) => !row.types.includes('referee'));
     expect(wrong).toEqual([]);
+  });
+});
+
+describe('FAZ 4.6 — 1:N DESENİ, İKİ CHECK VE ÜÇ FK DAVRANIŞI', () => {
+  /**
+   * ⚠️ **KODLAR VAR OLAN KÜMEYE KARŞI PROGRAMATİK DOĞRULANDI** — günlük #10.
+   * Bu dosyadaki `code:` değerleri toplandı (45 kod) ve `P61…P66` ile kesişim
+   * **boş** çıktı. Gözle seçilmiş bir *"herhalde bu boştur"* 4.3'te
+   * `countries_code_unique` ile patlamıştı; testler aynı veritabanını
+   * paylaşıyor ve `afterEach` temizliği yok.
+   */
+  async function seedPlayerFor(slug: string, code: string): Promise<void> {
+    await executor.run(countryInsertSql([{ key: `${slug}-ulke`, code }]));
+    await executor.run(
+      personInsertSql([{ key: `${slug}-kisi`, countryCode: code, personType: ['player'] }]),
+    );
+    await executor.run(playerInsertSql([{ personKey: `${slug}-kisi`, clubKey: null }]));
+  }
+
+  const playerIdSql = (slug: string): string =>
+    `(SELECT "id" FROM "players" WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = '${slug}-kisi'))`;
+
+  /**
+   * Her testin KENDİ yarışması — paylaşılan bir yarışmaya bağlanmak, `DELETE`
+   * testlerini birbirine bağlardı (#13'ün aynı ailesi: silinen satıra bakan
+   * FK'lar testler arasında da birikir).
+   */
+  async function seedCompetitionFor(slug: string, code: string): Promise<void> {
+    await executor.run(`
+      INSERT INTO "competitions"
+        ("key","source","country_id","code","name_key","type","reputation","rules",
+         "season_start_month","season_end_month")
+      SELECT '${slug}-lig','procedural',"id",'${code}_LIG','competition.${code.toLowerCase()}.lig',
+             'league',100,'{}'::jsonb,8,5
+        FROM "countries" WHERE "code" = '${code}'
+    `);
+  }
+
+  // ── 1:N — bileşik PK ────────────────────────────────────────────────────
+
+  /**
+   * ⚠️ **POZİTİF TARAF ÖNCE, VE O DA ZORUNLU.** Bir sonraki test tekrarın
+   * reddedildiğini ölçüyor; tek başına yazılsaydı *"kısıt her şeyi reddediyor"*
+   * durumundan ayırt edilemezdi. 1:N'in kendisi ancak **farklı** ikinci bir
+   * satırın kabul edilmesiyle kanıtlanıyor.
+   */
+  it('AYNI oyuncuya FARKLI mevkiler yazılabiliyor — 1:N, 1:1 değil', async () => {
+    await seedPlayerFor('p46-cok', 'P61');
+    await executor.run(`
+      INSERT INTO "player_positions" ("player_id","position","level")
+      VALUES (${playerIdSql('p46-cok')}, 'MC', 'natural'),
+             (${playerIdSql('p46-cok')}, 'DM', 'competent'),
+             (${playerIdSql('p46-cok')}, 'AMC', 'awkward')
+    `);
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "player_positions"
+       WHERE "player_id" = ${playerIdSql('p46-cok')}
+    `);
+    expect(Number(rows[0]?.n)).toBe(3);
+  });
+
+  it('NEGATİF — aynı (oyuncu, mevki) çifti İKİ KEZ yazılamıyor', async () => {
+    await seedPlayerFor('p46-tekrar', 'P62');
+    await executor.run(`
+      INSERT INTO "player_positions" ("player_id","position","level")
+      VALUES (${playerIdSql('p46-tekrar')}, 'ST', 'natural')
+    `);
+    await expect(
+      executor.run(`
+        INSERT INTO "player_positions" ("player_id","position","level")
+        VALUES (${playerIdSql('p46-tekrar')}, 'ST', 'ineffectual')
+      `),
+    ).rejects.toThrow(/player_positions_player_id_position_pk/);
+  });
+
+  it('AYNI oyuncuya FARKLI özel yetenekler yazılabiliyor, AYNISI iki kez YAZILAMIYOR', async () => {
+    await seedPlayerFor('p46-trait', 'P63');
+    await executor.run(`
+      INSERT INTO "player_traits" ("player_id","trait_code")
+      VALUES (${playerIdSql('p46-trait')}, 'runs_with_ball_through_centre'),
+             (${playerIdSql('p46-trait')}, 'attempts_overhead_kicks')
+    `);
+    await expect(
+      executor.run(`
+        INSERT INTO "player_traits" ("player_id","trait_code")
+        VALUES (${playerIdSql('p46-trait')}, 'attempts_overhead_kicks')
+      `),
+    ).rejects.toThrow(/player_traits_player_id_trait_code_pk/);
+  });
+
+  // ── İki CHECK — reddi ÖLÇÜLÜYOR, varlığı değil ──────────────────────────
+
+  /**
+   * ⚠️ **POZİTİF TESTLER KÖR BİR KONTROLLE DE GEÇER** (§11.5). Bir CHECK'in
+   * `pg_constraint`te *"var olduğunu"* okumak reddettiğini göstermez — kısıt
+   * `CHECK (true)` da olabilirdi.
+   */
+  it('NEGATİF — kümede olmayan bir MEVKİ reddediliyor', async () => {
+    await seedPlayerFor('p46-mevki', 'P64');
+    await expect(
+      executor.run(`
+        INSERT INTO "player_positions" ("player_id","position","level")
+        VALUES (${playerIdSql('p46-mevki')}, 'SW', 'natural')
+      `),
+    ).rejects.toThrow(/player_positions_position_check/);
+  });
+
+  it('NEGATİF — kümede olmayan bir YETKİNLİK DERECESİ reddediliyor', async () => {
+    await seedPlayerFor('p46-seviye', 'P65');
+    await expect(
+      executor.run(`
+        INSERT INTO "player_positions" ("player_id","position","level")
+        VALUES (${playerIdSql('p46-seviye')}, 'GK', 'world_class')
+      `),
+    ).rejects.toThrow(/player_positions_level_check/);
+  });
+
+  /**
+   * ⚠️ **CHECK'İN YOKLUĞU DA KOŞAN BİR İDDİA — ve iki yönlü.** Katalogda kısıt
+   * olmadığını okumak *"kısıt eklemeyi unuttuk"* ile *"bilerek konmadı"*yı
+   * ayırmaz; uydurma bir kodun **gerçekten kabul edildiğini** göstermek ayırır.
+   * Gerekçe `src/schema/player-traits.ts` başlığında: küme `spec/02`'de
+   * tanımlı değil, ROADMAP *"~30"* diyor — sayılabilir bir liste yok.
+   */
+  it('`trait_code` HİÇBİR CHECK taşımıyor — küme açık uçlu, denetimi Faz 11`de', async () => {
+    const rows = await executor.rows<{ conname: string }>(`
+      SELECT conname FROM pg_constraint
+       WHERE contype = 'c' AND conrelid = '"player_traits"'::regclass
+       ORDER BY conname
+    `);
+    expect(rows).toEqual([]);
+
+    // Ve yokluk DAVRANIŞTA da görünüyor: hiçbir listede olmayan bir kod geçiyor.
+    await seedPlayerFor('p46-serbest', 'P66');
+    await executor.run(`
+      INSERT INTO "player_traits" ("player_id","trait_code")
+      VALUES (${playerIdSql('p46-serbest')}, 'bu_kod_hicbir_listede_yok')
+    `);
+    const stored = await executor.rows<{ trait_code: string }>(`
+      SELECT "trait_code" FROM "player_traits"
+       WHERE "player_id" = ${playerIdSql('p46-serbest')}
+    `);
+    expect(stored.map((row) => row.trait_code)).toEqual(['bu_kod_hicbir_listede_yok']);
+  });
+
+  /**
+   * `player_stats_history`nin 22 sayacı da kısıtsız — `player_attributes`ın
+   * 47 niteliğiyle aynı gerekçe (§3.1.2 ②: aralık bir kalibrasyon). Aykırı
+   * değer denetimi (*"17 yaşında 40 maçlık kariyer"*) ROADMAP Faz 9'un veri
+   * kalite raporunun işi, şemanın değil.
+   */
+  it('`player_stats_history` HİÇBİR CHECK taşımıyor — sayaçlar kısıtsız', async () => {
+    const rows = await executor.rows<{ conname: string }>(`
+      SELECT conname FROM pg_constraint
+       WHERE contype = 'c' AND conrelid = '"player_stats_history"'::regclass
+       ORDER BY conname
+    `);
+    expect(rows).toEqual([]);
+  });
+
+  // ── FK DAVRANIŞI — kural katalogla uyuşuyor, DAVRANIŞ ayrı bir soru ──────
+
+  /**
+   * ⚠️ **KURALIN KATALOGLA UYUŞMASI, VERİTABANININ ÖYLE DAVRANDIĞINI
+   * GÖSTERMEZ.** Yukarıdaki envanter `confdeltype`'ı okuyor; bu test silmeyi
+   * gerçekten yapıyor.
+   *
+   * ⚠️ **VE #13'ÜN KURALI UYGULANDI: bir `DELETE` testi, silinecek satıra bakan
+   * BÜTÜN FK'ları hesaba katar.** Silinen oyuncuya bugün **beş** tablo bakıyor
+   * (`player_attributes`, `player_hidden_attributes` ve 4.6'nın üçü) ve beşi de
+   * CASCADE; test üçünü ölçüyor ama silmenin **tek sebepli** olması için
+   * oyuncu izole (kendi ülkesi, kendi kişisi, kulüpsüz).
+   */
+  it('CASCADE — oyuncu silinince ÜÇ tablodaki satırları da gidiyor', async () => {
+    await seedPlayerFor('p46-cascade', 'P67');
+    await seedCompetitionFor('p46-cascade', 'P67');
+    await executor.run(`
+      INSERT INTO "player_positions" ("player_id","position","level")
+      VALUES (${playerIdSql('p46-cascade')}, 'MC', 'natural')
+    `);
+    await executor.run(`
+      INSERT INTO "player_traits" ("player_id","trait_code")
+      VALUES (${playerIdSql('p46-cascade')}, 'plays_one_twos')
+    `);
+    await executor.run(
+      playerStatsHistoryInsertSql([
+        { personKey: 'p46-cascade-kisi', seasonYear: 2024, competitionKey: 'p46-cascade-lig' },
+      ]),
+    );
+
+    const before = await executor.rows<{ pos: number; tra: number; sta: number }>(`
+      SELECT (SELECT count(*)::int FROM "player_positions"
+               WHERE "player_id" = ${playerIdSql('p46-cascade')}) AS pos,
+             (SELECT count(*)::int FROM "player_traits"
+               WHERE "player_id" = ${playerIdSql('p46-cascade')}) AS tra,
+             (SELECT count(*)::int FROM "player_stats_history"
+               WHERE "player_id" = ${playerIdSql('p46-cascade')}) AS sta
+    `);
+    expect(before[0]).toEqual({ pos: 1, tra: 1, sta: 1 });
+
+    await executor.run(`DELETE FROM "people" WHERE "key" = 'p46-cascade-kisi'`);
+
+    // ⚠️ Sayım oyuncuya DEĞİL, tabloların tamamına bakamaz: bu dosyadaki başka
+    // testler de satır yazıyor ve `afterEach` temizliği yok. Silinen kişinin
+    // anahtarı üzerinden sayılıyor — sıfır olması gereken şey tam olarak o.
+    const after = await executor.rows<{ pos: number; tra: number; sta: number }>(`
+      SELECT (SELECT count(*)::int FROM "player_positions" pp
+               JOIN "players" pl ON pl."id" = pp."player_id"
+               JOIN "people" pe ON pe."id" = pl."person_id"
+              WHERE pe."key" = 'p46-cascade-kisi') AS pos,
+             (SELECT count(*)::int FROM "player_traits" pt
+               JOIN "players" pl ON pl."id" = pt."player_id"
+               JOIN "people" pe ON pe."id" = pl."person_id"
+              WHERE pe."key" = 'p46-cascade-kisi') AS tra,
+             (SELECT count(*)::int FROM "player_stats_history" ps
+               JOIN "players" pl ON pl."id" = ps."player_id"
+               JOIN "people" pe ON pe."id" = pl."person_id"
+              WHERE pe."key" = 'p46-cascade-kisi') AS sta
+    `);
+    // Kişi → oyuncu → üç uydu: iki kademeli CASCADE zinciri.
+    expect(after[0]).toEqual({ pos: 0, tra: 0, sta: 0 });
+  });
+
+  /**
+   * ⚠️ **`SET NULL`IN İKİ YÖNÜ: satır DURUYOR, sütun BOŞALIYOR.** Yalnızca
+   * *"satır duruyor"* iddia edilseydi RESTRICT'ten ayırt edilemezdi; yalnızca
+   * *"sütun null"* iddia edilseydi CASCADE'den. İkisi birlikte davranışı
+   * tekilleştiriyor — `players.club_id` için 4.3'te verilen kararın aynısı.
+   */
+  it('SET NULL — kulüp silinince istatistik satırı DURUYOR, `club_id` BOŞALIYOR', async () => {
+    await seedPlayerFor('p46-setnull', 'P68');
+    await seedCompetitionFor('p46-setnull', 'P68');
+    // ⚠️ Elle `INSERT` YAZILMIYOR — `clubs` 24 sütunlu ve `NOT NULL` listesi
+    // fazlar boyunca büyüdü (günlük #28). Fixture tek yer.
+    await executor.run(
+      clubInsertSql([
+        {
+          key: 'p46-setnull-kulup',
+          countryCode: 'P68',
+          competitionKey: null,
+          stadiumKey: null,
+          isNational: false,
+        },
+      ]),
+    );
+    await executor.run(
+      playerStatsHistoryInsertSql([
+        {
+          personKey: 'p46-setnull-kisi',
+          seasonYear: 2022,
+          competitionKey: 'p46-setnull-lig',
+          clubKey: 'p46-setnull-kulup',
+        },
+      ]),
+    );
+
+    const before = await executor.rows<{ club_id: number | null }>(`
+      SELECT "club_id" FROM "player_stats_history"
+       WHERE "player_id" = ${playerIdSql('p46-setnull')}
+    `);
+    expect(before[0]?.club_id).not.toBeNull();
+
+    await executor.run(`DELETE FROM "clubs" WHERE "key" = 'p46-setnull-kulup'`);
+
+    const after = await executor.rows<{ club_id: number | null }>(`
+      SELECT "club_id" FROM "player_stats_history"
+       WHERE "player_id" = ${playerIdSql('p46-setnull')}
+    `);
+    expect(after).toHaveLength(1);
+    expect(after[0]?.club_id).toBeNull();
+  });
+
+  /**
+   * ⚠️ **BU TESTİN KONUSU SEZGİYE AYKIRI OLAN CEVAP.** `competitions` bağımsız
+   * bir varlık ve refleks *"RESTRICT"* derdi; kural ② **kaynağın** sınıfına
+   * bakıyor ve `player_stats_history` bir uydu → ④ CASCADE.
+   *
+   * ⚠️ #13: `competitions`a bakan diğer FK `clubs.competition_id` ve o
+   * **RESTRICT** — silinecek yarışmanın kulübü olsaydı silme alakasız bir
+   * sebeple reddedilir ve test ölçmek istediği şeyi hiç göremezdi (4.4'ün
+   * `people_nationality_country_id` vakası). Bu yüzden yarışma bu teste özel.
+   */
+  it('CASCADE — yarışma silinince istatistik satırı da GİDİYOR', async () => {
+    await seedPlayerFor('p46-comp', 'P69');
+    await seedCompetitionFor('p46-comp', 'P69');
+    await executor.run(
+      playerStatsHistoryInsertSql([
+        { personKey: 'p46-comp-kisi', seasonYear: 2021, competitionKey: 'p46-comp-lig' },
+      ]),
+    );
+
+    const before = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "player_stats_history"
+       WHERE "player_id" = ${playerIdSql('p46-comp')}
+    `);
+    expect(Number(before[0]?.n)).toBe(1);
+
+    await executor.run(`DELETE FROM "competitions" WHERE "key" = 'p46-comp-lig'`);
+
+    const after = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "player_stats_history"
+       WHERE "player_id" = ${playerIdSql('p46-comp')}
+    `);
+    expect(Number(after[0]?.n)).toBe(0);
   });
 });
