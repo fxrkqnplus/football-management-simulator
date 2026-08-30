@@ -80,6 +80,8 @@ import {
   federationInsertSql,
   kitTemplateInsertSql,
   personInsertSql,
+  playerAttributesInsertSql,
+  playerHiddenAttributesInsertSql,
   playerInsertSql,
   refereeInsertSql,
   rivalryInsertSql,
@@ -90,7 +92,7 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 /** Zincirin son migration'ı — snapshot karşılaştırması bunu okur. */
-const LATEST_SNAPSHOT = '0006_snapshot.json';
+const LATEST_SNAPSHOT = '0008_snapshot.json';
 const CHAIN_TAGS = [
   '0000_countries_initial',
   '0001_geography_institutions',
@@ -99,6 +101,14 @@ const CHAIN_TAGS = [
   '0004_search_indexes',
   '0005_people_players',
   '0006_forward_person_fks',
+  // 🆕 4.5 — İKİ migration, tek alt görev. Ayrı olmaları bir İDDİA AYRIMI
+  // kararı: 0007 iki tablo yaratıp `players`a iki kısıt ekliyor, 0008 yalnızca
+  // `people`ın CHECK tanımını genişletiyor (G-18). Tek migration'da
+  // birleştirilselerdi birinin fazla giden bir `down`u diğerinin arkasında
+  // saklanabilirdi — §3.1.2 ⑤'in kendi notu. Gerekçenin tamamı
+  // `drizzle/down/0008_person_type_referee.sql` başlığında.
+  '0007_player_attributes',
+  '0008_person_type_referee',
 ] as const;
 
 /** Zincirin tamamını geri almak için gereken adım sayısı. */
@@ -144,14 +154,40 @@ const ALL_TABLES = [
   // (ROADMAP, SAPMA-030); bu ikisiyle 13'e çıkıyor ve dokuzu daha 4.5–4.7'de
   // gelecek.
   'people',
+  // 🆕 Faz 4.5 — `0007`nin iki tablosu. 47 görünür + 10 gizli nitelik, ikisi de
+  // `players` ile 1:1 (`player_id` PK **ve** FK). Kalan yedi tablo 4.6–4.7'de.
+  'player_attributes',
+  'player_hidden_attributes',
   'players',
   'referees',
   'rivalries',
   'stadiums',
 ] as const;
 
-/** SAPMA-021'in envanter sayısı — listeyle ayrışamaz. 4.3'te 11 → 13. */
-const MASTER_TABLE_COUNT = 13;
+/** SAPMA-021'in envanter sayısı — listeyle ayrışamaz. 4.3'te 11 → 13, 4.5'te → 15. */
+const MASTER_TABLE_COUNT = 15;
+
+/**
+ * `0007` geri alındığında geriye kalan on üç tablo — 4.4'ün sonundaki şema.
+ *
+ * `ALL_TABLES`ten türetilmiyor (aynı gerekçe `PHASE_3_TABLES`teki gibi): şema
+ * içeriğini sınayan testlerde beklenen adlar AÇIK yazılır.
+ */
+const THROUGH_0006_TABLES = [
+  'club_facilities',
+  'club_finances_base',
+  'club_kits',
+  'clubs',
+  'competitions',
+  'countries',
+  'federations',
+  'kit_templates',
+  'people',
+  'players',
+  'referees',
+  'rivalries',
+  'stadiums',
+] as const;
 
 /**
  * Faz 3'ün on bir tablosu — `0005` geri alındığında geriye kalan.
@@ -182,8 +218,17 @@ const PHASE_3_TABLES = [
  * değerlerden geliyor: 3.2b'de `countries` tek başına **89**, 3.4'te üç tabloda
  * **466**, 3.5'te sekiz tabloda **1.223**, 3.6'da on bir tabloda **1.619**,
  * 3.7'de dört indeksle **1.627**, 4.3'te on üç tabloda **2.204**, 4.4'te üç yeni
- * sütun ve üç yeni FK ile **2.243**. Sınır yükseltilmezse test "fark yok" demeye
- * devam eder ama **kaç şeye baktığı** sabitlenmemiş olur — D3.
+ * sütun ve üç yeni FK ile **2.243**, 4.5'te iki yeni tablo ve 57 yeni sütunla
+ * **3.023**. Sınır yükseltilmezse test "fark yok" demeye devam eder ama **kaç
+ * şeye baktığı** sabitlenmemiş olur — D3.
+ *
+ * ℹ️ **4.5'in artışı +780 ve serinin en büyük ikinci sıçraması.** Kaynağı adıyla
+ * belli: 57 nitelik sütunu + iki `player_id` + dört zaman damgası = **63 yeni
+ * sütun**, her biri `ColumnFacts` alanları kadar olgu (`udtName` dahil, 4.3'ün
+ * ölçümü), artı iki tablo, iki PK, iki FK ve `players`ın iki yeni CHECK'i.
+ * `0008` bu sayıya **hiç katkı yapmıyor** — bir CHECK'in tanımını değiştirmek
+ * yeni bir olgu üretmiyor, var olanı güncelliyor. Sayı yine **ölçüldü**: sınır
+ * `9_999_999`a kondu ve gerçek değer testin reddettiği çıktıdan okundu.
  *
  * ℹ️ **4.4'ün artışı yalnızca +39 ve bu BEKLENEN.** 4.3 +577 getirmişti çünkü
  * iki yeni TABLO ve her sütuna bir olgu ekleyen `udtName` vardı; 4.4 yeni tablo
@@ -206,7 +251,7 @@ const PHASE_3_TABLES = [
  * erişilemeyecek bir değere (`9_999_999`) konur ve gerçek değer testin
  * reddettiği çıktıdan okunur. **Tahmin hiç yazılmaz.**
  */
-const COMPARED_FACTS_FLOOR = 2_243;
+const COMPARED_FACTS_FLOOR = 3_023;
 
 /**
  * `0006`NIN ÇEVRİMDE BIRAKTIĞI `attnum` KAYMALARI — §3.1.2 ⑤.
@@ -389,8 +434,14 @@ async function seedAllTables(): Promise<void> {
         portraitAssetId: 'portrait/kisi-3',
       },
       { key: 'kisi-4', countryCode: 'TUR', personType: ['chairman'] },
-      { key: 'hakem-kisi-1', countryCode: 'TUR', source: 'procedural' },
-      { key: 'hakem-kisi-2', countryCode: 'ENG', source: 'procedural' },
+      // ⚠️ **`['referee']` — 4.5'te `['player']` VARSAYILANINDAN ÇIKARILDI.**
+      // 4.4'te bu iki kişi `person_type = ['player']` taşıyordu, çünkü kapalı
+      // küme hakemi ifade etmiyordu (G-18). Yani entegrasyon testlerindeki her
+      // hakem **oyuncu** olarak kayıtlıydı — SAPMA-026'nın yasakladığı şey.
+      // `0008` kümeye `'referee'` ekledi; varsayılana düşmedikleri ayrıca
+      // iddia ediliyor (`schema-constraints.itest.ts`).
+      { key: 'hakem-kisi-1', countryCode: 'TUR', source: 'procedural', personType: ['referee'] },
+      { key: 'hakem-kisi-2', countryCode: 'ENG', source: 'procedural', personType: ['referee'] },
     ]),
   );
 
@@ -548,6 +599,21 @@ async function seedAllTables(): Promise<void> {
       { personKey: 'kisi-2', clubKey: null, squadNumber: null, retiredAt: '2019-06-30' },
     ]),
   );
+
+  /**
+   * 0007 — nitelikler. ⚠️ **YALNIZCA BİR OYUNCUNUN nitelikleri yazılıyor.**
+   *
+   * İkinci oyuncu (emekli, serbest) bilerek niteliksiz: `player_attributes`
+   * `players` ile 1:1 **ama 1:0..1** — PK/FK olmak *"her oyuncunun bir satırı
+   * var"* demek değil, *"en fazla bir satırı var"* demek. İki oyuncunun ikisine
+   * de yazılsaydı bu ayrım çevrimden hiç geçmezdi ve boş tarafın bir gün
+   * `NOT NULL`a çevrilmesi sessiz kalırdı.
+   *
+   * ⚠️ İki tablo AYNI oyuncuya yazılıyor: görünür ve gizli nitelikler aynı
+   * satırın iki yüzü, ayrı oyunculara dağıtmak yanlış bir model önerirdi.
+   */
+  await executor.run(playerAttributesInsertSql([{ personKey: 'kisi-1' }]));
+  await executor.run(playerHiddenAttributesInsertSql([{ personKey: 'kisi-1' }]));
 }
 
 /** Seed'in yazdığı toplam satır sayısı — kayıp ölçümü testlerinin dayanağı. */
@@ -568,6 +634,10 @@ const SEEDED_ROWS = {
   // kullanılıyor (`person_type` zaten `['chairman']`).
   people: 6,
   players: 2,
+  // 🆕 4.5 — iki oyuncudan YALNIZCA BİRİNİN nitelikleri var. 1:1 değil
+  // **1:0..1**; boş taraf bilerek temsil ediliyor (`seedAllTables` notu).
+  player_attributes: 1,
+  player_hidden_attributes: 1,
 } as const;
 
 /**
@@ -639,14 +709,57 @@ async function clearRefereesForReup(): Promise<void> {
   await executor.run(`DELETE FROM "referees"`);
 }
 
-describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
-  it('up → ON ÜÇ tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
+/**
+ * ⚠️ **0008'İN SINIRI — VE BU SINIR YUKARIDAKİNDEN DAHA GENİŞ (Faz 4.5'te ölçüldü).**
+ *
+ * `0008`in `down`u `people_person_type_check`i **daraltıyor** (5 değer → 4) ve
+ * `ALTER TABLE … ADD CONSTRAINT … CHECK` var olan satırları **doğruluyor**.
+ * `seedAllTables()` iki hakem kişisi yazıyor ve ikisi de `'referee'` taşıyor →
+ * dar kısıt onları reddediyor → `down` **gürültülü patlıyor**.
+ *
+ * ⚠️ **VE ETKİSİ 0006'NINKİNDEN YAPISAL OLARAK FARKLI.** 0006'nın sınırı
+ * yalnızca **kendi** yeniden `up`ını engelliyordu; 0008 zincirin **en üstünde**
+ * ve `down` LIFO çalışıyor, yani dolu bir veritabanında **hiçbir** geri alma
+ * başlayamıyor — kısmi olanlar da, tam zincir de. Bir migration'ın `down`u ilk
+ * kez zincirin tamamını bloke ediyor.
+ *
+ * **Bu bir kusur değil, `'referee'` eklemenin ölçülmemiş bedeli** ve kısıtın
+ * kendi amacının doğal sonucu: bir kümeyi daraltmak, veriyi doğrulamak demektir.
+ * Alternatifler tek tek elendi:
+ * - `NOT VALID` ile eklemek → geri alınmış şemada kümenin dışında bir değer
+ *   sessizce kalırdı; kısıtın var olma sebebinin tersi.
+ * - `down`un `'referee'` taşıyan satırları silmesi → `loss.ts` **satır** kaybını
+ *   ölçmüyor (yalnızca tablo ve sütun), yani `allowDataLoss` korumasının
+ *   dışında sessiz bir veri kaybı olurdu — 3.2b'nin *"fazla giden down"* sınıfı.
+ * - `'referee'`yi 0007'ye koymak → aynı sonuç; sorun migration'ın yerinden
+ *   değil, kümenin daralmasından geliyor.
+ *
+ * **Engel gizlenmiyor:** davranışın kendi testi var (*"0008 DOWN`u `referee`
+ * taşıyan bir satır varken GÜRÜLTÜLÜ patlıyor"*), tıpkı 0006 ve 0001'de
+ * olduğu gibi.
+ *
+ * ⚠️ **SATIRLAR SİLİNMİYOR, `person_type` DARALTILIYOR** — ve bu tercih
+ * ölçülebilir bir sebeple: silme `SEEDED_ROWS`u değiştirir ve kayıp ölçümü
+ * testlerinin zeminini kaydırırdı. Burada değişen şey iki hücre; on beş
+ * tablonun satır sayıları **aynı** kalıyor.
+ */
+async function narrowRefereePersonTypesForDown(): Promise<void> {
+  await executor.run(`
+    UPDATE "people" SET "person_type" = ARRAY['staff']::text[]
+     WHERE 'referee' = ANY("person_type")
+  `);
+}
+
+describe('round-trip — gerçek migration zinciri (0000 → 0008)', () => {
+  it('up → ON BEŞ tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
 
     // ⚠️ Bu adım atlanamaz: boş şemada down/up çevrimi veri kaybı yolunu hiç
     // sınamaz ve `NOT NULL`/FK ihlallerini görmez.
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     await migrateDown(
       { executor, source, logger },
@@ -665,6 +778,197 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
     // SAPMA-021'in envanter sayısı — liste ile ayrı ayrı iddia ediliyor ki
     // biri güncellenip diğeri unutulduğunda test kırılsın.
     expect(after.tables).toHaveLength(MASTER_TABLE_COUNT);
+  });
+
+  /**
+   * 0008 TEK BAŞINA — `identical: true` **BEKLENİYOR** ve sebebi §3.1.2 ⑤'in
+   * ayracının kendisi.
+   *
+   * ⚠️ **BU MIGRATION BİR `ALTER` — AMA KAYMA ÜRETMİYOR.** 0006'nın dersi
+   * *"`ALTER` migration kayma üretir"* diye okunabilirdi ve **yanlış olurdu**:
+   * kaymayı üreten şey `ALTER`ın kendisi değil, `ADD COLUMN` + `DROP COLUMN`
+   * çiftinin `pg_attribute.attnum`da bıraktığı deliktir. 0008 yalnızca bir
+   * CHECK'in tanımını değiştiriyor — hiçbir sütun eklenmiyor, hiçbiri düşmüyor.
+   *
+   * Bu, bir kuralın **örneklerinden geriye okunursa yanlış öğrenileceğinin**
+   * (desen F3) yeni bir vakası: 0006 tek `ALTER` örneğiydi ve o örnek *"ALTER →
+   * kayma"* genellemesini davet ediyordu. Ayraç `ALTER` değil **sütun**.
+   *
+   * ℹ️ `seedAllTables()` çağrılmıyor: `people` içinde `'referee'` taşıyan bir
+   * satır varken `down` dar kısıtı geri koyamaz ve gürültülü patlar. O davranış
+   * kendi testinde ölçülüyor (hemen aşağıda) — burada ölçülen şey **şema**.
+   */
+  it('yalnızca 0008 geri alınınca şema BİREBİR aynı — CHECK değişimi kayma ÜRETMİYOR', async () => {
+    await migrateUp({ executor, source, logger });
+    const before = await introspectSchema(executor);
+
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0008_person_type_referee'), allowDataLoss: true },
+    );
+
+    // Geri alma HİÇBİR TABLO düşürmedi ve HİÇBİR SÜTUN kaybolmadı — kısıt
+    // tanımının daralması dışında şema aynı. İddia ayrıca yazılıyor ki
+    // `down`un fazla gitmesi (örneğin `people`ı düşürmesi) burada da görülsün.
+    const rolledBack = await introspectSchema(executor);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...ALL_TABLES]);
+
+    // Dar kısıt gerçekten geri geldi — yoksa test hiçbir şey ölçmez (D3).
+    const narrow = await executor.rows<{ def: string }>(`
+      SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
+       WHERE conname = 'people_person_type_check'
+    `);
+    expect(narrow[0]?.def).not.toContain("'referee'");
+
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const comparison = compareSchemas(before, after);
+
+    expect(comparison.differences).toEqual([]);
+    expect(comparison.identical).toBe(true);
+    expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
+
+    // Ve geniş kısıt döndü — `'referee'` yeniden kümede.
+    const wide = await executor.rows<{ def: string }>(`
+      SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
+       WHERE conname = 'people_person_type_check'
+    `);
+    expect(wide[0]?.def).toContain("'referee'");
+  });
+
+  /**
+   * ⚠️ 0008'İN ÖLÇÜLMÜŞ SINIRI — DAR KISIT DOLU BİR TABLOYA GERİ KONAMAZ.
+   *
+   * `ALTER TABLE … ADD CONSTRAINT … CHECK` var olan satırları **doğruluyor**.
+   * `people` içinde `'referee'` taşıyan bir satır varken `down` koşarsa dar
+   * kısıt onu reddeder. Bu bir kusur değil, kısıtın var olma sebebi: sessizce
+   * geçseydi, geri alınmış bir şemada kümenin dışında bir değer kalırdı.
+   *
+   * ⚠️ **VE BU 0006'NIN SINIRINDAN FARKLI BİR SINIF.** 0006'da patlayan şey
+   * `up`tı (`ADD COLUMN … NOT NULL` boş hücre bulamıyordu); burada patlayan şey
+   * **`down`**. İkisi ayrılmasaydı *"dolu tabloda migration patlar"* diye fazla
+   * genel bir kural öğrenilirdi.
+   */
+  it('0008 DOWN`u `referee` taşıyan bir satır varken GÜRÜLTÜLÜ patlıyor', async () => {
+    await migrateUp({ executor, source, logger });
+    // ⚠️ **BU TESTTE `narrowRefereePersonTypesForDown()` ÇAĞRILMIYOR** ve
+    // sebebi testin kendi konusu: ölçülen şey tam olarak o yardımcının
+    // kaldırdığı engel. Çağrılsaydı test hiçbir şey ölçmezdi (D3).
+    await seedAllTables();
+
+    // Seed iki hakem kişisi yazıyor ve ikisi de `['referee']` taşıyor — yani
+    // engel test kurgusundan değil, gerçek fixture'dan geliyor.
+    const referees = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "people" WHERE 'referee' = ANY("person_type")
+    `);
+    expect(Number(referees[0]?.n)).toBe(2);
+
+    await expect(
+      migrateDown(
+        { executor, source, logger },
+        { steps: stepsBackTo('0008_person_type_referee'), allowDataLoss: true },
+      ),
+    ).rejects.toThrow(/people_person_type_check|violated by some row/);
+  });
+
+  /**
+   * 0007 TEK BAŞINA — `identical: true` **BEKLENİYOR** (§3.1.2 ⑤'in simetrik
+   * sonucu): iki tablo düşüp yeniden yaratılıyor, `attnum`lar 1'den başlıyor.
+   *
+   * ⚠️ **AMA `0006` HÂLÂ ZİNCİRDE VE BU TESTİ ETKİLEMİYOR — ölçülen ayrım bu.**
+   * `ALTER_0006_SHIFTS` yalnızca 0006'nın **içinden geçen** geri almalarda
+   * görünüyor. 0007 zincirin daha ÜSTÜNDE: geri alma 0006'ya hiç dokunmuyor,
+   * yani 0006'nın kaymaları çevrimin öncesinde de sonrasında da **aynı** ve
+   * karşılaştırma onları hiç görmüyor.
+   *
+   * Bunu ayrıca yazmak gerekiyor çünkü sezgi tersini söylüyor: *"zincirde bir
+   * `ALTER` var, o hâlde her çevrim kayma taşır."* Kayma bir **zincir** özelliği
+   * değil, bir **geri alma derinliği** özelliği.
+   *
+   * ⚠️ `0007`nin `down`u `players`ın İKİ CHECK'ini de kaldırıyor ve yeniden
+   * `up` onları geri koyuyor — kısıt tanımları da karşılaştırmanın kapsamında,
+   * yani eksik geri konan bir CHECK burada görülür.
+   */
+  it('yalnızca 0007 geri alınınca şema BİREBİR aynı — 0006 kaymaları GÖRÜNMÜYOR', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
+    const before = await introspectSchema(executor);
+
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0007_player_attributes'), allowDataLoss: true },
+    );
+
+    // Geri alma İKİ TABLO düşürdü — geriye 4.4'ün on üç tablosu kalıyor.
+    const rolledBack = await introspectSchema(executor);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...THROUGH_0006_TABLES]);
+
+    // İki CHECK de gitti — `players` ayakta kaldığı için bunlar AÇIKÇA
+    // düşürülmek zorundaydı; örtük bir temizlik yoktu.
+    const checks = await executor.rows<{ conname: string }>(`
+      SELECT conname FROM pg_constraint
+       WHERE contype = 'c' AND conrelid = '"players"'::regclass
+       ORDER BY conname
+    `);
+    expect(checks.map((row) => row.conname)).toEqual(['players_primary_position_check']);
+
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const comparison = compareSchemas(before, after);
+
+    expect(comparison.differences).toEqual([]);
+    expect(comparison.identical).toBe(true);
+    expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
+
+    // İki CHECK geri geldi.
+    const restored = await executor.rows<{ conname: string }>(`
+      SELECT conname FROM pg_constraint
+       WHERE contype = 'c' AND conrelid = '"players"'::regclass
+       ORDER BY conname
+    `);
+    expect(restored.map((row) => row.conname)).toEqual([
+      'players_ca_le_pa_check',
+      'players_pa_range_check',
+      'players_primary_position_check',
+    ]);
+  });
+
+  /**
+   * ⚠️ 0007'NİN ÖLÇÜLMÜŞ SINIRI — CHECK GERİ KONARKEN VAR OLAN SATIRLARI
+   * DOĞRULUYOR.
+   *
+   * `0007`nin `down`u iki ilişki değişmezini kaldırıyor. O pencerede geçersiz
+   * bir satır yazılırsa (`current_ability > potential_ability`) yeniden `up`
+   * **gürültülü patlar**. 0006'nın sınırıyla aynı aile (dolu tabloda yeniden
+   * `up`) ama farklı mekanizma: orada eksik olan bir **değer**di, burada var
+   * olan bir **ihlal**.
+   *
+   * Bu testin asıl söylediği şey: kısıt bir belge değil, koşan bir nöbetçi.
+   */
+  it('0007 geri alınıp GEÇERSİZ satır yazılınca yeniden up GÜRÜLTÜLÜ patlıyor', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
+
+    await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0007_player_attributes'), allowDataLoss: true },
+    );
+
+    // Kısıt yokken CA > PA yazılabiliyor — pencere gerçekten açık (D3 önlemi).
+    await executor.run(`
+      UPDATE "players" SET "current_ability" = 190, "potential_ability" = 100
+       WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = 'kisi-1')
+    `);
+
+    await expect(migrateUp({ executor, source, logger })).rejects.toThrow(
+      /players_ca_le_pa_check|violated by some row/,
+    );
   });
 
   /**
@@ -700,9 +1004,13 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
       { steps: stepsBackTo('0006_forward_person_fks'), allowDataLoss: true },
     );
 
-    // Geri alma HİÇBİR TABLO düşürmedi — kaybolan yalnızca üç sütun.
+    // ⚠️ **4.5'TE DEĞİŞTİ VE DEĞİŞİM TESTİN KENDİ KONUSUNU ETKİLEMİYOR.**
+    // `stepsBackTo` zincirden türetildiği için geri alma artık 0008 ve 0007'yi
+    // de kapsıyor — yani iki tablo DÜŞÜYOR. Testin ölçtüğü şey hâlâ 0006'nın
+    // kendi davranışı: üç sütunun kaybı ve `attnum` deliği. Beklenen liste
+    // `ALL_TABLES` değil `THROUGH_0006_TABLES` (0007'nin iki tablosu olmadan).
     const rolledBack = await introspectSchema(executor);
-    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...ALL_TABLES]);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...THROUGH_0006_TABLES]);
     const columnsOf = (table: string): string[] =>
       rolledBack.tables.find((row) => row.name === table)?.columns.map((column) => column.name) ??
       [];
@@ -771,6 +1079,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('0006 geri alınıp VERİ VARKEN yeniden uygulanırsa GÜRÜLTÜLÜ patlıyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     await migrateDown(
       { executor, source, logger },
@@ -829,6 +1139,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('yalnızca 0005 geri alınınca TEK fark 0006’nın ÜÇ kayması — dizi tipi korunuyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
     await migrateDown(
@@ -878,6 +1190,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('yalnızca 0004 geri alınınca TEK fark 0006’nın ÜÇ kayması — indeksler geri geliyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
     await migrateDown(
@@ -914,6 +1228,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('yalnızca 0003 geri alınınca TEK fark 0006’nın İKİ kayması — referees SIFIRLANIYOR', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
     await migrateDown(
@@ -974,6 +1290,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('0003+0002 geri alınınca TEK fark 0006’nın BİR kayması — 0002 hâlâ temiz', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
     // ⚠️ Sayı `stepsBackTo`'dan geliyor, elle yazılmıyor — gerekçesi o
@@ -1164,6 +1482,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('0001 geri alınıp VERİ VARKEN yeniden uygulanırsa GÜRÜLTÜLÜ patlıyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     await migrateDown(
       { executor, source, logger },
@@ -1187,6 +1507,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0006)', () => {
   it('çevrim sequence KONUMUNU sıfırlıyor — tanımı ise değişmiyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     const positionBefore = await readSequencePosition(executor, 'countries_id_seq');
     const schemaBefore = await introspectSchema(executor);
@@ -1320,6 +1642,8 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('allowDataLoss VERİLMEDEN geri alma REDDEDİLİYOR', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     await expect(
       migrateDown({ executor, source, logger }, { steps: FULL_CHAIN_STEPS }),
@@ -1336,6 +1660,8 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('kayıp raporu TABLO ve SÜTUN kaybını AYRI AYRI gösteriyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     // Kuru çalıştırma: gerçekten uygular, ölçer, geri alır.
     const result = await migrateDown(
@@ -1371,6 +1697,8 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('SÜTUN kaybı ayrı bir kalem olarak görünüyor — 0003+0002+0001 geri alınınca', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     const result = await migrateDown(
       { executor, source, logger },
@@ -1384,9 +1712,9 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
         .map((item) => `${item.table}.${item.column ?? '?'}`),
     };
 
-    // ON İKİ tablo düşüyor: 0005'in ikisi + 0003'ün üçü + 0002'nin beşi +
-    // 0001'in ikisi. `countries` ayakta kalıyor, o yüzden sütun kalemleri burada
-    // GÖRÜNÜR (yukarıdaki testte değil).
+    // ON DÖRT tablo düşüyor: 0007'nin ikisi + 0005'in ikisi + 0003'ün üçü +
+    // 0002'nin beşi + 0001'in ikisi. `countries` ayakta kalıyor, o yüzden sütun
+    // kalemleri burada GÖRÜNÜR (yukarıdaki testte değil).
     expect(byKind.table.sort()).toEqual([
       'club_facilities',
       'club_finances_base',
@@ -1396,6 +1724,8 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
       'federations',
       'kit_templates',
       'people',
+      'player_attributes',
+      'player_hidden_attributes',
       'players',
       'referees',
       'rivalries',
@@ -1432,9 +1762,28 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
    * Boş bir liste tek başına *"kayıp yok"* diye okunurdu (SAPMA-024); o yüzden
    * sütun listesi ayrıca ve **tam** iddia ediliyor.
    */
-  it('SAF SÜTUN kaybı — 0006 tek başına geri alınınca hiçbir TABLO düşmüyor', async () => {
+  /**
+   * ⚠️ **BU TEST 4.5'TE SINIF DEĞİŞTİRDİ — ve değişimin kendisi bir ölçüm.**
+   *
+   * 4.4'te başlığı *"SAF SÜTUN kaybı — 0006 tek başına"* idi ve doğruydu: o gün
+   * `stepsBackTo('0006')` tek bir adımdı. `0007` zincire eklenince aynı çağrı
+   * **üç adım** oldu ve `0007` iki tablo düşürüyor — yani vaka kendiliğinden
+   * *saf sütun*tan *karışık*a döndü, hiçbir satır değişmeden.
+   *
+   * **Genel biçim:** bir testin ölçtüğü SINIF, testin kendi kodundan değil
+   * zincirdeki YERİNDEN gelebilir. `stepsBackTo` sayıyı doğru tutuyor (4.3'ün
+   * kazancı) ama testin **adı ve iddiası** sayıyla birlikte kaymıyor — onu
+   * güncellemek elle bir iş. Günlük #12'nin (*"bir ALTER migration'ın etkisi
+   * kendi testiyle sınırlı değildir"*) kayıp ölçümü tarafındaki kardeşi.
+   *
+   * Saf sütun vakası kaybolmadı, **yeri değişti**: aşağıdaki `0008` testi artık
+   * ondan da saf bir vakayı ölçüyor — **sıfır kayıp**.
+   */
+  it('KARIŞIK kayıp — 0006`ya kadar geri alınınca 0007`nin iki tablosu da düşüyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
+    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
+    await narrowRefereePersonTypesForDown();
 
     const result = await migrateDown(
       { executor, source, logger },
@@ -1448,20 +1797,56 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
         .map((item) => `${item.table}.${item.column ?? '?'}`),
     };
 
-    expect(byKind.table).toEqual([]);
+    expect(byKind.table.sort()).toEqual(['player_attributes', 'player_hidden_attributes']);
     expect(byKind.column.sort()).toEqual([
       'clubs.chairman_person_id',
       'federations.president_person_id',
       'referees.person_id',
     ]);
 
-    // Sütun kaybında TABLONUN TAMAMI sayılır (`loss.ts`: üst sınır, bilerek) —
-    // her tablodan BİRER sütun düştüğü için toplam üç tablonun satır sayısı.
+    // Sütun kaybında TABLONUN TAMAMI sayılır (`loss.ts`: üst sınır, bilerek).
+    // 4.5'te iki tablo kaybı da eklendi — ikisinde de birer satır var.
     expect(result.loss.totalRowsAtRisk).toBe(
-      SEEDED_ROWS.clubs + SEEDED_ROWS.federations + SEEDED_ROWS.referees,
+      SEEDED_ROWS.clubs +
+        SEEDED_ROWS.federations +
+        SEEDED_ROWS.referees +
+        SEEDED_ROWS.player_attributes +
+        SEEDED_ROWS.player_hidden_attributes,
     );
 
     // Kuru çalıştırma hiçbir şey kaybetmedi.
+    expect(await trackedCount()).toBe(FULL_CHAIN_STEPS);
+  });
+
+  /**
+   * ⚠️ **SIFIR KAYIP — ZİNCİRİN İLK VAKASI (Faz 4.5).**
+   *
+   * `loss.ts` üç sınıf tanıyordu: tablo kaybı, sütun kaybı ve ikisinin karışımı.
+   * `0008` dördüncüsünü getiriyor: **hiçbiri**. Bir CHECK'in tanımını
+   * değiştirmek ne tablo ne sütun düşürüyor, yani kayıp raporu **boş**.
+   *
+   * ⚠️ **VE BOŞ BİR LİSTE TEK BAŞINA "YOK" DİYE OKUNUR** — o yüzden `allowDataLoss`
+   * verilmeden de geçtiği ayrıca iddia ediliyor. `items: []` bir hesaplama
+   * sonucu olabileceği gibi bir ölçüm hatası da olabilirdi; ikinci iddia
+   * koşucunun o boşluğu gerçekten *"kayıp yok"* diye okuduğunu gösteriyor.
+   *
+   * ℹ️ Bu, kısıtın kendi sınırıyla karıştırılmamalı: `down` dolu bir `people`
+   * tablosunda **patlıyor** (kendi testi var) — ama sebebi veri KAYBI değil,
+   * kısıt İHLALİ. İki mekanizma ayrı: `loss.ts` neyin yok olacağını sayıyor,
+   * CHECK neyin geçersiz olduğunu söylüyor.
+   */
+  it('SIFIR kayıp — 0008 ne tablo ne sütun düşürüyor, `allowDataLoss` bile gerekmiyor', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+    await narrowRefereePersonTypesForDown();
+
+    const result = await migrateDown(
+      { executor, source, logger },
+      { steps: stepsBackTo('0008_person_type_referee'), dryRun: true },
+    );
+
+    expect(result.loss.items).toEqual([]);
+    expect(result.loss.totalRowsAtRisk).toBe(0);
     expect(await trackedCount()).toBe(FULL_CHAIN_STEPS);
   });
 });
@@ -1784,6 +2169,84 @@ describe('çok adımlı çevrim (fixture zinciri)', () => {
     const comparison = compareSchemas(before, after);
     expect(comparison.identical).toBe(false);
     expect(summarizeDifferences(comparison)).toContain('tags.udtName');
+  });
+
+  /**
+   * ⚠️ ④ KISIT TANIMI — ②'NİN SINIFI, YENİ BİR OLGU ÜZERİNDE (Faz 4.5).
+   *
+   * `0007` zincire ilk kez **başka bir tablonun kısıtını** ekleyen bir migration
+   * getirdi (`players`ın iki ilişki değişmezi) ve `0008` ilk kez bir kısıtın
+   * **tanımını** değiştirdi. İkisi de aynı riski taşıyor: `DROP TABLE` kendi
+   * tablosunun kısıtlarını götürür, ama ayakta kalan bir tablonun kısıtını
+   * götürmez — o yüzden `down` onu **açıkça** kaldırmak ve `up` geri koymak
+   * zorunda. Bir `down` kısıtı **daha dar** geri koyarsa ne olur?
+   *
+   * Hiçbir şey. Sonraki `up` patlamaz (kısıt adı aynı), veri geçerli kalır,
+   * hiçbir kapı ötmez — ②'nin sessiz sınıfı. Yakalayan tek şey karşılaştırma.
+   *
+   * ⚠️ **BU TESTİN VARLIK SEBEBİ MUTASYON ÖLÇÜMÜ (4.5'te bulundu).** `0007` ve
+   * `0008`in çevrim testleri `differences: []` iddia ediyor ve körelen bir
+   * karşılaştırıcı **tam olarak onu üretiyor** — yani iki yeni pozitif test paya
+   * hiç katkı yapmadı ve seri 25'te kaldı. *Boş bir liste tek başına "yok" diye
+   * okunur*: fark BEKLEYEN bir test körlükten çıkarır, fark BEKLEMEYEN bir test
+   * çıkarmaz. 4.3'te payı artıran şey de tam olarak bir negatif testti.
+   *
+   * **Genel biçim:** yeni bir OLGU TÜRÜ (burada `constraint.definition`) şemaya
+   * girdiğinde, onu ölçen bir **negatif** test olmadan karşılaştırıcının o
+   * alanı gerçekten okuduğu gösterilmiş olmaz — yalnızca varsayılmış olur (D3).
+   */
+  it('④ SESSİZ bozuk down (KISIT TANIMI) — dar geri konan CHECK`i yalnızca karşılaştırma yakalıyor', async () => {
+    const broken = await fixtureChain([
+      {
+        tag: '0000_chk_base',
+        up: [
+          'CREATE TABLE "chk_probe" ("id" serial PRIMARY KEY, "rol" text NOT NULL);',
+          `ALTER TABLE "chk_probe" ADD CONSTRAINT "chk_probe_rol_check" CHECK ("rol" IN ('a', 'b'));`,
+        ].join('\n'),
+        down: 'DROP TABLE "chk_probe";',
+      },
+      {
+        tag: '0001_chk_widen',
+        // `0008`in birebir şekli: kısıtı düşür, GENİŞ hâlini koy.
+        up: [
+          'ALTER TABLE "chk_probe" DROP CONSTRAINT "chk_probe_rol_check";',
+          `ALTER TABLE "chk_probe" ADD CONSTRAINT "chk_probe_rol_check" CHECK ("rol" IN ('a', 'b', 'c'));`,
+        ].join('\n'),
+        // BOZUK: kısıtı geri daraltırken ÜÇÜNCÜ değeri değil İKİNCİYİ düşürüyor.
+        // Sonraki `up` kısıtı yine genişletiyor, yani son durum GEÇERLİ görünüyor
+        // — ama aradaki daralma yanlış bir kümeye gidiyordu.
+        down: [
+          'ALTER TABLE "chk_probe" DROP CONSTRAINT "chk_probe_rol_check";',
+          `ALTER TABLE "chk_probe" ADD CONSTRAINT "chk_probe_rol_check" CHECK ("rol" IN ('a', 'z'));`,
+        ].join('\n'),
+      },
+    ]);
+
+    await migrateUp({ executor, source: broken, logger });
+    const before = await introspectSchema(executor);
+
+    await migrateDown({ executor, source: broken, logger }, { steps: 1, allowDataLoss: true });
+
+    // ⚠️ ARADAKİ DURUM YANLIŞ VE HİÇBİR HATA YOK — sessiz sınıfın kendisi.
+    const midway = await introspectSchema(executor);
+    const midwayCheck = midway.tables[0]?.constraints.find(
+      (constraint) => constraint.name === 'chk_probe_rol_check',
+    );
+    expect(midwayCheck?.definition).toContain("'z'");
+
+    const comparison = compareSchemas(before, midway);
+    expect(comparison.identical).toBe(false);
+    expect(summarizeDifferences(comparison)).toContain('chk_probe_rol_check');
+
+    // ⚠️ VE `definition` ALANI ÇIKARILIRSA BU TEST KIRILIR: kısıt ADI iki
+    // durumda da aynı, TİPİ de aynı (`c`). Farkı yalnızca tanım gösteriyor —
+    // alanın gerekliliği varsayılmıyor, GÖSTERİLİYOR (③'ün `udtName` deseni).
+    const beforeCheck = before.tables[0]?.constraints.find(
+      (constraint) => constraint.name === 'chk_probe_rol_check',
+    );
+    expect(beforeCheck?.name).toBe(midwayCheck?.name);
+    expect(beforeCheck?.type).toBe(midwayCheck?.type);
+    expect(beforeCheck?.definition).not.toBe(midwayCheck?.definition);
   });
 
   it('① GÜRÜLTÜLÜ bozuk down (eksik kalan) — sonraki up patlıyor', async () => {

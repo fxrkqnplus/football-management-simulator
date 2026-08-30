@@ -87,8 +87,12 @@ const SCHEMA_DOC = fileURLToPath(new URL('../../../docs/schema/world.md', import
  * tek bir "şema büyüklüğü" sayısı olsaydı, bir tablo eklenip bir FK silinen bir
  * değişiklik sessizce geçebilirdi.
  */
-const EXPECTED_TABLE_COUNT = 13;
-const EXPECTED_FOREIGN_KEY_COUNT = 19;
+// 🆕 4.5: 13 → 15 tablo, 19 → 21 FK. İki tablo (`player_attributes`,
+// `player_hidden_attributes`) ve her birinin `players`a bakan tek FK'sı.
+// `0008` şema büyüklüğüne hiç dokunmuyor — yalnızca bir CHECK tanımını
+// genişletiyor, yani iki sayı da onun için değişmiyor.
+const EXPECTED_TABLE_COUNT = 15;
+const EXPECTED_FOREIGN_KEY_COUNT = 21;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;

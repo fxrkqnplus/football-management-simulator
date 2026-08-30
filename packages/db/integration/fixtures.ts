@@ -112,6 +112,24 @@ const idOf = (table: string, column: string, value: string | null | undefined): 
     ? 'NULL::integer'
     : `(SELECT "id" FROM "${table}" WHERE "${column}" = ${quote(value)})`;
 
+/**
+ * `players.id`yi KİŞİNİN anahtarından çözen iki kademeli alt sorgu (Faz 4.5).
+ *
+ * ⚠️ **AYRI BİR YARDIMCI, `idOf('players', 'key', …)` DEĞİL** — ve sebebi
+ * yapısal: `players` `key` sütunu **taşımıyor** (§3.1.0'ın altı taşıyıcısı
+ * arasında değil, uydu tablo). Bir oyuncuya testten erişmenin tek yolu kişisi.
+ *
+ * ⚠️ **G-17 TAM BURADA YAŞIYOR.** İki kademe var çünkü `people.id` ile
+ * `players.id` **farklı** kimlikler ve ikisi de `integer`: iç sorgu kişiyi,
+ * dış sorgu oyuncuyu veriyor. İç sorgu tek başına kullanılsaydı `player_id`
+ * sütununa bir **kişi kimliği** yazılırdı, FK bunu yakalamazdı (o kimlikte bir
+ * oyuncu büyük olasılıkla vardır — yalnızca yanlış oyuncudur) ve testler yeşil
+ * kalırdı. Fonksiyonun adı ayrımı görünür tutuyor; tip seviyesinde kapanması
+ * Faz 12'nin işi (G-17).
+ */
+const playerIdOfPerson = (personKey: string): string =>
+  `(SELECT "id" FROM "players" WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = ${quote(personKey)}))`;
+
 /** `stadiums` satırı — yalnızca sınanan alanlar dışarıdan veriliyor. */
 export interface StadiumFixture {
   readonly key: string;
@@ -463,12 +481,20 @@ export function clubKitInsertSql(rows: readonly ClubKitFixture[]): string {
  * yüzden onların fixture alanları isteğe bağlı — üçü aynı migration'da geldi ama
  * üçü aynı sözleşmeyi taşımıyor.
  *
- * ⚠️ **`personKey`in gösterdiği kişinin `person_type`ı BU TESTLERİN KONUSU
- * DEĞİL** ve olamaz: kapalı küme `player | staff | manager | chairman` hakemi
- * ifade etmiyor, CHECK ise boş diziyi reddediyor (G-18). Fixture'ın varsayılanı
- * (`['player']`) bir **modelleme iddiası değil**, sadece `NOT NULL` bir sütunu
- * dolduran geçerli bir değer — dosya başlığındaki kural: bir negatif testte
- * reddin sebebi TEK olmalı.
+ * ✅ **`personKey`in gösterdiği kişi ARTIK `['referee']` TAŞIYOR (Faz 4.5, G-18
+ * kapandı).** 4.4'te bu mümkün değildi: kapalı küme `player | staff | manager |
+ * chairman` hakemi ifade etmiyordu ve CHECK boş diziyi de reddediyordu, yani
+ * hakem kişileri `personInsertSql`in `['player']` varsayılanına düşüyordu —
+ * *entegrasyon testlerindeki her hakem oyuncu olarak kayıtlıydı.* O gün bu bir
+ * *"modelleme iddiası değil"* diye yazılmıştı ve doğruydu, ama SAPMA-026'nın
+ * yasağı (*"kimsenin belirlemediği alana değer uydurma"*) yine de ihlal
+ * ediliyordu — yalnızca yazılı olarak.
+ *
+ * `0008` kümeye `'referee'` ekledi. **Hakem kişisi yazan her fixture artık
+ * `personType: ['referee']` verir** ve varsayılana düşmediği `schema-constraints`
+ * testinde `referees ⋈ people` join'iyle ayrıca **iddia edilir** — bir
+ * konvansiyonun koşan bir nöbetçisi olmazsa ateşlendiğinde hiçbir şey olmaz
+ * (SAPMA-033).
  */
 export interface RefereeFixture {
   readonly key: string;
@@ -630,6 +656,161 @@ export function playerInsertSql(rows: readonly PlayerFixture[]): string {
       ("person_id","club_id","squad_number","primary_position","height_cm","weight_kg",
        "preferred_foot_right","preferred_foot_left","current_ability","potential_ability",
        "pa_range_min","pa_range_max","is_newgen","retired_at")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_attributes` satırı — Faz 4.5. **47 sütunluk `INSERT` YALNIZCA BURADA.**
+ *
+ * ⚠️ Bu fonksiyonun var olma sebebi günlük **#28**: `0001` altı `NOT NULL` sütun
+ * ekledi, üç ayrı dosyadaki `INSERT` kopyaları bir anda geçersizleşti ve **14
+ * test** kırıldı. 47 sütunluk bir `INSERT` dağıtılsaydı, 48'inci sütunu ekleyen
+ * gün üç dosyayı birden düzeltmek gerekirdi.
+ *
+ * ⚠️ **Alan adları `VISIBLE_ATTRIBUTES`ten TÜRETİLMİYOR ve bu kasıtlı.** Sabitten
+ * türetilseydi, sabitin kendisi bozulduğunda fixture da onunla birlikte bozulur
+ * ve `player-attributes.test.ts`in envanter iddiası **fixture tarafından
+ * doğrulanmış gibi** görünürdü. Burada sütun adları bağımsız yazılıyor: iki
+ * liste ayrışırsa `INSERT` gürültülü patlar (`column "..." does not exist`).
+ *
+ * Değerler bir **profil** taşıyor, hepsi aynı sayı değil: bir orta saha
+ * oyuncusunun makul dağılımı (kaleci nitelikleri 1-3 arasında, `spec/02` §4.1'in
+ * kendi kuralı). Hepsi 10 olsaydı, sütun sırası karışsa bile hiçbir test ötmezdi.
+ */
+export interface PlayerAttributesFixture {
+  readonly personKey: string;
+  /** Tüm SAHA niteliklerini tek seferde ezer — kaleci nitelikleri hariç. */
+  readonly outfieldOverride?: number;
+  /** Tüm KALECİ niteliklerini tek seferde ezer. */
+  readonly goalkeepingOverride?: number;
+  /** Transfer arama testleri için tek tek ezilebilen üç sütun (Faz 4.8'in tüketicileri). */
+  readonly finishing?: number;
+  readonly passing?: number;
+  readonly pace?: number;
+}
+
+export function playerAttributesInsertSql(rows: readonly PlayerAttributesFixture[]): string {
+  const values = rows
+    .map((row) => {
+      const out = (value: number): string => String(row.outfieldOverride ?? value);
+      const gk = (value: number): string => String(row.goalkeepingOverride ?? value);
+      return [
+        playerIdOfPerson(row.personKey),
+        // Teknik (14)
+        out(9),
+        out(12),
+        out(14),
+        String(row.finishing ?? row.outfieldOverride ?? 11),
+        out(15),
+        out(8),
+        out(10),
+        out(11),
+        out(6),
+        out(9),
+        String(row.passing ?? row.outfieldOverride ?? 16),
+        out(12),
+        out(10),
+        out(15),
+        // Zihinsel (14)
+        out(11),
+        out(13),
+        out(10),
+        out(14),
+        out(13),
+        out(15),
+        out(16),
+        out(12),
+        out(9),
+        out(13),
+        out(12),
+        out(15),
+        out(16),
+        out(14),
+        // Fiziksel (8)
+        out(13),
+        out(14),
+        out(12),
+        out(10),
+        out(15),
+        String(row.pace ?? row.outfieldOverride ?? 13),
+        out(16),
+        out(11),
+        // Kaleci (11) — saha oyuncusunda 1-3 (`spec/02` §4.1)
+        gk(2),
+        gk(1),
+        gk(3),
+        gk(2),
+        gk(1),
+        gk(3),
+        gk(2),
+        gk(1),
+        gk(2),
+        gk(3),
+        gk(1),
+      ].join(',');
+    })
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_attributes"
+      ("player_id",
+       "corners","crossing","dribbling","finishing","first_touch","free_kick_taking",
+       "heading","long_shots","long_throws","marking","passing","penalty_taking",
+       "tackling","technique",
+       "aggression","anticipation","bravery","composure","concentration","decisions",
+       "determination","flair","leadership","off_the_ball","positioning","teamwork",
+       "vision","work_rate",
+       "acceleration","agility","balance","jumping_reach","natural_fitness","pace",
+       "stamina","strength",
+       "aerial_reach","command_of_area","communication","eccentricity","handling",
+       "kicking","one_on_ones","reflexes","rushing_out","tendency_to_punch","throwing")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_hidden_attributes` satırı — Faz 4.5. **10 sütunluk `INSERT` tek yerde.**
+ *
+ * Değerler yine bir profil: `professionalism` yüksek, `dirtiness` düşük — yani
+ * `spec/02` §4.6'nın `derivePersonality` zincirinde ayırt edilebilir bir kişilik
+ * üretecek bir satır. Faz 10 bu fixture'ı bir başlangıç noktası olarak
+ * kullanabilir; hepsi 10 olan bir satır orada hiçbir kuralı ayırt etmezdi.
+ */
+export interface PlayerHiddenAttributesFixture {
+  readonly personKey: string;
+  readonly override?: number;
+  readonly injuryProneness?: number;
+}
+
+export function playerHiddenAttributesInsertSql(
+  rows: readonly PlayerHiddenAttributesFixture[],
+): string {
+  const values = rows
+    .map((row) => {
+      const v = (value: number): string => String(row.override ?? value);
+      return [
+        playerIdOfPerson(row.personKey),
+        v(15),
+        v(13),
+        String(row.injuryProneness ?? row.override ?? 6),
+        v(4),
+        v(14),
+        v(17),
+        v(12),
+        v(11),
+        v(9),
+        v(16),
+      ].join(',');
+    })
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_hidden_attributes"
+      ("player_id","consistency","important_matches","injury_proneness","dirtiness",
+       "pressure","professionalism","ambition","loyalty","adaptability","temperament")
     VALUES
       (${values})
   `;

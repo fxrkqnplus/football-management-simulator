@@ -87,11 +87,28 @@
  * SAPMA-028: bir aralık **kalibrasyondur**, Faz 23/30 denge ayarı onu
  * değiştirebilir. Aralık denetiminin yeri Faz 11 (`pnpm validate:world`).
  *
- * ⚠️ **`CA <= PA` ve `pa_range_min <= pa_range_max` CHECK ALACAK — ama 4.5'te**,
- * `ALTER TABLE … ADD CONSTRAINT` ile (§3.1.2 ① o biçimin üretildiğini ölçtü).
- * Bunlar bir aralık değil bir **ilişki değişmezi** ve ROADMAP onları 4.5'in
- * kabul kriteri 5'ine yazdı. Burada eksik değiller, **başka bir alt göreve
- * ait**ler; not duruyor ki 4.5 onları aramak zorunda kalmasın.
+ * ✅ **`CA <= PA` ve `pa_range_min <= pa_range_max` CHECK ALDI (4.5, `0007`)** —
+ * `ALTER TABLE … ADD CONSTRAINT` biçimiyle, çünkü tablo 4.3'te zaten yaratılmıştı
+ * (§3.1.2 ① o biçimin üretildiğini ölçmüştü). Bunlar bir aralık değil bir
+ * **ilişki değişmezi**: hiçbir denge ayarı CA'yı PA'nın üstüne çıkarmaz —
+ * çıkarırsa tanımın kendisi ihlal edilmiş olur. Ayracın (*"bu değeri yarın bir
+ * denge ayarı değiştirebilir mi?"*) aynı tablodaki iki grubu **farklı
+ * taraflara** koyması, kuralın iyi bir kural olduğunun kanıtı.
+ *
+ * ⚠️ **İki AYRI kısıt, tek bir birleşik kısıt değil.** `CHECK (ca <= pa AND
+ * min <= max)` daha kısa olurdu ve **daha kötü**: iki değişmezden hangisinin
+ * ihlal edildiği hata mesajından okunamazdı ve birinin nöbetçisi silinse diğeri
+ * onu örterdi. G-11'in *"kısmi koruma D3 yanılsaması üretir"* dersinin tersi
+ * yönü — burada koruma tam, ama **teşhis** bölünmeli. `people_person_type_check`
+ * bilerek birleşikti (iki yarısı **aynı** iddianın parçası: *"dizi geçerli mi"*);
+ * burada iki ayrı iddia var.
+ *
+ * ⚠️ **`pa_range_min` ile `CA`/`PA` arasındaki ilişki CHECK ALMIYOR.** `spec/02`
+ * §4.4 bandı `clamp(CA, 200, PA ± uncertainty)` ile üretiyor, yani üretim yolu
+ * `paRangeMin >= CA` sağlıyor — ama bu bir **türetme sonucudur**, bir tanım
+ * değil: bir gözlemci raporu (Faz 31) bandı bilerek CA'nın altına indirebilir
+ * (*"bu oyuncu düşünüldüğünden zayıf"*). Tanım gereği doğru olan tek şey
+ * `min <= max`. Kalibrasyona açık olan Faz 11'e ait.
  *
  * `primary_position` ise CHECK **alıyor**: on iki mevki kodu kapalı bir küme,
  * yani sözleşme — yeni bir mevki ancak taktik sistemi yeniden tasarlanırsa
@@ -198,6 +215,18 @@ export const players = masterTable(
         'players_primary_position_check',
         sql`${table.primaryPosition} IN (${sql.raw(PLAYER_POSITIONS.map((position) => `'${position}'`).join(', '))})`,
       ),
+      /**
+       * İLİŞKİ DEĞİŞMEZİ #1 — mevcut yetenek potansiyeli aşamaz (4.5, kriter 5).
+       * Bir aralık değil bir tanım: `spec/02` §4.4 PA'yı `clamp(CA, 200, …)` ile
+       * üretiyor, yani `PA >= CA` formülün kendi çıktısı. Gerekçe dosya başlığında.
+       */
+      check('players_ca_le_pa_check', sql`${table.currentAbility} <= ${table.potentialAbility}`),
+      /**
+       * İLİŞKİ DEĞİŞMEZİ #2 — belirsizlik bandının alt ucu üst ucunu geçemez.
+       * Ayrı bir kısıt: birleştirilseydi hangi değişmezin ihlal edildiği hata
+       * mesajından okunamazdı.
+       */
+      check('players_pa_range_check', sql`${table.paRangeMin} <= ${table.paRangeMax}`),
     ],
   ),
 );

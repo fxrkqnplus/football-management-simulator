@@ -52,12 +52,23 @@
  * `personId FK UNIQUE` yazıyor, `referees`i yalnızca `personId FK`. Kimsenin
  * belirlemediği bir kısıt uydurulmuyor (SAPMA-026).
  *
- * ⚠️ **AÇIK BOŞLUK (G-18): bir hakemin `people` satırı hangi `person_type`ı
- * taşır?** Kapalı küme `player | staff | manager | chairman` ve hiçbiri hakemi
- * anlatmıyor; `person_type` CHECK'i ise boş diziyi de reddediyor. Yani bu FK,
- * hakem satırı yazan ilk tarafı bir değer **uydurmaya** zorluyor. Boşluk 4.4'te
- * kaydedildi ve hakem verisinin geldiği faza atandı; 4.4 kümeyi değiştirmiyor
- * (K12 — kayıt yeter, uygulama değil).
+ * ✅ **G-18 KAPANDI (Faz 4.5, migration `0008`): bir hakemin `people` satırı
+ * `'referee'` taşır.** 4.4'te kapalı küme `player | staff | manager | chairman`
+ * idi ve hiçbiri hakemi anlatmıyordu, `person_type` CHECK'i boş diziyi de
+ * reddediyordu — yani bu FK, hakem satırı yazan ilk tarafı bir değer
+ * **uydurmaya** zorluyordu (SAPMA-026'nın yasağı) ve `fixtures.ts` gerçekten de
+ * `['player']` yazıyordu. Küme 4.5'te beşinci değeri aldı; gerekçe
+ * `people.ts`in `PERSON_TYPES` başlığında.
+ *
+ * ⚠️ **AÇIK BOŞLUK (G-19): bu tabloya satırı KİM yazacak?** `referees`
+ * §3.1.0'ın üç sütununu da taşıyor, yani bir **paket varlığı** — ama ROADMAP'in
+ * tüm hakem atıfları fazlarına göre çıkarıldığında (4.5'te ölçüldü) hiçbir faz
+ * veriyi **üretmiyor**: 23/26/29/45 **tüketici**, 46 var olan kadroyu **bakım**
+ * yapıyor, Faz 8 ve 9'un ingest listelerinde hakem **yok**. SAPMA-008'in
+ * birebir sınıfı. Karar noktası **Faz 7**'ye yazıldı (sağlayıcı zinciri) ve
+ * orada bir **kabul kriteri** taşıyor. ℹ️ `spec/12` §17.2'de `referees.json`
+ * yok, yani bugünkü dürüst cevap *"prosedürel"* — bu dosyanın `source`
+ * varsayılanının `procedural` olmasının sebebi de o.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * ALTI NİTELİK 1-20 — CHECK YOK

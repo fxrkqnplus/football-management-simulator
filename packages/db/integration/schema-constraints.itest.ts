@@ -54,6 +54,8 @@ import type { DeleteAction, TableClass } from '../src/schema/fk-policy.js';
 import { classifyTable, expectedDeleteAction } from '../src/schema/fk-policy.js';
 import { KIT_COLOR_SLOTS } from '../src/schema/kit-templates.js';
 import { GENDERS, PERSON_TYPES } from '../src/schema/people.js';
+import { VISIBLE_ATTRIBUTES } from '../src/schema/player-attributes.js';
+import { HIDDEN_ATTRIBUTES } from '../src/schema/player-hidden-attributes.js';
 import { PLAYER_POSITIONS } from '../src/schema/players.js';
 import { foreignKeyNullability } from '../src/schema-state/foreign-key-nullability.js';
 import {
@@ -66,6 +68,8 @@ import {
   federationInsertSql,
   kitTemplateInsertSql,
   personInsertSql,
+  playerAttributesInsertSql,
+  playerHiddenAttributesInsertSql,
   playerInsertSql,
   refereeInsertSql,
   rivalryInsertSql,
@@ -326,7 +330,7 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
    * yani Faz 4'ün eklediği `chairman_person_id` FK'sı burayı güncellemeyi
    * unutamadı — **4.4'te tam olarak öyle oldu** (16 → 19).
    */
-  it('ON DOKUZ FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
+  it('YİRMİ BİR FK ve her birinin ON DELETE davranışı — tam envanter', async () => {
     const rows = await executor.rows<{ conname: string; def: string }>(`
       SELECT conname, pg_get_constraintdef(oid) AS def
         FROM pg_constraint
@@ -366,6 +370,16 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       // koşan kanıtı bu satır.
       'people_nationality_country_id_countries_id_fk → RESTRICT',
       'people_second_nationality_country_id_countries_id_fk → RESTRICT',
+      // 🆕 4.5 — İKİ NİTELİK TABLOSU, İKİ AYNI CEVAP. Kural KOŞTURULDU
+      // (hafızadan uygulanmadı, günlük #11): kaynak `satellite` (`key` yok +
+      // giden FK var), hedef `players` sözlük değil, sütun `NOT NULL` (PK) →
+      // kural ④ **CASCADE**. `drizzle-kit` çıktısı da `ON DELETE cascade` dedi
+      // → 2/2.
+      // ⚠️ Hemen alttaki `players_club_id` ile karşılaştır: **aynı kaynak
+      // sınıfı** (`satellite`), farklı cevap. Ayraç nullability — orada sütun
+      // NULLABLE olduğu için kural ③'te duruyor ve `SET NULL` alıyor.
+      'player_attributes_player_id_players_id_fk → CASCADE',
+      'player_hidden_attributes_player_id_players_id_fk → CASCADE',
       // 🆕 4.3 — `players` bir uydu (`key` yok, giden FK var).
       // `club_id` NULLABLE → **ŞEMANIN İLK `SET NULL`I** (4.2'nin ③ dalı).
       'players_club_id_clubs_id_fk → SET NULL',
@@ -440,6 +454,12 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
       // 🆕 4.3 — `people` `key` taşıyor → independent; `players` taşımıyor ama
       // giden FK'sı var → satellite. İkisi de katalogdan çıkıyor.
       people: 'independent',
+      // 🆕 4.5 — iki nitelik tablosu da `key` taşımıyor ve `players`a giden bir
+      // FK'sı var → **satellite**. ⚠️ `dictionary` OLMADIKLARI önemli: sözlük
+      // koşulu *"`key` yok **ve giden FK yok**"* ve ikisi de o ikinci yarıda
+      // eleniyor. Sınıf katalogdan çıkıyor, hiçbir liste güncellenmeden.
+      player_attributes: 'satellite',
+      player_hidden_attributes: 'satellite',
       players: 'satellite',
       referees: 'independent',
       rivalries: 'satellite',
@@ -481,7 +501,7 @@ describe('yabancı anahtarlar ve `ON DELETE` davranışı (kabul kriteri 3’ün
 
     // Boş bir sonuç "hiç uyumsuzluk yok" diye okunurdu — bakacak bir şey
     // bulamayan kapı (SAPMA-024). Sayı ayrıca iddia ediliyor.
-    expect(foreignKeys).toHaveLength(19);
+    expect(foreignKeys).toHaveLength(21);
 
     // Nullability GERÇEKTEN okundu mu — boş dizi sessizce "SET NULL uygulanamaz"
     // derdi ve üçüncü olgu hiç sınanmamış olurdu (D3).
@@ -1068,7 +1088,9 @@ describe('⑤ KAPALI değer kümeleri — 3.6’nın iki yeni CHECK’i', () => 
     // 🆕 4.4 — `person_id` `NOT NULL`, yani hakem satırı bir kişi olmadan
     // yazılamıyor. Kişi ÖNCE yazılıyor ki reddin sebebi TEK olsun (dosya
     // başlığındaki kural): burada sınanan şey `source` CHECK'i, FK değil.
-    await executor.run(personInsertSql([{ key: 'p-ref-src', countryCode: 'RF1' }]));
+    await executor.run(
+      personInsertSql([{ key: 'p-ref-src', countryCode: 'RF1', personType: ['referee'] }]),
+    );
     await expect(
       executor.run(
         refereeInsertSql([
@@ -1285,7 +1307,9 @@ describe('`ON DELETE` — sözlük tablosu vakası', () => {
     // takılırdı ve hangi kısıtın önce öttüğü PostgreSQL'in denetim sırasına
     // kalırdı. Test burada `referees_country_id`i sınıyor; reddin sebebi TEK
     // olmalı (dosya başlığındaki #17 kuralı).
-    await executor.run(personInsertSql([{ key: 'p-ref-del', countryCode: 'RD2' }]));
+    await executor.run(
+      personInsertSql([{ key: 'p-ref-del', countryCode: 'RD2', personType: ['referee'] }]),
+    );
     await executor.run(
       refereeInsertSql([{ key: 'r-del', countryCode: 'RD1', personKey: 'p-ref-del' }]),
     );
@@ -1345,7 +1369,7 @@ describe('`club_kits.asset_id` — iki durumu da temsil edebiliyor', () => {
   });
 });
 
-describe('ŞEMA ENVANTERİ — 4.3’te 11 → 13, sayı ÖLÇÜLÜYOR', () => {
+describe('ŞEMA ENVANTERİ — 4.3’te 11 → 13, 4.5’te → 15; sayı ÖLÇÜLÜYOR', () => {
   /**
    * SAPMA-021 envanteri **11**'de mutabakata bağlamıştı; sayı o gün üç ayrı
    * yerde üç farklı şekilde yazılıydı (ROADMAP 15, `spec/01` 11, Faz 2 kaydı 16).
@@ -1355,7 +1379,7 @@ describe('ŞEMA ENVANTERİ — 4.3’te 11 → 13, sayı ÖLÇÜLÜYOR', () => {
    * migration takip tablosu bir master tablo değil (3.2a'nın tavuk-yumurta
    * çözümü).
    */
-  it('public şemasında TAM OLARAK 13 master tablo var', async () => {
+  it('public şemasında TAM OLARAK 15 master tablo var', async () => {
     const rows = await executor.rows<{ table_name: string }>(`
       SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -1373,12 +1397,15 @@ describe('ŞEMA ENVANTERİ — 4.3’te 11 → 13, sayı ÖLÇÜLÜYOR', () => {
       'kit_templates',
       // 🆕 4.3 — Faz 4’ün on bir master tablosunun ilk ikisi.
       'people',
+      // 🆕 4.5 — üçüncü ve dördüncü. Kalan yedi tablo 4.6–4.7’de.
+      'player_attributes',
+      'player_hidden_attributes',
       'players',
       'referees',
       'rivalries',
       'stadiums',
     ]);
-    expect(rows).toHaveLength(13);
+    expect(rows).toHaveLength(15);
   });
 
   it('takip tablosu KENDİ şemasında — master sayımını kirletmiyor', async () => {
@@ -1711,11 +1738,20 @@ describe('FAZ 4.3 — `players` KAPALI KÜME ve VARSAYILANSIZ BAYRAK', () => {
 
 describe('FAZ 4.4 — üç ileri FK, ÜÇ FARKLI `ON DELETE` DAVRANIŞI', () => {
   /** Bir ülke + bir kişi yazar; ikisi de `slug` önekli. */
-  async function seedCountryAndPerson(slug: string, code: string): Promise<void> {
+  /**
+   * ⚠️ `personType` 4.5'te PARAMETRİK oldu ve varsayılanı `['chairman']` kaldı.
+   * Sebep: bu yardımcıyı kullanan dört testin üçü bir **başkanı** yazıyor
+   * (federasyon/kulüp), biri bir **hakemi**. `0008`den önce hakem için doğru
+   * bir değer yoktu (G-18) ve o test de `['chairman']` kullanıyordu — yani
+   * fixture bir yalan taşıyordu. Artık taşımıyor.
+   */
+  async function seedCountryAndPerson(
+    slug: string,
+    code: string,
+    personType: readonly string[] = ['chairman'],
+  ): Promise<void> {
     await insertCountry({ key: `${slug}-ulke`, code });
-    await executor.run(
-      personInsertSql([{ key: `${slug}-kisi`, countryCode: code, personType: ['chairman'] }]),
-    );
+    await executor.run(personInsertSql([{ key: `${slug}-kisi`, countryCode: code, personType }]));
   }
 
   it('SET NULL: federasyon BAŞKANI silinince federasyon DURUYOR, sütun NULL oluyor', async () => {
@@ -1788,7 +1824,7 @@ describe('FAZ 4.4 — üç ileri FK, ÜÇ FARKLI `ON DELETE` DAVRANIŞI', () => 
   });
 
   it('RESTRICT: HAKEMİN kişisi silinemiyor — üçün tek `NOT NULL`u', async () => {
-    await seedCountryAndPerson('refperson', 'Q53');
+    await seedCountryAndPerson('refperson', 'Q53', ['referee']);
     await executor.run(
       refereeInsertSql([
         { key: 'refperson-hakem', countryCode: 'Q53', personKey: 'refperson-kisi' },
@@ -1832,5 +1868,407 @@ describe('FAZ 4.4 — üç ileri FK, ÜÇ FARKLI `ON DELETE` DAVRANIŞI', () => 
     `);
     expect(rows[0]?.chairman).toBeNull();
     expect(rows[0]?.president).toBeNull();
+  });
+});
+
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * FAZ 4.5 — NİTELİK TABLOLARI: ENVANTER, 1:1 DESENİ, CHECK YOKLUĞU
+ * ════════════════════════════════════════════════════════════════════════════
+ *
+ * ⚠️ **YENİ FIXTURE DEĞERLERİ VAR OLAN KÜMEYE KARŞI PROGRAMATİK DOĞRULANDI**
+ * (günlük #10): bu bloğun ülke kodları `A50`…`A57` ve dosyadaki 50 var olan
+ * `code` değerinin hiçbiriyle kesişmiyor (`grep -o "'A5x'"` → 0 eşleşme,
+ * yedi kod için tek tek). Gözle seçilmiş bir *"herhalde bu boştur"* değeri
+ * D3'ün fixture tarafındaki biçimi — 4.3'te tam olarak öyle kırılmıştı.
+ */
+describe('FAZ 4.5 — nitelik tablolarının SÜTUN ENVANTERİ (katalogdan)', () => {
+  const columnsOf = async (table: string): Promise<string[]> => {
+    const rows = await executor.rows<{ column_name: string }>(`
+      SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = '${table}'
+       ORDER BY ordinal_position
+    `);
+    return rows.map((row) => row.column_name);
+  };
+
+  /** camelCase kod adı → snake_case sütun adı. */
+  const toSnake = (name: string): string => name.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+
+  /**
+   * ⚠️ **BİR SAYI İDDİASI ÖZETTİR, BİR LİSTE İDDİASI ENVANTERDİR** (4.4'ün
+   * dersi). `toHaveLength(50)` yanlış adlı bir sütunu geçirirdi; buradaki
+   * iddia adları ve **fiziksel sıralarını** sabitliyor.
+   *
+   * ℹ️ Birim testi (`player-attributes.test.ts`) sabit ile TS alanlarını
+   * karşılaştırıyor; **bu** test veritabanının gerçekten o sütunları taşıdığını
+   * ölçüyor. İkisi ayrı ayrı gerekiyor (2.3b dersi: birim testi kablolamayı
+   * kanıtlamaz) — TS alanı doğru olup `smallint('finising')` yazılmış olabilir.
+   */
+  it('`player_attributes` 47 GÖRÜNÜR niteliği spec sırasıyla taşıyor', async () => {
+    const expected = [
+      'player_id',
+      ...VISIBLE_ATTRIBUTES.technical.map(toSnake),
+      ...VISIBLE_ATTRIBUTES.mental.map(toSnake),
+      ...VISIBLE_ATTRIBUTES.physical.map(toSnake),
+      ...VISIBLE_ATTRIBUTES.goalkeeping.map(toSnake),
+      'created_at',
+      'updated_at',
+    ];
+    expect(await columnsOf('player_attributes')).toEqual(expected);
+    // 47 + player_id + iki zaman damgası. Sayı LİSTEDEN sonra iddia ediliyor:
+    // liste zaten daha güçlü, sayı yalnızca aritmetiği görünür tutuyor.
+    expect(expected).toHaveLength(50);
+  });
+
+  it('`player_hidden_attributes` 10 GİZLİ niteliği spec sırasıyla taşıyor', async () => {
+    const expected = ['player_id', ...HIDDEN_ATTRIBUTES.map(toSnake), 'created_at', 'updated_at'];
+    expect(await columnsOf('player_hidden_attributes')).toEqual(expected);
+    expect(expected).toHaveLength(13);
+  });
+
+  /**
+   * ⚠️ **NEGATİF İDDİA — SAPMA-028'in KOŞAN NÖBETÇİSİ.**
+   *
+   * *"Kısıt eklemeyi unuttuk"* ile *"kısıt bilerek konmadı"* **aynı şemayı**
+   * üretir; ayıran tek şey koşan bir iddiadır (SAPMA-033: bir kuralın kontrol
+   * eden adımı yoksa ateşlendiğinde hiçbir şey olmaz). Bir sonraki oturum 57
+   * sütunu CHECK'siz görüp *"eksik"* diye eklemek isterse bu test kırılır ve
+   * gerekçeyi (`spec/01` §3.1.2 ②) okumaya yönlendirir.
+   *
+   * Emsal ölçülmüştü: 3.6'da altı hakem niteliği (1-20) de CHECK almadı.
+   */
+  it('57 nitelik sütununun HİÇBİRİ CHECK almıyor — aralık denetimi Faz 11`in işi', async () => {
+    const rows = await executor.rows<{ conname: string; table_name: string }>(`
+      SELECT c.conname, t.relname AS table_name
+        FROM pg_constraint c
+        JOIN pg_class t ON t.oid = c.conrelid
+       WHERE c.contype = 'c'
+         AND t.relname IN ('player_attributes', 'player_hidden_attributes')
+       ORDER BY c.conname
+    `);
+    expect(rows).toEqual([]);
+  });
+});
+
+describe('FAZ 4.5 — 1:1 DESENİ: `player_id` hem PK hem FK', () => {
+  async function seedPlayer(slug: string, code: string): Promise<void> {
+    await executor.run(countryInsertSql([{ key: `${slug}-ulke`, code }]));
+    await executor.run(
+      personInsertSql([{ key: `${slug}-kisi`, countryCode: code, personType: ['player'] }]),
+    );
+    await executor.run(playerInsertSql([{ personKey: `${slug}-kisi`, clubKey: null }]));
+  }
+
+  /**
+   * ⚠️ **AYRAÇ KOŞTURULDU, KOPYALANMADI.** 4.3 `players`i 3.5'in PK=FK
+   * kuralından ayırmıştı; ayraç *"tabloya GELEN yabancı anahtar sayısı"*.
+   * `player_attributes` için ölçüm **0** (spec/01 tamamında `attributesId` /
+   * `attribute_id` → 0 eşleşme), yani ayraç 3.5'i gösteriyor. Bu test o
+   * kararın veritabanındaki sonucunu sabitliyor: ayrı bir `serial id` YOK ve
+   * teklik veritabanı seviyesinde garanti.
+   */
+  it('ayrı bir `id` sütunu YOK — kimlik yalnızca `player_id`', async () => {
+    for (const table of ['player_attributes', 'player_hidden_attributes']) {
+      const rows = await executor.rows<{ column_name: string }>(`
+        SELECT column_name FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = '${table}' AND column_name = 'id'
+      `);
+      expect(rows).toEqual([]);
+    }
+  });
+
+  it('`player_id` PRIMARY KEY ve aynı anda FOREIGN KEY', async () => {
+    const rows = await executor.rows<{ conname: string; contype: string }>(`
+      SELECT conname, contype FROM pg_constraint
+       WHERE conrelid = '"player_attributes"'::regclass AND contype IN ('p', 'f')
+       ORDER BY contype
+    `);
+    expect(rows.map((row) => row.contype)).toEqual(['f', 'p']);
+  });
+
+  it('aynı oyuncuya İKİNCİ bir nitelik satırı yazılamıyor', async () => {
+    await seedPlayer('attr-tekil', 'A50');
+    await executor.run(playerAttributesInsertSql([{ personKey: 'attr-tekil-kisi' }]));
+
+    await expect(
+      executor.run(playerAttributesInsertSql([{ personKey: 'attr-tekil-kisi' }])),
+    ).rejects.toThrow(/player_attributes_pkey/);
+  });
+
+  it('aynı oyuncuya İKİNCİ bir GİZLİ nitelik satırı da yazılamıyor', async () => {
+    await seedPlayer('attr-htekil', 'A51');
+    await executor.run(playerHiddenAttributesInsertSql([{ personKey: 'attr-htekil-kisi' }]));
+
+    await expect(
+      executor.run(playerHiddenAttributesInsertSql([{ personKey: 'attr-htekil-kisi' }])),
+    ).rejects.toThrow(/player_hidden_attributes_pkey/);
+  });
+
+  /**
+   * ⚠️ **FK KURALI ÖNCE KOŞTURULDU, SONRA ÖLÇÜLDÜ** (4.4'ün yöntemi, günlük #11).
+   * `fk-policy.js` derlenmiş hâliyle çağrıldı: kaynak `satellite` (`key` yok +
+   * giden FK var), hedef sözlük değil, sütun `NOT NULL` (PK) → kural ④
+   * **CASCADE**. `drizzle-kit` çıktısı da `ON DELETE cascade` dedi → 2/2.
+   *
+   * Ama *"kuralın katalogla uyuşması, veritabanının öyle DAVRANDIĞINI
+   * göstermez"* — davranış burada gerçek PG 18.6'ya karşı ölçülüyor.
+   */
+  it('CASCADE: oyuncu silinince nitelikleri de gidiyor — İKİ tablo birden', async () => {
+    await seedPlayer('attr-casc', 'A52');
+    await executor.run(playerAttributesInsertSql([{ personKey: 'attr-casc-kisi' }]));
+    await executor.run(playerHiddenAttributesInsertSql([{ personKey: 'attr-casc-kisi' }]));
+
+    // Bağ gerçekten kuruldu mu — yoksa test hiçbir şey ölçmez (D3).
+    const before = await executor.rows<{ visible: number | string; hidden: number | string }>(`
+      SELECT
+        (SELECT count(*)::int FROM "player_attributes") AS visible,
+        (SELECT count(*)::int FROM "player_hidden_attributes") AS hidden
+    `);
+    expect(Number(before[0]?.visible)).toBeGreaterThanOrEqual(1);
+    expect(Number(before[0]?.hidden)).toBeGreaterThanOrEqual(1);
+
+    await executor.run(`
+      DELETE FROM "players"
+       WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = 'attr-casc-kisi')
+    `);
+
+    const after = await executor.rows<{ visible: number | string; hidden: number | string }>(`
+      SELECT
+        (SELECT count(*)::int FROM "player_attributes" pa
+          JOIN "players" p ON p."id" = pa."player_id"
+          JOIN "people" pe ON pe."id" = p."person_id"
+         WHERE pe."key" = 'attr-casc-kisi') AS visible,
+        (SELECT count(*)::int FROM "player_hidden_attributes" ph
+          JOIN "players" p ON p."id" = ph."player_id"
+          JOIN "people" pe ON pe."id" = p."person_id"
+         WHERE pe."key" = 'attr-casc-kisi') AS hidden
+    `);
+    expect(Number(after[0]?.visible)).toBe(0);
+    expect(Number(after[0]?.hidden)).toBe(0);
+  });
+
+  /**
+   * ⚠️ **1:1 DEĞİL 1:0..1 — ve bu ayrım ayrıca iddia ediliyor.**
+   *
+   * PK/FK olmak *"her oyuncunun bir nitelik satırı var"* demek **değil**,
+   * *"en fazla bir satırı var"* demek. Niteliksiz bir oyuncu bugün geçerli ve
+   * olmak zorunda: 4.9'un seed'i önce `players`, sonra nitelikleri yazacak.
+   * Bir gün bu boşluğun kapatılması istenirse (Faz 11 doğrulayıcısı) bu test
+   * kırılır ve kararı görünür kılar.
+   */
+  it('NİTELİKSİZ bir oyuncu geçerli — ilişki 1:0..1', async () => {
+    await seedPlayer('attr-bos', 'A53');
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "players" p
+       WHERE p."person_id" = (SELECT "id" FROM "people" WHERE "key" = 'attr-bos-kisi')
+         AND NOT EXISTS (SELECT 1 FROM "player_attributes" pa WHERE pa."player_id" = p."id")
+    `);
+    expect(Number(rows[0]?.n)).toBe(1);
+  });
+});
+
+describe('FAZ 4.5 — `players` İLİŞKİ DEĞİŞMEZLERİ (kabul kriteri 5)', () => {
+  async function seedPersonFor(slug: string, code: string): Promise<void> {
+    await executor.run(countryInsertSql([{ key: `${slug}-ulke`, code }]));
+    await executor.run(
+      personInsertSql([{ key: `${slug}-kisi`, countryCode: code, personType: ['player'] }]),
+    );
+  }
+
+  /**
+   * ⚠️ **POZİTİF TESTLER KÖR BİR KONTROLLE DE GEÇER** (§11.5, ölçülmüş oran).
+   * Bir CHECK'in *"var olduğunu"* `pg_constraint`ten okumak, onun **reddettiğini**
+   * göstermez — kısıt `CHECK (true)` da olabilirdi. Reddi ölçen testler bunlar.
+   */
+  it('CA > PA REDDEDİLİYOR — mevcut yetenek potansiyeli aşamaz', async () => {
+    await seedPersonFor('inv-capa', 'A54');
+    await expect(
+      executor.run(
+        playerInsertSql([
+          { personKey: 'inv-capa-kisi', clubKey: null, currentAbility: 190, potentialAbility: 120 },
+        ]),
+      ),
+    ).rejects.toThrow(/players_ca_le_pa_check/);
+  });
+
+  it('pa_range_min > pa_range_max REDDEDİLİYOR — bant ters çevrilemez', async () => {
+    await seedPersonFor('inv-band', 'A55');
+    await expect(
+      executor.run(
+        playerInsertSql([
+          { personKey: 'inv-band-kisi', clubKey: null, paRangeMin: 180, paRangeMax: 140 },
+        ]),
+      ),
+    ).rejects.toThrow(/players_pa_range_check/);
+  });
+
+  /**
+   * ⚠️ SINIR DEĞERİ — `<=` mi `<` mü? İkisi de bir CHECK üretir ve *"reddediyor"*
+   * testi ikisinde de geçer. `CA = PA` (potansiyeline ulaşmış oyuncu) ve
+   * `min = max` (belirsizliği sıfır) **geçerli** durumlar; `<` yazılsaydı
+   * ikisi de reddedilir ve hata ancak Faz 9 ingest'inde görülürdü.
+   */
+  it('KARŞI ÖRNEK: CA = PA ve min = max KABUL EDİLİYOR — sınır dahil', async () => {
+    await seedPersonFor('inv-esit', 'A56');
+    await executor.run(
+      playerInsertSql([
+        {
+          personKey: 'inv-esit-kisi',
+          clubKey: null,
+          currentAbility: 150,
+          potentialAbility: 150,
+          paRangeMin: 150,
+          paRangeMax: 150,
+        },
+      ]),
+    );
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "players"
+       WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = 'inv-esit-kisi')
+    `);
+    expect(Number(rows[0]?.n)).toBe(1);
+  });
+
+  it('İKİ AYRI KISIT — hangi değişmezin ihlal edildiği ADIYLA okunuyor', async () => {
+    const rows = await executor.rows<{ conname: string }>(`
+      SELECT conname FROM pg_constraint
+       WHERE contype = 'c' AND conrelid = '"players"'::regclass
+       ORDER BY conname
+    `);
+    // Birleşik tek bir CHECK yazılsaydı bu liste iki elemanlı olmazdı ve hata
+    // mesajı hangi değişmezin ihlal edildiğini söylemezdi.
+    expect(rows.map((row) => row.conname)).toEqual([
+      'players_ca_le_pa_check',
+      'players_pa_range_check',
+      'players_primary_position_check',
+    ]);
+  });
+
+  /**
+   * ⚠️ **NİTELİK ARALIKLARI `players`TA DA CHECK ALMIYOR** — SAPMA-028'in
+   * ikinci yüzü. Aynı tabloda iki grup var ve ayraç onları **farklı taraflara**
+   * koyuyor: `current_ability` (1-200) bir kalibrasyon, `CA <= PA` bir tanım.
+   * Bu test kalibrasyon tarafının kısıtsız kaldığını sabitliyor.
+   */
+  it('CA/PA/boy/kilo/ayak ARALIKLARI kısıtsız — 250 CA kabul ediliyor', async () => {
+    await seedPersonFor('inv-aralik', 'A57');
+    await executor.run(
+      playerInsertSql([
+        {
+          personKey: 'inv-aralik-kisi',
+          clubKey: null,
+          currentAbility: 250,
+          potentialAbility: 250,
+          paRangeMin: 250,
+          paRangeMax: 250,
+          preferredFootRight: 99,
+        },
+      ]),
+    );
+
+    const rows = await executor.rows<{ ca: number | string }>(`
+      SELECT "current_ability"::int AS ca FROM "players"
+       WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = 'inv-aralik-kisi')
+    `);
+    expect(Number(rows[0]?.ca)).toBe(250);
+  });
+});
+
+describe('FAZ 4.5 — `person_type` kümesi `referee` TAŞIYOR (G-18 kapandı)', () => {
+  it('`referee` taşıyan bir kişi KABUL EDİLİYOR', async () => {
+    await executor.run(countryInsertSql([{ key: 'refok-ulke', code: 'RK1' }]));
+    await executor.run(
+      personInsertSql([{ key: 'refok-kisi', countryCode: 'RK1', personType: ['referee'] }]),
+    );
+
+    const rows = await executor.rows<{ types: string[] }>(`
+      SELECT "person_type" AS types FROM "people" WHERE "key" = 'refok-kisi'
+    `);
+    expect(rows[0]?.types).toEqual(['referee']);
+  });
+
+  it('ÇOK ROLLÜ dizi de kabul ediliyor — hakem aynı zamanda personel olabilir', async () => {
+    await executor.run(countryInsertSql([{ key: 'refcok-ulke', code: 'RK2' }]));
+    await executor.run(
+      personInsertSql([
+        { key: 'refcok-kisi', countryCode: 'RK2', personType: ['referee', 'staff'] },
+      ]),
+    );
+
+    const rows = await executor.rows<{ n: number | string }>(`
+      SELECT count(*)::int AS n FROM "people"
+       WHERE "key" = 'refcok-kisi' AND 'referee' = ANY("person_type")
+    `);
+    expect(Number(rows[0]?.n)).toBe(1);
+  });
+
+  /**
+   * ⚠️ KÜME **BEŞ** DEĞER TAŞIYOR VE ALTINCI HÂLÂ REDDEDİLİYOR.
+   *
+   * Bir kümeye değer eklemenin sessiz riski, kısıtın **genişlemesi** değil
+   * **kaybolması**: `<@` kaldırılsaydı her değer geçerdi ve *"'referee' artık
+   * kabul ediliyor"* testi yine geçerdi. Bu test kapalılığın korunduğunu
+   * ölçüyor — `people_person_type_check`in iki yarısı da yerinde.
+   */
+  it('kapalılık KORUNDU — `coach` hâlâ REDDEDİLİYOR', async () => {
+    await executor.run(countryInsertSql([{ key: 'refkapali-ulke', code: 'RK3' }]));
+    await expect(
+      executor.run(
+        personInsertSql([
+          { key: 'refkapali-kisi', countryCode: 'RK3', personType: ['referee', 'coach'] },
+        ]),
+      ),
+    ).rejects.toThrow(/people_person_type_check/);
+  });
+
+  it('BOŞ dizi hâlâ REDDEDİLİYOR — `cardinality` yarısı da yerinde', async () => {
+    await executor.run(countryInsertSql([{ key: 'refbos-ulke', code: 'RK4' }]));
+    await expect(
+      executor.run(personInsertSql([{ key: 'refbos-kisi', countryCode: 'RK4', personType: [] }])),
+    ).rejects.toThrow(/people_person_type_check/);
+  });
+
+  it('kısıt tanımı BEŞ değeri de taşıyor — sabitle ayrışmıyor', async () => {
+    const definition = await constraintDefinition('people_person_type_check');
+    for (const value of PERSON_TYPES) {
+      expect(definition).toContain(`'${value}'`);
+    }
+    expect(definition).toContain("'referee'");
+    expect(PERSON_TYPES).toHaveLength(5);
+  });
+
+  /**
+   * ⚠️ **BU TESTİN VARLIK SEBEBİ BİR KONVANSİYONUN NÖBETÇİSİ OLMASI**
+   * (SAPMA-033: bir kuralın kontrol eden adımı yoksa ateşlendiğinde hiçbir şey
+   * olmaz).
+   *
+   * 4.4'te bu dosyadaki **her** hakem kişisi `person_type = ['player']`
+   * taşıyordu — `personInsertSql`in varsayılanı, çünkü kümede hakem yoktu.
+   * `0008`den sonra hakem kişileri `['referee']` yazıyor ama bu bir
+   * **konvansiyon**: yeni bir hakem fixture'ı varsayılana düşerse hiçbir kapı
+   * ötmez. Burada `referees ⋈ people` join'i onu koşan bir iddiaya çeviriyor.
+   */
+  it('HİÇBİR hakemin kişisi `player` TAŞIMIYOR — varsayılana düşen yok', async () => {
+    await executor.run(countryInsertSql([{ key: 'refjoin-ulke', code: 'RK5' }]));
+    await executor.run(
+      personInsertSql([{ key: 'refjoin-kisi', countryCode: 'RK5', personType: ['referee'] }]),
+    );
+    await executor.run(
+      refereeInsertSql([{ key: 'refjoin-hakem', countryCode: 'RK5', personKey: 'refjoin-kisi' }]),
+    );
+
+    const rows = await executor.rows<{ referee_key: string; types: string[] }>(`
+      SELECT r."key" AS referee_key, p."person_type" AS types
+        FROM "referees" r JOIN "people" p ON p."id" = r."person_id"
+       ORDER BY r."key"
+    `);
+
+    // Dosyadaki TÜM hakemler taranıyor, yalnızca bu testin yazdığı değil —
+    // bir envanter iddiası, bir örnek iddiası değil (4.4: "özetler körlenebilir").
+    expect(rows.length).toBeGreaterThan(0);
+    const wrong = rows.filter((row) => !row.types.includes('referee'));
+    expect(wrong).toEqual([]);
   });
 });

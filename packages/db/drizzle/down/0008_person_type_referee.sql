@@ -1,0 +1,47 @@
+-- 0008_person_type_referee — GERİ ALMA (elle yazıldı)
+--
+-- drizzle-kit `down` migration ÜRETMİYOR (Faz 3.0'da ölçüldü,
+-- docs/spec/01-database.md §3.0). Bu dosya elle yazılır; doğruluğunun
+-- karşılaştırılacağı yer `meta/0007_snapshot.json` — yani on beş tablo ayakta,
+-- ama `people_person_type_check` DÖRT değer taşıyor, beş değil.
+--
+-- ⚠️ ZİNCİRİN İLK "SAF KISIT DEĞİŞİKLİĞİ" MIGRATION'I — beşinci biçim.
+--
+-- Şimdiye kadar dört biçim vardı: saf `CREATE TABLE` (0002, 0003, 0005), saf
+-- `DROP COLUMN` (0006), karışık tablo+sütun (0001) ve tablo+başka bir tablonun
+-- kısıtı (0007). Burası **hiçbir tablo, hiçbir sütun** dokunmuyor: yalnızca bir
+-- CHECK'in TANIMI değişiyor.
+--
+-- Bunun ölçülebilir bir sonucu var ve §3.1.2 ⑤ ile ilgili: `DROP CONSTRAINT` +
+-- `ADD CONSTRAINT` **sütun eklemiyor**, yani `pg_attribute.attnum` deliği
+-- açmıyor. `0006`nın kaymaları bu migration'ın çevriminde **büyümüyor** —
+-- kayma sütun ekleyen bir `ALTER`ın sonucudur, her `ALTER`ın değil.
+--
+-- ⚠️ NEDEN AYRI BİR MIGRATION — VE NEDEN `0007`NİN İÇİNE KONMADI.
+--
+-- İkisi de teknik olarak mümkündü (ikisi de kayma üretmiyor). Ayrı olması bir
+-- İDDİA AYRIMI kararı ve gerekçesi §3.1.2 ⑤'in kendi notu:
+--   *"İki beklenti AYRI testlerde tutuluyor: birleştirilselerdi 0002'nin fazla
+--    giden bir `down`u, 0001'in bilinen sekiz farkının arkasında 'zaten fark
+--    bekliyorduk' diye okunurdu."*
+-- Aynı mantık: `0007`nin `down`u iki tablo düşürüyor ve iki kısıt kaldırıyor;
+-- buradaki `down` bir kısıt tanımını geri alıyor. Bunlar farklı hata sınıfları
+-- ve tek bir çevrim testinde birleştirilselerdi biri diğerinin arkasında
+-- saklanabilirdi. İkinci gerekçe konu ayrımı: `0007` oyuncu niteliklerini
+-- yazıyor, bu migration **G-18'i kapatıyor** ve farklı bir tabloya dokunuyor.
+-- Üçüncüsü geri alınabilirlik: G-18 kararı ileride gözden geçirilirse bu
+-- migration tek başına geri alınır, oyuncu tabloları etkilenmez.
+--
+-- ⚠️ **BU `down` VERİ VARKEN GÜRÜLTÜLÜ PATLAR — VE BU KISITIN KENDİ AMACI.**
+-- `ADD CONSTRAINT … CHECK` var olan satırları DOĞRULUYOR. `people` içinde
+-- `'referee'` taşıyan bir satır varken bu `down` koşarsa dar kısıt onu reddeder
+-- (`check constraint "people_person_type_check" is violated by some row`).
+-- Sessizce geçseydi, geri alınmış bir şemada kümenin dışında bir değer
+-- kalırdı — kısıtın var olma sebebinin tam tersi. Davranış
+-- `round-trip.itest.ts`te kendi testiyle sabitlenmiş durumda.
+--
+-- ⚠️ `CASCADE` kullanılmıyor (zincirin tamamıyla aynı gerekçe) — burada zaten
+-- uygulanabilir değil: `DROP CONSTRAINT` bir CHECK için bağımlılık taşımıyor.
+
+ALTER TABLE "people" DROP CONSTRAINT "people_person_type_check";--> statement-breakpoint
+ALTER TABLE "people" ADD CONSTRAINT "people_person_type_check" CHECK (cardinality("people"."person_type") > 0 AND "people"."person_type" <@ ARRAY['player', 'staff', 'manager', 'chairman']::text[]);

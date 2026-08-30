@@ -102,8 +102,50 @@ import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
  *
  * Kapalı küme, o yüzden CHECK'li (§3.1.2 ②). Serbest metin olsaydı `'Player'`
  * veya `'coach'` sessizce girer ve o kişi hiçbir rol sorgusunda görünmezdi.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * `'referee'` FAZ 4.5'TE EKLENDİ — G-18 KAPANDI (`0008`)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * 4.4 `referees.person_id`i **`NOT NULL`** yazdı, yani artık **her hakem bir
+ * `people` satırıdır** — ama kapalı küme dört değer taşıyordu ve hiçbiri hakemi
+ * anlatmıyordu. `people_person_type_check` boş diziyi de reddediyor (4.3'te
+ * bilerek), yani hakem satırı yazan ilk taraf bir değer **uydurmak** zorundaydı:
+ * SAPMA-026'nın (*"kimsenin belirlemediği alana değer uydurma"*) tam olarak
+ * yasakladığı şey. G-18 bunu 4.4'te kaydetti ve **Faz 8'e** atadı.
+ *
+ * ⚠️ **O ATAMA YANLIŞTI VE DAYANAĞI D7.** Faz 8'in G-18 bloğu gerekçesini
+ * *"hakem verisi bu fazda geliyor (3.8'in kendi notu)"* diye yazıyordu — ve o
+ * not `PROJECT_MEMORY`/ROADMAP'in kendi sesi, D7'nin *"kaynak değildir"* dediği
+ * şey. Faz 8'in **gerçek** ingest listesi ölçüldü: ülke · lig · kupa · UEFA ·
+ * kulüp verisi · görseller · rekabetler · ülke kural setleri · transfer
+ * pencereleri. **Hakem yok.** Faz 9 yalnızca oyuncu. Yani boşluk, onu
+ * kapatamayacak bir faza atanmıştı.
+ *
+ * **Üç gerekçeyle burada kapatıldı (kapsam kayması değil):**
+ * ① `people` **bu fazın kendi tablosu** (4.3'te yazıldı) ve kapalı küme **bu
+ *   fazda** eksik ölçüldü — kendi tablonun kümesini tamamlamak faza aittir.
+ *   Emsal: 3.6 `club_kits.asset_id`'yi `spec/01`'de olmadığı hâlde ekledi,
+ *   gerekçesini yazdı ve yeni bir SAPMA açmadı.
+ * ② **Bir yalan zaten repodaydı:** `integration/fixtures.ts` hakem kişilerine
+ *   `['player']` yazıyordu ve 4.5–4.11 boyunca her yeni hakem fixture'ı bunu
+ *   **kopyalayacaktı**.
+ * ③ Atanan sahip işi yapamıyordu (yukarıdaki ölçüm).
+ *
+ * G-18'in üç seçeneğinden **①** uygulandı (kümeye `'referee'`); **③** (spec
+ * başlığının hakemi kapsaması) onun doğal sonucu olarak aynı alt görevde
+ * yapıldı — küme hakemi tanıyorsa tanım da tanımalı. **②** (hakemler `people`
+ * taşımaz) reddedildi: 4.4'ün üç ileri FK kararını geri alır ve hakemleri
+ * yeniden isimsiz bırakırdı.
+ *
+ * ⚠️ **AYRI BİR BOŞLUK AÇILDI — G-19:** küme artık hakemi ifade edebiliyor, ama
+ * **hiçbir faz hakem verisini ingest etmiyor** (ROADMAP'in tüm hakem atıfları
+ * fazlarına göre çıkarıldı: 23/26/29/45 **tüketici**, 46 var olan kadroyu
+ * **bakım** yapıyor, 8 ve 9'un ingest listelerinde hakem yok). `referees`
+ * 3.6'dan beri `key`/`source`/`external_ids` taşıyor — yani bir **paket
+ * varlığı**, ama onu dolduran hat yok. SAPMA-008'in birebir sınıfı.
  */
-export const PERSON_TYPES = ['player', 'staff', 'manager', 'chairman'] as const;
+export const PERSON_TYPES = ['player', 'staff', 'manager', 'chairman', 'referee'] as const;
 
 export type PersonType = (typeof PERSON_TYPES)[number];
 

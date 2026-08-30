@@ -27,7 +27,7 @@ sessizce yalan söylemeye başlar.
 | **Üretici** | `packages/db/src/schema-state/er-diagram.ts` — saf, `SchemaFacts` alır, metin döner |
 | **Girdi** | `introspectSchema()` → gerçek `information_schema` + `pg_catalog` |
 | **Nöbetçi** | `packages/db/integration/er-diagram.itest.ts` (`pnpm test:db`, CI'da amd64 + arm64) |
-| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (13 / 19) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
+| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (15 / 21) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
 
 ⚠️ **Bu blok elle düzenlenmez.** Yeni bir migration burayı bayatlatır ve nöbetçi
 kırılır. **Doğru düzeltme:** testin hata mesajı üretilmiş metnin **tamamını**
@@ -65,7 +65,7 @@ ROADMAP **15** diyordu, `spec/01` §3.1 bu kapsam için **11** tanımlıyordu,
 `PROJECT_MEMORY.md` Faz 2 kaydı §11 **"16 master tablo"** diyordu. Karar tablosu ve
 her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (SAPMA-021).
 
-## ER Diyagramı (13 tablo · 19 yabancı anahtar)
+## ER Diyagramı (15 tablo · 21 yabancı anahtar)
 
 ```mermaid
 erDiagram
@@ -82,6 +82,8 @@ erDiagram
     people |o--o{ federations : "president_person_id"
     countries ||--o{ people : "nationality_country_id"
     countries |o--o{ people : "second_nationality_country_id"
+    players ||--o| player_attributes : "player_id"
+    players ||--o| player_hidden_attributes : "player_id"
     clubs |o--o{ players : "club_id"
     people ||--o| players : "person_id"
     countries ||--o{ referees : "country_id"
@@ -232,6 +234,75 @@ erDiagram
         timestamp_with_time_zone updated_at
     }
 
+    player_attributes {
+        integer player_id PK,FK
+        smallint corners
+        smallint crossing
+        smallint dribbling
+        smallint finishing
+        smallint first_touch
+        smallint free_kick_taking
+        smallint heading
+        smallint long_shots
+        smallint long_throws
+        smallint marking
+        smallint passing
+        smallint penalty_taking
+        smallint tackling
+        smallint technique
+        smallint aggression
+        smallint anticipation
+        smallint bravery
+        smallint composure
+        smallint concentration
+        smallint decisions
+        smallint determination
+        smallint flair
+        smallint leadership
+        smallint off_the_ball
+        smallint positioning
+        smallint teamwork
+        smallint vision
+        smallint work_rate
+        smallint acceleration
+        smallint agility
+        smallint balance
+        smallint jumping_reach
+        smallint natural_fitness
+        smallint pace
+        smallint stamina
+        smallint strength
+        smallint aerial_reach
+        smallint command_of_area
+        smallint communication
+        smallint eccentricity
+        smallint handling
+        smallint kicking
+        smallint one_on_ones
+        smallint reflexes
+        smallint rushing_out
+        smallint tendency_to_punch
+        smallint throwing
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    player_hidden_attributes {
+        integer player_id PK,FK
+        smallint consistency
+        smallint important_matches
+        smallint injury_proneness
+        smallint dirtiness
+        smallint pressure
+        smallint professionalism
+        smallint ambition
+        smallint loyalty
+        smallint adaptability
+        smallint temperament
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
     players {
         integer id PK
         integer person_id FK,UK
@@ -337,7 +408,7 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 şemada (`spec/01` §3.0 — tavuk-yumurta çözümü) ve `introspectSchema()` yalnızca
 `public`'i okuyor.
 
-## Tablolar (13)
+## Tablolar (15)
 
 | # | Tablo | Alt görev | `key`/`source`/`externalIds` | Not |
 |---|---|---|---|---|
@@ -351,21 +422,30 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 | 8 | `rivalries` | 3.5 | — | `clubAId` / `clubBId` → ikisi de `clubs`, `CASCADE`. **3.7:** `(least,greatest)` UNIQUE ifade indeksi çift tekliğini sıradan bağımsız kapatıyor; kalan tek delik `(A,A)` → Faz 11 (G-11 daraldı) |
 | 9 | `kit_templates` | 3.6 | — | Oyunun kendi 20 SVG şablonu, pakette değil (`spec/12` §17.2'de `templates.json` **yok** — ölçüldü) — `code` **UNIQUE**, `key`in rolünü görüyor. `colorSlots` **CHECK (2,3)**: sayısal ama kapalı küme (§3.1.2 ②, 4. satır) |
 | 10 | `club_kits` | 3.6 | — | `(clubId, kitType)` **UNIQUE** · `kitType` CHECK · `templateId` → **RESTRICT** (sözlük tablosu, §3.1.2 ⑧). ⚠️ `assetId` `spec/01`'de **yoktu**, eklendi (SAPMA-026 EK): `spec/12` §17.4 gerçek forma görselini veriyor ve `null` = şablondan üret (K9) |
-| 11 | `referees` | 3.6 / **4.4** | ✅ | `personId` **4.4'te geldi** → hakemler artık isimli. Üç ileri FK'nın **tek `NOT NULL`u** → `RESTRICT`; bedeli: `0006` dolu bir `referees` tablosunda yeniden uygulanamıyor (gürültülü, kendi testi var). Açık boşluk **G-18**: kapalı `person_type` kümesi hakemi ifade etmiyor. Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
-| 12 | `people` | **4.3** | ✅ | Oyuncu/personel/menajer/başkan **ortak kimlik**. §3.1.0'ın altıncı taşıyıcısı — karar ölçüldü (4.0b Karar 3: `key`i `people` taşırsa FK kuralı 20/20, `players` taşırsa 17/20). `personType` **şemanın ilk dizi sütunu** (`text[]`, CHECK: boş olamaz + kapalı küme) · `gender` CHECK · ikinci uyruk **nullable ama RESTRICT** (kural ② ③'ten önce) |
-| 13 | `players` | **4.3** | — | `personId` **UNIQUE FK** → CASCADE · `clubId` **nullable** → **şemanın ilk `ON DELETE SET NULL`ı** (*"null = serbest oyuncu"*). ⚠️ Faz 3'ün 1:1 desenini **izlemiyor** (ayrı `serial id`) ve gerekçe ölçüldü: ona bakan 13 tablo var (5 master + 8 save), `club_facilities`'e bakan **0**. `primaryPosition` CHECK (12 mevki) · `isNewgen` **DEFAULT ALMIYOR**. `CA <= PA` ve PA bandı CHECK'leri **4.5'te** |
+| 11 | `referees` | 3.6 / **4.4** | ✅ | `personId` **4.4'te geldi** → hakemler artık isimli. Üç ileri FK'nın **tek `NOT NULL`u** → `RESTRICT`; bedeli: `0006` dolu bir `referees` tablosunda yeniden uygulanamıyor (gürültülü, kendi testi var). ✅ **G-18 4.5'te KAPANDI** (`0008`): `person_type` kümesi artık `'referee'` taşıyor. 🆕 Açık boşluk **G-19**: hiçbir faz hakem verisini **ingest etmiyor** (23/26/29/45 tüketici, 46 bakım; 8 ve 9'un listelerinde hakem yok). Pakette `referees.json` yok, v1'de `source = 'procedural'`; `key` yine de zorunlu (§3.1.0: anahtar **adreslenebilirliğin** koşulu) |
+| 12 | `people` | **4.3** / **4.5** | ✅ | Oyuncu/personel/menajer/başkan/**hakem** **ortak kimlik**. §3.1.0'ın altıncı taşıyıcısı — karar ölçüldü (4.0b Karar 3: `key`i `people` taşırsa FK kuralı 20/20, `players` taşırsa 17/20). `personType` **şemanın ilk dizi sütunu** (`text[]`, CHECK: boş olamaz + kapalı küme). **4.5 kümeyi 4 → 5 değere çıkardı** (`'referee'`, `0008`) ve bedeli ölçüldü: `0008`in `down`u dolu bir `people` tablosunda **gürültülü patlıyor** — kısıt daraltmak veriyi doğrulamaktır · `gender` CHECK · ikinci uyruk **nullable ama RESTRICT** (kural ② ③'ten önce) |
+| 13 | `players` | **4.3** / **4.5** | — | `personId` **UNIQUE FK** → CASCADE · `clubId` **nullable** → **şemanın ilk `ON DELETE SET NULL`ı** (*"null = serbest oyuncu"*). ⚠️ Faz 3'ün 1:1 desenini **izlemiyor** (ayrı `serial id`) ve gerekçe ölçüldü: ona bakan 13 tablo var (5 master + 8 save), `club_facilities`'e bakan **0**. `primaryPosition` CHECK (12 mevki) · `isNewgen` **DEFAULT ALMIYOR**. ✅ **İki ilişki değişmezi 4.5'te geldi** (`0007`): `players_ca_le_pa_check` ve `players_pa_range_check` — **iki ayrı kısıt**, birleşik değil (hangi değişmezin ihlal edildiği hata mesajından okunsun) |
+| 14 | `player_attributes` | **4.5** | — | **47 görünür nitelik, tek satır** (`jsonb` değil — `spec/01`'in kendi notu: filtre performansı kritik). Sayı `spec/02` §4.1'den **sayılarak** doğrulandı (14+14+8+11), ROADMAP'ten alınmadı (SAPMA-001). `playerId` **PK = FK** → CASCADE; ayraç (*"tabloya gelen FK sayısı"*) **koşturuldu**: `player_attributes`'a bakan **0**, yani 3.5 deseni — `players`ınki kopyalanmadı. ⚠️ **47 sütunun hiçbiri CHECK ALMIYOR** (SAPMA-028): aralık kalibrasyondur, denetim Faz 11. Kaleci nitelikleri saha oyuncusunda da `NOT NULL` (`spec/02`: *"1-3 arası sabitlenir"* — bilgi var, düşük) |
+| 15 | `player_hidden_attributes` | **4.5** | — | **10 gizli nitelik**. ⚠️ Bu tablo **SAPMA-001'in kendi vakası**: ROADMAP 8 diyordu, `spec/02` §4.5 `adaptability` (Faz 34) ve `temperament` (Faz 44) ile 10'a çıkardı ve tutarsızlık 3.0'a kadar sürdü. `playerId` **PK = FK** → CASCADE; ayraç **ayrıca** koşturuldu (kardeş tablodan kopyalanmadı) ve ikinci bir gerekçe bu tabloya özgü: okuyucuları (`derivePersonality`, gelişim, sakatlık) hepsi oyuncudan yola çıkıyor, satırın kendi kimliğini kimse taşımıyor. `player_personalities` **açılmadı** — `spec/02` §4.6 kişiliği **türetiyor**, saklamıyor (G-15) |
 
-> ✅ **FAZ 3'ÜN ENVANTERİ KAPANDI — 11/11 (Faz 3.6); FAZ 4 ONU BÜYÜTÜYOR (13, 4.3).**
+> ✅ **FAZ 3'ÜN ENVANTERİ KAPANDI — 11/11 (Faz 3.6); FAZ 4 ONU BÜYÜTÜYOR (13 → 4.3, 15 → 4.5).**
 > Sayı gözle sayılmıyor:
 > `packages/db/integration/schema-constraints.itest.ts` gerçek
 > `information_schema`'dan okuyup tablo adlarını tek tek iddia ediyor,
 > `round-trip.itest.ts` aynı listeyi çevrimin iki ucunda karşılaştırıyor ve
 > **3.10'dan itibaren** `er-diagram.itest.ts` sayıyı bu belgenin metninden de
 > okuyup katalogla karşılaştırıyor.
-> ⏳ **Faz 4'ün kalan dokuz master tablosu 4.5–4.7'de gelecek** (ROADMAP, SAPMA-030).
+> ⏳ **Faz 4'ün kalan yedi master tablosu 4.6–4.7'de gelecek** (ROADMAP, SAPMA-030).
 > Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` ·
 > `0002_club_core` · `0003_visual_assets_referees` · `0004_search_indexes` ·
-> `0005_people_players` — **altısının da elle yazılmış `down`u var**.
+> `0005_people_players` · `0006_forward_person_fks` · `0007_player_attributes` ·
+> `0008_person_type_referee` — **dokuzunun da elle yazılmış `down`u var**.
+> ⚠️ **4.5 tek alt görevde İKİ migration yazdı** ve bu bir iddia ayrımı kararı:
+> `0007` iki tablo yaratıp `players`a iki kısıt ekliyor, `0008` yalnızca
+> `people`ın CHECK tanımını genişletiyor (G-18). Birleştirilselerdi birinin
+> fazla giden bir `down`u diğerinin arkasında saklanabilirdi (§3.1.2 ⑤'in
+> kendi notu). Gerekçenin tamamı `drizzle/down/0008_person_type_referee.sql`
+> başlığında.
 
 ## Yabancı anahtarlar — bir LİSTE değil, bir KURAL (3.9)
 

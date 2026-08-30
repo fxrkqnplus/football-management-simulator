@@ -134,17 +134,18 @@ afterAll(async () => {
 }, 60_000);
 
 describe('ölçümün ZEMİNİ — hangi hacim, hangi istatistik', () => {
-  it('seed hacmi: 2 tablo dolu, 11 tablo BOŞ', async () => {
+  it('seed hacmi: 2 tablo dolu, 13 tablo BOŞ', async () => {
     const rows = await executor.rows<{ table_name: string; n: string }>(`
       SELECT c.relname AS table_name,
              (SELECT count(*)::text FROM pg_class x WHERE x.oid = c.oid) AS n
         FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
        WHERE ns.nspname = 'public' AND c.relkind = 'r'
     `);
-    // 🆕 4.3: 11 → 13 (`people` + `players`). Sayı açıkça yazılı ve yeni bir
-    // migration geldiğinde kırılması İSTENEN davranış — ölçümün zemini
+    // 🆕 4.3: 11 → 13 (`people` + `players`) · 4.5: 13 → 15
+    // (`player_attributes` + `player_hidden_attributes`). Sayı açıkça yazılı ve
+    // yeni bir migration geldiğinde kırılması İSTENEN davranış — ölçümün zemini
     // (hangi tablolar dolu, hangileri boş) sessizce kaymamalı.
-    expect(rows).toHaveLength(13);
+    expect(rows).toHaveLength(15);
 
     const counts = await executor.rows<{ tablo: string; n: string }>(`
       SELECT 'countries' AS tablo, count(*)::text AS n FROM "countries"
