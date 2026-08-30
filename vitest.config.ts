@@ -148,6 +148,20 @@ export default defineConfig({
           include: ['*.test.mjs'],
         },
       },
+      {
+        // `PreToolUse` kancasının kendi testleri (Faz 4.6).
+        //
+        // ⚠️ Testlerin bir kısmı kancayı ALT SÜREÇ olarak çalıştırıyor
+        // (`stdin`de JSON, çıkış kodu okunuyor) — birim testi kablolamayı
+        // kanıtlamaz (Faz 2.3b). Alt süreç başlatma varsayılan 5 sn'ye
+        // sığıyor, ayrı bir `testTimeout` gerekmedi (ölçüldü).
+        test: {
+          name: 'bash-text-guard',
+          root: './tools/bash-text-guard',
+          environment: 'node',
+          include: ['*.test.mjs'],
+        },
+      },
     ],
 
     coverage: {
