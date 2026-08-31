@@ -96,8 +96,13 @@ const SCHEMA_DOC = fileURLToPath(new URL('../../../docs/schema/world.md', import
 // (`players` · `competitions` · `clubs`). İki sayının ayrı olmasının değeri
 // burada yine görünüyor: tablo başına FK sayısı sabit DEĞİL, yani tek bir
 // "büyüklük" sayısı bu değişimi doğru anlatamazdı.
-const EXPECTED_TABLE_COUNT = 18;
-const EXPECTED_FOREIGN_KEY_COUNT = 26;
+// 🆕 4.7: 18 → 22 tablo, 26 → 32 FK. Dört tablo ve **altı** FK — `staff` ve
+// `managers` ikişer (`people` + `clubs`), iki nitelik tablosu birer. FK/tablo
+// oranı yine sabit değil: 4.6'da üç tablo beş FK getirmişti, burada dört tablo
+// altı. Tek bir "büyüklük" sayısı bu değişimi doğru anlatamazdı.
+// **Faz 4'ün on bir master tablosu bu alt görevle kapandı.**
+const EXPECTED_TABLE_COUNT = 22;
+const EXPECTED_FOREIGN_KEY_COUNT = 32;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;

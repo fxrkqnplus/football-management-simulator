@@ -215,7 +215,7 @@ describe('migrateDown — gerçek Postgres', () => {
     );
 
     expect(result.dryRun).toBe(true);
-    // `countries` iki satırla, diğerleri boş: yapısal kayıp ON SEKİZ tabloda da
+    // `countries` iki satırla, diğerleri boş: yapısal kayıp YİRMİ İKİ tabloda da
     // var, satır riski yalnızca `countries`te. Liste açıkça yazılıyor —
     // burada test edilen şey "koşucunun davranışı" değil "şemanın içeriği"
     // (ayrım `integration/fixtures.ts` başlığında). Bu liste her yeni
@@ -229,6 +229,11 @@ describe('migrateDown — gerçek Postgres', () => {
       { kind: 'table', table: 'countries', rowsAtRisk: 2 },
       { kind: 'table', table: 'federations', rowsAtRisk: 0 },
       { kind: 'table', table: 'kit_templates', rowsAtRisk: 0 },
+      // 🆕 Faz 4.7 — `0010`un dört tablosu; dördü de boş. Bu dosya `people`a hiç
+      // hakem YAZMADIĞI için `0008`in engeline takılmıyor; gerekçe dosya
+      // başlığındaki uyarıda.
+      { kind: 'table', table: 'manager_attributes', rowsAtRisk: 0 },
+      { kind: 'table', table: 'managers', rowsAtRisk: 0 },
       // 🆕 Faz 4.3 — `0005`in iki tablosu; ikisi de boş, satır riski yok.
       { kind: 'table', table: 'people', rowsAtRisk: 0 },
       // 🆕 Faz 4.5 — `0007`nin iki tablosu; ikisi de boş.
@@ -242,6 +247,8 @@ describe('migrateDown — gerçek Postgres', () => {
       { kind: 'table', table: 'referees', rowsAtRisk: 0 },
       { kind: 'table', table: 'rivalries', rowsAtRisk: 0 },
       { kind: 'table', table: 'stadiums', rowsAtRisk: 0 },
+      { kind: 'table', table: 'staff', rowsAtRisk: 0 },
+      { kind: 'table', table: 'staff_attributes', rowsAtRisk: 0 },
     ]);
     // Rapor gerçek veriye dayandı — ve tablo hâlâ duruyor.
     expect(await tableExists('countries')).toBe(true);

@@ -71,6 +71,13 @@
       "when": 1788090451329,
       "tag": "0009_player_positions_traits_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788194648243,
+      "tag": "0010_staff_managers",
+      "breakpoints": true
     }
   ]
 }

@@ -68,6 +68,25 @@ Yukarıdaki özet bu bölüm olmadan da anlaşılır olmalı.]
   DEĞİŞTİRDİĞİM dosyalara baktı mı?"*
 - Bir alt görev 🟢 ise ve kullanıcı "devam" derse sıradakine geçilir — tekrar
   plan sunulmaz, plan zaten `docs/ROADMAP.md`'de onaylıdır.
+- **Şemaya dokunan bir alt görevde KAYIT adımı şunu da sorar: *"mutasyon serisi
+  `docs/spec/09-quality-protocol.md` §11.5'teki tabloya İŞLENDİ mi?"*** Ölçümü
+  yapmak yetmiyor; serinin **yaşadığı yere** yazılması gerekiyor.
+
+### ⚠️ MUTASYON SERİSİ KAYDININ KENDİSİ BAYATLADI (Faz 4.7'de bulundu)
+
+**Ödenmiş bedel.** 4.6 mutasyon serisini koşturdu ve **27 / 230** ölçtü; sayı
+ANLIK DURUM'a ve 4.6'nın raporuna yazıldı. Ama serinin **kalıcı yeri**
+`spec/09` §11.5'teki tablo ve oraya **işlenmedi** — 4.7'de ölçüldü: dosyanın
+tamamında `4.6` → **0 eşleşme**. Seri 4.5'te (`26 / 216`) donmuş görünüyordu.
+
+**Sınıf tanıdık:** *"envanterler kör kalmaz, ama GÜNCELLENMEZSE bayatlar"* (F1).
+Ve çare bir kez daha yazmak değil, **kontrol eden bir adım** — SAPMA-033'ün
+dersi: *"bir kuralın kontrol eden adımı yoksa, ateşlendiğinde hiçbir şey
+olmaz."* Yukarıdaki madde o adımdır.
+
+ℹ️ Aynı sınıfın akrabaları: `SPEC-COVERAGE-GAPS` ↔ ROADMAP tutarlılık kontrolü
+(4.11'de koşan bir adım), `SESSION-TEMPLATE` §0.5 süre ölçümü (4.1'de eklendi),
+`bash-text-guard` kancası (4.6'da yazıldı, kablolaması 4.7'de doğrulandı).
 
 ### ⚠️ ONAY BEKLEYEN İÇERİK RAPORUN İÇİNDE YAŞAR (Faz 4.0b'de eklendi)
 

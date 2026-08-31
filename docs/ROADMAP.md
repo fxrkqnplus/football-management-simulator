@@ -1914,10 +1914,53 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       `bash-text-guard` kancası yazıldı** (kendi commit'i) — ORTAM TUZAKLARI ⑤'in
       ateşlendiği anda görünür hâli, SAPMA-033'ün sınıfı.
       → `docs/reports/faz-04/4.6-mevki-yetenek-istatistik.md`
-- [ ] **4.7** **`staff` + `staff_attributes` + `managers` + `manager_attributes`**
+- [x] **4.7** **`staff` + `staff_attributes` + `managers` + `manager_attributes`**
       (**`0010`**) — `staff.role` **CHECK** (12 değer). → kriter 1, 6
-      ⚠️ **§0.5 KONTROL NOKTASI:** burada geçen gün sayısı **ölçülür ve raporlanır**;
-      iki günü aştıysa 4.8–4.11 **Faz 4b** olarak ayrılır ve ROADMAP'e yazılır.
+      **SONUÇ:** envanter **18 → 22 tablo**, FK **26 → 32**. **Faz 4'ün on bir master
+      tablosu KAPANDI** (11 Faz 3 + 11 Faz 4). FK kuralı KOŞTURULDU → **6/6**
+      (CASCADE ×4 + SET NULL ×2), üretilen SQL'in `ON DELETE` satırlarıyla
+      karşılaştırıldı. 🆕 **Karar bir KARŞI-ÖLÇÜMLE desteklendi:** `staff`/`managers`
+      §3.1.0 sütunlarını taşısaydı altı FK'nın **dördü** RESTRICT'e dönerdi.
+      🆕 **§3.1.2 ②'nin ayracı bu alt görevde BEŞ kez koştu, iki cevap verdi:**
+      `role` (12) · `coaching_badge` (5) · `experience_level` (5) **CHECK aldı**;
+      `philosophy` **almadı** (küme `...` ile açık uçlu) ve `reputation` (0-200)
+      almadı (kalibrasyon). Envanterler **`spec/01`'den SAYILDI** — `spec/02`'de
+      `staff`/`manager` **0 eşleşme** (ölçüldü). `comparedFacts` **3.570 → 4.205**
+      (testin reddettiği çıktıdan okundu). 🆕 **Kod işinden ÖNCE `0008`in sınırı
+      bir sarmalayıcıya taşındı** (`migrateDownPastRefereeCheck`, kendi commit'i):
+      22 gerçek zincir çağrısı sarmalayıcıya geçti, 17 elle daraltma satırı silindi,
+      sınırın kendi testi **ham** `migrateDown` ile duruyor.
+      → `docs/reports/faz-04/4.7-personel-menajerler.md`
+      ⚠️ **§0.5 KONTROL NOKTASI ATEŞLENDİ — ölçüm ve sonucu aşağıdaki blokta.**
+
+> ### ⚠️ §0.5 KONTROL NOKTASI SONUCU — FAZ 4a / 4b AYRIMI (4.7'de ölçüldü)
+>
+> Kontrol noktası **iki kez** ölçtü ve ikinci ölçüm eşiği aştı:
+>
+> | Ölçüm anı | Geçen süre | Eşik (2 gün) |
+> |---|---|---|
+> | 4.7'nin **başı** (2026-08-31 03:34 +03) | **1,941 gün** | aşılmadı |
+> | 4.7'nin **kapanışı** (2026-08-31 20:11 +03) | **2,633 gün** | ✅ **AŞILDI** |
+>
+> Kaynak `git show -s` ile ölçüldü: Faz 4'ün ilk commit'i **`0682c5f`**
+> (2026-08-29 05:00:19 +0300). §0.5'in asıl sınırı **3 gün** ve ona hâlâ mesafe
+> var, ama kontrol noktasının eşiği **2** ve o aşıldı.
+>
+> **KARAR — kural uygulandı, çizgi zaten hazırdı:**
+>
+> - **Faz 4a** = 4.0 → **4.7** (şema) — ✅ **TAMAMLANDI.** On bir master tablo,
+>   altı migration (`0005`…`0010`), envanter kapandı.
+> - **Faz 4b** = **4.8 → 4.11** (indeks, seed, kriter 3 ölçümü, kapanış).
+>
+> ⚠️ **Bu bir kapsam değişikliği DEĞİL:** alt görevlerin içeriği, sırası ve
+> kabul kriterleri **aynı**. Değişen tek şey fazın iki kayda bölünmesi.
+> Faz 4'ün **tek PR'ı** ve **tek faz kaydı** 4.11'de yazılır — bölünme
+> `PROJECT_MEMORY` faz kaydının §1'inde *"4a/4b"* olarak görünür.
+>
+> ⚠️ **VE BU SAPMA-033'ÜN ÇARESİNİN İLK CANLI SONUCU.** Faz 3'te §0.5 ateşledi
+> (4 gün, sınır 3) ve **hiçbir şey olmadı** — çünkü süreyi ölçen bir adım yoktu.
+> Adım 4.1'de eklendi, 4.7'de koştu, ve bu kez **bir kaydı değiştirdi**.
+> *"Bir kuralın kontrol eden adımı yoksa, ateşlendiğinde hiçbir şey olmaz."*
 - [ ] **4.8** **Transfer arama indeksleri** (**`0011`**) — kapsam `spec/01`'in indeks
       satırından **değil** kriter 3'ün sorgusundan türetilir (o satır iki tabloyu
       karıştırıyor, 4.0'da ölçüldü). → kriter 3 hazırlığı
@@ -1954,6 +1997,11 @@ bir değer yazılır, gerçek çıktıdan okunur.
 Faz 3 de değildi ve **4 gün sürdü** (§0.5 sınırı 3). 4.7'nin kontrol noktası bu yüzden
 var: bölünme tahminle değil **ölçümle** kararlaştırılır. Çizgi hazır:
 **4a** = 4.1–4.7 (şema) · **4b** = 4.8–4.11 (indeks, seed, ölçüm, kapanış).
+
+> ✅ **VE ÖLÇÜM KOŞTU: BÖLÜNME UYGULANDI (4.7).** Kontrol noktası 4.7'nin
+> kapanışında **2,633 gün** ölçtü (başında 1,941 idi) → eşik aşıldı → **4a
+> kapandı, 4b açıldı**. Ayrıntı ve iki ölçüm 4.7'nin altındaki blokta.
+> **Tahmin listesi bu fazı işaretlememişti; onu yakalayan şey ölçüm oldu.**
 
 ---
 

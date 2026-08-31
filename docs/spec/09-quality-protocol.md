@@ -546,6 +546,52 @@ tarifi değil (4.2'de ölçülerek bulundu):
 | **4.3** | **13 tablo** (`people` + `players`) | **20 / 178** | %11,2 ⬇ |
 | **4.4** | 13 tablo + **3 ileri FK** (`0006`) | **25 / 190** | **%13,2** ⬆ |
 | **4.5** | **15 tablo** + 57 nitelik sütunu + 2 CHECK (`0007`+`0008`) | **26 / 216** | %12,0 ⬇ |
+| **4.6** | **18 tablo** + ilk **bileşik PK**'ler (`0009`) | **27 / 230** | %11,7 ⬇ |
+| **4.7** | **22 tablo** + 3 CHECK (`0010`) | **27 / 241** | %11,2 ⬇ |
+
+> ⚠️ **4.6 SATIRI 4.7'YE KADAR EKSİKTİ — VE BU SERİNİN KENDİ DERSİ.**
+> Ölçüm 4.6'da yapıldı (**27 / 230**), ANLIK DURUM'a ve alt görev raporuna
+> yazıldı, ama **serinin yaşadığı yer olan bu tabloya işlenmedi**; 4.7'de
+> ölçüldü (dosyanın tamamında `4.6` → 0 eşleşme) ve iki satır birlikte eklendi.
+>
+> Sınıf tanıdık: *"envanterler kör kalmaz, ama GÜNCELLENMEZSE bayatlar"* (F1).
+> Çare bir kez daha yazmak değil, **kontrol eden bir adım** — `OUTPUT-FORMAT`ın
+> kurallarına *"şemaya dokunan bir alt görevde mutasyon serisi §11.5'e işlendi
+> mi?"* maddesi 4.7'de eklendi (SAPMA-033'ün deseni).
+
+> ✅ **4.7'DE PAY SABİT KALDI: 27 — VE BU ALARM DEĞİL, ÇÜNKÜ SEBEBİ ÖLÇÜLDÜ.**
+>
+> Kuralın tam hâli: **alarm *"sabit pay"* değil, *"AÇIKLANAMAYAN sabit pay"***.
+> Payı artıran şey bir **fark bekleyen** testtir ve önceki üç artışın üçü de
+> şemaya yeni bir **olgu türü ya da yapı** girdiği için mümkün oldu
+> (4.3 `udtName` · 4.5 `constraint.definition` · 4.6 bileşik PK). `0010` böyle
+> bir şey getirmiyor ve bu **sayılarak** gösterildi:
+>
+> | Ölçüm | `0010` | Zincirde 0000–0009 arasında |
+> |---|---|---|
+> | `serial` | var | 12 eşleşme |
+> | `integer` | var | 63 |
+> | `text` | var | 46 |
+> | `smallint` | var | 83 |
+> | `boolean` | var | **2** |
+> | `text[]` | var | **1** (`people.person_type`) |
+> | `timestamp with time zone` | var | 36 |
+> | **bileşik PK** | **0** | 0009'un sınıfı |
+> | **indeks** | **0** | 4.8'in işi |
+>
+> Yani `0010`un getirdiği **yedi tipin yedisi de** zincirde zaten vardı ve
+> karşılaştırıcının okuduğu alan listesinin genişlemesi gerekmedi. Üç CHECK
+> `constraint.definition` olgusunu kullanıyor ve onun negatif testi 4.5'te
+> yazılmıştı (`④ SESSİZ bozuk down (KISIT TANIMI)`).
+>
+> ⚠️ **Ve yeni çevrim testi paya KATKI YAPMADI — §11.5'in başındaki ölçümün
+> dördüncü tekrarı.** `0010`un çevrim testi `differences: []` iddia ediyor,
+> yani **boş** bir envanter; körelen karşılaştırıcı tam olarak onu üretiyor.
+> *"Migration yazdım, round-trip testi ekledim"* tek başına payı artırmaz.
+>
+> Oran %11,7 → %11,2 **düştü** çünkü payda 230 → 241 büyüdü (11 yeni test, çoğu
+> `compareSchemas`ı hiç çağırmayan davranış/CHECK testleri). Okuma kuralı gereği
+> bakılan sütun **pay**: 27 → 27, ve **sabit kalması açıklanabilir**.
 
 > ⚠️ **MUTASYONUN TARİFİ DE BİR İDDİADIR — 4.2'de ölçülerek bulundu (D2).**
 > Yukarıdaki başlık mutasyonu *"`compareSchemas` → her zaman `identical: true`"*

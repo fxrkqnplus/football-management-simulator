@@ -33,6 +33,42 @@ başlangıçtakiyle **birebir** aynı mı? Veri yazma adımı bilerek ortada: bo
 veritabanında `down` çalışıyormuş gibi görünen çok sayıda hata, dolu bir tabloda
 `NOT NULL` veya `FOREIGN KEY` yüzünden patlar.
 
+### İKİ `down` HATA SINIFI — ve ikisi de SESSİZ olabilir (Faz 4.7'de ayrıştırıldı)
+
+Bir `down` iki yönde yanlış olabilir ve bu belge uzun süre yalnızca birini
+adlandırıyordu:
+
+| Sınıf | Ne yapıyor | Örnek |
+|---|---|---|
+| **Fazla giden `down`** | Bu migration'ın **yaratmadığı** nesneleri de götürüyor | `DROP TABLE … CASCADE` (§3.1.2 ⑦), bir `down`un fazladan bir tabloyu düşürmesi |
+| **Eksik kalan `down`** | `up`ın yarattığı bir şeyi geri **almıyor** ya da **dar** geri koyuyor | Bir CHECK'i daraltarak geri koymak, bileşik bir PK'yi tek sütunlu yazmak |
+
+⚠️ **3.2b bu ikisini ayırırken birincisini *sessiz*, ikincisini *gürültülü*
+saymıştı. Faz 4.6'nın ölçümü bunun KOŞULLU olduğunu gösterdi.**
+
+Sezgi şöyle diyor: *"eksik kalan bir `down`u sonraki `up` yakalar."* Bu yalnızca
+`up`ın **geri kazanamadığı fiziksel bir artık** varsa doğru:
+
+- **Gürültülü olan vaka — `0006`.** `down` sütunu düşürüyor, `up` yeniden
+  ekliyor, ama `pg_attribute.attnum` **geri gelmiyor** (§3.1.2 ⑤). Kayma
+  görünüyor çünkü `attnum` bir **artık**: `up` onu yeniden üretmiyor, PostgreSQL
+  veriyor.
+- **Sessiz olan vaka — bir KISIT TANIMI.** `0008`in `up`ı `DROP CONSTRAINT` +
+  geniş listeyle `ADD CONSTRAINT` yapıyor, yani kısıtı **`down`un ne yaptığından
+  bağımsız olarak** tam geri getiriyor. `down` kısıtı dar geri koysaydı bile
+  `up` sonrası şema doğru görünürdü — ve ayrışmayı **yalnızca** geri alınmış
+  şemayı snapshot N−1 ile karşılaştıran bir ölçüm yakalar.
+
+**Kural:** bir `down` yazılırken sorulacak soru *"eksik mi fazla mı"* değil,
+***"bu eseri `up` yeniden üretiyor mu, yoksa geriye bir artık mı bırakıyor?"***
+Cevap *"yeniden üretiyor"* ise hata **sessizdir** ve onu ancak `down` sonrası
+şemayı ölçen bir test görür — sonraki `up` görmez.
+
+ℹ️ Bu ayrımın koşan hâli `packages/db/integration/round-trip.itest.ts`teki
+*"SESSİZ bozuk down"* testleridir (fazla giden · dizi eleman tipi · kısıt tanımı
+· bileşik PK) ve her biri şemaya **yeni bir olgu türü ya da yapı** girdiğinde
+yazıldı. Yenisi girdiğinde listeye bir tane daha eklenir.
+
 ### `drizzle-kit` `down` migration ÜRETMEZ — ölçüldü (Faz 3.0)
 
 `drizzle-kit@0.31.10` üzerinde ölçüldü, blogdan okunmadı:
@@ -80,9 +116,34 @@ tanımlarının **hiçbirinde üçü de yoktu**. Sonradan eklemek on bir tabloya
 **Bu üç sütunu TAŞIYAN tablolar** — pakette **kendi kaydı olarak görünen** varlıklar:
 `countries` · `competitions` · `clubs` · `stadiums` · `referees` · **`people`** (Faz 4.3)
 
-**TAŞIMAYAN tablolar** — bir sahibine 1:1 bağlı uydular; kimlikleri sahiplerinin
-kimliğidir ve onlara `clubId` (Faz 4'te `personId`) üzerinden erişilir:
-`club_facilities` · `club_finances_base` · `club_kits` · `rivalries` · `federations` · `kit_templates` · **`players`** (Faz 4.3)
+**TAŞIMAYAN tablolar** — bir sahibine bağlı uydular; kimlikleri sahiplerinin
+kimliğidir ve onlara `clubId` / `personId` / `playerId` üzerinden erişilir:
+`club_facilities` · `club_finances_base` · `club_kits` · `rivalries` · `federations` · `kit_templates` · **`players`** (Faz 4.3) ·
+**`staff`** · **`staff_attributes`** · **`managers`** · **`manager_attributes`** (Faz 4.7)
+
+> ⚠️ **DÖRT PERSONEL/MENAJER TABLOSU DA TAŞIMIYOR — KARŞI-ÖLÇÜMLE (Faz 4.7).**
+> Dördü de bu iki listenin **hiçbirinde** yoktu; karar `players` emsalinden ve
+> `fk-policy.ts` **koşturularak** verildi:
+>
+> | Varsayım | Kuralın ürettiği `ON DELETE` (6 FK) |
+> |---|---|
+> | `staff`/`managers` `key` **taşımaz** ← karar | **CASCADE ×4 + SET NULL ×2** |
+> | `staff`/`managers` `key` **taşır** | RESTRICT ×4 + CASCADE ×2 |
+>
+> Dört FK'nın davranışı **tersine dönüyor**. En keskin sonuç `staff.club_id` ve
+> `managers.club_id`: `key` taşınsaydı `SET NULL` yerine **RESTRICT** alırlardı,
+> yani bir kulüp silindiğinde personeli/menajeri **serbest bırakmak yerine silme
+> reddedilirdi**. `spec/01` `clubId`i açıkça *nullable* yazıyor (işsiz personel
+> ve işsiz menajer geçerli durumlar), yani doğru davranış `SET NULL` ve o
+> yalnızca `key` taşınmadığında çıkıyor.
+>
+> Mekanizma yukarıdaki `people` ↔ `players` ölçümünün (20/20 ↔ 17/20) aynısı.
+> Anlam da aynı yeri gösteriyor: pakette kendi kaydı olan varlık **kişidir**;
+> personel ve menajer kayıtları kişinin kimliğinden türüyor — aynı kişi hem
+> oyuncu hem menajer olabiliyor (`personType` bir dizi).
+>
+> ℹ️ Nitelik tabloları (`staff_attributes` · `manager_attributes`) zaten
+> tartışmasız: 1:1 uydular, `player_attributes` deseninin aynısı.
 
 > ⚠️ **`people` TAŞIR, `players` TAŞIMAZ — karar ÖLÇÜLEREK verildi (Faz 4.0b, Karar 3).**
 > İkisi aynı kararın iki yüzü ve fark bir sayı: `key`i **`people`** taşırsa

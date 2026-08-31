@@ -27,7 +27,7 @@ sessizce yalan söylemeye başlar.
 | **Üretici** | `packages/db/src/schema-state/er-diagram.ts` — saf, `SchemaFacts` alır, metin döner |
 | **Girdi** | `introspectSchema()` → gerçek `information_schema` + `pg_catalog` |
 | **Nöbetçi** | `packages/db/integration/er-diagram.itest.ts` (`pnpm test:db`, CI'da amd64 + arm64) |
-| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (18 / 26) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
+| **Ne iddia ediliyor** | ① belgedeki blok, canlı katalogdan üretilen metnin **birebir** aynısı ② belge metninden **sayılan** tablo/ilişki sayısı katalogla **ve** bugünün değerleriyle (22 / 32) aynı ③ **negatif:** blok bozulursa karşılaştırma kırılır |
 
 ⚠️ **Bu blok elle düzenlenmez.** Yeni bir migration burayı bayatlatır ve nöbetçi
 kırılır. **Doğru düzeltme:** testin hata mesajı üretilmiş metnin **tamamını**
@@ -65,22 +65,22 @@ ROADMAP **15** diyordu, `spec/01` §3.1 bu kapsam için **11** tanımlıyordu,
 `PROJECT_MEMORY.md` Faz 2 kaydı §11 **"16 master tablo"** diyordu. Karar tablosu ve
 her satırın gerekçesi `docs/ROADMAP.md` → *Faz 3 — Tablo envanteri*'nde (SAPMA-021).
 
-**Faz 4 bugüne kadar yedi tablo ekledi** ve diyagram başlığındaki sayı (18) o
-yüzden 11'den büyük:
+**Faz 4 on bir tablo ekledi ve envanteri 4.7'de KAPADI** — diyagram başlığındaki
+sayı (22) o yüzden 11'den büyük: 11 (Faz 3) + 11 (Faz 4).
 
 | Alt görev | Tablolar | Migration |
 |---|---|---|
 | 4.3 | `people` · `players` | `0005` |
 | 4.5 | `player_attributes` · `player_hidden_attributes` | `0007` |
 | 4.6 | `player_positions` · `player_traits` · `player_stats_history` | `0009` |
+| **4.7** | **`staff` · `staff_attributes` · `managers` · `manager_attributes`** | **`0010`** |
 
 ⚠️ **Bu tablo bir ENVANTER değil, bir izleme notudur** — koşan envanter
 `round-trip.itest.ts`teki `ALL_TABLES` ve `schema-constraints.itest.ts`teki
 `information_schema` sorgusu. İkisi ayrışırsa **testler** öter, bu satırlar
-değil. Kalan dört master tablo (`staff` · `staff_attributes` · `managers` ·
-`manager_attributes`) 4.7'de.
+değil.
 
-## ER Diyagramı (18 tablo · 26 yabancı anahtar)
+## ER Diyagramı (22 tablo · 32 yabancı anahtar)
 
 ```mermaid
 erDiagram
@@ -95,6 +95,9 @@ erDiagram
     countries |o--o{ competitions : "country_id"
     countries ||--o{ federations : "country_id"
     people |o--o{ federations : "president_person_id"
+    managers ||--o| manager_attributes : "manager_id"
+    clubs |o--o{ managers : "club_id"
+    people ||--o{ managers : "person_id"
     countries ||--o{ people : "nationality_country_id"
     countries |o--o{ people : "second_nationality_country_id"
     players ||--o| player_attributes : "player_id"
@@ -110,6 +113,9 @@ erDiagram
     people ||--o{ referees : "person_id"
     clubs ||--o{ rivalries : "club_a_id"
     clubs ||--o{ rivalries : "club_b_id"
+    staff ||--o| staff_attributes : "staff_id"
+    clubs |o--o{ staff : "club_id"
+    people ||--o{ staff : "person_id"
 
     club_facilities {
         integer club_id PK,FK
@@ -230,6 +236,35 @@ erDiagram
         text name_key
         text svg_path
         smallint color_slots
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    manager_attributes {
+        integer manager_id PK,FK
+        smallint tactical_knowledge
+        smallint motivation
+        smallint player_management
+        smallint youth_development
+        smallint negotiating
+        smallint media_handling
+        smallint training_management
+        smallint judging_ability
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    managers {
+        integer id PK
+        integer person_id FK
+        integer club_id FK "null"
+        boolean is_user_manager
+        text coaching_badge
+        text experience_level
+        text philosophy
+        smallint reputation
+        integer experience_points
+        array spoken_languages
         timestamp_with_time_zone created_at
         timestamp_with_time_zone updated_at
     }
@@ -433,6 +468,37 @@ erDiagram
         smallint pitch_quality
         integer built_year "null"
         text asset_id "null"
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    staff {
+        integer id PK
+        integer person_id FK
+        integer club_id FK "null"
+        text role
+        timestamp_with_time_zone created_at
+        timestamp_with_time_zone updated_at
+    }
+
+    staff_attributes {
+        integer staff_id PK,FK
+        smallint attacking
+        smallint defending
+        smallint fitness
+        smallint goalkeeping
+        smallint technical
+        smallint tactical
+        smallint motivating
+        smallint discipline
+        smallint judging_ability
+        smallint judging_potential
+        smallint physiotherapy
+        smallint sports_science
+        smallint scouting_network
+        smallint adaptability
+        smallint working_with_youngsters
+        smallint negotiating
         timestamp_with_time_zone created_at
         timestamp_with_time_zone updated_at
     }

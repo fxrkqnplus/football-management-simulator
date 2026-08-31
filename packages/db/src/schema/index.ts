@@ -16,6 +16,10 @@ export type { DeleteAction, ForeignKeyFacts, TableClass, TableClassFacts } from 
 export { classifyTable, DELETE_ACTIONS, expectedDeleteAction, TABLE_CLASSES } from './fk-policy.js';
 export type { KitColorSlots } from './kit-templates.js';
 export { KIT_COLOR_SLOTS, kitTemplates } from './kit-templates.js';
+export type { ManagerAttribute } from './manager-attributes.js';
+export { MANAGER_ATTRIBUTES, managerAttributes } from './manager-attributes.js';
+export type { CoachingBadge, ManagerExperienceLevel } from './managers.js';
+export { COACHING_BADGES, MANAGER_EXPERIENCE_LEVELS, managers } from './managers.js';
 export type { Gender, PersonType } from './people.js';
 export { GENDERS, people, PERSON_TYPES } from './people.js';
 export type { VisibleAttribute, VisibleAttributeCategory } from './player-attributes.js';
@@ -31,3 +35,7 @@ export { PLAYER_POSITIONS, players } from './players.js';
 export { referees } from './referees.js';
 export { rivalries } from './rivalries.js';
 export { stadiums } from './stadiums.js';
+export type { StaffRole } from './staff.js';
+export { staff, STAFF_ROLES } from './staff.js';
+export type { StaffAttribute } from './staff-attributes.js';
+export { STAFF_ATTRIBUTES, staffAttributes } from './staff-attributes.js';
