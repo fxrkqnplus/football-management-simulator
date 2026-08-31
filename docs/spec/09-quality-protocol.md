@@ -548,6 +548,7 @@ tarifi değil (4.2'de ölçülerek bulundu):
 | **4.5** | **15 tablo** + 57 nitelik sütunu + 2 CHECK (`0007`+`0008`) | **26 / 216** | %12,0 ⬇ |
 | **4.6** | **18 tablo** + ilk **bileşik PK**'ler (`0009`) | **27 / 230** | %11,7 ⬇ |
 | **4.7** | **22 tablo** + 3 CHECK (`0010`) | **27 / 241** | %11,2 ⬇ |
+| **4.8** | 22 tablo + **2 indeks** (`0011`) | **29 / 251** | **%11,55** ⬆ |
 
 > ⚠️ **4.6 SATIRI 4.7'YE KADAR EKSİKTİ — VE BU SERİNİN KENDİ DERSİ.**
 > Ölçüm 4.6'da yapıldı (**27 / 230**), ANLIK DURUM'a ve alt görev raporuna
@@ -558,6 +559,34 @@ tarifi değil (4.2'de ölçülerek bulundu):
 > Çare bir kez daha yazmak değil, **kontrol eden bir adım** — `OUTPUT-FORMAT`ın
 > kurallarına *"şemaya dokunan bir alt görevde mutasyon serisi §11.5'e işlendi
 > mi?"* maddesi 4.7'de eklendi (SAPMA-033'ün deseni).
+
+> ✅ **4.8'DE PAY ARTTI: 27 → 29 — VE ARTIŞIN KAYNAĞI ADIYLA BELLİ.**
+>
+> 4.7'nin ölçüm tablosu *"indeks | 0 | **4.8'in işi**"* diye bir satır
+> bırakmıştı ve bu turda o satır kapandı. Ama artışın sebebi *"yeni bir olgu
+> türü"* **değil** — bu **ölçüldü, varsayılmadı**:
+>
+> | Soru | Ölçüm |
+> |---|---|
+> | `compareSchemas` indeks tanımını okuyor mu? | **Evet** — `introspect.ts` `pg_indexes.indexdef` çekiyor, `compare.ts` `indexFields` ile `definition`ı karşılaştırıyor |
+> | Zincirde indeks zaten var mıydı? | **Evet** — `0004` dört indeks getirmişti |
+> | Sessiz `down` sınıfının nöbetçisi var mıydı? | **Evet** — 3.7 üç `DROP INDEX` vakasını bozulma tablosuna yazmıştı |
+>
+> Yani `IndexFacts` yeni bir **olgu türü değil** ve 4.3/4.5/4.6'nın deseni
+> (*"yeni tip ailesi ya da yapı → negatif test"*) burada **uygulanmıyor**.
+> Payı artıran şey, `0011`in iki indeksinin **var olan** bozulma tablosuna
+> eklenmesi: o satırların her biri `identical: false` **bekliyor**, yani körelen
+> karşılaştırıcı ikisini de kırıyor. **+2, ve ikisi de kırılan test listesinde
+> adıyla göründü.**
+>
+> ⚠️ **Aynı alt görevin diğer iki testi paya HİÇ katkı yapmadı** — 4.5'in
+> dersinin beşinci tekrarı: `0011`in çevrim testi `differences: []` iddia ediyor
+> (**boş** envanter, mutasyonun ürettiği değerin ta kendisi) ve sıfır kayıp
+> testi `compareSchemas`ı hiç çağırmıyor. **Payı artıran şey bir FARK
+> BEKLEMESİDİR.**
+>
+> ℹ️ Oran da yükseldi (%11,2 → **%11,55**) çünkü payda yalnızca 241 → 251
+> büyürken pay 27 → 29 çıktı. 4.4'ten beri oranın payla birlikte ilk yükselişi.
 
 > ✅ **4.7'DE PAY SABİT KALDI: 27 — VE BU ALARM DEĞİL, ÇÜNKÜ SEBEBİ ÖLÇÜLDÜ.**
 >

@@ -242,7 +242,21 @@ describe('⚠️ İNDEKSİN VARLIĞI YETMEZ — PLANLAYICI ONU SEÇİYOR MU (D3)
     expect(plan).not.toContain('clubs_name_trgm_idx');
   });
 
-  it('dört indeksin dördü de gerçekten yaratıldı', async () => {
+  /**
+   * ⚠️ **BU ENVANTER 4.8'DE ÖTTÜ — VE ÖTMESİ İSTENEN ŞEY TAM OLARAK BUYDU.**
+   *
+   * 3.7'de yazıldığında dört indeks vardı ve iddia *"dördü de yaratıldı"*
+   * biçimindeydi. `0011` iki indeks daha getirince test kırıldı: sorgu
+   * `LIKE '%_idx'` ile **şemanın tamamını** tarıyor, yani envanter 3.7'nin
+   * indeksleriyle sınırlı değil ve hiç öyle olmadı.
+   *
+   * Bu, F1'in çalışan hâli: *"özetler körlenebilir, envanterler kör kalmaz"* —
+   * bir sonraki faz indeks eklediğinde bu satır **kendiliğinden** ötüyor ve
+   * eklemenin bilinçli olduğu görünür hâle geliyor. Liste güncellendi,
+   * daraltılmadı (`AND tablename IN (…)` yazmak testi 3.7'nin kendi
+   * indekslerine kilitlerdi ve gelecekteki eklemeler sessiz kalırdı).
+   */
+  it('altı indeksin altısı da gerçekten yaratıldı — 3.7`nin dördü + 4.8`in ikisi', async () => {
     const rows = await executor.rows<{ indexname: string }>(`
       SELECT indexname FROM pg_indexes
        WHERE schemaname = 'public' AND indexname LIKE '%_idx'
@@ -252,6 +266,11 @@ describe('⚠️ İNDEKSİN VARLIĞI YETMEZ — PLANLAYICI ONU SEÇİYOR MU (D3)
       'clubs_competition_id_idx',
       'clubs_name_trgm_idx',
       'competitions_country_id_idx',
+      // 🆕 4.8 — transfer aramasının zemini (`0011`). Tanımları ve gerekçesi
+      // `schema-constraints.itest.ts` ile `src/schema/transfer-search.ts`te;
+      // burada yalnızca **var oldukları** iddia ediliyor.
+      'people_birth_date_idx',
+      'players_primary_position_current_ability_idx',
       'rivalries_pair_unique_idx',
     ]);
   });

@@ -63,6 +63,7 @@ import { createFileMigrationSource } from '../src/migrate/file-source.js';
 import { createPostgresExecutor } from '../src/migrate/postgres-executor.js';
 import type { DownOptions, DownResult, MigrationSource } from '../src/migrate/runner.js';
 import { migrateDown, migrateUp } from '../src/migrate/runner.js';
+import { TRANSFER_SEARCH_INDEXES } from '../src/schema/transfer-search.js';
 import { compareSchemas, summarizeDifferences } from '../src/schema-state/compare.js';
 import {
   compareSnapshotToReal,
@@ -99,7 +100,7 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 /** Zincirin son migration'ı — snapshot karşılaştırması bunu okur. */
-const LATEST_SNAPSHOT = '0010_snapshot.json';
+const LATEST_SNAPSHOT = '0011_snapshot.json';
 const CHAIN_TAGS = [
   '0000_countries_initial',
   '0001_geography_institutions',
@@ -129,6 +130,18 @@ const CHAIN_TAGS = [
   // CASCADE'siz `DROP TABLE` yanlış sırada reddedilir. Gerekçe
   // `drizzle/down/0010_staff_managers.sql` başlığında.
   '0010_staff_managers',
+  // 🆕 4.8 — iki indeks, HİÇ SÜTUN YOK. Zincirin `0004`ten sonraki ilk
+  // indeks-only migration'ı ve **`0004`ten yapısal olarak farkı var**: orada
+  // uzantı + fonksiyon + indeks üç katmanlı bir bağımlılık zinciri kuruyordu ve
+  // `down`un sırası zorunluydu; burada iki indeks birbirine bakmıyor.
+  //
+  // ⚠️ **VE BU MIGRATION #23'ÜN KAYBOLAN SINIFINI GERÇEK ZİNCİRE GERİ
+  // GETİRİYOR: SIFIR KAYIP.** `loss.ts` yalnızca `table` ve `column` kaybı
+  // sayıyor (ölçüldü), bir indeksin düşmesi ne tablo ne sütun — yani
+  // `stepsBackTo('0011…')` `allowDataLoss` verilmeden geçiyor. 4.5'te `0008` bu
+  // sınıfın tek örneğiydi, `0009` onu erişilemez yaptı ve vaka bir
+  // `fixtureChain` ile korunmuştu; bugün gerçek zincirde yeniden ölçülebilir.
+  '0011_transfer_search_indexes',
 ] as const;
 
 /** Zincirin tamamını geri almak için gereken adım sayısı. */
@@ -306,9 +319,18 @@ const PHASE_3_TABLES = [
  * **466**, 3.5'te sekiz tabloda **1.223**, 3.6'da on bir tabloda **1.619**,
  * 3.7'de dört indeksle **1.627**, 4.3'te on üç tabloda **2.204**, 4.4'te üç yeni
  * sütun ve üç yeni FK ile **2.243**, 4.5'te iki yeni tablo ve 57 yeni sütunla
- * **3.023**, 4.6'da üç yeni tablo ve 42 yeni sütunla **3.570**. Sınır
+ * **3.023**, 4.6'da üç yeni tablo ve 42 yeni sütunla **3.570**, 4.7'de dört
+ * yeni tablo ve 48 yeni sütunla **4.205**, 4.8'de iki indeksle **4.209**. Sınır
  * yükseltilmezse test "fark yok" demeye devam eder ama **kaç şeye baktığı**
  * sabitlenmemiş olur — D3.
+ *
+ * ℹ️ **4.8'in artışı +4 ve 3.7'nin emsaliyle BİREBİR tutuyor.** Aşağıda
+ * 3.7 için *"dört indeks olgusu (ad + tanım) → +8"* yazılı, yani indeks başına
+ * **iki** olgu; 4.8 iki indeks getiriyor → **+4**. Sayı yine ölçüldü (sınır
+ * `9_999_999`a kondu, gerçek değer testin reddettiği çıktıdan okundu) ve
+ * **sonra** emsalle karşılaştırıldı — ters sırada yapılsaydı bu bir tahmin
+ * olurdu. Sıfır sütun, sıfır tablo, sıfır kısıt: `0011` şemaya yalnızca indeks
+ * ekliyor.
  *
  * ℹ️ **4.6'nın artışı +547 ve 4.5'inkinden (+780) KÜÇÜK — sütun sayısı öyle
  * diyor.** 4.5 63 yeni sütun getirdi (57 nitelik + 2 `player_id` + 4 zaman
@@ -347,7 +369,7 @@ const PHASE_3_TABLES = [
  * erişilemeyecek bir değere (`9_999_999`) konur ve gerçek değer testin
  * reddettiği çıktıdan okunur. **Tahmin hiç yazılmaz.**
  */
-const COMPARED_FACTS_FLOOR = 4_205;
+const COMPARED_FACTS_FLOOR = 4_209;
 
 /**
  * `0006`NIN ÇEVRİMDE BIRAKTIĞI `attnum` KAYMALARI — §3.1.2 ⑤.
@@ -1027,7 +1049,7 @@ async function migrateDownPastRefereeCheck(options: DownOptions): Promise<DownRe
   return migrateDown({ executor, source, logger }, options);
 }
 
-describe('round-trip — gerçek migration zinciri (0000 → 0010)', () => {
+describe('round-trip — gerçek migration zinciri (0000 → 0011)', () => {
   it('up → YİRMİ İKİ tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
@@ -1090,6 +1112,76 @@ describe('round-trip — gerçek migration zinciri (0000 → 0010)', () => {
     expect(comparison.differences).toEqual([]);
     expect(comparison.identical).toBe(true);
     expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
+  });
+
+  /**
+   * 0011 TEK BAŞINA — `identical: true` **BEKLENİYOR**, ve kayma sınıfı bu kez
+   * daha da dar: **saf `CREATE INDEX`**, hiçbir sütun eklenmiyor.
+   *
+   * §3.1.2 ⑤'in ayracı 4.5'te ayrışmıştı: kayma bir `ALTER`dan değil **sütun
+   * ekleme/düşürmeden** geliyor. `0011` şemaya sütun eklemiyor, yani `attnum`
+   * hiç kıpırdamıyor — `0004`ün emsali birebir.
+   */
+  it('yalnızca 0011 geri alınınca şema BİREBİR aynı — SAF CREATE INDEX, kayma YOK', async () => {
+    await migrateUp({ executor, source, logger });
+    const before = await introspectSchema(executor);
+
+    await seedAllTables();
+
+    await migrateDownPastRefereeCheck({ steps: stepsBackTo('0011_transfer_search_indexes') });
+
+    // Tablo envanteri DEĞİŞMİYOR — bir indeks migration'ı tablo düşürmez ve
+    // `down`un fazla gitmesi (bir tabloyu da götürmesi) burada görülürdü.
+    const rolledBack = await introspectSchema(executor);
+    expect(rolledBack.tables.map((table) => table.name).sort()).toEqual([...ALL_TABLES]);
+
+    // İki indeks GERÇEKTEN düştü — envanter değişmediği için tek kanıt bu.
+    const droppedIndexNames = rolledBack.tables.flatMap((table) =>
+      table.indexes.map((entry) => entry.name),
+    );
+    expect(droppedIndexNames).not.toContain(TRANSFER_SEARCH_INDEXES.peopleBirthDate);
+    expect(droppedIndexNames).not.toContain(TRANSFER_SEARCH_INDEXES.playersPositionAbility);
+
+    await migrateUp({ executor, source, logger });
+
+    const after = await introspectSchema(executor);
+    const comparison = compareSchemas(before, after);
+
+    expect(comparison.differences).toEqual([]);
+    expect(comparison.identical).toBe(true);
+    expect(comparison.comparedFacts).toBeGreaterThanOrEqual(COMPARED_FACTS_FLOOR);
+  });
+
+  /**
+   * ⚠️ **0011'İN KAYIP SINIFI: SIFIR — VE BU SINIF ZİNCİRE GERİ DÖNDÜ.**
+   *
+   * Günlük #23: 4.5 `0008`i *"`loss.ts`in dördüncü sınıfı: sıfır kayıp,
+   * zincirde ilk"* diye ölçmüştü; `0009` zincirin üstüne eklenince
+   * `stepsBackTo('0008')` iki adım oldu ve gerçek zincirde **sıfır kayıp
+   * üreten hiçbir geri alma kalmadı**. Sınıf bozulmadı, **erişilemez** oldu ve
+   * bir `fixtureChain` ile korundu.
+   *
+   * `0011` onu gerçek zincire geri getiriyor: `loss.ts` yalnızca `table` ve
+   * `column` kaybı sayıyor, bir indeksin düşmesi ikisi de değil. Yani bu geri
+   * alma `allowDataLoss` **verilmeden** geçmeli.
+   *
+   * ⚠️ Ve burada iddia edilen şey *"kayıp yok"*tan fazlası: bayrağın
+   * **gerekmediği** de iddia ediliyor. Testin `allowDataLoss: true` ile
+   * yazılması aynı sonucu verirdi ve **hiçbir şey kanıtlamazdı** — koruma
+   * ısırmadığında da geçerdi.
+   */
+  it('0011 SIFIR kayıp üretiyor — geri alma bayraksız GEÇİYOR', async () => {
+    await migrateUp({ executor, source, logger });
+    await seedAllTables();
+
+    // Bayrak YOK: bir kayıp olsaydı burası `migration.downWouldLoseData` ile
+    // reddedilirdi (0010'un dört tablosunda tam olarak o oluyor).
+    const result = await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0011_transfer_search_indexes'),
+      dryRun: true,
+    });
+
+    expect(result.loss.items).toEqual([]);
   });
 
   /**
@@ -2078,6 +2170,20 @@ describe('round-trip — gerçek migration zinciri (0000 → 0010)', () => {
     ['clubs', 'DROP INDEX "clubs_name_trgm_idx"', 'clubs_name_trgm_idx'],
     ['clubs', 'DROP INDEX "clubs_competition_id_idx"', 'clubs_competition_id_idx'],
     ['rivalries', 'DROP INDEX "rivalries_pair_unique_idx"', 'rivalries_pair_unique_idx'],
+    // ── 4.8'in transfer arama indeksleri: AYNI SESSİZ SINIF ────────────────
+    // `0011`in `down`u bir indeksi geri getirmeyi unutursa hiçbir doğruluk
+    // testi ötmez — sorgu doğru cevabı vermeye devam eder, yalnızca ardışık
+    // taramaya düşer. Nöbetçi hatanın olacağı yerde: karşılaştırmada.
+    [
+      'people',
+      `DROP INDEX "${TRANSFER_SEARCH_INDEXES.peopleBirthDate}"`,
+      TRANSFER_SEARCH_INDEXES.peopleBirthDate,
+    ],
+    [
+      'players',
+      `DROP INDEX "${TRANSFER_SEARCH_INDEXES.playersPositionAbility}"`,
+      TRANSFER_SEARCH_INDEXES.playersPositionAbility,
+    ],
     [
       'referees',
       'ALTER TABLE "referees" DROP CONSTRAINT "referees_country_id_countries_id_fk"',

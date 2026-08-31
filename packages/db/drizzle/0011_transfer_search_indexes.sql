@@ -1,0 +1,2 @@
+CREATE INDEX "people_birth_date_idx" ON "people" USING btree ("birth_date");--> statement-breakpoint
+CREATE INDEX "players_primary_position_current_ability_idx" ON "players" USING btree ("primary_position","current_ability");

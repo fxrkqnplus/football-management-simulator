@@ -57,6 +57,7 @@ import { GENDERS, PERSON_TYPES } from '../src/schema/people.js';
 import { VISIBLE_ATTRIBUTES } from '../src/schema/player-attributes.js';
 import { HIDDEN_ATTRIBUTES } from '../src/schema/player-hidden-attributes.js';
 import { PLAYER_POSITIONS } from '../src/schema/players.js';
+import { TRANSFER_SEARCH_INDEXES } from '../src/schema/transfer-search.js';
 import { foreignKeyNullability } from '../src/schema-state/foreign-key-nullability.js';
 import {
   clubFacilitiesInsertSql,
@@ -2954,5 +2955,123 @@ describe('personel ve menajerler — Faz 4.7', () => {
     // …ve sütunlar BOŞALDI.
     expect(after[0]?.s).toBeNull();
     expect(after[0]?.m).toBeNull();
+  });
+});
+
+/**
+ * TRANSFER ARAMA İNDEKSLERİ — Faz 4.8 (`0011`), kabul kriteri 3'ün HAZIRLIĞI.
+ *
+ * ⚠️ **BURADA NE İDDİA EDİLİYOR, NE EDİLMİYOR — ayrım bilinçli.**
+ *
+ * **Ediliyor:** iki indeks var, tanımları katalogda beklenen şekilde duruyor,
+ * sütun sırası korunmuş, ve ikisi de `UNIQUE` **değil**.
+ *
+ * **EDİLMİYOR:** *"planlayıcı bu indeksi seçiyor."* `players` bugün **boş** ve
+ * `ANALYZE` görmemiş bir tabloda planlayıcı indeksi seçer — bu, **yanlış
+ * cevabın doğru görünmesidir** (`reltuples = -1`, 3.9). Bir plan iddiası bugün
+ * yazılsaydı 5.000 satır geldiğinde sessizce anlamını değiştirirdi. Ölçüm
+ * **4.10**'un işi ve orada `ANALYZE` denetleniyor.
+ *
+ * ℹ️ Ayrıca 3.9'un ikinci dersi: ayraç **hacim değil SEÇİCİLİK**. Aynı tabloda
+ * aynı satır sayısında seçici bir terim indeksi kullanır, seçici olmayan
+ * kullanmaz — yani hacim yazmak bile tek başına bir iddia kurmuyor.
+ */
+describe('transfer arama indeksleri — Faz 4.8', () => {
+  const indexDef = async (table: string, name: string): Promise<string | undefined> => {
+    const rows = await executor.rows<{ indexdef: string }>(
+      `SELECT indexdef FROM pg_indexes
+        WHERE schemaname = 'public' AND tablename = '${table}' AND indexname = '${name}'`,
+    );
+    return rows[0]?.indexdef;
+  };
+
+  it('`players` bileşik indeksi KATALOGDA — sütun sırası eşitlik → aralık', async () => {
+    const definition = await indexDef('players', TRANSFER_SEARCH_INDEXES.playersPositionAbility);
+
+    expect(definition).toBeDefined();
+    // Sıra tanımın kendisinden okunuyor: ters olsaydı mevki eşitliği indeksin
+    // arama sınırına giremezdi ve hiçbir doğruluk testi bunu göremezdi.
+    expect(definition).toContain('btree (primary_position, current_ability)');
+  });
+
+  it('`people` doğum tarihi indeksi KATALOGDA — düz, tek sütunlu', async () => {
+    const definition = await indexDef('people', TRANSFER_SEARCH_INDEXES.peopleBirthDate);
+
+    expect(definition).toBeDefined();
+    expect(definition).toContain('btree (birth_date)');
+  });
+
+  /**
+   * ⚠️ **YAŞ BİR İFADE İNDEKSİ DEĞİL — ve bu bir eksiklik değil, ölçülmüş bir
+   * karar.** İddia iki yönlü kuruluyor: ① `people` indeksi düz `birth_date`
+   * (yukarıda) ② bir yaş ifadesi indekslenemiyor (aşağıda, PG'ye sorularak).
+   *
+   * ②'siz ① yalnızca *"böyle yazdık"* derdi. Beraber *"başka türlü
+   * yazılamazdı"* diyorlar — ve bu iddia PG bir gün `age()`i `IMMUTABLE`
+   * yaparsa **kırılır**, yani karar gözden geçirilir.
+   */
+  it('NEGATİF — yaş ifadesi indekslenemiyor (`age`/`now` STABLE)', async () => {
+    const volatility = await executor.rows<{ proname: string; provolatile: string }>(
+      `SELECT proname, provolatile FROM pg_proc
+        WHERE proname = 'now' AND pronargs = 0`,
+    );
+    expect(volatility[0]?.provolatile).toBe('s');
+
+    // Ve PostgreSQL bunu indeks ifadesinde gerçekten reddediyor.
+    await expect(
+      executor.run(
+        `CREATE INDEX "people_age_expr_idx" ON "people" (date_part('year', age("birth_date")))`,
+      ),
+    ).rejects.toThrow(/IMMUTABLE/i);
+  });
+
+  /**
+   * KARŞI ÖRNEK — reddin sebebi *"ifade indeksi yasak"* değil, ifadenin
+   * `STABLE` olması. `IMMUTABLE` bir ifade aynı tabloda **kabul ediliyor**.
+   * Bu olmadan yukarıdaki negatif test, PG'nin ifade indekslerini hiç
+   * desteklemediği bir dünyada da geçerdi (D3).
+   */
+  it('KARŞI ÖRNEK — IMMUTABLE bir ifade indeksi KABUL EDİLİYOR', async () => {
+    await executor.run(
+      `CREATE INDEX "people_birth_year_expr_idx" ON "people" (date_part('year', "birth_date"))`,
+    );
+    const definition = await indexDef('people', 'people_birth_year_expr_idx');
+    expect(definition).toBeDefined();
+
+    // Testler aynı veritabanını paylaşıyor — bu indeks şemanın parçası değil.
+    await executor.run(`DROP INDEX "people_birth_year_expr_idx"`);
+  });
+
+  it('ikisi de UNIQUE DEĞİL — bir teklik kısıtı iddia edilmiyor', async () => {
+    const rows = await executor.rows<{ indexname: string; isunique: boolean }>(
+      `SELECT i.relname AS indexname, x.indisunique AS isunique
+         FROM pg_index x
+         JOIN pg_class i ON i.oid = x.indexrelid
+        WHERE i.relname IN ('${TRANSFER_SEARCH_INDEXES.playersPositionAbility}',
+                            '${TRANSFER_SEARCH_INDEXES.peopleBirthDate}')
+        ORDER BY i.relname`,
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.isunique)).toEqual([false, false]);
+  });
+
+  /**
+   * ⚠️ KARŞI KONTROL (D3) — 4.7'nin `isUnique` dersi, katalog tarafında.
+   *
+   * `indisunique` var olmayan bir sütun olsaydı sorgu patlardı, ama okuma
+   * doğru sütunu okuyup **her zaman `false`** döndürseydi yukarıdaki iddia kör
+   * geçerdi. `rivalries_pair_unique_idx` 3.7'de bilerek `UNIQUE` kondu ve
+   * aynı okuma onun için `true` dönmeli.
+   */
+  it('KARŞI KONTROL — aynı okuma `rivalries` UNIQUE indeksini `true` görüyor', async () => {
+    const rows = await executor.rows<{ isunique: boolean }>(
+      `SELECT x.indisunique AS isunique
+         FROM pg_index x
+         JOIN pg_class i ON i.oid = x.indexrelid
+        WHERE i.relname = 'rivalries_pair_unique_idx'`,
+    );
+
+    expect(rows[0]?.isunique).toBe(true);
   });
 });

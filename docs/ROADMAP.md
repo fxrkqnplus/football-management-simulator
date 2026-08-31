@@ -1961,9 +1961,32 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 > (4 gün, sınır 3) ve **hiçbir şey olmadı** — çünkü süreyi ölçen bir adım yoktu.
 > Adım 4.1'de eklendi, 4.7'de koştu, ve bu kez **bir kaydı değiştirdi**.
 > *"Bir kuralın kontrol eden adımı yoksa, ateşlendiğinde hiçbir şey olmaz."*
-- [ ] **4.8** **Transfer arama indeksleri** (**`0011`**) — kapsam `spec/01`'in indeks
+- [x] **4.8** **Transfer arama indeksleri** (**`0011`**) — kapsam `spec/01`'in indeks
       satırından **değil** kriter 3'ün sorgusundan türetilir (o satır iki tabloyu
       karıştırıyor, 4.0'da ölçüldü). → kriter 3 hazırlığı
+      **SONUÇ:** tablo **22'de sabit**, FK **32'de sabit** — `0011` şemaya sütun
+      eklemiyor, yalnızca **iki `CREATE INDEX`**:
+      `players (primary_position, current_ability)` ve `people (birth_date)`.
+      ⚠️ **SORGUNUN ÜÇ YÜKLEMİ ÜÇ TABLOYA DEĞİL İKİ TABLOYA DAĞILIYOR** ve bu
+      kaynaktan sayıldı: `current_ability` **`players`**ta, `player_attributes`ta
+      **değil** (0 eşleşme). Yani **iki tablo, bir JOIN** — ve `spec/01` §3.1'in
+      4.1'de yazılmış kararı zaten bunu söylüyordu.
+      🆕 **YAŞ İFADESİ İNDEKSLENEMİYOR — ölçüldü, varsayılmadı:** `pg_proc`ta
+      `age(timestamptz)` ve `now()` **`s` (STABLE)**, ve PG bir yaş ifadesini
+      indekste **reddediyor** (iki yönlü test: `IMMUTABLE` bir ifade **kabul**
+      ediliyor). ⚠️ **3.7'nin `immutable_unaccent` çıkışı burada GEÇERSİZ:**
+      orada iddia *"nadiren yanlış"*tı (sözlük değişirse `REINDEX`), yaş ise
+      **her gün** değişir. Aralık bu yüzden sorgu tarafında sabit tarihlere
+      çevriliyor (`ageRangeToBirthDateRange`, tek modül) ve düz bir indeks
+      taşıyor. Bileşik indeksin **sırası** eşitlik → aralık kuralından türetildi.
+      🆕 **`0011` #23'ÜN KAYBOLAN SINIFINI GERİ GETİRDİ: SIFIR KAYIP.** `loss.ts`
+      yalnızca `table`/`column` sayıyor, indeks düşmesi ikisi de değil — geri
+      alma `allowDataLoss` **verilmeden** geçiyor. 4.5'te `0008` bu sınıfın tek
+      örneğiydi, `0009` onu erişilemez yapmıştı.
+      **PLAN İDDİASI YAZILMADI** (`players` boş; `reltuples = -1` → ölçüm 4.10).
+      `comparedFacts` **4.205 → 4.209** (ölçüldü; +4, 3.7'nin *"indeks başına 2
+      olgu"* emsaliyle birebir). Mutasyon **27 → 29 / 251**.
+      → `docs/reports/faz-04/4.8-transfer-arama-indeksleri.md`
 - [ ] **4.9** **5.000 sahte oyuncu seed'i** + determinizm ölçümü (iki koşu birebir
       aynı; `created_at`/`updated_at` **gürültülü** dışlanır).
       ⚠️ `clubs` boş olduğu için **5.000'in 5.000'i serbest oyuncu** — bilinçli, ve

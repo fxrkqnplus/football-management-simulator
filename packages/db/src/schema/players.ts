@@ -119,6 +119,7 @@ import {
   boolean,
   check,
   date,
+  index,
   integer,
   pgTable,
   serial,
@@ -130,6 +131,7 @@ import {
 import { masterTable } from '../client/master.js';
 import { clubs } from './clubs.js';
 import { people } from './people.js';
+import { TRANSFER_SEARCH_INDEXES } from './transfer-search.js';
 
 /**
  * Mevki kodları — `spec/01` §3.1 `players.primaryPosition` satırındaki on iki
@@ -227,6 +229,32 @@ export const players = masterTable(
        * mesajından okunamazdı.
        */
       check('players_pa_range_check', sql`${table.paRangeMin} <= ${table.paRangeMax}`),
+      /**
+       * TRANSFER ARAMASININ MEVKİ + YETENEK YÜKLEMLERİ (4.8, `0011`) —
+       * kabul kriteri 3.
+       *
+       * **Sıra bir tercih değil, bir zorunluluk:** `primary_position` bir
+       * **eşitlik** yüklemi (`= 'DR'`), `current_ability` bir **aralık**
+       * (`> 120`). Bir B-tree indeksinde aralık yükleminden sonraki sütunlar
+       * arama sınırı olarak kullanılamaz, yalnızca okunup filtrelenir — sıra
+       * ters olsaydı mevki eşitliği indeksin kapsamına hiç giremezdi.
+       *
+       * İki sütun **aynı tabloda** olduğu için bileşik indeks mümkün; sorgunun
+       * üçüncü yüklemi (`people.birth_date`) ayrı bir tabloda ve kendi
+       * indeksini taşıyor — bir indeks tek bir tabloya konur.
+       *
+       * ℹ️ Sonuç `spec/01` §3.1'in indeks satırının ilk yarısıyla aynı çıktı,
+       * ama **oradan kopyalanmadı**: o satır bir niyet beyanı (Faz 4.1 kararı)
+       * ve sıranın gerekçesini hiç taşımıyor. Kapsam kriter 3'ün sorgusundan
+       * türetildi — gerekçenin tamamı `transfer-search.ts` başlığında.
+       *
+       * ⚠️ Planlayıcının bu indeksi seçtiği **iddia edilmiyor**: tablo bugün
+       * boş, ölçüm 4.10'un işi (3.9: ayraç hacim değil **seçicilik**).
+       */
+      index(TRANSFER_SEARCH_INDEXES.playersPositionAbility).on(
+        table.primaryPosition,
+        table.currentAbility,
+      ),
     ],
   ),
 );

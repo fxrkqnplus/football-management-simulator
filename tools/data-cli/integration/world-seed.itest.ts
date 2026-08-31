@@ -353,7 +353,7 @@ describe('KAPSAM SINIRI — 3.8 ne YAPMIYOR', () => {
     expect(await countOf('federations')).toBe(0);
   });
 
-  it('seed YENİ MIGRATION yazmadı — zincir 11 adımda', async () => {
+  it('seed YENİ MIGRATION yazmadı — zincir 12 adımda', async () => {
     const rows = await executor.rows<{ n: string }>(
       'SELECT count(*)::text AS n FROM "fms_meta"."migrations"',
     );
@@ -361,9 +361,9 @@ describe('KAPSAM SINIRI — 3.8 ne YAPMIYOR', () => {
     // bugünkü uzunluğu ve her yeni migration'da güncellenir — 4.3 `0005`i
     // ekledi (5 → 6), 4.4 `0006`yı ekledi (6 → 7), 4.5 **İKİ** migration ekledi
     // (`0007` + `0008`, 7 → 9), 4.6 `0009`u ekledi (9 → 10), 4.7 `0010`u
-    // ekledi (10 → 11). Kırılması istenen davranış: seed bir gün sessizce
-    // migration yazarsa bu satır öter.
-    expect(Number(rows[0]?.n)).toBe(11);
+    // ekledi (10 → 11), 4.8 `0011`i ekledi (11 → 12). Kırılması istenen
+    // davranış: seed bir gün sessizce migration yazarsa bu satır öter.
+    expect(Number(rows[0]?.n)).toBe(12);
   });
 
   it('master tabloların hepsi hâlâ yerinde — 4.3`te 11 → 13, 4.5`te → 15, 4.6`da → 18, 4.7`de → 22', async () => {

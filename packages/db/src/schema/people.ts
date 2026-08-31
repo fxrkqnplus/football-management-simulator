@@ -91,11 +91,12 @@
  * ama bilinmeyen bir doğum tarihiyle bir oyuncu **oluşturulamaz** da.
  */
 import { sql } from 'drizzle-orm';
-import { check, date, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, date, index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { masterTable } from '../client/master.js';
 import { countries } from './countries.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { TRANSFER_SEARCH_INDEXES } from './transfer-search.js';
 
 /**
  * Bir kişinin oyundaki rolleri. `spec/01` §3.1 `people.personType`.
@@ -226,6 +227,24 @@ export const people = masterTable(
         'people_person_type_check',
         sql`cardinality(${table.personType}) > 0 AND ${table.personType} <@ ARRAY[${sql.raw(literals(PERSON_TYPES))}]::text[]`,
       ),
+      /**
+       * TRANSFER ARAMASININ YAŞ YÜKLEMİ (4.8, `0011`) — kabul kriteri 3.
+       *
+       * Düz ve tek sütunlu, çünkü **yaş bir ifade indeksi olamıyor**: `age()`
+       * ve `now()` `STABLE` (gerçek PG 18.6'da `pg_proc.provolatile` okundu) ve
+       * PostgreSQL indeks ifadesinde `IMMUTABLE` olmayan fonksiyon kabul
+       * etmiyor (§3.1.2 ⑨). 3.7'nin `immutable_unaccent` çıkışı burada
+       * **geçersiz** — orada iddia nadiren yanlıştı, burada her gün yanlış
+       * olurdu. Aralık bu yüzden sorgu tarafında sabit tarihlere çevriliyor
+       * (`ageRangeToBirthDateRange`) ve bu indeks onu taşıyor.
+       *
+       * ⚠️ Planlayıcının bu indeksi gerçekten seçtiği **iddia edilmiyor**:
+       * `players` bugün boş ve `ANALYZE` görmemiş bir tabloda planlayıcı
+       * indeksi seçer — bu yanlış cevabın doğru görünmesidir (`reltuples = -1`,
+       * 3.9). JOIN'in hangi taraftan başladığı seçiciliğe bağlı ve **ölçümü
+       * 4.10'un işi**. Gerekçenin tamamı `transfer-search.ts` başlığında.
+       */
+      index(TRANSFER_SEARCH_INDEXES.peopleBirthDate).on(table.birthDate),
     ],
   ),
 );
