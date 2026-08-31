@@ -61,7 +61,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { SqlExecutor } from '../src/migrate/executor.js';
 import { createFileMigrationSource } from '../src/migrate/file-source.js';
 import { createPostgresExecutor } from '../src/migrate/postgres-executor.js';
-import type { MigrationSource } from '../src/migrate/runner.js';
+import type { DownOptions, DownResult, MigrationSource } from '../src/migrate/runner.js';
 import { migrateDown, migrateUp } from '../src/migrate/runner.js';
 import { compareSchemas, summarizeDifferences } from '../src/schema-state/compare.js';
 import {
@@ -846,6 +846,80 @@ async function narrowRefereePersonTypesForDown(): Promise<void> {
   `);
 }
 
+/**
+ * ⚠️ **`migrateDown` + `0008`in engelinin kaldırılması — TEK ADIM (Faz 4.7).**
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * NEDEN VAR — F1 riski ÖLÇÜLDÜ ve ileriye yayılıyordu
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `0008`in sınırı (hemen yukarıdaki başlık) 4.5'te ortaya çıktı ve o günden beri
+ * gerçek zinciri geri alan **her** testin `narrowRefereePersonTypesForDown()`ı
+ * **elle** çağırması gerekiyordu. Bu, F1'in tam şekli — *"elle yazılmış bir adım
+ * şema büyüdükçe bayatlar"*:
+ *
+ * | Ölçüm | 4.6'nın raporu | **4.7'de sayıldı** |
+ * |---|---|---|
+ * | `narrow…` çağrı yeri | 15 | **17** |
+ * | `seedAllTables()` çağrı yeri | 16 | **18** |
+ *
+ * Sayının kendisi bayatlamıştı (**D7**: devir notu da kendi sesimizdir) ve 4.7
+ * dört tablo daha getiriyor.
+ *
+ * ⚠️ **Unutmanın bedeli sessiz DEĞİL ama pahalı:** çağrı unutulursa test
+ * `people_person_type_check … is violated by some row` ile patlar. Gürültülü,
+ * ama hata mesajı testin **konusuyla hiç ilgisi olmayan** bir kısıtı gösteriyor
+ * ve yazan kişi kendi testinde hata arıyor — 4.5'te on altı test birden böyle
+ * kırıldı ve çoğu o alt görevin hiç dokunmadığı testlerdi.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * NEDEN `seedAllTables()` İÇİNE DEĞİL — iki sebep de ÖLÇÜLDÜ
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Daraltmayı `seedAllTables()`in içine koymak da mümkündü ve **bugün
+ * çalışırdı**: `seedAllTables` yalnızca bu dosyaya ait ve 18 çağıranının 18'i de
+ * sonrasında `migrateDown` yapıyor (ölçüldü). Yine de reddedildi:
+ *
+ * ① **Sınırın kendi testini KIRARDI.** *"0008 DOWN`u `referee` taşıyan bir satır
+ *    varken GÜRÜLTÜLÜ patlıyor"* testi seed ediyor **ve bilerek daraltmıyor** —
+ *    ölçtüğü şey tam olarak o engel. Daraltma seed'in içine girseydi o testin
+ *    bir **opt-out bayrağına** ihtiyacı olurdu, yani tek bir test için bir
+ *    kaçış yolu açılırdı.
+ * ② **Ad yalan söylerdi.** *"Tabloları doldur"* adlı bir fonksiyon iki satırın
+ *    `person_type`ını `['referee']` → `['staff']` yapardı. Bugün buna bakan bir
+ *    iddia yok; **yarın yazılacak ilk `person_type` dağılım testi sessizce
+ *    yanlış olurdu.**
+ *
+ * **Bağlaşım `seedAllTables` ile değil `migrateDown` ile:** engel seed'den
+ * gelmiyor, `down`un kısıtı daraltmasından geliyor. İsim ile iş ayrışmıyor.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * KAÇIŞ YOLU AÇIK VE ADLI — sınır KAYBOLMUYOR
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Sınırın **kendi testi** ham `migrateDown`u çağırmaya devam ediyor. Sarmalayıcı
+ * engeli gizlemiyor, yalnızca **hatırlamayı** ortadan kaldırıyor: `0008`in bedeli
+ * hâlâ ölçülüyor ve hâlâ görünür. Fixture zincirleri (`source: chain` /
+ * `source: broken`) de ham `migrateDown` kullanmaya devam ediyor.
+ *
+ * ⚠️ **`{ executor, source, logger }` BİLEREK İÇERİDE BAĞLI.** İmzayı ham
+ * `migrateDown` ile aynı bırakan bir varyant daha küçük bir diff verirdi ama
+ * sarmalayıcının bir **fixture zincirine** uygulanmasını mümkün kılardı — orada
+ * `people` tablosu yok ve `UPDATE` patlardı. Bağlama, o hatayı **yapısal olarak**
+ * imkânsız kılıyor.
+ *
+ * ℹ️ **Kapsam yalnızca bu dosya — ve bu bir eksiklik değil, ölçülmüş bir sınır.**
+ * `runner.itest.ts` de gerçek zinciri kullanıyor ve **beş** `migrateDown`
+ * çağırıyor, ama `people`'a hiç hakem yazmadığı için engeli bugün hiç görmüyor.
+ * Oraya sarmalayıcı taşımak `executor`/`source`/`logger`ı dosyalar arasında
+ * paylaşmak demekti (K12); uyarı bunun yerine **o dosyanın kendi başlığına**
+ * yazıldı — nöbetçi, hatanın olacağı yerde yaşar.
+ */
+async function migrateDownPastRefereeCheck(options: DownOptions): Promise<DownResult> {
+  await narrowRefereePersonTypesForDown();
+  return migrateDown({ executor, source, logger }, options);
+}
+
 describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('up → ON SEKİZ tabloya da veri yaz → down → up sonrası şema BİREBİR aynı', async () => {
     await migrateUp({ executor, source, logger });
@@ -854,13 +928,8 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
     // ⚠️ Bu adım atlanamaz: boş şemada down/up çevrimi veri kaybı yolunu hiç
     // sınamaz ve `NOT NULL`/FK ihlallerini görmez.
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: FULL_CHAIN_STEPS, allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({ steps: FULL_CHAIN_STEPS, allowDataLoss: true });
     await migrateUp({ executor, source, logger });
 
     const after = await introspectSchema(executor);
@@ -899,13 +968,11 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
     const before = await introspectSchema(executor);
 
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0009_player_positions_traits_stats'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0009_player_positions_traits_stats'),
+      allowDataLoss: true,
+    });
 
     // Tam olarak ÜÇ tablo düştü, ne eksik ne fazla — `down`un fazla gitmesi
     // (örneğin `players`ı da düşürmesi) burada görülür.
@@ -935,14 +1002,10 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('0009 geri alınınca ÜÇ tablo birden düşüyor — kayıp bayraksız REDDEDİLİYOR', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    await narrowRefereePersonTypesForDown();
 
     // NEGATİF — `allowDataLoss` olmadan geri alma başlamıyor.
     await expect(
-      migrateDown(
-        { executor, source, logger },
-        { steps: stepsBackTo('0009_player_positions_traits_stats') },
-      ),
+      migrateDownPastRefereeCheck({ steps: stepsBackTo('0009_player_positions_traits_stats') }),
     ).rejects.toMatchObject({ code: 'migration.downWouldLoseData' });
 
     // Reddedilen geri alma HİÇBİR ŞEY yapmadı — üç tablo hâlâ ayakta ve dolu.
@@ -952,10 +1015,10 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
     expect(Number(untouched[0]?.n)).toBe(SEEDED_ROWS.player_positions);
 
     // POZİTİF — bayrakla geri alma üç tabloyu da adıyla rapor ediyor.
-    const result = await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0009_player_positions_traits_stats'), allowDataLoss: true },
-    );
+    const result = await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0009_player_positions_traits_stats'),
+      allowDataLoss: true,
+    });
     const droppedTables = result.loss.items
       .filter((item) => item.kind === 'table')
       .map((item) => item.table)
@@ -991,10 +1054,10 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0008_person_type_referee'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0008_person_type_referee'),
+      allowDataLoss: true,
+    });
 
     // ⚠️ **4.6'DA DEĞİŞTİ VE DEĞİŞİM TESTİN KENDİ KONUSUNU ETKİLEMİYOR — #16'nın
     // tekrarı.** `stepsBackTo` zincirden türetiliyor, yani bu geri alma artık
@@ -1085,14 +1148,12 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('yalnızca 0007 geri alınınca şema BİREBİR aynı — 0006 kaymaları GÖRÜNMÜYOR', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0007_player_attributes'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0007_player_attributes'),
+      allowDataLoss: true,
+    });
 
     // Geri alma İKİ TABLO düşürdü — geriye 4.4'ün on üç tablosu kalıyor.
     const rolledBack = await introspectSchema(executor);
@@ -1144,13 +1205,11 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('0007 geri alınıp GEÇERSİZ satır yazılınca yeniden up GÜRÜLTÜLÜ patlıyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0007_player_attributes'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0007_player_attributes'),
+      allowDataLoss: true,
+    });
 
     // Kısıt yokken CA > PA yazılabiliyor — pencere gerçekten açık (D3 önlemi).
     await executor.run(`
@@ -1191,10 +1250,10 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
     await migrateUp({ executor, source, logger });
     const before = await introspectSchema(executor);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0006_forward_person_fks'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0006_forward_person_fks'),
+      allowDataLoss: true,
+    });
 
     // ⚠️ **4.5'TE DEĞİŞTİ VE DEĞİŞİM TESTİN KENDİ KONUSUNU ETKİLEMİYOR.**
     // `stepsBackTo` zincirden türetildiği için geri alma artık 0008 ve 0007'yi
@@ -1271,13 +1330,11 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('0006 geri alınıp VERİ VARKEN yeniden uygulanırsa GÜRÜLTÜLÜ patlıyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0006_forward_person_fks'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0006_forward_person_fks'),
+      allowDataLoss: true,
+    });
 
     // Satırlar duruyor — kaybolan yalnızca sütunlar.
     const remaining = await executor.rows<{ n: number | string }>(
@@ -1331,14 +1388,12 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('yalnızca 0005 geri alınınca TEK fark 0006’nın ÜÇ kayması — dizi tipi korunuyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0005_people_players'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0005_people_players'),
+      allowDataLoss: true,
+    });
 
     // Geri alma tam olarak İKİ tabloyu düşürdü — Faz 3'ün on biri ayakta.
     const rolledBack = await introspectSchema(executor);
@@ -1382,14 +1437,12 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('yalnızca 0004 geri alınınca TEK fark 0006’nın ÜÇ kayması — indeksler geri geliyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0004_search_indexes'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0004_search_indexes'),
+      allowDataLoss: true,
+    });
 
     // ⚠️ 4.3'te bu iddia DEĞİŞTİ: 0005 de geri alındığı için `people`/`players`
     // artık YOK. Tabloların kalanı duruyor — kaybolan yalnızca indeksler
@@ -1420,14 +1473,12 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('yalnızca 0003 geri alınınca TEK fark 0006’nın İKİ kayması — referees SIFIRLANIYOR', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0003_visual_assets_referees'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0003_visual_assets_referees'),
+      allowDataLoss: true,
+    });
 
     // Geri alma tam olarak ÜÇ tabloyu düşürdü — 0002'nin sekizi ayakta.
     // (0005'in ikisi ve 0004'ün indeksleri de gitti; onların kendi testleri var.)
@@ -1482,16 +1533,14 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('0003+0002 geri alınınca TEK fark 0006’nın BİR kayması — 0002 hâlâ temiz', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
     const before = await introspectSchema(executor);
 
     // ⚠️ Sayı `stepsBackTo`'dan geliyor, elle yazılmıyor — gerekçesi o
     // fonksiyonun başlığında (elle yazılan sayılar 3.7'de yorumlarından kaydı).
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0002_club_core'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0002_club_core'),
+      allowDataLoss: true,
+    });
 
     // Geri alma gerçekten sekiz tabloyu düşürdü — 0001'in üçü ayakta.
     const rolledBack = await introspectSchema(executor);
@@ -1589,10 +1638,10 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
 
     // 0005 → 0004 → 0003 → 0002 → 0001 sırayla geri alınıyor; `countries`
     // ayakta kalıyor ve `attnum` deliği ölçülebilir hâlde duruyor.
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0001_geography_institutions'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0001_geography_institutions'),
+      allowDataLoss: true,
+    });
 
     const rolledBack = await introspectSchema(executor);
     expect(rolledBack.tables.map((table) => table.name)).toEqual(['countries']);
@@ -1674,13 +1723,11 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('0001 geri alınıp VERİ VARKEN yeniden uygulanırsa GÜRÜLTÜLÜ patlıyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0001_geography_institutions'), allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0001_geography_institutions'),
+      allowDataLoss: true,
+    });
 
     // Satırlar duruyor — kaybolan yalnızca sütunlar.
     const remaining = await executor.rows<{ n: number | string }>(
@@ -1699,16 +1746,11 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
   it('çevrim sequence KONUMUNU sıfırlıyor — tanımı ise değişmiyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
     const positionBefore = await readSequencePosition(executor, 'countries_id_seq');
     const schemaBefore = await introspectSchema(executor);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: FULL_CHAIN_STEPS, allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({ steps: FULL_CHAIN_STEPS, allowDataLoss: true });
     await migrateUp({ executor, source, logger });
 
     const positionAfter = await readSequencePosition(executor, 'countries_id_seq');
@@ -1752,10 +1794,7 @@ describe('round-trip — gerçek migration zinciri (0000 → 0009)', () => {
     await migrateUp({ executor, source, logger });
     expect(await trackedCount()).toBe(FULL_CHAIN_STEPS);
 
-    await migrateDown(
-      { executor, source, logger },
-      { steps: FULL_CHAIN_STEPS, allowDataLoss: true },
-    );
+    await migrateDownPastRefereeCheck({ steps: FULL_CHAIN_STEPS, allowDataLoss: true });
     expect(await trackedCount()).toBe(0);
 
     const again = await migrateUp({ executor, source, logger });
@@ -1838,12 +1877,8 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('allowDataLoss VERİLMEDEN geri alma REDDEDİLİYOR', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    await expect(
-      migrateDown({ executor, source, logger }, { steps: FULL_CHAIN_STEPS }),
-    ).rejects.toMatchObject({
+    await expect(migrateDownPastRefereeCheck({ steps: FULL_CHAIN_STEPS })).rejects.toMatchObject({
       code: 'migration.downWouldLoseData',
     });
 
@@ -1856,14 +1891,13 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('kayıp raporu TABLO ve SÜTUN kaybını AYRI AYRI gösteriyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
     // Kuru çalıştırma: gerçekten uygular, ölçer, geri alır.
-    const result = await migrateDown(
-      { executor, source, logger },
-      { steps: FULL_CHAIN_STEPS, dryRun: true, allowDataLoss: true },
-    );
+    const result = await migrateDownPastRefereeCheck({
+      steps: FULL_CHAIN_STEPS,
+      dryRun: true,
+      allowDataLoss: true,
+    });
 
     expect(result.dryRun).toBe(true);
 
@@ -1893,13 +1927,12 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('SÜTUN kaybı ayrı bir kalem olarak görünüyor — 0003+0002+0001 geri alınınca', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    const result = await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0001_geography_institutions'), dryRun: true, allowDataLoss: true },
-    );
+    const result = await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0001_geography_institutions'),
+      dryRun: true,
+      allowDataLoss: true,
+    });
 
     const byKind = {
       table: result.loss.items.filter((item) => item.kind === 'table').map((item) => item.table),
@@ -1981,13 +2014,12 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('KARIŞIK kayıp — 0006`ya kadar geri alınınca 0007`nin iki tablosu da düşüyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    // 0008'in sınırı — gerekçe `narrowRefereePersonTypesForDown` başlığında.
-    await narrowRefereePersonTypesForDown();
 
-    const result = await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0006_forward_person_fks'), dryRun: true, allowDataLoss: true },
-    );
+    const result = await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0006_forward_person_fks'),
+      dryRun: true,
+      allowDataLoss: true,
+    });
 
     const byKind = {
       table: result.loss.items.filter((item) => item.kind === 'table').map((item) => item.table),
@@ -2091,12 +2123,12 @@ describe('kayıp ölçümü — ilk KARIŞIK vaka (DROP TABLE + DROP COLUMN)', (
   it('0008`in KENDİ katkısı sıfır — 0008`e kadar geri alma 0009`un üçünü düşürüyor', async () => {
     await migrateUp({ executor, source, logger });
     await seedAllTables();
-    await narrowRefereePersonTypesForDown();
 
-    const result = await migrateDown(
-      { executor, source, logger },
-      { steps: stepsBackTo('0008_person_type_referee'), dryRun: true, allowDataLoss: true },
-    );
+    const result = await migrateDownPastRefereeCheck({
+      steps: stepsBackTo('0008_person_type_referee'),
+      dryRun: true,
+      allowDataLoss: true,
+    });
 
     const byKind = {
       table: result.loss.items.filter((item) => item.kind === 'table').map((item) => item.table),
