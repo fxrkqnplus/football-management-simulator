@@ -290,6 +290,20 @@ ataması değil, **hakem verisinin ingest'i de sahipsizdi**.
 
 ---
 
+## Tarama 12 — Faz 4.9 (2026-09-01)
+
+Yöntem: tarama değil, **4.9'un kendi çıktısının sonucunun ölçümü**. Seed 5.000
+prosedürel oyuncu yazdı; soru şuydu: *"bu satırlar ne zaman ve kimin eliyle
+gidecek — ya da gitmeyecek?"* Cevap üç faz kapsamı **okunarak** arandı
+(Faz 9 ingest listesi · Faz 10 nitelik türetme girdisi · Faz 11 doğrulayıcı
+kural listesi) ve hiçbirinde bulunamadı.
+
+| No | Nerede | Ne eksik | Kim yapmalı | Durum |
+|---|---|---|---|---|
+| G-20 | `docs/ROADMAP.md` Faz 4 kabul kriteri 1 (*"5.000 sahte oyuncu seed"*) ↔ Faz 9 (*"serbest oyuncu havuzu (~300 kişi)"*, *"3.500+ oyuncu"*) | **4.9'un 5.000 prosedürel oyuncusunun ÖMRÜ tanımsız.** Ülke/yarışma seed'i ile **yapısal olarak farklılar** ve fark ölçüldü: o satırlar gerçek veriyle **aynı `key`i** taşıyor, yani Faz 8 ingesti `DO UPDATE` ile üzerlerine yazıyor ve sayı değişmiyor. Oyuncu satırları ise ayrı bir namespace'te (`seed-player-*`, gerekçesi `player-seed-data.ts` başlığında: paket namespace'iyle çakışırsa biri diğerini **sessizce** ezerdi) — yani Faz 9'un `player-*` anahtarları onları **ezmez, yanlarına ekler**. Sonuç iki sayımı birden bozuyor: *"serbest oyuncu havuzu ~300"* **5.300** olur, *"3.500+ oyuncu"* kriteri **8.500** satırın üstünde ölçülür. ⚠️ **Ve satırların nitelikleri yok:** `spec/02` §4.2 CA'yı `round(Σ(attribute × weight) / Σ(weight) × 10)` ile **niteliklerden** hesaplıyor; 4.9'un yazdığı `current_ability` hiçbir nitelik satırından türemiyor (KARAR: 47+10 sütuna değer yazmak bir **dağılım** kararı, sahibi Faz 10 — SAPMA-026). Bugün zararsız (kriter 3'ün sorgusu yalnızca `players`a bakıyor), Faz 10 sonrasında **tutarsız**. | **Faz 9** (oyuncu ingesti) — çelişkinin ilk kez GERÇEKLEŞTİĞİ faz | ✅ **ROADMAP Faz 9 kapsamına eklendi (Faz 4.9) ve bir KABUL KRİTERİ getirdi** — yani faz bu boşluk sessizce açık kalarak kapanamaz. ⚠️ **SAHİP TAHMİNLE ATANMADI (G-18'in dersi): hedef fazın işi YAPABİLDİĞİ doğrulandı.** Üç aday okundu: **Faz 10** *yapamaz* — girdisi `player_stats_history` ve bu satırların istatistik geçmişi **yok**, yani nitelik türetemez. **Faz 11** doğrulayıcısının 40+ kuralı okundu; *"her kulüpte ≥ 18 oyuncu"*, *"CA ≤ PA"* gibi kurallar var ama *"her oyuncunun niteliği var"* **yok**, ve doğrulayıcı zaten **rapor eder, silmez**. **Faz 9** `players` tablosuna yazan ve serbest oyuncu havuzunun sayısını **kendi kriterinde taşıyan** faz — silme, bayrak arkasına alma ve prosedürel nitelik üretme seçeneklerinin üçü de oradan uygulanabilir. Üç seçenek ROADMAP Faz 9 kapsamına **tek tek** yazıldı; karar bugün verilmedi (K13 — bugün verilseydi Faz 8/9'un ingest hacmi bilinmeden verilmiş olurdu). |
+
+---
+
 ## Kural
 
 1. Yeni bir boşluk fark edildiğinde önce **buraya** yazılır, sonra ROADMAP'e işlenir.

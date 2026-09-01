@@ -1794,7 +1794,7 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
     kriteri **farklı taraflara** koyması, kuralın iyi bir kural olduğunun kanıtıdır.
 
 **Kabul kriterleri:**
-- [ ] 5.000 sahte oyuncu seed → şema tutarlı
+- [x] **5.000 sahte oyuncu seed → şema tutarlı** — **4.9**; migration YOK (zincir 12'de sabit, tablo 22, FK 32). `people` + `players` dolduruldu, **nitelik tabloları bilerek boş** (dağılımın sahibi Faz 10) ve bu bir sessiz atlama değil **koşan bir sınır**. Tutarlılık üç katmanda ölçüldü: ① `0007`nin iki CHECK'i **inşa gereği** sağlanıyor (`clamp(CA, 200, …)`) **ve** kısıtların gerçekten ısırdığı ihlal eden **tek** satırla ayrıca gösterildi — *"5.000 satır girdi, patlamadı"* tek başına kör bir kontroldü ② FK'ler anahtarla çözüldü (`nationality_country_id` `NOT NULL`, çözülemeyen anahtar gürültülü patlardı) ③ D5'te derlenmiş `dist` + düz `node` + ayrı gerçek veritabanı → **54/54**
 - [x] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri) — **4.4**, `0006`; üçü **üç farklı** davranış aldı (SET NULL · RESTRICT · RESTRICT) ve üçünün de **davranışı** gerçek PG 18.6'ya karşı ölçüldü, yalnızca katalogdan okunmadı
 - [ ] **"20–24 yaş, sağ bek, CA>120" sorgusu 5.000 oyuncu hacminde < 50 ms** *(SAPMA-031 — `değer<15M` yüklemi çıkarıldı)*
 - [x] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)* — **4.5**, `0007`; 57 nitelik sütununun (47 görünür + 10 gizli) hiçbiri CHECK almadı ve bu **negatif bir iddiayla** sabitlendi (`pg_constraint` katalogdan okunuyor, boş liste bekleniyor): *"kısıt eklemeyi unuttuk"* ile *"kısıt bilerek konmadı"* aynı şemayı üretir, ayıran tek şey koşan bir iddiadır. Kalibrasyon tarafının kısıtsızlığı `players`ta da ayrıca ölçüldü (CA=250 kabul ediliyor)
@@ -1987,14 +1987,47 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       `comparedFacts` **4.205 → 4.209** (ölçüldü; +4, 3.7'nin *"indeks başına 2
       olgu"* emsaliyle birebir). Mutasyon **27 → 29 / 251**.
       → `docs/reports/faz-04/4.8-transfer-arama-indeksleri.md`
-- [ ] **4.9** **5.000 sahte oyuncu seed'i** + determinizm ölçümü (iki koşu birebir
+- [x] **4.9** **5.000 sahte oyuncu seed'i** + determinizm ölçümü (iki koşu birebir
       aynı; `created_at`/`updated_at` **gürültülü** dışlanır).
       ⚠️ `clubs` boş olduğu için **5.000'in 5.000'i serbest oyuncu** — bilinçli, ve
       4.10'a not bırakılır. → kriter 1
+      **SONUÇ:** migration **YAZILMADI** (zincir 12, tablo 22, FK 32, indeks 6 —
+      dördü de sabit). Üreteç `tools/data-cli/src/seed/player-generator.ts`:
+      **saf, indeks-türevli, numaralı bağımsız akışlar** — `SeededRng` repoda
+      **yok** (ölçüldü: `packages/engine/src/index.ts` gövdesi `export {};`), o
+      sınıf Faz 22'de doğuyor. `SEED_REFERENCE_DATE = 2026-07-01` **uydurulmadı**,
+      ROADMAP Faz 16'nın *"1 Temmuz 2026 başlangıç"* takviminden okundu ve
+      gerekçe **koşan bir testle** bağlandı. Doğum tarihleri
+      `ageRangeToBirthDateRange`in **kendi tanımından** üretiliyor — çevrim ikinci
+      kez yazılmadı. **KRİTER 3'ÜN YÜKLEMİNE UYAN SATIR: 27 / 5.000 (%0,54)** —
+      ölçüldü, tahmin edilmedi; sıfır olsaydı 4.10 boş bir küme ölçerdi.
+      Test **887 → 967**, `test:db` **251 → 277**. Mutasyon serisi **29 / 277**
+      (pay sabit ve **sebebi ölçüldü**: 4.9 `compareSchemas`ın yüzeyine
+      dokunmuyor); üretecin kendi mutasyonu **7 / 967** + **3 / 277**.
+      → `docs/reports/faz-04/4.9-sahte-oyuncu-seedi.md`
 - [ ] **4.10** **Kriter 3'ün ölçümü** — `ANALYZE` şart (`reltuples != -1` denetlenir) ·
       **A** = 5.000 (kriteri kapatır) / **B** = sentetik hacim (indeksin gerekçesi) ·
       **seçici + seçici olmayan** iki terim · mimari etiketi (amd64, üretim ARM64).
       → kriter 3
+      ⚠️ **4.9'DA ÖLÇÜLDÜ — `reltuples != -1` DENETİMİ TEK BAŞINA YETMİYOR.**
+      Yukarıdaki cümle *"`ANALYZE` şart"* diyor ve denetimi `reltuples != -1`e
+      bağlıyor; 4.9 bunun bir **D3 yanılsaması** üretebileceğini ölçtü. Gerçek
+      PostgreSQL'de (`autovacuum=on`, `autovacuum_naptime=60s`) 5.000 satırlık
+      INSERT autoanalyze eşiğini aşıyor ve istatistik **kimse `ANALYZE`
+      çağırmadan** doluyor:
+
+      | An | `reltuples` | `last_autoanalyze` | `last_analyze` |
+      |---|---|---|---|
+      | seed'den hemen sonra | `-1` | YOK | YOK |
+      | **+15 sn** | **`5000`** | **damgalandı** | YOK |
+      | +60 sn | `5000` | (aynı) | YOK |
+
+      Yani `reltuples != -1` **yeşil verebilir ama `ANALYZE`ın koştuğunu
+      göstermez** — kontrol baktığını göstermiyor. 4.10 bunun yerine
+      **`last_analyze`in dolduğunu** denetler (o yalnızca elle çalıştırılan
+      `ANALYZE` ile dolar; ölçümde +60 sn'de bile `NULL` kaldı). ⚠️ Aynı sebeple
+      4.10'un plan ölçümü **seed'den hemen sonra alınmamalı**: aynı sorgu
+      15 saniye arayla iki farklı plan verebilir ve fark **sessizdir**.
 - [ ] **4.11** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR. → kriter 6
       ⚠️ **`SPEC-COVERAGE-GAPS` ↔ ROADMAP TUTARLILIK KONTROLÜ BURADA KOŞULUR**
       *(karar 4.3'te verildi ve buraya yazıldı — kütüğe kayıt yetmez, hedef fazın
@@ -2250,10 +2283,28 @@ docs/glossary.md
 - **`PORTRAIT_STYLE=stylized`:** gerçek ve prosedürel portrelere ortak görsel işlem — 20. sezonda bile tutarlı görünüm (bkz. spec 12, Bölüm 17.6)
 - **Prosedürel portre yedeği:** fotoğraf yoksa uyruk/yaş bazlı vektör avatar üret (6 katman: yüz şekli, ten tonu, saç stili, saç rengi, sakal, göz/kaş)
 - Serbest oyuncu havuzu (~300 kişi)
+- ⚠️ **FAZ 4.9'UN 5.000 PROSEDÜREL OYUNCUSUNUN ÖMRÜ — G-20, bu fazda karara bağlanır**
+  Faz 4.9 kabul kriteri 1 için `people` + `players` tablolarına **5.000 sahte
+  serbest oyuncu** yazdı (`source = 'procedural'`, `key` öneki `seed-player-`).
+  Ülke ve yarışma seed'inden **yapısal olarak farklılar**: onlar aynı `key` ile
+  geliyor ve gerçek veri **üzerlerine yazıyor** (`DO UPDATE`); bu 5.000 satır
+  ayrı bir namespace'te, yani Faz 9'un `player-*` anahtarları onları **ezmez,
+  yanlarına eklenir**. Bugünkü sonuç ölçüldü ve iki yerde çelişki üretiyor:
+  ① yukarıdaki *"serbest oyuncu havuzu (~300 kişi)"* satırı **5.300** olur
+  ② bu fazın *"3.500+ oyuncu"* kriteri 8.500 satırın üstünde ölçülür.
+  Üstelik satırların **nitelikleri yok** ve **Faz 10 onları üretemez**: girdisi
+  `player_stats_history` ve bu satırların istatistik geçmişi yok (Faz 10 kapsamı
+  okundu). Üç seçenek ve hiçbiri bugün yazılı: ① ingest başlamadan
+  `source = 'procedural'` + `seed-player-` önekli satırlar **silinir**
+  ② seed oyuncu hattı `DATA_MODE`/bayrak arkasına alınır (üretimde hiç
+  yazılmaz) ③ satırlar kalır ve Faz 10 onlara **prosedürel nitelik** üretir
+  (K9'un yedek yolu — ama bu Faz 10'un kapsamını genişletir).
+  **Karar bu fazda verilir**, çünkü çelişkinin ilk kez gerçekleştiği yer burası.
 - Veri kalite raporu: eksik alan yüzdeleri, aykırı değerler (17 yaşında 40 maçlık kariyer gibi), çift kayıt tespiti
 
 **Kabul kriterleri:**
 - [ ] 3.500+ oyuncu, her kulüpte en az 18 kişilik kadro
+- [ ] **G-20 karara bağlandı: Faz 4.9'un 5.000 prosedürel oyuncusunun ömrü yazılı ve UYGULANMIŞ** — üç seçenekten biri seçilmiş, gerekçesi kaydedilmiş, ve *"serbest oyuncu havuzu ~300"* ile *"3.500+ oyuncu"* sayımlarının hangi kümede ölçüldüğü açık
 - [ ] `DATA_MODE=full` ile gerçek armalar, portreler, formalar, logolar ekranda görünüyor
 - [ ] Portre kapsama oranı > %80 (kalanı prosedürel)
 - [ ] `PORTRAIT_STYLE=stylized` modunda gerçek/prosedürel portreler ayırt edilemiyor

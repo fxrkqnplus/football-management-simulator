@@ -16,12 +16,25 @@
  * kriteri kulüp saymıyor, K12). Ölçüldü — `crest_seed` yalnızca
  * `packages/db/src/schema/clubs.ts`te geçiyor.
  *
- * `SeededRng`i bugün `packages/engine`den `packages/shared`a taşımak bir
- * **mimari değişiklik** olurdu ve tüketicisi yok (K12, SAPMA-017'nin ölçütü).
+ * ⚠️ **DÜZELTME (Faz 4.9) — bu paragraf var olmayan bir modülü ima ediyordu.**
+ * Eski hâli *"`SeededRng`i bugün `packages/engine`den `packages/shared`a
+ * taşımak…"* diyordu; 4.9'da ölçüldü ve yanlış çıktı: `SeededRng`
+ * **repoda hiçbir yerde yok**, `packages/engine/src/index.ts`in gövdesi
+ * `export {};` ve sınıfın adı yalnızca yorum satırlarında geçiyor. Sınıf
+ * **Faz 22**'de doğuyor (`DebugPanel.tsx` bunu adıyla yazıyor). Kararın kendisi
+ * değişmedi — bir RNG **yazmak** bugün bir mimari değişiklik olurdu ve
+ * tüketicisi yok (K12, SAPMA-017'nin ölçütü) — yalnızca gerekçesinin metni
+ * doğru değildi.
+ *
  * Veri sabit yazıldığı için K2 **yapısal olarak** sağlanıyor: rastgelelik
  * kaynağı yok, dolayısıyla belirsizlik de yok. İddia ölçülüyor —
  * `seed-sql.test.ts` aynı girdiyle iki kez çağrılan üreticinin **birebir aynı**
  * SQL'i döndürdüğünü sabitliyor.
+ *
+ * ℹ️ **4.9 aynı sorunu bir kademe ileri taşıdı:** oyuncu seed'i sabit veri
+ * olamaz (5.000 satır) ve bir üretece ihtiyaç duyuyor. Çözüm yine bir RNG
+ * yazmak değil, **saf ve indeks-türevli** bir üreteç oldu —
+ * `player-generator.ts`, gerekçesi kendi başlığında.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * `key` DEĞERLERİ TAHMİN EDİLMEDİ, `spec/12` §17.3 ALGORİTMASIYLA ÖLÇÜLDÜ

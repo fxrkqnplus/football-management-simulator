@@ -16,25 +16,37 @@
  * tip değil bir **kısıttı**. Kısıtın nöbetçisi derleyici olamaz; bu test o
  * nöbetçi.
  */
-import { competitions, countries } from '@fms/db';
+import { competitions, countries, people, players } from '@fms/db';
 import { getTableColumns } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
+import { generatePlayerSeeds } from './player-generator.js';
 import {
+  boolLiteral,
   buildCompetitionsUpsertSql,
   buildCountriesUpsertSql,
+  buildPeopleUpsertSql,
+  buildPlayersUpsertSql,
   buildUpsertSql,
   COMPETITION_BINDINGS,
   COUNTRY_BINDINGS,
+  dateLiteral,
+  dateOrNull,
   intOrNull,
   jsonbLiteral,
   numericLiteral,
+  PEOPLE_BINDINGS,
+  PLAYER_BINDINGS,
   quote,
   scalarIdByKey,
+  textArrayLiteral,
   textOrNull,
 } from './seed-sql.js';
 import type { CountrySeed } from './world-seed-data.js';
 import { SEED_COMPETITIONS, SEED_COUNTRIES } from './world-seed-data.js';
+
+/** Küçük bir küme yeter: iddialar biçim hakkında, hacim hakkında değil. */
+const PLAYER_SAMPLE = generatePlayerSeeds(25);
 
 /** Bir Drizzle tablosunun veritabanı sütun adları. */
 function dbColumnNames(table: Parameters<typeof getTableColumns>[0]): string[] {
@@ -54,6 +66,8 @@ function requiredColumnNames(table: Parameters<typeof getTableColumns>[0]): stri
 
 const countriesSql = buildCountriesUpsertSql(SEED_COUNTRIES);
 const competitionsSql = buildCompetitionsUpsertSql(SEED_COMPETITIONS);
+const peopleSql = buildPeopleUpsertSql(PLAYER_SAMPLE.people);
+const playersSql = buildPlayersUpsertSql(PLAYER_SAMPLE.players);
 
 describe('sütun listesi ŞEMAYLA eşleşiyor — ham SQL`in tip denetimi', () => {
   it('`countries`: seed`in yazdığı her sütun tabloda GERÇEKTEN var', () => {
@@ -80,13 +94,133 @@ describe('sütun listesi ŞEMAYLA eşleşiyor — ham SQL`in tip denetimi', () =
     expect(requiredColumnNames(competitions).filter((name) => !written.has(name))).toEqual([]);
   });
 
+  it('`people`: seed`in yazdığı her sütun tabloda GERÇEKTEN var', () => {
+    const actual = new Set(dbColumnNames(people));
+    for (const binding of PEOPLE_BINDINGS) {
+      expect(actual.has(binding.column)).toBe(true);
+    }
+  });
+
+  it('`players`: seed`in yazdığı her sütun tabloda GERÇEKTEN var', () => {
+    const actual = new Set(dbColumnNames(players));
+    for (const binding of PLAYER_BINDINGS) {
+      expect(actual.has(binding.column)).toBe(true);
+    }
+  });
+
+  it('`people`: NOT NULL + varsayılansız her sütunu seed YAZIYOR', () => {
+    const written = new Set(PEOPLE_BINDINGS.map((binding) => binding.column));
+    expect(requiredColumnNames(people).filter((name) => !written.has(name))).toEqual([]);
+  });
+
+  it('`players`: NOT NULL + varsayılansız her sütunu seed YAZIYOR', () => {
+    // ⚠️ ASIL NÖBETÇİ BU. `players` on bir zorunlu sütun taşıyor ve hiçbiri
+    // varsayılanlı değil (`is_newgen` bilerek DEFAULT'suz — `players.ts`).
+    // Faz 12 buraya bir `NOT NULL` sütun eklerse test kırılır, seed sessizce
+    // eksik yazmaya devam etmez.
+    const written = new Set(PLAYER_BINDINGS.map((binding) => binding.column));
+    expect(requiredColumnNames(players).filter((name) => !written.has(name))).toEqual([]);
+  });
+
+  it('⚠️ KARŞI KONTROL: nöbetçi BOŞ bir listeye bakmıyor', () => {
+    // `requiredColumnNames` her zaman boş dönseydi yukarıdaki dört iddia da
+    // "kör" geçerdi (D3). Listenin gerçekten dolu olduğu ayrıca ölçülüyor.
+    expect(requiredColumnNames(players).length).toBeGreaterThan(0);
+    expect(requiredColumnNames(people)).toContain('portrait_seed');
+    expect(requiredColumnNames(players)).toContain('current_ability');
+  });
+
   it('denetim zaman damgaları INSERT listesine GİRMİYOR — `defaultNow()` yazsın', () => {
-    for (const bindings of [COUNTRY_BINDINGS, COMPETITION_BINDINGS]) {
+    for (const bindings of [COUNTRY_BINDINGS, COMPETITION_BINDINGS, PEOPLE_BINDINGS]) {
       const names = bindings.map((binding) => binding.column);
       expect(names).not.toContain('created_at');
       expect(names).not.toContain('updated_at');
       expect(names).not.toContain('id');
     }
+    const playerNames = PLAYER_BINDINGS.map((binding) => binding.column);
+    expect(playerNames).not.toContain('created_at');
+    expect(playerNames).not.toContain('updated_at');
+    expect(playerNames).not.toContain('id');
+  });
+
+  it('⚠️ `players` §3.1.0 SÜTUNLARINI TAŞIMIYOR — `key`/`source`/`external_ids` yok', () => {
+    // `data-pack-columns.ts`in ölçülmüş listesi. Bu, çakışma sütununun neden
+    // `person_id` olduğunun da gerekçesi.
+    const names = PLAYER_BINDINGS.map((binding) => binding.column);
+    expect(names).not.toContain('key');
+    expect(names).not.toContain('source');
+    expect(names).not.toContain('external_ids');
+    // Karşı örnek: `people` üçünü de taşıyor.
+    const peopleNames = PEOPLE_BINDINGS.map((binding) => binding.column);
+    expect(peopleNames).toContain('key');
+    expect(peopleNames).toContain('source');
+    expect(peopleNames).toContain('external_ids');
+  });
+});
+
+describe('4.9 — oyuncu hattının upsert biçimi', () => {
+  it('`people` `ON CONFLICT ("key")`, `players` `ON CONFLICT ("person_id")`', () => {
+    expect(peopleSql).toContain('ON CONFLICT ("key") DO UPDATE SET');
+    // `players` `key` taşımıyor; `person_id` UNIQUE (4.3'te ölçüldü).
+    expect(playersSql).toContain('ON CONFLICT ("person_id") DO UPDATE SET');
+    expect(peopleSql).not.toContain('DO NOTHING');
+    expect(playersSql).not.toContain('DO NOTHING');
+  });
+
+  it('ikisi de `updated_at` = now() yazıyor, `created_at`e HİÇ dokunmuyor', () => {
+    for (const sql of [peopleSql, playersSql]) {
+      expect(sql).toContain('"updated_at" = now()');
+      expect(sql).not.toContain('EXCLUDED."updated_at"');
+      expect(sql).not.toContain('"created_at"');
+    }
+  });
+
+  it('`RETURNING` çakışma sütununu döndürüyor — sayı VERİTABANINDAN okunsun', () => {
+    expect(peopleSql.trimEnd().endsWith('RETURNING "key"')).toBe(true);
+    expect(playersSql.trimEnd().endsWith('RETURNING "person_id"')).toBe(true);
+  });
+
+  it('satır sayısı girdiyle aynı', () => {
+    expect(peopleSql.split('\n').filter((line) => line.startsWith('    ('))).toHaveLength(25);
+    expect(playersSql.split('\n').filter((line) => line.startsWith('    ('))).toHaveLength(25);
+  });
+
+  it('FK`ler ANAHTARLA çözülüyor — kimlikler `serial`, seed onları bilemez', () => {
+    expect(peopleSql).toContain('SELECT "id" FROM "countries" WHERE "key" =');
+    expect(playersSql).toContain('SELECT "id" FROM "people" WHERE "key" =');
+  });
+
+  it('⚠️ 5.000`in 5.000`i SERBEST OYUNCU — `club_id` tipli NULL', () => {
+    expect(playersSql).toContain('NULL::integer');
+    // `club_id` hiçbir satırda bir alt sorguyla çözülmüyor.
+    expect(playersSql).not.toContain('FROM "clubs"');
+  });
+
+  it('`is_newgen` `false` — Faz 40`ın üretmediği 5.000 newgen ima edilmiyor', () => {
+    expect(playersSql).toContain('false');
+    expect(playersSql).not.toContain('true');
+  });
+
+  it('üretilen SQL`de tiplenmemiş çıplak NULL YOK', () => {
+    expect(peopleSql).not.toMatch(/[(,]\s*NULL\s*[,)]/);
+    expect(playersSql).not.toMatch(/[(,]\s*NULL\s*[,)]/);
+  });
+
+  it('K2 — aynı girdi BİREBİR aynı SQL, ve zaman damgası LİTERALİ yok', () => {
+    expect(buildPeopleUpsertSql(PLAYER_SAMPLE.people)).toBe(peopleSql);
+    expect(buildPlayersUpsertSql(PLAYER_SAMPLE.players)).toBe(playersSql);
+    expect(peopleSql).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+    expect(playersSql).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('SET listesi INSERT listesinden TÜRETİLİYOR — `players` tarafında da', () => {
+    const assigned = [...playersSql.matchAll(/"(\w+)" = EXCLUDED\."\w+"/g)].map(
+      (match) => match[1],
+    );
+    const expected = PLAYER_BINDINGS.map((binding) => binding.column).filter(
+      (name) => name !== 'person_id',
+    );
+    expect(assigned).toEqual(expected);
   });
 });
 
@@ -187,6 +321,28 @@ describe('tipli literal üreticileri (günlük #24)', () => {
       `(SELECT "id" FROM "countries" WHERE "key" = 'turkiye')`,
     );
     expect(scalarIdByKey('countries', null)).toBe('NULL::integer');
+  });
+
+  it('`date` literali cast taşıyor, nullable biçimi tipli NULL dönüyor', () => {
+    expect(dateLiteral('2006-07-01')).toBe(`'2006-07-01'::date`);
+    expect(dateOrNull(null)).toBe('NULL::date');
+    expect(dateOrNull('2026-07-01')).toBe(`'2026-07-01'::date`);
+  });
+
+  it('`boolean` literali — `is_newgen` DEFAULT taşımıyor, değer ZORUNLU', () => {
+    expect(boolLiteral(false)).toBe('false');
+    expect(boolLiteral(true)).toBe('true');
+  });
+
+  it('`text[]` literali cast taşıyor ve tek tırnak kaçışı orada da geçerli', () => {
+    expect(textArrayLiteral(['player'])).toBe(`ARRAY['player']::text[]`);
+    expect(textArrayLiteral(['player', 'manager'])).toBe(`ARRAY['player', 'manager']::text[]`);
+  });
+
+  it('⚠️ NEGATİF: boş `person_type` SQL üretimini PATLATIYOR', () => {
+    // `people_person_type_check` `cardinality > 0` istiyor (4.3'te bilerek).
+    // Nöbetçi burada olduğu için boş dizi veritabanına HİÇ ulaşmıyor.
+    expect(() => textArrayLiteral([])).toThrow(RangeError);
   });
 
   it('üretilen SQL`de tiplenmemiş çıplak NULL YOK', () => {

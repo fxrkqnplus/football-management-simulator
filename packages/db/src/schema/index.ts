@@ -39,3 +39,17 @@ export type { StaffRole } from './staff.js';
 export { staff, STAFF_ROLES } from './staff.js';
 export type { StaffAttribute } from './staff-attributes.js';
 export { STAFF_ATTRIBUTES, staffAttributes } from './staff-attributes.js';
+/**
+ * ⚠️ **4.9'DA AÇILDI — ve açılması bir KOPYALAMAYI ÖNLEDİ.** `transfer-search.ts`
+ * 4.8'de yazıldığında yalnızca `packages/db` içinden okunuyordu (şema tanımları
+ * ve entegrasyon testleri, göreli yolla). 4.9'un seed'i **başka bir pakette**
+ * (`tools/data-cli`) ve doğum tarihlerini bu fonksiyonun **kendi tanımından**
+ * üretiyor; barrel'da olmasaydı çevrim ikinci kez yazılmak zorunda kalırdı — ve
+ * o dosyanın başlığı tam olarak bunu yasaklıyor: *"çevrimin kendisi bir ifadedir
+ * ve iki yerde yazılırsa sessizce ayrışır."*
+ *
+ * `TRANSFER_SEARCH_INDEXES` **bilerek dışarıda**: tek tüketicisi `packages/db`
+ * ve dışa açılan her ad bir sözleşmedir (K12).
+ */
+export type { BirthDateRange } from './transfer-search.js';
+export { ageRangeToBirthDateRange } from './transfer-search.js';

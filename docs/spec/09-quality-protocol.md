@@ -549,6 +549,40 @@ tarifi değil (4.2'de ölçülerek bulundu):
 | **4.6** | **18 tablo** + ilk **bileşik PK**'ler (`0009`) | **27 / 230** | %11,7 ⬇ |
 | **4.7** | **22 tablo** + 3 CHECK (`0010`) | **27 / 241** | %11,2 ⬇ |
 | **4.8** | 22 tablo + **2 indeks** (`0011`) | **29 / 251** | **%11,55** ⬆ |
+| **4.9** | değişmedi (seed — 5.000 satır) | **29 / 277** | %10,47 ⬇ |
+
+> ✅ **4.9'DA PAY SABİT KALDI: 29 — VE BU DA ALARM DEĞİL, ÇÜNKÜ SEBEBİ ÖLÇÜLDÜ.**
+>
+> Kuralın tam hâli: **alarm *"sabit pay"* değil, *"AÇIKLANAMAYAN sabit pay"***.
+> 4.9 bir **veri** alt görevi: migration yok, yeni olgu türü yok, yeni yapı yok
+> — 3.8'in (*"değişmedi (seed)"*, 19/146) birebir sınıfı. Ölçüm:
+>
+> | Soru | Ölçüm |
+> |---|---|
+> | 4.9 `compareSchemas`ın yüzeyine dokundu mu? | **Hayır** — zincir 12, tablo 22, FK 32, indeks 6, sequence 14; beşi de sabit |
+> | 26 yeni entegrasyon testinin kaçı `compareSchemas` çağırıyor? | **0** (hiçbiri import etmiyor) |
+> | Körelen karşılaştırıcı hangi dosyayı kırıyor? | **yalnızca `round-trip.itest.ts`** — 4.8'dekiyle aynı dosya, aynı 29 test |
+>
+> Oran düştü (%11,55 → **%10,47**) çünkü payda 251 → 277 büyürken pay sabit
+> kaldı. **Payı artıran şey bir FARK BEKLEMESİDİR** ve 4.9 şemaya hiçbir fark
+> getirmedi — satır getirdi.
+>
+> ⚠️ **AMA 4.9'UN KENDİ NÖBETÇİSİ AYRI BİR MUTASYONLA ÖLÇÜLDÜ** ve seriye
+> girmiyor, çünkü hedefi `compareSchemas` değil **üretecin kendisi**:
+>
+> ```ts
+> // 4.9'UN MUTASYONU — birebir bu (`player-generator.ts`):
+> return mix32(mix32(1) ^ mix32(Math.imul(stream, STREAM_SALT)));   // `index` yok sayıldı
+> ```
+>
+> Sonuç: **7 / 967** birim + **3 / 277** entegrasyon. Ve asıl bulgu şu:
+> ***"aynı çağrı BİREBİR aynı kümeyi veriyor"* testi KIRILMADI.** Sabit dönen
+> bir üreteç determinizm iddiasını **kusursuz** geçiyor — §11.5'in başındaki
+> ölçümün (*"on beş pozitif test kör bir karşılaştırıcıyla da geçiyordu"*)
+> canlı tekrarı. Mutasyonu yakalayan testler, *"satırlar birbirinden FARKLI"*
+> ve *"kesişim 27 satır"* gibi bir **fark ya da dağılım** bekleyenler oldu.
+> **Genel biçim: determinizm testi tek başına bir nöbetçi değildir; yanına
+> bağımlılık iddiası konmadıkça kör bir üreteci de onaylar.**
 
 > ⚠️ **4.6 SATIRI 4.7'YE KADAR EKSİKTİ — VE BU SERİNİN KENDİ DERSİ.**
 > Ölçüm 4.6'da yapıldı (**27 / 230**), ANLIK DURUM'a ve alt görev raporuna

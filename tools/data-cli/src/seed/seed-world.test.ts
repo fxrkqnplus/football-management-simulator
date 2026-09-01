@@ -24,8 +24,13 @@ import type { SqlExecutor } from '@fms/db';
 import { createNoopLogger } from '@fms/shared';
 import { describe, expect, it, vi } from 'vitest';
 
+import { generatePlayerSeeds } from './player-generator.js';
+import { SEED_PLAYER_COUNT } from './player-seed-data.js';
 import { seedWorld } from './seed-world.js';
 import { SEED_COMPETITIONS, SEED_COUNTRIES } from './world-seed-data.js';
+
+/** Küçük küme — bu dosyanın iddiaları SIRA hakkında, hacim hakkında değil. */
+const SAMPLE = generatePlayerSeeds(3);
 
 const logger = createNoopLogger();
 
@@ -56,6 +61,14 @@ function createFakeExecutor(options: { readonly failOnCompetitions?: boolean } =
         [...SEED_COMPETITIONS].map((row) => ({ key: row.key })).reverse() as T[],
       );
     }
+    if (statement.includes('INSERT INTO "people"')) {
+      return Promise.resolve([...SAMPLE.people].map((row) => ({ key: row.key })).reverse() as T[]);
+    }
+    if (statement.includes('INSERT INTO "players"')) {
+      // ⚠️ `person_id` bir TAMSAYI ve sıra bilerek karıştırılmış: `seedWorld`
+      // dizge sıralaması yapsaydı `10 < 9` derdi ve bu test onu yakalar.
+      return Promise.resolve([{ person_id: 10 }, { person_id: 9 }, { person_id: 2 }] as T[]);
+    }
     return Promise.resolve([...SEED_COUNTRIES].map((row) => ({ key: row.key })).reverse() as T[]);
   };
 
@@ -74,35 +87,85 @@ function createFakeExecutor(options: { readonly failOnCompetitions?: boolean } =
   return { executor, statements, transactions: () => transactionCount };
 }
 
-describe('seedWorld — orkestrasyon kararları', () => {
-  it('iki ifadeyi TEK işlemde koşuyor', async () => {
-    const fake = createFakeExecutor();
-    await seedWorld({ executor: fake.executor, logger });
-
-    expect(fake.transactions()).toBe(1);
-    expect(fake.statements).toHaveLength(2);
+/** Varsayılan 5.000 satır yerine küçük kümeyle koşan çağrı. */
+const seedSample = async (fake: FakeExecutor): ReturnType<typeof seedWorld> =>
+  seedWorld({
+    executor: fake.executor,
+    logger,
+    people: SAMPLE.people,
+    players: SAMPLE.players,
   });
 
-  it('`countries` `competitions`tan ÖNCE — FK alt sorgusu buna bağlı', async () => {
+describe('seedWorld — orkestrasyon kararları', () => {
+  it('DÖRT ifadeyi TEK işlemde koşuyor (4.9`da ikiden dörde çıktı)', async () => {
     const fake = createFakeExecutor();
-    await seedWorld({ executor: fake.executor, logger });
+    await seedSample(fake);
+
+    expect(fake.transactions()).toBe(1);
+    expect(fake.statements).toHaveLength(4);
+  });
+
+  it('⚠️ SIRA: countries → competitions → people → players, ve her adım öncekine DAYANIYOR', async () => {
+    const fake = createFakeExecutor();
+    await seedSample(fake);
 
     expect(fake.statements[0]).toContain('INSERT INTO "countries"');
     expect(fake.statements[1]).toContain('INSERT INTO "competitions"');
-    // Ve ikinci ifade gerçekten birinciye dayanıyor.
+    expect(fake.statements[2]).toContain('INSERT INTO "people"');
+    expect(fake.statements[3]).toContain('INSERT INTO "players"');
+
+    // Bağımlılıklar iddia ediliyor — sıra bir tercih değil bir zorunluluk.
     expect(fake.statements[1]).toContain('SELECT "id" FROM "countries"');
+    expect(fake.statements[2]).toContain('SELECT "id" FROM "countries"');
+    expect(fake.statements[3]).toContain('SELECT "id" FROM "people"');
   });
 
   it('dönen anahtarları SIRALIYOR — `RETURNING` sırası garanti değil', async () => {
     // Sahte, satırları bilerek TERS veriyor. Sıralama `seedWorld`ün işi olmasa
     // determinizm testi planlayıcının keyfine bağlı kalırdı.
     const fake = createFakeExecutor();
-    const result = await seedWorld({ executor: fake.executor, logger });
+    const result = await seedSample(fake);
 
     expect(result.countryKeys).toEqual([...result.countryKeys].sort());
     expect(result.competitionKeys).toEqual([...result.competitionKeys].sort());
+    expect(result.peopleKeys).toEqual([...result.peopleKeys].sort());
     expect(result.countryKeys).toHaveLength(6);
     expect(result.competitionKeys).toHaveLength(11);
+    expect(result.peopleKeys).toHaveLength(3);
+  });
+
+  it('⚠️ `person_id` SAYISAL sıralanıyor — dizge sıralaması `10 < 9` derdi', async () => {
+    const fake = createFakeExecutor();
+    const result = await seedSample(fake);
+
+    expect(result.playerPersonIds).toEqual([2, 9, 10]);
+    // Karşı örnek: dizge sıralaması bu diziyi BOZARDI.
+    expect([10, 9, 2].map(String).sort()).toEqual(['10', '2', '9']);
+  });
+
+  it('varsayılan küme 5.000 kişi + 5.000 oyuncu — kabul kriteri 1', async () => {
+    const fake = createFakeExecutor();
+    await seedWorld({ executor: fake.executor, logger });
+
+    // Sahte `RETURNING` küçük kalıyor; iddia GİRDİDE, yani üretilen SQL'in
+    // satır sayısında. (Kaç satır YAZILDIĞI entegrasyon testinin işi.)
+    const peopleStatement = fake.statements[2] ?? '';
+    const playersStatement = fake.statements[3] ?? '';
+    expect(peopleStatement.split('\n').filter((line) => line.startsWith('    ('))).toHaveLength(
+      SEED_PLAYER_COUNT,
+    );
+    expect(playersStatement.split('\n').filter((line) => line.startsWith('    ('))).toHaveLength(
+      SEED_PLAYER_COUNT,
+    );
+  });
+
+  it('BOŞ küme için ifade HİÇ üretilmiyor — gövdesiz `VALUES` sözdizimi hatası', async () => {
+    const fake = createFakeExecutor();
+    await seedWorld({ executor: fake.executor, logger, people: [], players: [] });
+
+    expect(fake.statements).toHaveLength(2);
+    expect(fake.statements.join('\n')).not.toContain('INSERT INTO "people"');
+    expect(fake.statements.join('\n')).not.toContain('INSERT INTO "players"');
   });
 
   it('ikinci ifade patlarsa hata YUTULMUYOR — işlem geri alınabilsin', async () => {
@@ -123,6 +186,8 @@ describe('seedWorld — orkestrasyon kararları', () => {
       logger,
       countries: SEED_COUNTRIES.slice(0, 1),
       competitions: [],
+      people: [],
+      players: [],
     });
 
     // Tek satırlık `VALUES` listesi.
@@ -137,11 +202,16 @@ describe('seedWorld — orkestrasyon kararları', () => {
     await seedWorld({
       executor: fake.executor,
       logger: { ...logger, info },
+      people: SAMPLE.people,
+      players: SAMPLE.players,
     });
 
-    expect(info).toHaveBeenCalledWith({ countries: 6, competitions: 11 }, 'seed.world.start');
     expect(info).toHaveBeenCalledWith(
-      { countriesWritten: 6, competitionsWritten: 11 },
+      { countries: 6, competitions: 11, people: 3, players: 3 },
+      'seed.world.start',
+    );
+    expect(info).toHaveBeenCalledWith(
+      { countriesWritten: 6, competitionsWritten: 11, peopleWritten: 3, playersWritten: 3 },
       'seed.world.done',
     );
   });

@@ -56,6 +56,7 @@
  */
 import { competitionRulesSchema, externalIdsSchema } from '@fms/db';
 
+import type { PersonSeed, PlayerSeed } from './player-seed-data.js';
 import type { CompetitionSeed, CountrySeed } from './world-seed-data.js';
 import { competitionNameKey, countryNameKey, SEED_SOURCE } from './world-seed-data.js';
 
@@ -89,6 +90,45 @@ export function intOrNull(value: number | null): string {
 /** Nullable dize — tipli `NULL`. */
 export function textOrNull(value: string | null): string {
   return value === null ? 'NULL::text' : quote(value);
+}
+
+/**
+ * `date` literali — cast ZORUNLU, `jsonb` ile aynı sebeple (günlük #24).
+ *
+ * Çok satırlı bir `VALUES` listesinde hepsi tırnaklı literal olan bir sütun
+ * `unknown` → **`text`**e düşüyor. `text` → `date` ataması `INSERT` bağlamında
+ * çalışır ama kural burada da istisnasız uygulanıyor: **kaybolabilecek her tipe
+ * cast yazılır.** Bir sütunun bugün örtük çevrimi olması yarın da olacağı
+ * anlamına gelmez ve fark sessiz olurdu.
+ */
+export function dateLiteral(value: string): string {
+  return `${quote(value)}::date`;
+}
+
+/** Nullable tarih — tipli `NULL`. `null` = *"hâlâ aktif"* (`players.retired_at`). */
+export function dateOrNull(value: string | null): string {
+  return value === null ? 'NULL::date' : dateLiteral(value);
+}
+
+/** `boolean` literali. `players.is_newgen` DEFAULT taşımıyor — değer ZORUNLU. */
+export function boolLiteral(value: boolean): string {
+  return value ? 'true' : 'false';
+}
+
+/**
+ * `text[]` literali — cast ZORUNLU.
+ *
+ * `people.person_type` şemanın **ilk dizi sütunu** (`people.ts` başlığı) ve
+ * `ARRAY[...]` biçimi cast'siz `text[]` yerine `unknown[]` çözülebiliyor.
+ * Boş dizi ayrıca **yasak**: `people_person_type_check` `cardinality > 0`
+ * istiyor (4.3'te bilerek) — üreteç boş dizi yazmıyor, ama burada da
+ * gürültülü durmak, veritabanına boş bir dizi göndermekten iyi.
+ */
+export function textArrayLiteral(values: readonly string[]): string {
+  if (values.length === 0) {
+    throw new RangeError('`person_type` boş olamaz — people_person_type_check reddeder');
+  }
+  return `ARRAY[${values.map((value) => quote(value)).join(', ')}]::text[]`;
 }
 
 /**
@@ -235,6 +275,101 @@ export const COMPETITION_BINDINGS: readonly ColumnBinding<CompetitionSeed>[] = [
   { column: 'season_end_month', value: (row) => String(row.seasonEndMonth) },
 ];
 
+/**
+ * `people` sütun bağları — §3.1.0'ın üç sütunu dahil, 14 sütun (Faz 4.9).
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * SATIR BAŞINA DEĞİŞMEYEN DÖRT SÜTUN — ve dördünün de gerekçesi ayrı
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `common_name` · `birth_city` · `portrait_asset_id` **`null`**,
+ * `gender` **`'male'`**, `person_type` **`['player']`**. Hiçbiri jeneratörden
+ * gelmiyor ve bu bir eksiklik değil, `flag_asset_id`in emsali (`world-seed-data`
+ * dosyasının *"`externalIds` HEPSİNDE BOŞ — ve bu D1 disiplini"* bölümü):
+ *
+ * - `common_name` — bir lakap **gerçek dünya verisidir**, kalibrasyon değil.
+ *   Uydurulmuş bir "Vinicius Jr" hiçbir şeyi ölçmez. Faz 9'un ingesti yazar.
+ * - `birth_city` — `people.ts` doğrudan yazmış: *"`null` = bilinmiyor.
+ *   Uydurulmuş bir şehir, eksik bir şehirden kötüdür (SAPMA-026 ③)."*
+ * - `portrait_asset_id` — K9'un prosedürel yedeği; `null` **beklenen** durum
+ *   ve tohumu `portrait_seed` taşıyor.
+ * - `gender` — seed'in altı yarışması erkek ligleri (`SEED_COMPETITIONS`);
+ *   bir kadın futbolu dağılımı uydurmak, kimsenin belirlemediği bir alana değer
+ *   yazmak olurdu (SAPMA-026). Kadın futbolu ROADMAP'in hiçbir fazında **yok**
+ *   (arandı) — yani bu bir kapsam kararı değil, kapsamın **kendisi**.
+ * - `person_type` — beşi de yazılabilirdi ama 4.9'un ürettiği satırlar
+ *   yalnızca **oyuncu**: `staff`/`managers` tabloları 4.9'da boş kalıyor, yani
+ *   `['staff']` yazmak var olmayan bir personel kaydını ima ederdi.
+ */
+export const PEOPLE_BINDINGS: readonly ColumnBinding<PersonSeed>[] = [
+  { column: 'key', value: (row) => quote(row.key) },
+  { column: 'source', value: () => quote(SEED_SOURCE) },
+  { column: 'external_ids', value: () => jsonbLiteral(externalIdsSchema.parse({})) },
+  { column: 'first_name', value: (row) => quote(row.firstName) },
+  { column: 'last_name', value: (row) => quote(row.lastName) },
+  { column: 'common_name', value: () => textOrNull(null) },
+  { column: 'birth_date', value: (row) => dateLiteral(row.birthDate) },
+  // FK anahtarla çözülür — kimlikler `serial`, seed onları bilemez.
+  {
+    column: 'nationality_country_id',
+    value: (row) => scalarIdByKey('countries', row.nationalityCountryKey),
+  },
+  {
+    column: 'second_nationality_country_id',
+    value: (row) => scalarIdByKey('countries', row.secondNationalityCountryKey),
+  },
+  { column: 'birth_city', value: () => textOrNull(null) },
+  { column: 'portrait_asset_id', value: () => textOrNull(null) },
+  { column: 'portrait_seed', value: (row) => String(row.portraitSeed) },
+  { column: 'gender', value: () => quote('male') },
+  { column: 'person_type', value: () => textArrayLiteral(['player']) },
+];
+
+/**
+ * `players` sütun bağları — 14 sütun (Faz 4.9).
+ *
+ * ⚠️ **`players` §3.1.0 sütunlarını TAŞIMIYOR** (`data-pack-columns.ts`in
+ * ölçülmüş listesi): ne `key`, ne `source`, ne `external_ids`. Kimliği taşıyan
+ * satır `people`. Bu, çakışma sütununun neden `person_id` olduğunu da
+ * açıklıyor — `key` yok, ama `person_id` **UNIQUE** (4.3'te ölçüldü).
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * SATIR BAŞINA DEĞİŞMEYEN DÖRT SÜTUN
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * - `club_id` **`null`** → **5.000'in 5.000'i serbest oyuncu.** `clubs` boş
+ *   (`world-seed.itest.ts` bunu koşan bir testle iddia ediyor) ve kulüp verisi
+ *   **Faz 8**'in işi. Bilinçli, ve koşan bir testle iddia ediliyor: bir gün
+ *   kulüp seed'i gelirse bu satır öter.
+ * - `squad_number` **`null`** → `players.ts`: *"`null` = numarasız"*. Kulübü
+ *   olmayan bir oyuncunun forma numarası **türetilmiş bir yalan** olurdu; ve
+ *   Faz 11'in doğrulayıcısı *"forma numaraları kulüp içinde benzersiz"* diyor,
+ *   yani numara kulübe bağlı bir kavram.
+ * - `is_newgen` **`false`** → `players.ts` sütunu *"Üretilmiş oyuncu mu
+ *   (Faz 40)"* diye tanımlıyor: **altyapıdan oyun oynanırken doğan** oyuncu.
+ *   Bu satırlar prosedürel **veridir**, prosedürel **newgen** değil — ve fark
+ *   zaten `source = 'procedural'` ile taşınıyor. `true` yazmak Faz 40'ın hiç
+ *   üretmediği 5.000 newgen'i ima ederdi.
+ * - `retired_at` **`null`** → *"`null` = hâlâ aktif"*. Emekli bir oyuncu, hiç
+ *   oynamamış bir kariyerin emeklisi olurdu.
+ */
+export const PLAYER_BINDINGS: readonly ColumnBinding<PlayerSeed>[] = [
+  { column: 'person_id', value: (row) => scalarIdByKey('people', row.personKey) },
+  { column: 'club_id', value: () => intOrNull(null) },
+  { column: 'squad_number', value: () => intOrNull(null) },
+  { column: 'primary_position', value: (row) => quote(row.primaryPosition) },
+  { column: 'height_cm', value: (row) => String(row.heightCm) },
+  { column: 'weight_kg', value: (row) => String(row.weightKg) },
+  { column: 'preferred_foot_right', value: (row) => String(row.preferredFootRight) },
+  { column: 'preferred_foot_left', value: (row) => String(row.preferredFootLeft) },
+  { column: 'current_ability', value: (row) => String(row.currentAbility) },
+  { column: 'potential_ability', value: (row) => String(row.potentialAbility) },
+  { column: 'pa_range_min', value: (row) => String(row.paRangeMin) },
+  { column: 'pa_range_max', value: (row) => String(row.paRangeMax) },
+  { column: 'is_newgen', value: () => boolLiteral(false) },
+  { column: 'retired_at', value: () => dateOrNull(null) },
+];
+
 /** 6 ülkelik upsert. */
 export function buildCountriesUpsertSql(rows: readonly CountrySeed[]): string {
   return buildUpsertSql({
@@ -256,6 +391,44 @@ export function buildCompetitionsUpsertSql(rows: readonly CompetitionSeed[]): st
     table: 'competitions',
     conflictColumn: 'key',
     bindings: COMPETITION_BINDINGS,
+    rows,
+  });
+}
+
+/**
+ * 5.000 kişilik upsert (Faz 4.9).
+ *
+ * ⚠️ `countries` upsert'i **önce** koşmak zorunda: `nationality_country_id`
+ * skaler alt sorgusu o satırları okuyor **ve sütun `NOT NULL`**. Sıra bozulsa
+ * alt sorgu `NULL` döner ve `INSERT` gürültülü patlar — `country_id`nin
+ * nullable olduğu `competitions` tarafından farkı tam olarak bu:
+ * orada aynı hata **sessiz** geçerdi (`seed-sql.ts`in `scalarIdByKey` notu).
+ */
+export function buildPeopleUpsertSql(rows: readonly PersonSeed[]): string {
+  return buildUpsertSql({
+    table: 'people',
+    conflictColumn: 'key',
+    bindings: PEOPLE_BINDINGS,
+    rows,
+  });
+}
+
+/**
+ * 5.000 oyunculuk upsert (Faz 4.9).
+ *
+ * ⚠️ **Çakışma sütunu `key` DEĞİL `person_id`** — `players` §3.1.0 sütunlarını
+ * taşımıyor. `person_id` `UNIQUE` (4.3), yani `ON CONFLICT` için geçerli bir
+ * arbitre; `RETURNING "person_id"` de bu yüzden **dizge değil tamsayı** dönüyor
+ * ve `seed-world.ts` onu sayısal olarak sıralıyor.
+ *
+ * ⚠️ `people` upsert'i **önce** koşmak zorunda: `person_id` alt sorgusu o
+ * satırları okuyor ve sütun `NOT NULL`.
+ */
+export function buildPlayersUpsertSql(rows: readonly PlayerSeed[]): string {
+  return buildUpsertSql({
+    table: 'players',
+    conflictColumn: 'person_id',
+    bindings: PLAYER_BINDINGS,
     rows,
   });
 }
