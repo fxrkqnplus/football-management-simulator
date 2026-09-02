@@ -26,7 +26,8 @@
 | `ioredis` | 5.11.1 | **Faz 16** | **BORÇ-001** — 6.0.0 mevcut ama kurulum anında 3 haftalıktı. |
 | `bullmq` | 5.81.3 | **Faz 16** | **BORÇ-002** — 6.2.0 mevcut; v6 `ioredis`'i peer'a taşıdı, `pg`/`redis` peer'ları ekledi (kuyruk yapılandırmasını değiştiren mimari değişiklik). |
 | `@tanstack/react-table` | 9.1.2 | **Faz 18** | Taze majör (9.0 → 4 Ağu 2026). v8 Nis 2025'ten beri güncellenmiyor, bu yüzden v9'da başlandı; notlar tablo motoru yazılırken okunacak. |
-| `i18next` / `react-i18next` | 26.4.0 / 17.0.12 | **Faz 5** | İki majör atlama (24→26, 15→17), notlar okunmadı. |
+| `i18next` / `react-i18next` | **26.4.1 / 17.0.13** | ~~Faz 5~~ ✅ **5.0'da ELE ALINDI — notlar OKUNDU, karar verildi** | Kurulum **5.3**'te. Sonuç aşağıda. ⚠️ Satır `26.4.0 / 17.0.12` diyordu ve **bayattı** — sürümler 5.0'da registry'den yeniden okundu. |
+| `i18next-browser-languagedetector` | **8.2.1** | ~~Faz 5~~ ✅ **5.0'da EKLENDİ ve ele alındı** | ⚠️ **Bu satır HİÇ YOKTU** ve 5.0'ın açılış ölçümünde bulundu: ROADMAP Faz 5 kapsamı *"tarayıcı dil algılama"* istiyor, yani paket **gerekli**, ama takip tablosunda adı geçmiyordu. Majör atlama **yok** (ilk kurulum). `peerDependencies` **boş** — ölçüldü. Kurulum 5.3'te. |
 | `recharts` | 3.10.1 | **Faz 29** | 2 → 3 majör atlaması, notlar okunmadı. İlk kullanım maç sonrası analiz. |
 | `postgres` (Docker) | **18** | ~~Faz 3~~ ✅ **3.0'da BUMP EDİLDİ (16 → 18)** | Sonuç aşağıda. Sonraki majör değerlendirmesi Faz 50 (dağıtım). |
 | `redis` (Docker) | 7 | **Faz 16** | 8 mevcut (8.8.2). `ioredis`/`bullmq` majör kararlarıyla (BORÇ-001, BORÇ-002) aynı fazda birlikte değerlendirilir. |
@@ -38,6 +39,59 @@
 ---
 
 ## Ele alınmış satırların sonucu
+
+### `i18next` 26.4.1 · `react-i18next` 17.0.13 · `i18next-browser-languagedetector` 8.2.1 — Faz 5.0, 2026-09-02 · **KARAR VERİLDİ, KURULUM 5.3'TE**
+
+**Emsal uygulandı:** BORÇ-001/002'nin notu *"gerekçe zamana bağlı — o fazda
+yeniden türetilir, kopyalanmaz"* diyor. Faz 5 i18next için o fazın kendisi;
+bu yüzden *"notlar okunmadı"* satırı bir karara çevrildi. **Neye bakıldığı
+aşağıda adıyla yazılı** — *"sorun yok"* tek başına bir ölçüm değildir.
+
+**Okunan kaynaklar:** `raw.githubusercontent.com/i18next/i18next/master/CHANGELOG.md`
+(sürüm başlıkları **25.0.0** ve **26.0.0**) ·
+`github.com/i18next/react-i18next/blob/master/CHANGELOG.md` (**16.0.0**, **17.0.0**) ·
+`i18next.com/overview/typescript`.
+
+**i18next 24 → 26, iki majörün kırıcı maddeleri:**
+
+| Sürüm | Madde | Bizi etkiliyor mu |
+|---|---|---|
+| 25.0.0 | `changeLanguage` çağrı sırası düzeltildi; `getBestMatchFromCodes` artık aynı script'e düşüyor | **Hayır** — tek dil (`tr`), dil değiştirme yok (İngilizce v2'de) |
+| 26.0.0 | `initImmediate` seçeneği **kaldırıldı** (`initAsync`'e eşleme silindi) | **Hayır** — yeni kurulum, eski seçenek hiç yazılmayacak |
+| 26.0.0 | Eski monolitik `interpolation.format` fonksiyonu **kaldırıldı** | **Hayır** — biçimlendirme `Intl` üzerinden, `packages/shared/src/i18n/format.ts` (5.2) |
+| 26.0.0 | `simplifyPluralSuffix` **kaldırıldı** | **Hayır** — kullanılmıyor |
+| 26.0.0 | Konsol destek bildirimi ve `globalThis.__i18next_supportNoticeShown` **kaldırıldı** | **Hayır** |
+| 26.0.0 | **TypeScript v4 desteği kaldırıldı; TS v5 artık opsiyonel peer** | **Hayır, LEHİMİZE** — peer aralığı ölçüldü: `^5 \|\| ^6 \|\| ^7`, bizim `~6.0.3` **içinde** |
+| 26.0.0 | Node < v14 desteği düştü | **Hayır** — Node 24.19.0 |
+
+**react-i18next 15 → 17:**
+
+| Sürüm | Madde | Bizi etkiliyor mu |
+|---|---|---|
+| 16.0.0 | i18next bağımlılığı majör yükseltildi (issue 1865) | **Hayır** — zaten 26 kuruyoruz |
+| 17.0.0 | `transKeepBasicHtmlNodesFor` artık HTML etiket adlarını **doğru koruyor**: eskiden `<strong>{{name}}</strong>` yanlışlıkla `<1>{{name}}</1>` diye serileşiyordu | **Hayır, ama SEBEBİ ÖNEMLİ** — geçiş notu *"otomatik üretilmiş `Trans` anahtarlarına dayanıyorsan çeviri dosyalarını güncellemen gerekir"* diyor; bizim **hiç çeviri dosyamız yok** (sıfırdan yazılıyor). Bu madde bir **var olan kurulumu** kırıyor, yeni kurulumu değil |
+| 17.0.0 | **i18next ≥ 26.0.1 gerektiriyor** | **Hayır** — 26.4.1 kuruluyor; ayrıca peer olarak ölçüldü (`i18next: >=26.2.0`) |
+
+**KARAR: üç paket de en güncel sürümde kurulur (26.4.1 / 17.0.13 / 8.2.1).**
+İki majör atlamanın **tek bir kırıcı maddesi bile** bu projeye dokunmuyor ve
+sebep yapısal: kırıcı maddelerin tamamı ya **kaldırılan eski seçenekler**
+(hiç yazmadığımız) ya da **var olan çeviri dosyalarını** etkileyen davranış
+düzeltmeleri (henüz hiç dosyamız yok). **Sıfırdan kurulum, majör atlamanın
+maliyetini sıfırlıyor** — bu, kurulumu Faz 5'e ertelemenin ödülü.
+
+⚠️ **Ölçülen peer'lar (`.npmrc` `strict-peer-dependencies=true`, yani bir KAPI):**
+
+| Paket | `peerDependencies` | Bizdeki değer | |
+|---|---|---|---|
+| `i18next@26.4.1` | `typescript: ^5 \|\| ^6 \|\| ^7` | `~6.0.3` | ✅ |
+| `react-i18next@17.0.13` | `react: >=16.8.0` · `i18next: >=26.2.0` · `typescript: ^5 \|\| ^6 \|\| ^7` | React 19.2 · 26.4.1 · `~6.0.3` | ✅ |
+| `i18next-browser-languagedetector@8.2.1` | **boş** | — | ✅ |
+
+⚠️ **DOĞRULAMA 5.3'E BIRAKILDI ve bu bir eksiklik değil bir sıra:** peer
+uyumu **registry meta verisinden** okundu, `pnpm install` koşturulmadı (5.0'da
+paket kurulmuyor). Gerçek kapı `pnpm install --frozen-lockfile`tır ve 5.3'te
+ateşlenir. Buradaki tablo *"kurulmalı"* demiyor, *"engelleyen bir peer
+görünmüyor"* diyor.
 
 > Kural 3: bump edilen satır silinmez, sonucu buraya yazılır.
 

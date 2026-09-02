@@ -2247,7 +2247,7 @@ docs/glossary.md
       gösteriyordu, gerçek **21** (4.1'in eklediği adım 15 kaydırmıştı). Doğrulama
       **adım 3'ün içine**, okumadan önce kondu. → **SAPMA-036**,
       `docs/reports/faz-05/5.0-on-*.md`
-- [ ] **5.0** **Doğrulama alt görevi — KOD YOK, ÖLÇÜM VAR.** ① i18next 24→26 ve
+- [x] **5.0** **Doğrulama alt görevi — KOD YOK, ÖLÇÜM VAR.** ① i18next 24→26 ve
       react-i18next 15→17 changelog notları okunur, karar yazılır ② üç bulgu
       `DEPENDENCY-WATCH`a işlenir: `i18next-browser-languagedetector` satırı
       **hiç yoktu**, `26.4.0/17.0.12` **bayattı** (registry `26.4.1/17.0.13`),
@@ -2267,6 +2267,123 @@ docs/glossary.md
       > basan bir kapı kapatılır. Seçenekler: ön ek allowlist'i · üreteci okuma ·
       > açık bildirim dosyası. ℹ️ **G-13'ün akrabası** (ikisi de *"çeviri anahtarı
       > veritabanında yaşıyor"*tan doğuyor) — 5.8'in kararı bunu kolaylaştırabilir.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — TEK KARAR: TİPLİ ANAHTARLAR AÇILIR, DİNAMİK AİLELER BEYAN EDİLİR**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > *"Tipleme açılsın mı"* ile *"dinamik anahtarlar nasıl beyan edilecek"*
+      > **tek kararın iki yüzü**: tipleme açıksa birleştirilmiş bir dize tipli
+      > anahtar kümesine oturmaz ve `t('errors:' + code)` **derlenmez**. Ayrı
+      > verilseydi ikincisi birincisini geçersiz kılardı.
+      >
+      > **(a) TİPLEME AÇILIR.** Ölçüldü — ön koşulların tamamı **zaten** yerinde:
+      > `tsconfig.base.json`:24 `strict: true` · :40 `resolveJsonModule: true` ·
+      > TS `~6.0.3` (belge TS ≥ 5.0 istiyor) · `i18next@26.4.1` peer'ı
+      > `typescript: ^5 || ^6 || ^7`. Mekanizma `i18next.d.ts` içinde
+      > `CustomTypeOptions` modül genişletmesi. Kazanç gerçek: **yanlış yazılmış
+      > bir literal anahtar derleme hatası olur** ve bugün böyle bir kapı yok.
+      > ⚠️ Belgenin uyarısı da yazılıyor: tipleme **derleme süresini** etkiler ve
+      > büyük projelerde bellek tüketir; `enableSelector: "optimize"` (v25.4+,
+      > yani 26.4.1'de var) tembel çözümleme ile bunu azaltıyor. On namespace
+      > küçük bir yüzey, ama **ölçülmeden "sorun yok" denmiyor** → 5.3.
+      > ⚠️ **KARAR KOŞULLU VE YANLIŞLANABİLİR (D1):** tipleme `pnpm install`
+      > yapılmadan **koşturulamadı**. **5.3 bir kontrol deneyiyle doğrular:**
+      > kasten yanlış yazılmış bir anahtar `pnpm typecheck`i **kırmalı**;
+      > kırmıyorsa tipleme çalışmıyordur, karar yeniden açılır ve SAPMA yazılır.
+      > *"Belgede yazıyor"* bir ölçüm değildir.
+      >
+      > **(b) HER DİNAMİK AİLENİN TEK BİR YARDIMCISI OLUR.** Tipleme, şablon
+      > literallerinde *"literal değeri kaybeder"* (belgenin ifadesi) ve
+      > `as const` ile kaçış ister. O kaçış **satır içine dağıtılmaz**: her aile
+      > için bir yardımcı fonksiyon yazılır, girdisi **kapalı bir kümeye
+      > daraltılır**, ve kaçış **tek yerde** gerekçesiyle durur. Aynı modül
+      > `i18n-check`in dinamik aile **beyanı** olur — yani tip sınırı ile kapının
+      > beyanı **aynı kaynak**, ayrışamazlar. (Ayrı bir allowlist dosyası
+      > elenmişti: iki liste kaçınılmaz olarak ayrışır — `spec/09` §11.5'in
+      > *"hiçbir kural iki yerde denetlenmez"* disiplini.)
+      >
+      > **(c) ÜÇ DİNAMİK AİLE — SAYILDI, TAHMİN EDİLMEDİ:**
+      >
+      > | Aile | Kapalı mı | Bugünkü üye sayısı | Kaynak |
+      > |---|---|---|---|
+      > | `country.*` + `competition.*` | **kapalı** | **17** (6 ülke + 11 yarışma) | `world-seed-data.ts` `countryNameKey`/`competitionNameKey` |
+      > | `errors:code.*` | **açık** | **0 canlı** (aşağı bak) | fırlatma yerleri |
+      > | `errors:status.*` | **kapalı** | 4 (400 · 403 · 404 · genel) | `exceptionMessageFor` |
+      >
+      > **⚠️ (d) `errors:code.*` BUGÜN BOŞ — VE BU ÖLÇÜLDÜ, VARSAYILMADI.**
+      > Depoda **23 ayrık `code`** var (test dışı) ve **hepsi**
+      > `packages/db/src/migrate/`, `packages/db/src/schema-state/` ve
+      > `packages/shared` içinde — yani **CLI / derleme zamanı / geliştirici**
+      > yolları. **`apps/api` bugün tek bir `AppError` fırlatmıyor** (ölçüldü:
+      > 0 eşleşme). Sonuç: bir `code` bugün hiçbir kullanıcıya **ulaşmıyor**.
+      > Açık ailenin tiplenememesi bu yüzden **bugün bir maliyet değil**; ilk
+      > gerçek üye bir HTTP özelliğiyle gelecek (Faz 13+).
+      >
+      > **⚠️ (e) KAPALI YEDEK AİLESİ `kind` DEĞİL `status` ÜZERİNE KURULUR —
+      > VE BU BİR DÜZELTME.** BORÇ-005 `MESSAGE_BY_KIND`i siliyor; silinince
+      > anahtarı olmayan bir `code` geldiğinde i18next **anahtarın kendisini**
+      > basar ve kullanıcı ekranda `errors:code.transfer.budgetExceeded` görür.
+      > Yani bir **yedek** şart. Doğal aday `kind`di — ama ölçüldü:
+      > **`kind` yanıt gövdesinde YOK.** Gövde `status · code · message ·
+      > correlationId · context` taşıyor (`global-exception.filter.ts`:112-120);
+      > `kind` yalnızca **log bağlamında** (satır 83). İstemci `kind`i göremez.
+      > `status` **gövdede var** ve `exceptionMessageFor` zaten tam olarak ona
+      > bakıyor. → Yedek `t('errors:code.' + code, { defaultValue: t('errors:status.' + status) })`
+      > biçiminde kurulur; **gövde sözleşmesi DEĞİŞMEZ** (bir API yüzeyi
+      > değişikliği bu fazın kapsamında değil — K12). **5.4'ün işi budur.**
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — KAYNAKLAR VE FAZ 5'İN ASIL DOĞRULAYICI KAPISI**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **(f) SÖZLÜĞÜN ≥43 TERİMİ NEREDEN GELİYOR — sayıldı, uydurulmadı.**
+      > `CLAUDE.md` §14 bugün **77** terim taşıyor (5.0'da yeniden sayıldı).
+      > Eksik ≥43'ün kaynağı bir **koşan envanter**: `VISIBLE_ATTRIBUTES` +
+      > `HIDDEN_ATTRIBUTES` → **47 + 10 = 57** (programatik olarak sayıldı,
+      > elle değil). 77 + 57 = **134 ≥ 120**, tek terim uydurmadan.
+      > ⚠️ **AMA BİR AYRIM VAR VE SAKLANMIYOR:** `docs/spec/02-attributes.md`
+      > nitelikleri **yalnızca İngilizce** listeliyor (ölçüldü) — 57 niteliğin
+      > **Türkçe karşılıkları hiçbir yerde yok**. Yani İngilizce taraf
+      > **ölçülmüş**, Türkçe taraf **Faz 5'in yazacağı şey**. Bu SAPMA-026'ya
+      > (*"kimsenin belirlemediği alana değer uydurma"*) aykırı değil: sözlüğün
+      > tanımı gereği **sahibi** Faz 5 (*"TR/EN karşılıklar + kod içi
+      > isimlendirme standardı"*), yani burası boş bir alanı doldurmak değil
+      > **kendi alanını yazmak**. Terimler **5.7'de** yazılır, 5.0'da değil.
+      >
+      > **(g) EK MOTORUNUN VAKA KAYNAĞI.** İki kaynak: ① Türkçe **ünlü uyumu**
+      > kuralları (kalınlık/incelik + son harf sert/yumuşak + kesme işareti)
+      > ② **17 gerçek seed adı** — ama ⚠️ seed **`nameKey` tutuyor, görünen ad
+      > tutmuyor** (`'Türkiye'` değil `'country.tur'`), yani gerçek adlar
+      > **5.3'ün `locales/tr/common.json`u yazıldığında** doğacak. 5.1 ek
+      > motorunu 5.3'ten **önce** yazıyor, dolayısıyla 5.1'in vakaları ünlü
+      > uyumu kurallarından ve ROADMAP'in kendi örneklerinden (Galatasaray'ın,
+      > Beşiktaş'ın, Trabzonspor'un, Roma'nın, Liverpool'un) türetilir;
+      > **17 seed adı 5.3'te çapraz doğrulama** olarak eklenir. Vakalar
+      > **5.1'de** yazılır, 5.0'da değil.
+      >
+      > **(h) FAZ 5'İN ASIL DOĞRULAYICI KAPISI — (a) kararından SONRA yazıldı,
+      > ve plandaki cevap KISMEN GEÇERSİZLEŞTİ.** Plan *"TypeScript
+      > `t('squad:table.age')` içindeki dizgeyi bir anahtar olarak görmez"*
+      > diyordu. Bu **varsayılan yapılandırma için** doğru; tipleme açıldığında
+      > **değil**. Düzeltilmiş cevap dört kapı ve **sınırları ayrı ayrı yazılı**:
+      >
+      > | Kapı | Ne doğruluyor | Ne DOĞRULAMIYOR |
+      > |---|---|---|
+      > | **`typecheck`** 🆕 | **Literal** bir anahtarın çeviri kaynağında var olduğu | Dinamik anahtarlar · anahtarın **değeri** boş mu · kullanılmayan anahtar · metnin doğruluğu |
+      > | **`i18n:check`** | Eksik anahtar · kullanılmayan anahtar · boş çeviri | Metnin doğru Türkçe olduğu |
+      > | **ESLint kuralı + kanaryası** | JSX'e çıplak Türkçe metin **girmediği** | Zaten `t()`den gelen metnin doğruluğu |
+      > | **Gerçek i18next örneği (D5)** | Anahtarın tarayıcıda **çözüldüğü** — kurulum, namespace yüklemesi, dil algılama | Statik olanların hepsi (o üçü kapatıyor) |
+      >
+      > ⚠️ **Dördü de zorunlu ve hiçbiri diğerinin yerine geçmiyor.** Faz 4'ün
+      > dokuz turluk tespiti (*"asıl doğrulayıcı kapı `typecheck` değildi"*)
+      > Faz 5'te **kısmen** geçerli: `typecheck` artık bir şey görüyor, ama
+      > gördüğü şey dört sütunun **yalnızca biri**. `typecheck` yeşil diye
+      > i18n çalışıyor denmez.
+      >
+      > **Kayıtlar:** **SAPMA-037** (yol çelişkisi, atıf sözü tutuldu) ·
+      > **SAPMA-038** 🆕 (BORÇ-005'in yedeği — `kind` gövdede yok).
+      > → `docs/reports/faz-05/5.0-*.md`
 - [ ] **5.1** **Türkçe ek motoru** — `packages/shared/src/i18n/turkish-suffix.ts`.
       Saf, sıfır bağımlılık (`Intl` serbest, yerleşik). Ünlü uyumu + son harf
       analizi + kesme işareti. ⚠️ **50 vaka bir SAYI değil bir LİSTE**
