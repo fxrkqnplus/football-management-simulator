@@ -2254,7 +2254,7 @@ docs/glossary.md
       peer aralıkları ölçüldü (`typescript ^5||^6||^7` → `~6.0.3` uyumlu ·
       `react >=16.8.0` · `i18next >=26.2.0`) ve `.npmrc`
       `strict-peer-dependencies=true` olduğu için peer bir **kapı**
-      ③ `i18n-check` yol çelişkisi → **SAPMA-036** ④ 🆕 **DİNAMİK ANAHTAR KARARI**
+      ③ `i18n-check` yol çelişkisi → **SAPMA-037** ④ 🆕 **DİNAMİK ANAHTAR KARARI**
       (aşağıda) ⑤ Faz 5'in *"asıl doğrulayıcı kapısı"* yazılır. **Paket kurulmaz.**
       > ⚠️ **DİNAMİK ANAHTARLAR — `i18n-check`in "kullanılmayan anahtar" raporu
       > ilk günden iki yanlış pozitif kaynağı taşıyor ve karar 5.6'da

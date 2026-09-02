@@ -20,33 +20,25 @@
 > **Alt görev başına yeniden yazılır** (SAPMA-004, `docs/spec/11-project-memory.md` §12.1)
 > — **~10 satır**. Bu bir **durum fotoğrafı**, bir arşiv değil.
 >
-> ⚠️ **4.11'DE SÖZLEŞMESİNE ÇEKİLDİ — ölçüldü: 74 satır / 67 tablo satırı →
-> 33 / 13.** Blok `4.6 (önceki)`, `4.7 (arşiv)`, `D5 (4.6 arşiv)`,
-> `kapsam (4.7 arşiv)` gibi **arşiv** satırları biriktirmişti. **Silinen bilginin
-> hiçbiri kaybolmadı** — iki kalıcı yere taşındı: **Faz 4 faz kaydı** (bu
-> dosyada, 11 başlık) ve `docs/reports/faz-04/` (**13 dosya**, bozulmamış).
-> Sıra bağlayıcıydı: **önce kayıt, sonra silme** — tersinde bilgi bir süre
-> hiçbir yerde olmazdı. Faz 2'nin kapanış notu bunu adıyla uyarmıştı:
-> *"oturum notu geçicidir."*
->
-> ℹ️ **13 satır hâlâ sözleşmenin "~10"undan fazla ve bu saklanmıyor:** blok bir
-> **faz sınırında** duruyor, yani Faz 5'in başlangıç durumunun tamamını taşımak
-> zorunda. Faz 5'in ilk alt görevinde tekrar daralır.
+> ✅ **4.11'in verdiği söz tutuldu: 13 tablo satırı → 10.** İki satır kapandı —
+> `Veri durumu` `Şema/veri` içine katlandı, ve *"Faz 5'e giderken üç uyarı"*
+> **silindi** çünkü artık Faz 5'in **içindeyiz**: üç uyarının üçü de ROADMAP
+> Faz 5 kapsamına ve alt görev listesine yazılı, yani kalıcı bir yerde.
+> Faz 4'ün durumu kaybolmadı — **Faz 4 faz kaydı** (bu dosyada, 11 başlık) ve
+> `docs/reports/faz-04/` (13 dosya).
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | ⏸️ **FAZ 4 KAPANDI. Sıradaki: FAZ 5 — i18n Altyapısı ve Terim Sözlüğü.** Yeni bir dal açılacak (`develop`'tan). Faz 5 açılışında: `PROJECT_MEMORY` Faz 4 + Faz 3 kayıtları · ROADMAP Faz 5 · **`SPEC-COVERAGE-GAPS` → G-13** · `DEPENDENCY-WATCH` → `i18next`/`react-i18next` satırı · **BORÇ-003 ve BORÇ-005'in vadesi orada** · çalışma günlüğü başlığı `🧪 FAZ 5` yapılır |
-| **Son tamamlanan** | ✅ **4.11 — FAZ 4'ÜN KAPANIŞI. Kabul kriterleri 6 / 6. Commit'ler: `9e59e89` (kod) · `3f8b902` (belge) · `784f90e` (kayıt) · `<bu commit>` (PR numarası).** Kriter 6 (`docs/schema/world.md`) kapandı: mermaid bloğu **koşturuldu** (3/3), prose **dört yerde** bayat bulunup düzeltildi, render **yeniden ölçüldü** (22 varlık, iki kaynaktan 4/4). **BORÇ-008 ödendi** (dokuz kopya → tek modül; kanıt `drizzle-kit generate` *"No schema changes"* + **17/17 mutasyon**). `referees.ts:23` düzeltildi. 🆕 **`pnpm gaps:check`** yazıldı ve ilk koşusunda gerçek bir uyuşmazlık buldu (**G-13 → Faz 5**). 🆕 **SAPMA-035** — `SESSION-TEMPLATE` Faz 5'i **DAĞITIM** spec'ine yönlendiriyordu |
-| **Tarih / ilerleme / dallar** | 2026-09-02 · **4 / 50 faz (%8)**. Faz 4: **4,562 gün** = 4a **2,641** + 4b **1,673** — **bölünme sayesinde her iki yarı da §0.5'in 3 günlük sınırının altında**. `main` → `develop` → **`feature/faz-04-schema-ii`**; Faz 3 `develop`'a merge edildi (PR #4). 🆕 **Faz 4 → [PR #5](https://github.com/fxrkqnplus/football-management-simulator/pull/5) AÇIK, `develop`'a** — **merge EDİLMEDİ, kullanıcının işi** (merge commit, squash değil) |
-| **CI** | Dalda **14 push koşusu: 11 yeşil · 1 KIRMIZI · 2 iptal** (liste sorgusundan türetildi). ⚠️ **`33419337117`** (`0459fa5`, 4.7) `failure` ve **yeniden denenmedi** — sebebi kod dışıydı (Docker Hub auth) ama bir iptal değil bir **başarısızlık**; 27 ardışık yeşil seriyi kırdı. Kırmızıdan sonra **3 ardışık yeşil**. ⏳ 4.11'in koşusu yazım anında bilinmiyor |
-| **Kapılar** | ✅ typecheck **10/10** · lint 0 · **format 0** (⚠️ denetlenen küme **TypeScript**; `.prettierignore` `*.md` taşıyor — SAPMA-024) · arch **9 kural** · **build 8/8 SOĞUK** (`Cached: 0`, 6,99 s) · **test 977/67** · **test:db 301/10** · 🆕 **gaps:check 20/3 atlandı/17 tarandı/0 ✗** · **D5 21/21** |
-| **Kapsam** | fonksiyon **%80,31 (355/442)** — satır %88,34 · ifade %88,45 · dal %88,94. 🆕 **Faz 4'te ilk YÜKSELİŞ** ve sebebi yapısal: BORÇ-008 refactor'ı **11 fonksiyon sildi**, dokuzu kapsanmayan ok fonksiyonuydu. Eşik %70 **düşürülmedi**, dosya dışlanmadı, import testi yazılmadı. Marj yeniden hesaplandı: `355 / 0,70 = 507` → payda en fazla **507**, bugün **442** |
-| **Şema durumu** | **22 master tablo** · **32 FK** · **6 indeks** · **14 sequence** · **20 CHECK** · migration zinciri **12 dosya** (on ikisinin de elle yazılmış `down`u var). `comparedFacts` alt sınırı **4.209**. ⚠️ **4.11 şemaya dokunmadı** — `drizzle-kit generate` *"No schema changes"* |
-| **Veri durumu** | **4 / 22 tablo dolu** (`countries` 6 · `competitions` 11 · `people` 5.000 · `players` 5.000); kalan **on sekizi boş** ve bu **tam bir envanterle** iddia ediliyor (`pg_class`tan bütün tablolar dolaşılıyor). Nitelik tabloları **bilerek** boş — dağılımın sahibi **Faz 10** |
-| **Ortam** | PostgreSQL **18.6** (`builtin`/`C.UTF-8`, `pg_trgm` 1.6 + `unaccent` 1.1) · Node 24.19.0 · pnpm 11.23.0 · drizzle-orm 0.45.2 + drizzle-kit 0.31.10 · testcontainers 12.1.0. Docker Engine **`linux/amd64`**; üretim **ARM64** (K14) — milisaniyeler oraya **taşınmaz**. ⚠️ **Faz 4 tek bir bağımlılık EKLEMEDİ** (`pnpm-lock.yaml` diff fazın tamamında **boş**). Sentry kotası **3 / 5.000 olay** (%0,06) — kütükten geliyor, panodan yeniden ölçülmedi |
-| **Kütükler** | Açık sorun **0** · teknik borç **7** (BORÇ-008 **ödendi** — 001·002·004 → Faz 16 · **003·005 → Faz 5** · 007 → Faz 12 · 006 → Faz 50) · SAPMA **35** (Faz 4'ün payı **sekiz**: 028…035) · boşluk **20**, açık **17** (G-18 4.5'te kapandı) |
-| **Bloke eden var mı?** | Hayır. ⚠️ Bir **açık risk** duruyor ve bloke etmiyor: `main.test.tsx` jsdom yıkım yarışı — düzeltildi (`1c93890`) ama **KAPANMIŞ SAYILMIYOR**; gerçek sınavı **Faz 6**. Aşağıdaki kalıcı bloğa bak |
-| **⚠️ Faz 5'e giderken üç uyarı** | ① **Faz 5'in kaynağı bir spec DEĞİL** — i18n'in spec bölümü **yok** (SAPMA-035); kaynak ROADMAP Faz 5 + `CLAUDE.md` §14 ② **`bash-text-guard` açık** ve Faz 5 en çok Türkçe metin üreten faz olacak — metin hiçbir kabuk argümanından geçmez, `Edit`/`Write` ③ **K5'in nöbetçisi Faz 5'te doğuyor**; o güne kadar *"metin sabit kodlanmadı"* bir **temenni** |
+| **Aktif faz / alt görev** | ▶️ **FAZ 5 — i18n Altyapısı ve Terim Sözlüğü. Plan onaylandı ve ROADMAP'e yazıldı: on bir alt görev (5.0-ön … 5.9), bölünme çizgisi 5a/5b, kontrol noktası 5.5 sonunda (ölçümle).** Sıradaki: **5.0 — doğrulama alt görevi** (kod yok): i18next changelog kararı · üç `DEPENDENCY-WATCH` bulgusu · `i18n-check` yol çelişkisi (**SAPMA-037**) · **dinamik anahtar kararı** · Faz 5'in asıl doğrulayıcı kapısı. ⚠️ **Paket kurulmuyor** — kurulum 5.3'ün işi |
+| **Son tamamlanan** | ✅ **5.0-ön — §15.1 kontrol adımı.** Commit'ler: `84a6d5f` (plan → ROADMAP) · `da64fb0` (iş) · `<bu commit>` (rapor + ANLIK DURUM). Adım **yeni numara ALMADI** ve kararı bir ölçüm değiştirdi: liste iki kez yeniden dizilmiş (4.0 → 1-23, 4.1 → 1-24) ve **biri hâlâ canlı bayat atıf bırakmış** — `SPEC-COVERAGE-GAPS`:214 *"adım 20"* diyordu, gerçek **21**. Doğrulama **adım 3'ün içine**, okumadan önce kondu. Bugünkü uygulaması **koşturuldu: Faz 5'in §15.1 satırı EŞLEŞİYOR**, bulgu yok. 🆕 **SAPMA-036** |
+| **Tarih / ilerleme / dallar** | 2026-09-02 · **4 / 50 faz (%8)**, Faz 5 **başladı**. `main` → `develop` → **`feature/faz-05-i18n`** (taban `2b5075e`). ✅ **PR #5 MERGE EDİLDİ** (2026-09-02T19:40Z, merge commit `2b5075e` — iki ebeveyn, squash değil); yerel `develop` geride kalmıştı, `git pull` ile hizalandı. §0.5 süre sayacı `84a6d5f`ten başlıyor |
+| **CI** | ✅ **Merge sonrası `develop`: `33674720478` (`2b5075e`) — success.** Faz 4 dalının TAM sayımı (liste sorgusu, 4.11'den sonra büyüdü): **18 koşu = 14 yeşil · 1 KIRMIZI · 3 iptal**; son koşu `33650818652` (`f4e53a0`) yeşil. ⏳ **`feature/faz-05-i18n` henüz push edilmedi — 0 koşu** |
+| **Kapılar** | ✅ **typecheck 10/10 SOĞUK** (`.turbo/cache` silindi → `Cached: 0`, 13,8 s) · lint 0 · **gaps:check 20/3 atlandı/17 tarandı/0 ✗** · **test 977/67** · **test:db 301/10** (ikisi de faz açılışında) · arch **9 kural** (kaynaktan sayıldı). ⚠️ **`format` bu commit'te BAKACAK BİR ŞEY BULAMADI** — değişen dört dosyanın dördü de `prettier --file-info` → `"ignored": true`, karşı kontrol `.ts` → `"ignored": false` (SAPMA-024) |
+| **Kapsam** | fonksiyon **%80,31 (355/442)** — satır %88,34 · ifade %88,45 · dal %88,94; eşik `vitest.config.ts`ten **70** (okundu, hatırlanmadı). Marj: `355 / 0,70 = 507` → payda en fazla **507**, bugün **442**, **boşluk 65 fonksiyon**. ⚠️ 5.0-ön kod eklemedi, payda değişmedi; **5.1'den itibaren büyüyecek ve bu beklenen** |
+| **Şema / veri** | **DEĞİŞMEZ SAYILIYOR — Faz 5 şemaya dokunmuyor.** 22 master tablo · 32 FK · 6 indeks · 14 sequence · 20 CHECK · 12 migration. **4 / 22 tablo dolu** (`countries` 6 · `competitions` 11 · `people` 5.000 · `players` 5.000). ⚠️ **G-13 bir KARAR, şema değişikliği DEĞİL** (5.8) |
+| **Ortam** | PostgreSQL **18.6** · Node 24.19.0 · pnpm 11.23.0 · `.npmrc` **`strict-peer-dependencies=true`** (peer bir KAPI) · TS **`~6.0.3` pinli**. ⚠️ **`i18next` hiçbir `package.json`da YOK, `pnpm-lock.yaml`da 0 eşleşme** (ölçüldü). Registry: `i18next 26.4.1` · `react-i18next 17.0.13` · `i18next-browser-languagedetector 8.2.1`; peer'lar uyumlu ölçüldü (`typescript ^5\|\|^6\|\|^7` · `react >=16.8.0` · `i18next >=26.2.0`) |
+| **Kütükler** | Açık sorun **0** · teknik borç **7** (003·005 → **Faz 5, 5.4** · 001·002·004 → Faz 16 · 007 → Faz 12 · 006 → Faz 50) · SAPMA **36** 🆕 (5.0-ön'ün payı: **036**) · boşluk **20**, açık **17**; **G-13 → Faz 5 + Faz 17** ✓ |
+| **Bloke eden var mı?** | Hayır. ⚠️ İki şey duruyor, ikisi de bloke etmiyor: ① `main.test.tsx` jsdom yıkım yarışı **KAPANMIŞ SAYILMIYOR**, gerçek sınavı Faz 6 (aşağıdaki kalıcı bloğa bak) ② **`bash-text-guard` bugün bir kez daha ateşledi ve haklıydı** — commit mesajı heredoc'tan geçirilmek istendi; `Write` + `git commit -F` ile çözüldü. Faz 5 en çok Türkçe metin üreten faz: **metin hiçbir kabuk argümanından geçmez** |
 
 ---
 
