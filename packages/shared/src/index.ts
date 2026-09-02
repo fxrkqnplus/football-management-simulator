@@ -91,6 +91,21 @@ export {
   DEFAULT_THROTTLE_WINDOW_MS,
   MAX_TRACKED_FINGERPRINTS,
 } from './event-throttle.js';
+export type {
+  EndingKind,
+  GrammaticalCase,
+  NameEnding,
+  PronunciationOverride,
+  VowelHarmonyClass,
+} from './i18n/turkish-suffix.js';
+export {
+  GRAMMATICAL_CASES,
+  PRONUNCIATION_OVERRIDES,
+  resolveEnding,
+  suffixFor,
+  VOWEL_HARMONY_CLASSES,
+  withSuffix,
+} from './i18n/turkish-suffix.js';
 export type { LogContextEnvelope, LogContextEnvelopeValue } from './log-context.js';
 export {
   LOG_CONTEXT_ENVELOPE_VERSION,
