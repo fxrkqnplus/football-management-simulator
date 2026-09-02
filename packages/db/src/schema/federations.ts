@@ -17,19 +17,39 @@
  * bir temennidir.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * `president_person_id` BUGÜN YOK — Faz 4
+ * `president_person_id` 4.4'TE GELDİ — ve bu tablo artık İKİ FK'nın iki FARKLI
+ * cevabını aynı anda taşıyor
  * ────────────────────────────────────────────────────────────────────────────
  *
- * `spec/01` bu sütunu `people` tablosuna işaret eden bir FK olarak tanımlıyor ve
- * `people` **Faz 4**'te geliyor. Sütunu bugün kısıtsız yazmak Faz 3'ün 3. kabul
- * kriterini (*"tüm yabancı anahtarlar tanımlı"*) **görünürde** sağlayıp gerçekte
- * delerdi. Faz 4'ün migration'ı sütunu ve FK'yı **birlikte** ekleyecek; karar
- * `docs/ROADMAP.md` Faz 3 tablo envanterinde ve Faz 4 maddesinde yazılı.
+ * Sütun Faz 3'te bilerek yazılmadı: `people` Faz 4'te doğuyor ve kısıtsız bir
+ * sütun Faz 3'ün 3. kabul kriterini (*"tüm yabancı anahtarlar tanımlı"*)
+ * **görünürde** sağlayıp gerçekte delerdi. 4.4 sütunu ve kısıtı **birlikte**
+ * ekledi (`0006`).
+ *
+ * ⚠️ **Bu, `fk-policy.ts`in SAHİPLİK ile REFERANSI aynı tablo içinde ayırdığının
+ * ilk canlı kanıtı:**
+ *
+ * | FK | Kural adımı | Davranış | Ne diyor |
+ * |---|---|---|---|
+ * | `country_id` (NOT NULL) | ④ kaynak uydu | **CASCADE** | *sahiplik* — federasyonun kimliği ülkenin kimliğidir |
+ * | `president_person_id` (nullable) | ③ bütün sütunlar nullable | **SET NULL** | *referans* — başkan gider, federasyon kalır |
+ *
+ * İkisi de aynı uydu tablodan çıkıyor ve **farklı** cevap alıyorlar; ayracı
+ * nullability. Bir federasyon başkanı `people`'dan silindiğinde federasyonun da
+ * silinmesi (CASCADE) veya silmenin engellenmesi (RESTRICT) yanlış olurdu —
+ * doğru sonuç *"başkanı bilinmiyor"*. `fk-policy.ts` ③'ün kendi ifadesiyle: bir
+ * uydudan çıkan nullable FK **sahiplik değil referanstır**.
+ *
+ * ℹ️ Kural bu üç ileri FK için **koşturuldu, hafızadan tahmin edilmedi**: 4.3'ün
+ * raporu *"üçü de RESTRICT alacak"* demişti ve yanlıştı — o tahmin kaynağın
+ * değil **hedefin** sınıfına bakıyordu. `people`'ın `independent` olması bu
+ * FK'lar hakkında hiçbir şey söylemiyor; belirleyici olan **kaynağın** sınıfı.
  */
 import { integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { masterTable } from '../client/master.js';
 import { countries } from './countries.js';
+import { people } from './people.js';
 
 export const federations = masterTable(
   pgTable('federations', {
@@ -58,5 +78,19 @@ export const federations = masterTable(
     assetId: text('asset_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Federasyon başkanı. `null` = bilinmiyor (`spec/01`: `presidentPersonId FK?`).
+     *
+     * ⚠️ **SÜTUN SONDA VE BU ZORUNLU — §3.1.2 ④.** `ALTER TABLE ADD COLUMN`
+     * sütunu tablonun **fiziksel** sonuna ekliyor; `drizzle-kit` ise snapshot'a
+     * **TS tanımındaki** sırayı yazıyor. Mantıksal yerine (`asset_id`'nin yanına)
+     * yazılsaydı snapshot ↔ gerçek şema karşılaştırması kırılırdı.
+     * `created_at`/`updated_at`'ın ortada kalması bunun bilinen bedeli.
+     *
+     * `ON DELETE SET NULL` — gerekçesi dosya başlığındaki tabloda.
+     */
+    presidentPersonId: integer('president_person_id').references(() => people.id, {
+      onDelete: 'set null',
+    }),
   }),
 );

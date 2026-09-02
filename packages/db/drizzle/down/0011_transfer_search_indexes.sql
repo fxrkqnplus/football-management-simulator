@@ -1,0 +1,44 @@
+-- 0011_transfer_search_indexes — GERİ ALMA (elle yazıldı)
+--
+-- drizzle-kit `down` migration ÜRETMİYOR (Faz 3.0'da ölçüldü,
+-- docs/spec/01-database.md §3.0). Karşılaştırılacağı yer
+-- `meta/0010_snapshot.json` — yirmi iki tablo ayakta, bu iki indeks yok.
+--
+-- ⚠️ SIRA BURADA BİR ZORUNLULUK DEĞİL — ve bu, 0010'dan farkı.
+--
+-- 0010'un `down`unda sıra zorunluydu: iki katmanlı iki zincir vardı
+-- (`staff_attributes` → `staff`, `manager_attributes` → `managers`) ve
+-- CASCADE'siz bir `DROP TABLE` yanlış sırada reddedilir. Burada iki indeks
+-- **birbirine bakmıyor**: ayrı tablolarda, ayrı sütunlarda, aralarında hiçbir
+-- bağımlılık yok. Sıra yine de `up`ın tersi — bir tercih olduğu için
+-- yazılıyor, bir kural olduğu için değil.
+--
+-- ⚠️ 0004'ÜN SIRASIYLA KARIŞTIRILMAMALI. Orada zincir gerçekti:
+--
+--   clubs_name_trgm_idx ──→ immutable_unaccent ──→ unaccent (uzantı)
+--                       └─→ gin_trgm_ops       ──→ pg_trgm  (uzantı)
+--
+-- Bu migration ne uzantı ne fonksiyon yaratıyor, yani düşürecek bir zinciri de
+-- yok. `0011` şemaya **sütun eklemiyor** — yalnızca iki `CREATE INDEX`.
+--
+-- ⚠️ `CASCADE` YOK. Bir indekse hiçbir şey bağımlı olamaz (bir kısıt onu
+-- kullanıyor olsaydı `DROP INDEX` zaten reddedilirdi ve bu indeksler bir
+-- kısıta ait değil — `UNIQUE` değiller). `CASCADE` yazmak burada koruma
+-- kapatmazdı ama **hiçbir şey de kazandırmazdı**; yazılmaması §3.1.2 ⑦'nin
+-- kuralına uymak, bir tedbir almak değil.
+--
+-- ⚠️ BU `down` SESSİZ BİR SINIFA AİT — ve o sınıfın nöbetçisi 3.7'de kondu.
+--
+-- Bir indeksin eksik kalması sorgunun **cevabını değiştirmez**, yalnızca onu
+-- yavaşlatır: hiçbir doğruluk testi bunu göremez (D3). `round-trip.itest.ts`
+-- indeks düşürmesini `compareSchemas` üzerinden ölçüyor ve bu iki indeks o
+-- bozulma tablosuna eklendi — yani bu dosya bir indeksi geri getirmeyi
+-- unutursa gürültülü biçimde yakalanır.
+--
+-- ℹ️ 0008'İN SINIRI HÂLÂ ÜSTTE. Dolu bir `people` tablosunda `'referee'` varken
+-- zincirin hiçbir geri alması başlayamıyor (`down` LIFO); bu dosyanın `down`u
+-- o sınırın ALTINDA kalıyor ve onu ne büyütüyor ne küçültüyor. Testler
+-- `migrateDownPastRefereeCheck()` sarmalayıcısından geçiyor (4.7).
+
+DROP INDEX "players_primary_position_current_ability_idx";--> statement-breakpoint
+DROP INDEX "people_birth_date_idx";

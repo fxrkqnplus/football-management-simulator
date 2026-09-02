@@ -1,0 +1,2 @@
+ALTER TABLE "people" DROP CONSTRAINT "people_person_type_check";--> statement-breakpoint
+ALTER TABLE "people" ADD CONSTRAINT "people_person_type_check" CHECK (cardinality("people"."person_type") > 0 AND "people"."person_type" <@ ARRAY['player', 'staff', 'manager', 'chairman', 'referee']::text[]);

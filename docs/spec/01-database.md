@@ -33,6 +33,42 @@ başlangıçtakiyle **birebir** aynı mı? Veri yazma adımı bilerek ortada: bo
 veritabanında `down` çalışıyormuş gibi görünen çok sayıda hata, dolu bir tabloda
 `NOT NULL` veya `FOREIGN KEY` yüzünden patlar.
 
+### İKİ `down` HATA SINIFI — ve ikisi de SESSİZ olabilir (Faz 4.7'de ayrıştırıldı)
+
+Bir `down` iki yönde yanlış olabilir ve bu belge uzun süre yalnızca birini
+adlandırıyordu:
+
+| Sınıf | Ne yapıyor | Örnek |
+|---|---|---|
+| **Fazla giden `down`** | Bu migration'ın **yaratmadığı** nesneleri de götürüyor | `DROP TABLE … CASCADE` (§3.1.2 ⑦), bir `down`un fazladan bir tabloyu düşürmesi |
+| **Eksik kalan `down`** | `up`ın yarattığı bir şeyi geri **almıyor** ya da **dar** geri koyuyor | Bir CHECK'i daraltarak geri koymak, bileşik bir PK'yi tek sütunlu yazmak |
+
+⚠️ **3.2b bu ikisini ayırırken birincisini *sessiz*, ikincisini *gürültülü*
+saymıştı. Faz 4.6'nın ölçümü bunun KOŞULLU olduğunu gösterdi.**
+
+Sezgi şöyle diyor: *"eksik kalan bir `down`u sonraki `up` yakalar."* Bu yalnızca
+`up`ın **geri kazanamadığı fiziksel bir artık** varsa doğru:
+
+- **Gürültülü olan vaka — `0006`.** `down` sütunu düşürüyor, `up` yeniden
+  ekliyor, ama `pg_attribute.attnum` **geri gelmiyor** (§3.1.2 ⑤). Kayma
+  görünüyor çünkü `attnum` bir **artık**: `up` onu yeniden üretmiyor, PostgreSQL
+  veriyor.
+- **Sessiz olan vaka — bir KISIT TANIMI.** `0008`in `up`ı `DROP CONSTRAINT` +
+  geniş listeyle `ADD CONSTRAINT` yapıyor, yani kısıtı **`down`un ne yaptığından
+  bağımsız olarak** tam geri getiriyor. `down` kısıtı dar geri koysaydı bile
+  `up` sonrası şema doğru görünürdü — ve ayrışmayı **yalnızca** geri alınmış
+  şemayı snapshot N−1 ile karşılaştıran bir ölçüm yakalar.
+
+**Kural:** bir `down` yazılırken sorulacak soru *"eksik mi fazla mı"* değil,
+***"bu eseri `up` yeniden üretiyor mu, yoksa geriye bir artık mı bırakıyor?"***
+Cevap *"yeniden üretiyor"* ise hata **sessizdir** ve onu ancak `down` sonrası
+şemayı ölçen bir test görür — sonraki `up` görmez.
+
+ℹ️ Bu ayrımın koşan hâli `packages/db/integration/round-trip.itest.ts`teki
+*"SESSİZ bozuk down"* testleridir (fazla giden · dizi eleman tipi · kısıt tanımı
+· bileşik PK) ve her biri şemaya **yeni bir olgu türü ya da yapı** girdiğinde
+yazıldı. Yenisi girdiğinde listeye bir tane daha eklenir.
+
 ### `drizzle-kit` `down` migration ÜRETMEZ — ölçüldü (Faz 3.0)
 
 `drizzle-kit@0.31.10` üzerinde ölçüldü, blogdan okunmadı:
@@ -78,11 +114,53 @@ tanımlarının **hiçbirinde üçü de yoktu**. Sonradan eklemek on bir tabloya
 | `externalIds` | `jsonb NOT NULL DEFAULT '{}'` | Zod ile doğrulanır. Alanlar `spec/12` §17.3: `wikidata`, `apiFootball`, `transfermarkt` |
 
 **Bu üç sütunu TAŞIYAN tablolar** — pakette **kendi kaydı olarak görünen** varlıklar:
-`countries` · `competitions` · `clubs` · `stadiums` · `referees`
+`countries` · `competitions` · `clubs` · `stadiums` · `referees` · **`people`** (Faz 4.3)
 
-**TAŞIMAYAN tablolar** — bir sahibine 1:1 bağlı uydular; kimlikleri sahiplerinin
-kimliğidir ve onlara `clubId` üzerinden erişilir:
-`club_facilities` · `club_finances_base` · `club_kits` · `rivalries` · `federations` · `kit_templates`
+**TAŞIMAYAN tablolar** — bir sahibine bağlı uydular; kimlikleri sahiplerinin
+kimliğidir ve onlara `clubId` / `personId` / `playerId` üzerinden erişilir:
+`club_facilities` · `club_finances_base` · `club_kits` · `rivalries` · `federations` · `kit_templates` · **`players`** (Faz 4.3) ·
+**`staff`** · **`staff_attributes`** · **`managers`** · **`manager_attributes`** (Faz 4.7)
+
+> ⚠️ **DÖRT PERSONEL/MENAJER TABLOSU DA TAŞIMIYOR — KARŞI-ÖLÇÜMLE (Faz 4.7).**
+> Dördü de bu iki listenin **hiçbirinde** yoktu; karar `players` emsalinden ve
+> `fk-policy.ts` **koşturularak** verildi:
+>
+> | Varsayım | Kuralın ürettiği `ON DELETE` (6 FK) |
+> |---|---|
+> | `staff`/`managers` `key` **taşımaz** ← karar | **CASCADE ×4 + SET NULL ×2** |
+> | `staff`/`managers` `key` **taşır** | RESTRICT ×4 + CASCADE ×2 |
+>
+> Dört FK'nın davranışı **tersine dönüyor**. En keskin sonuç `staff.club_id` ve
+> `managers.club_id`: `key` taşınsaydı `SET NULL` yerine **RESTRICT** alırlardı,
+> yani bir kulüp silindiğinde personeli/menajeri **serbest bırakmak yerine silme
+> reddedilirdi**. `spec/01` `clubId`i açıkça *nullable* yazıyor (işsiz personel
+> ve işsiz menajer geçerli durumlar), yani doğru davranış `SET NULL` ve o
+> yalnızca `key` taşınmadığında çıkıyor.
+>
+> Mekanizma yukarıdaki `people` ↔ `players` ölçümünün (20/20 ↔ 17/20) aynısı.
+> Anlam da aynı yeri gösteriyor: pakette kendi kaydı olan varlık **kişidir**;
+> personel ve menajer kayıtları kişinin kimliğinden türüyor — aynı kişi hem
+> oyuncu hem menajer olabiliyor (`personType` bir dizi).
+>
+> ℹ️ Nitelik tabloları (`staff_attributes` · `manager_attributes`) zaten
+> tartışmasız: 1:1 uydular, `player_attributes` deseninin aynısı.
+
+> ⚠️ **`people` TAŞIR, `players` TAŞIMAZ — karar ÖLÇÜLEREK verildi (Faz 4.0b, Karar 3).**
+> İkisi aynı kararın iki yüzü ve fark bir sayı: `key`i **`people`** taşırsa
+> `fk-policy.ts` Faz 4'ün 20 planlanan yabancı anahtarında **20/20** doğru cevap
+> üretiyor, **`players`** taşırsa **17/20** (ikisi birden taşırsa 18/20). Mekanizma:
+> `key` taşıyan tablo `independent` sınıfına düşer ve ondan çıkan her FK RESTRICT
+> alır (§3.1.2 ③), yani `players` `key` taşısaydı `players.club_id` `SET NULL`
+> yerine, `players.person_id` CASCADE yerine RESTRICT alırdı.
+>
+> Anlam da aynı yeri gösteriyor: `spec/12` §17.4'ün `players.json` dosyası `key` ve
+> `externalIds` taşıyor ama pakette kendi kaydı olan varlık **kişidir** — aynı kişi
+> önce oyuncu, sonra menajer olabilir (`personType` bir dizi). `players.person_id`
+> UNIQUE, yani oyuncu kaydı kişinin kimliğinden türüyor.
+>
+> ℹ️ `spec/12` §17.4 pakette anahtarı `player-12847` biçiminde yazıyor ve o anahtar
+> `people.key`e düşecek. **Adlandırma tutarsızlığı Faz 9'un işi** (ingest eşlemesi
+> orada yazılıyor); Faz 4'te çözülmüyor.
 
 > `kit_templates` bilerek dışarıda: pakette değil, oyunun **kendi** 20 SVG şablonu
 > (`spec/12` §17.4 *"Görsel yoksa `kit_templates` sisteminden üretilir"*). `code`
@@ -148,7 +226,26 @@ meta/0000_snapshot.json → checkConstraints: { probe_source_check: { … } }
 ```
 
 `ALTER TABLE … ADD CONSTRAINT … CHECK (…)` biçimi de üretiliyor (var olan bir
-tabloya sütun eklenirken). CHECK ifadesi bir **sabit diziden türetilir**
+tabloya sütun eklenirken).
+
+> ✅ **ÜÇÜNCÜ BİÇİM DE ÖLÇÜLDÜ — KISIT DEĞİŞİKLİĞİ (Faz 4.5).** Bir CHECK'in
+> **tanımı** değiştiğinde `drizzle-kit` onu `DROP CONSTRAINT` + `ADD CONSTRAINT`
+> çifti olarak üretiyor; `0008` bunun canlı örneği (`PERSON_TYPES` 4 → 5 değer).
+> Bu, ①'in ilk yazımında **ölçülmemişti**: o gün yalnızca *"kısıt yaratılıyor"*
+> sınandı, *"kısıt değişiyor"* değil.
+>
+> **İki sonucu var ve ikisi de ölçüldü:**
+> - `DROP` + `ADD` **sütun eklemiyor**, yani ⑤'in `attnum` deliğini **açmıyor**.
+>   Bir `ALTER` migration'ının kayma üretip üretmediğini belirleyen şey `ALTER`ın
+>   kendisi değil, **sütun** ekleyip düşürmesi.
+> - `ADD CONSTRAINT` var olan satırları **doğruluyor**. Bir kümeyi daraltan
+>   `down`, veriye uymuyorsa gürültülü patlar — ve `down` LIFO çalıştığı için
+>   zincirin en üstündeki böyle bir migration, dolu bir veritabanında **her**
+>   geri almayı bloke eder. Gerekçe `drizzle/down/0008_person_type_referee.sql`
+>   başlığında; alternatifler (`NOT VALID`, `down`un satır silmesi) tek tek
+>   elendi ve elenme sebepleri orada yazılı.
+
+CHECK ifadesi bir **sabit diziden türetilir**
 (`packages/db/src/schema/data-pack-columns.ts`), elle yazılmaz — böylece
 TypeScript tipi ile veritabanı kısıtı ayrışamaz. Ayrışma denemesi ölçüldü:
 diziye altıncı bir değer eklenip migration yeniden üretilmediğinde **birim testi
@@ -194,9 +291,29 @@ uygulansaydı `club_kits.template_id` CASCADE alırdı ve bir şablon silindiği
 kulübün forma satırı **alakasız bir sebeple** yok olurdu.
 
 **Kural:** bir FK'nın hedefi bir sözlük/tanım tablosuysa (`kit_templates` ve
-Faz 4'te gelecek `injury_types`, `staff_roles` aynı sınıf) davranış
+**Faz 12**'de gelecek `injury_types` aynı sınıf) davranış
 **RESTRICT**'tir: sözlük girdisi silinmeden önce ona bağlı kayıtların ele
-alınması gerekir. Ölçüldü (PG 18.6): kullanılan bir şablonun silinmesi
+alınması gerekir.
+
+> ⚠️ **DÜZELTME (Faz 4.1) — bu kuralın öngörüsü YARI YANLIŞ ÇIKTI.**
+> Metin 3.6'da *"Faz 4'te gelecek `injury_types`, `staff_roles` aynı sınıf"*
+> diyordu. Faz 4.1'de ikisi de ölçüldü ve **ayrıştılar**:
+>
+> | Tablo | Ölçüm | Sonuç |
+> |---|---|---|
+> | `injury_types` | Satırları **veri** taşıyor: süre aralığı (1-2 hf … 24-40 hf), ciddiyet, tekrarlama eğilimi (Faz 39 tipolojisi) | **Gerçek sözlük tablosu** ✅ ⑧ doğru |
+> | `staff_roles` | Satırları yalnızca bir **etiket**: `spec/01` `staff.role`u zaten 12 değerlik **satır içi kapalı küme** yazıyor | **CHECK**, tablo değil ❌ ⑧ yanlış |
+>
+> **Yeni ayraç:** *"kapalı küme **etiket** mi, **veri taşıyan satır** mı?"* Etiketse
+> §3.1.2 ②'nin CHECK'i yeter; satır veri taşıyorsa tablo gerekir. Bu, ②'nin
+> *"sözleşme mi kalibrasyon mu"* ayracının kardeşi ve aynı aileden: bir kuralın
+> **örneklerinden** çıkarılan bir genelleme (*"Faz 4'te iki sözlük tablosu gelecek"*)
+> ölçülene kadar bir **tahmindir** (desen **F3**).
+>
+> ℹ️ `injury_types` ayrıca **Faz 12**'ye taşındı (SAPMA-030): tek FK kaynağı
+> `injuries` ve o save-scoped. Bu kural ancak tabloyu **hedefleyen** bir FK varken
+> cevap üretir, yani Faz 4'te açılsaydı kendisi için yazılmış kuralı bile
+> çalıştırmazdı. Ölçüldü (PG 18.6): kullanılan bir şablonun silinmesi
 `club_kits_template_id_kit_templates_id_fk` ile reddediliyor; kulüp silindiğinde
 formalar gidiyor ama **şablon kalıyor**.
 
@@ -220,8 +337,12 @@ formalar gidiyor ama **şablon kalıyor**.
 > bu:** bir uydunun tanımı gereği sahibine bir FK'sı vardır; sözlük tablosunun
 > **giden FK'sı yoktur**. Bu koşulu sağlayan tek tablo ölçüldüğünde
 > `kit_templates` çıkıyor — yani ⑧'in adıyla saydığı tablo, **adı hiçbir yerde
-> yazılmadan** bulunuyor. Faz 4'ün `injury_types` / `staff_roles` tabloları aynı
-> koşulu sağlayacak.
+> yazılmadan** bulunuyor. **Faz 12**'nin `injury_types` tablosu aynı koşulu
+> sağlayacak.
+> ⚠️ **`staff_roles` sağlamayacak, çünkü o tablo AÇILMIYOR** (Faz 4.1'de ölçüldü —
+> `staff.role` bir CHECK; yukarıdaki düzeltme kutusuna bak). Bir kuralın
+> *"şunlar da aynı sınıf olacak"* öngörüsü, o tablolar gerçekten yazılana kadar
+> **doğrulanmamış bir tahmindir**.
 >
 > ⚠️ **Hedef denetimi kaynak denetiminden ÖNCE gelir.** `club_kits` bir uydu; ③
 > körlemesine uygulansaydı `club_kits.template_id` **CASCADE** alırdı ve bir
@@ -314,6 +435,20 @@ geri alması (tablo düşüp yeniden yaratıldığı için) `identical: true` ve
 > delik kalmıyor. İki beklenti **ayrı testlerde** tutuluyor: birleştirilselerdi
 > 0002'nin fazla giden bir `down`u, 0001'in bilinen sekiz farkının arkasında
 > *"zaten fark bekliyorduk"* diye okunurdu.
+>
+> ⚠️ **AYRAÇ `ALTER` DEĞİL, SÜTUN — Faz 4.5'te ölçülerek ayrıştırıldı.** 0006 tek
+> `ALTER` örneğiydi ve *"`ALTER` migration kayma üretir"* genellemesini davet
+> ediyordu. `0008` o okumayı bozuyor: bir `ALTER` ama yalnızca bir CHECK'in
+> tanımını değiştiriyor — hiçbir sütun eklenmiyor, hiçbiri düşmüyor, **kayma
+> yok** ve çevriminde `identical: true` **beklenir**. Bir kuralın
+> **örneklerinden geriye okunursa yanlış öğrenileceğinin** (desen F3) yeni bir
+> vakası; ②'nin dördüncü satırıyla aynı aile.
+>
+> ⚠️ **VE KAYMA BİR ZİNCİR ÖZELLİĞİ DEĞİL, BİR GERİ ALMA DERİNLİĞİ ÖZELLİĞİ.**
+> `0006` zincirde duruyor olsa bile, ondan **daha üstteki** bir migration'ın
+> kendi çevrimi kaymaları hiç görmez: geri alma 0006'ya dokunmuyorsa onun
+> delikleri çevrimin iki ucunda da aynıdır. `0007`nin testi bunu adıyla iddia
+> ediyor.
 
 **⑥ `bigint` SÜTUNLARI `{ mode: 'bigint' }` ALIR — `'number'` DEĞİL.**
 Drizzle'ın `bigint()`i bir mod istiyor ve **ikisi de aynı DDL'i üretiyor**
@@ -491,7 +626,13 @@ referees: {
 ### İnsanlar
 
 ```ts
-// people — oyuncu, personel, menajer, başkan ORTAK kimlik tablosu
+// people — oyuncu, personel, menajer, başkan, HAKEM ORTAK kimlik tablosu
+// ⚠️ "hakem" Faz 4.5'te EKLENDİ (G-18 kapandı, migration `0008`). 4.4
+//    `referees.personId`i `NOT NULL` yazınca her hakem bir `people` satırı oldu,
+//    ama ne bu başlık ne aşağıdaki kapalı küme hakemi anıyordu — hakem satırı
+//    yazan ilk taraf bir değer UYDURMAK zorunda kalırdı (SAPMA-026'nın yasağı).
+//    G-18'in üç seçeneğinden ① (kümeye `'referee'`) uygulandı; ③ (bu başlığın
+//    düzeltilmesi) onun doğal sonucu — küme hakemi tanıyorsa tanım da tanımalı.
 people: {
   id: serial PK
   firstName: text
@@ -504,7 +645,13 @@ people: {
   portraitAssetId: text nullable
   portraitSeed: integer          // prosedürel portre tohumu
   gender: 'male'|'female'
-  personType: ('player'|'staff'|'manager'|'chairman')[]
+  personType: ('player'|'staff'|'manager'|'chairman'|'referee')[]
+  // ⚠️ KÜMEYİ DARALTMANIN BEDELİ ÖLÇÜLDÜ (Faz 4.5). `0008`in `down`u kısıtı
+  //    dört değere geri çekiyor ve `ADD CONSTRAINT … CHECK` var olan satırları
+  //    DOĞRULUYOR — dolu bir `people` tablosunda `'referee'` varsa geri alma
+  //    GÜRÜLTÜLÜ patlar. Bu bir kusur değil, kısıtın var olma sebebi; ve etkisi
+  //    zincir çapında: `down` LIFO çalıştığı için dolu bir veritabanında
+  //    HİÇBİR geri alma başlayamaz. Davranışın kendi testi var.
 }
 
 // players
@@ -541,8 +688,24 @@ player_attributes: {
   aerialReach, commandOfArea, communication, eccentricity, handling,
   kicking, oneOnOnes, reflexes, rushingOut, tendencyToPunch, throwing: smallint
 }
-// CHECK: her sütun 1-20 arasında
+// ⚠️ CHECK YOK — §3.1.2 ② (Faz 4.0'da düzeltildi, SAPMA-028). Bu satır önce
+//    "CHECK: her sütun 1-20 arasında" diyordu ve §3.1.2 ② ile çelişiyordu:
+//    sayısal ARALIK bir kalibrasyondur, CHECK almaz. Emsal ölçülmüş — 3.6'da
+//    altı hakem niteliği (1-20) de almadı. Aralık denetimi Faz 11'in işi
+//    (`pnpm validate:world`). İlişki değişmezleri (`CA <= PA`,
+//    `pa_range_min <= pa_range_max`) `players` tablosunda CHECK ALIR.
 // INDEX: (primaryPosition, currentAbility), (finishing), (passing), (pace) — transfer araması için
+//    ⚠️ İlk iki sütun `players` tablosunda, son üçü burada: indeks TEK BİR tabloya
+//    konur. Bu satır iki tabloyu karıştırıyor.
+//    ✅ KARAR (Faz 4.1): bu satır bir indeks LİSTESİ değil, bir NİYET beyanıdır ve
+//    ondan indeks türetilmez. Faz 4.8'in indeks kapsamı KABUL KRİTERİ 3'ün
+//    sorgusundan çıkarılır ("20–24 yaş, sağ bek, CA>120" → `people.birth_date` +
+//    `players.primary_position` + `players.current_ability`). Gerekçe 3.7'nin
+//    dersi: doğru indeks, o indeksi kullanacak SORGUNUN ŞEKLİNE bağlıdır —
+//    3.7 aynı sebeple `COLLATE`'li indeksi yapmadı (tüketicisi Faz 32).
+//    `(finishing)`, `(passing)`, `(pace)` tekil indeksleri de tüketicisi olan fazda
+//    (Faz 32, transfer filtreleri) değerlendirilir; bugün onları koymak, hiçbir
+//    sorgunun kullanmadığı üç indeksin yazma maliyetini ödemek olurdu.
 
 // player_hidden_attributes — 10 gizli nitelik
 player_hidden_attributes: {
@@ -562,8 +725,16 @@ player_positions: {
 player_traits: { playerId FK, traitCode: text, PK (playerId, traitCode) }
 
 // player_stats_history — gerçek dünya istatistikleri (nitelik türetimi girdisi)
+// ⚠️ `clubId` FAZ 4.1'DE EKLENDİ — spec'te YOKTU ve eksikliği ölçüldü (0 eşleşme).
+//    Onsuz "Osimhen 2023-24'te HANGİ KULÜPTE 26 gol attı?" cevaplanamıyor ve iki
+//    tüketici bunu istiyor: ROADMAP Faz 19 ("İstatistikler — sezon / KARİYER /
+//    turnuva bazlı") ve Faz 47 ("kariyer geçmişi: HER KULÜP, süre, istatistik").
+//    ROADMAP'in `player_career_history` adı bu eksiği tarif etmeye çalışıyordu;
+//    ayrı tablo açmak yerine sütun eklendi (SAPMA-030). `nullable` — Faz 9 öncesi
+//    seed verisinde kulüp yok ve SAPMA-026 gereği kimsenin belirlemediği alana
+//    değer uydurulmaz.
 player_stats_history: {
-  id, playerId FK, seasonYear, competitionId FK,
+  id, playerId FK, seasonYear, competitionId FK, clubId FK nullable,
   appearances, minutes, goals, assists, xG, xA,
   passesAttempted, passesCompleted, progressivePasses,
   dribblesAttempted, dribblesCompleted, duelsWon, duelsTotal,
@@ -582,6 +753,15 @@ staff: {
         'gk_coach'|'technical_coach'|'physio'|'sports_scientist'|'scout'|
         'data_analyst'|'youth_manager'|'youth_coach'
 }
+// ⚠️ `role` KAPALI KÜME → CHECK, ayrı bir `staff_roles` TABLOSU DEĞİL (Faz 4.1).
+//    ROADMAP Faz 4 bir `staff_roles` tablosu sayıyordu ve §3.1.2 ⑧ onu
+//    `injury_types` ile aynı sınıfa koyuyordu; ölçüm ikisini AYIRDI:
+//      · `staff_roles` satırları yalnızca bir ETİKET taşır  → §3.1.2 ② gereği CHECK
+//      · `injury_types` satırları VERİ taşır (süre aralığı, ciddiyet) → gerçek tablo
+//    Ayraç: "kapalı küme ETİKET mi, veri taşıyan SATIR mı?"
+//    Faz 37'nin "12 rol de atanabiliyor" kriterini CHECK zaten sağlıyor; rol
+//    ETKİLERİ (S164) motor katsayısıdır, tablo satırı değil (K3: motor veriyi
+//    parametre olarak alır).
 
 staff_attributes: {
   staffId PK FK
@@ -593,6 +773,13 @@ staff_attributes: {
 
 managers: {
   id, personId FK, userId FK nullable,     // userId null = AI menajer
+  // ⚠️ `userId` FAZ 4'TE YAZILMAZ — DÖRDÜNCÜ İLERİ FK (Faz 4.1, SAPMA-032).
+  //    `users` §3.2 save katmanında ve ROADMAP'te Faz 13'te doğuyor. Kısıtsız bir
+  //    sütun "tüm yabancı anahtarlar tanımlı" kriterini görünürde sağlayıp gerçekte
+  //    delerdi — Faz 3'ün üç ileri FK'sıyla birebir aynı sınıf. Sütun ve kısıt
+  //    BİRLİKTE Faz 13'te eklenir.
+  //    ℹ️ Açık soru (G-16): master bir tablonun save katmanına FK vermesi K4
+  //    açısından doğru mu? Alternatif `users.manager_id`. Karar Faz 12'de.
   clubId FK nullable, isUserManager: boolean,
   coachingBadge: 'none'|'c'|'b'|'a'|'pro',
   experienceLevel: 'amateur'|'former_player_lower'|'former_player_mid'|
@@ -730,12 +917,58 @@ player_match_stats: {
 }
 
 injuries: {
-  id, saveId FK, playerId FK, injuryTypeCode: text,
+  id, saveId FK, playerId FK, injuryTypeCode: text,   // → injury_types.code
   startDate, estimatedReturnDate, actualReturnDate: date nullable,
   severity: 'minor'|'moderate'|'serious'|'career_threatening',
   occurredInMatchId FK nullable, occurredInTraining: boolean,
   recurrenceOf: FK nullable
 }
+
+// injury_types — SÖZLÜK TABLOSU. Faz 4.1'de tanımlandı, Faz 12'de açılır.
+// ⚠️ Bu tablo `spec/01`'de HİÇ YOKTU; ROADMAP Faz 4 onu sayıyordu ama tanımı
+//    hiçbir yerde yazılı değildi. Tüketicisi ölçülerek bulundu: ROADMAP Faz 39
+//    "Sakatlık tipolojisi (~40 tür)" + kabul kriteri "40 sakatlık türünün tamamı
+//    tetiklenebiliyor", ve yukarıdaki `injuries.injuryTypeCode` zaten ona işaret
+//    ediyor.
+// ⚠️ NEDEN BİR CHECK DEĞİL DE TABLO: satırları yalnızca bir etiket değil VERİ
+//    taşıyor (süre aralığı, ciddiyet, tekrarlama eğilimi). Karşılaştır:
+//    `staff.role` 12 değerlik bir etiket kümesi ve CHECK alıyor (§3.1.2 ②).
+// ⚠️ NEDEN FAZ 12: tek FK kaynağı `injuries` ve o save-scoped. `fk-policy.ts`'in
+//    sözlük kuralı ancak tabloyu HEDEFLEYEN bir FK varken cevap üretir — Faz 4'te
+//    açılsaydı kendisi için yazılmış kuralı bile çalıştırmazdı (SAPMA-030).
+// SINIF: `key` yok + giden FK yok → `dictionary` → ona GİDEN FK'lar RESTRICT
+//        (§3.1.2 ⑧; `kit_templates` ile aynı sınıf).
+injury_types: {
+  id: serial PK
+  code: text UNIQUE                        // 'hamstring_strain' — `key`in rolünü görür
+  nameKey: text                            // i18n anahtarı (K5)
+  bodyPart: 'head'|'shoulder'|'arm'|'torso'|'hip'|'thigh'|'knee'|'calf'|'ankle'|'foot'
+  minWeeks, maxWeeks: smallint             // 1-2 hf, 2-6 hf, 8-16 hf, 24-40 hf …
+  severity: 'minor'|'moderate'|'serious'|'career_threatening'
+  recurrenceRisk: smallint                 // 0-100 — Faz 39 kalibre eder, CHECK YOK
+  canOccurInTraining, canOccurInMatch: boolean
+}
+// CHECK: `bodyPart` ve `severity` kapalı küme. `minWeeks`/`maxWeeks`/`recurrenceRisk`
+//        ARALIK → CHECK YOK (§3.1.2 ②, Faz 39'un kalibre edeceği ölçekler).
+
+// manager_career — Faz 4.1'de tanımlandı, Faz 12'de açılır.
+// ⚠️ Bu tablo da `spec/01`'de HİÇ YOKTU. Tüketicisi kaynaktan doğrulandı:
+//    ROADMAP Faz 47 (S207) "Menajer profil sayfası: kariyer geçmişi (her kulüp,
+//    süre, istatistik), kupa vitrini, en iyi sezonlar" + (S204) liderlik tablosu
+//    metrikleri "toplam maç, G/B/M, kupa sayısı, sezon sayısı".
+// ⚠️ NEDEN SAVE KATMANI (master değil): kariyer oyun oynanırken birikiyor. Faz 47
+//    liderlik tablosu onu KAYITLAR ARASI topluyor, yani satırlar kayıt başına.
+//    Master'da önceden yüklenmiş AI menajer geçmişi Faz 8/9 ingest kapsamında YOK
+//    (arandı) — istenirse ayrı bir karar olur.
+manager_career: {
+  id, saveId FK, managerId FK, clubId FK,
+  startDate, endDate: date nullable,        // null = hâlâ görevde
+  matchesPlayed, wins, draws, losses: integer,
+  goalsFor, goalsAgainst: integer,
+  trophies: jsonb,                          // {competitionId, seasonYear}[]
+  endReason: 'resigned'|'sacked'|'contract_expired'|'mutual'|'still_active' nullable
+}
+// CHECK: `endReason` kapalı küme. Sayısal alanlar sayaç, aralık değil — CHECK yok.
 
 suspensions: {
   id, saveId FK, playerId FK, competitionId FK,

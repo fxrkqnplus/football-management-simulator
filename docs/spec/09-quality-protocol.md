@@ -526,10 +526,11 @@ Kırılan tek test, bozuk bir `down`u yakalayan **negatif** testti. **On beş po
 test kör bir karşılaştırıcıyla da geçiyordu** — çünkü hepsi `identical: true`
 bekliyor ve kör bir karşılaştırıcı bunu bedavaya sağlıyor.
 
-### 📈 MUTASYON SERİSİ — sekiz ölçüm, bir eğilim (Faz 3.2b → 3.10)
+### 📈 MUTASYON SERİSİ — on ölçüm, bir eğilim (Faz 3.2b → 4.3)
 
-Aynı mutasyon (`compareSchemas` → her zaman `identical: true`) her şema alt
-görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; sekiz rakam bir eğilim:
+Aynı mutasyon her şema alt görevinde **yeniden** koşuldu. Tek rakam bir
+gözlemdir; on rakam bir eğilim. ⚠️ Mutasyonun **tam metni** aşağıdaki kutuda —
+tarifi değil (4.2'de ölçülerek bulundu):
 
 | Alt görev | Şema | Kırılan / toplam `test:db` | Oran |
 |---|---|---|---|
@@ -541,8 +542,287 @@ görevinde **yeniden** koşuldu. Tek rakam bir gözlemdir; sekiz rakam bir eğil
 | **3.8** | değişmedi (seed) | **19 / 146** | %13,0 ⬇ |
 | **3.9** | değişmedi (ölçüm) | **19 / 160** | %11,9 ⬇ |
 | **3.10** | değişmedi (belge) | **19 / 163** | %11,7 ⬇ |
+| **4.2** | değişmedi (kural) | **19 / 163** | %11,7 → |
+| **4.3** | **13 tablo** (`people` + `players`) | **20 / 178** | %11,2 ⬇ |
+| **4.4** | 13 tablo + **3 ileri FK** (`0006`) | **25 / 190** | **%13,2** ⬆ |
+| **4.5** | **15 tablo** + 57 nitelik sütunu + 2 CHECK (`0007`+`0008`) | **26 / 216** | %12,0 ⬇ |
+| **4.6** | **18 tablo** + ilk **bileşik PK**'ler (`0009`) | **27 / 230** | %11,7 ⬇ |
+| **4.7** | **22 tablo** + 3 CHECK (`0010`) | **27 / 241** | %11,2 ⬇ |
+| **4.8** | 22 tablo + **2 indeks** (`0011`) | **29 / 251** | **%11,55** ⬆ |
+| **4.9** | değişmedi (seed — 5.000 satır) | **29 / 277** | %10,47 ⬇ |
+| **4.10** | değişmedi (ölçüm — plan + süre) | **29 / 301** | %9,63 ⬇ |
+| **4.11** | değişmedi (refactor — BORÇ-008, üretilen SQL **birebir aynı**) | **29 / 301** | %9,63 → |
 
-> ⚠️ **SON ÜÇ SATIRDA PAY 19'DA SABİT VE BU BEKLENEN.** 3.8, 3.9 ve 3.10'un
+> ✅ **4.11'DE PAY VE PAYDA İKİSİ DE SABİT: 29 / 301 — serinin ilk TAM DURAĞAN
+> satırı, ve bu bir alarm değil bir KANIT.**
+>
+> 4.11 bir **refactor** alt görevi (BORÇ-008: CHECK literal ifadesinin dokuz
+> kopyası tek modüle indi). Serinin diğer *"değişmedi"* satırlarından farkı,
+> burada `packages/db/src/schema/` altındaki **on dosyaya dokunulmuş** olması —
+> yani ilk kez şema **dosyaları** değişti ve şema **değişmedi**. İkisinin
+> ayrıldığı yer tam olarak bu tablo:
+>
+> | Soru | Ölçüm |
+> |---|---|
+> | Üretilen SQL değişti mi? | **Hayır** — `drizzle-kit generate` → *"No schema changes, nothing to migrate"* |
+> | Yeni olgu türü var mı? | **Hayır** — zincir 12 · tablo 22 · FK 32 · indeks 6 · sequence 14, beşi de sabit |
+> | 10 yeni test `compareSchemas` çağırıyor mu? | **Hayır** — hepsi **birim** testi (`pnpm test`), `test:db` paydası hiç kımıldamadı |
+> | Körelen karşılaştırıcı hangi dosyayı kırıyor? | **yalnızca `round-trip.itest.ts`** — 4.8'den beri aynı dosya, aynı 29 test |
+>
+> ⚠️ **VE REFACTOR'IN KENDİ KANITI BU SERİ DEĞİL, AYRI BİR MUTASYONDU.** Ortak
+> modül körlendi (`sqlLiterals` sabit bir dize döndürecek şekilde) ve
+> `drizzle-kit generate` koşuldu: üretilen migration **17 CHECK kısıtının
+> 17'sini birden** değiştirdi — yani dokuz çağrı yerinin hiçbiri bağlanmadan
+> kalmamış. **Bir refactor'ın "her yeri bağladım" iddiası ancak MUTASYONLA
+> kanıtlanır; geçen bir test çağrının yapıldığını göstermez.** Ve kanıtın
+> `typecheck` olamayacağı yapısal: ifade bir **SQL metni** üretiyor ve o metin
+> hiçbir tipe girmiyor.
+
+> ✅ **4.10'DA DA PAY SABİT: 29 — sebebi 4.9'unkiyle AYNI SINIF, ve yine ölçüldü.**
+> 4.10 bir **ölçüm** alt görevi: migration yok, yeni olgu türü yok. 24 yeni
+> entegrasyon testinin **hiçbiri** `compareSchemas` çağırmıyor ve körelen
+> karşılaştırıcı yine yalnızca `round-trip.itest.ts`i kırıyor (aynı dosya, aynı
+> 29 test). Oran düştü (%10,47 → **%9,63**) çünkü payda 277 → 301 büyüdü.
+>
+> ⚠️ **AMA 4.10'UN KENDİ NÖBETÇİLERİ İKİ AYRI MUTASYONLA ÖLÇÜLDÜ** ve ikisi de
+> seriye girmiyor, çünkü hedefleri `compareSchemas` değil **ölçümün kendisi**:
+>
+> ```ts
+> // MUTASYON ② — A'nın istatistik kurulumu kaldırıldı:
+> //   await executor.run('ANALYZE "people"');   ← silindi
+> //   await executor.run('ANALYZE "players"');  ← silindi
+> // MUTASYON ③ — B'nin indeks kapatması etkisizleştirildi:
+> //   await tx.run('SELECT 1');   // yerine: SET LOCAL enable_indexscan/bitmapscan = off
+> ```
+>
+> **② → 2 / 78** (istatistik denetimi + *"`people` tarafı indeksi kullanmıyor"*
+> plan iddiası). **③ → 2 / 78** (KONTROL testi + süre karşılaştırması).
+>
+> ⚠️ **VE ②'NİN ASIL BULGUSU KIRILANLARDA DEĞİL, KIRILMAYANLARDA:** `< 50 ms`
+> **süre testleri kırılmadı**. Yani istatistiksiz — dolayısıyla **yanlış** —
+> alınmış bir ölçüm, bütçe testini kusursuz geçiyor. **Genel biçim: geçen bir
+> bütçe testi, ölçümün DOĞRU ALINDIĞINI göstermez; onu ancak ölçümün ön
+> koşulunu iddia eden ayrı bir nöbetçi gösterir.** 4.9'un *"determinizm testi
+> tek başına bir nöbetçi değildir"* kuralının ölçüm tarafındaki kardeşi.
+
+> ✅ **4.9'DA PAY SABİT KALDI: 29 — VE BU DA ALARM DEĞİL, ÇÜNKÜ SEBEBİ ÖLÇÜLDÜ.**
+>
+> Kuralın tam hâli: **alarm *"sabit pay"* değil, *"AÇIKLANAMAYAN sabit pay"***.
+> 4.9 bir **veri** alt görevi: migration yok, yeni olgu türü yok, yeni yapı yok
+> — 3.8'in (*"değişmedi (seed)"*, 19/146) birebir sınıfı. Ölçüm:
+>
+> | Soru | Ölçüm |
+> |---|---|
+> | 4.9 `compareSchemas`ın yüzeyine dokundu mu? | **Hayır** — zincir 12, tablo 22, FK 32, indeks 6, sequence 14; beşi de sabit |
+> | 26 yeni entegrasyon testinin kaçı `compareSchemas` çağırıyor? | **0** (hiçbiri import etmiyor) |
+> | Körelen karşılaştırıcı hangi dosyayı kırıyor? | **yalnızca `round-trip.itest.ts`** — 4.8'dekiyle aynı dosya, aynı 29 test |
+>
+> Oran düştü (%11,55 → **%10,47**) çünkü payda 251 → 277 büyürken pay sabit
+> kaldı. **Payı artıran şey bir FARK BEKLEMESİDİR** ve 4.9 şemaya hiçbir fark
+> getirmedi — satır getirdi.
+>
+> ⚠️ **AMA 4.9'UN KENDİ NÖBETÇİSİ AYRI BİR MUTASYONLA ÖLÇÜLDÜ** ve seriye
+> girmiyor, çünkü hedefi `compareSchemas` değil **üretecin kendisi**:
+>
+> ```ts
+> // 4.9'UN MUTASYONU — birebir bu (`player-generator.ts`):
+> return mix32(mix32(1) ^ mix32(Math.imul(stream, STREAM_SALT)));   // `index` yok sayıldı
+> ```
+>
+> Sonuç: **7 / 967** birim + **3 / 277** entegrasyon. Ve asıl bulgu şu:
+> ***"aynı çağrı BİREBİR aynı kümeyi veriyor"* testi KIRILMADI.** Sabit dönen
+> bir üreteç determinizm iddiasını **kusursuz** geçiyor — §11.5'in başındaki
+> ölçümün (*"on beş pozitif test kör bir karşılaştırıcıyla da geçiyordu"*)
+> canlı tekrarı. Mutasyonu yakalayan testler, *"satırlar birbirinden FARKLI"*
+> ve *"kesişim 27 satır"* gibi bir **fark ya da dağılım** bekleyenler oldu.
+> **Genel biçim: determinizm testi tek başına bir nöbetçi değildir; yanına
+> bağımlılık iddiası konmadıkça kör bir üreteci de onaylar.**
+
+> ⚠️ **4.6 SATIRI 4.7'YE KADAR EKSİKTİ — VE BU SERİNİN KENDİ DERSİ.**
+> Ölçüm 4.6'da yapıldı (**27 / 230**), ANLIK DURUM'a ve alt görev raporuna
+> yazıldı, ama **serinin yaşadığı yer olan bu tabloya işlenmedi**; 4.7'de
+> ölçüldü (dosyanın tamamında `4.6` → 0 eşleşme) ve iki satır birlikte eklendi.
+>
+> Sınıf tanıdık: *"envanterler kör kalmaz, ama GÜNCELLENMEZSE bayatlar"* (F1).
+> Çare bir kez daha yazmak değil, **kontrol eden bir adım** — `OUTPUT-FORMAT`ın
+> kurallarına *"şemaya dokunan bir alt görevde mutasyon serisi §11.5'e işlendi
+> mi?"* maddesi 4.7'de eklendi (SAPMA-033'ün deseni).
+
+> ✅ **4.8'DE PAY ARTTI: 27 → 29 — VE ARTIŞIN KAYNAĞI ADIYLA BELLİ.**
+>
+> 4.7'nin ölçüm tablosu *"indeks | 0 | **4.8'in işi**"* diye bir satır
+> bırakmıştı ve bu turda o satır kapandı. Ama artışın sebebi *"yeni bir olgu
+> türü"* **değil** — bu **ölçüldü, varsayılmadı**:
+>
+> | Soru | Ölçüm |
+> |---|---|
+> | `compareSchemas` indeks tanımını okuyor mu? | **Evet** — `introspect.ts` `pg_indexes.indexdef` çekiyor, `compare.ts` `indexFields` ile `definition`ı karşılaştırıyor |
+> | Zincirde indeks zaten var mıydı? | **Evet** — `0004` dört indeks getirmişti |
+> | Sessiz `down` sınıfının nöbetçisi var mıydı? | **Evet** — 3.7 üç `DROP INDEX` vakasını bozulma tablosuna yazmıştı |
+>
+> Yani `IndexFacts` yeni bir **olgu türü değil** ve 4.3/4.5/4.6'nın deseni
+> (*"yeni tip ailesi ya da yapı → negatif test"*) burada **uygulanmıyor**.
+> Payı artıran şey, `0011`in iki indeksinin **var olan** bozulma tablosuna
+> eklenmesi: o satırların her biri `identical: false` **bekliyor**, yani körelen
+> karşılaştırıcı ikisini de kırıyor. **+2, ve ikisi de kırılan test listesinde
+> adıyla göründü.**
+>
+> ⚠️ **Aynı alt görevin diğer iki testi paya HİÇ katkı yapmadı** — 4.5'in
+> dersinin beşinci tekrarı: `0011`in çevrim testi `differences: []` iddia ediyor
+> (**boş** envanter, mutasyonun ürettiği değerin ta kendisi) ve sıfır kayıp
+> testi `compareSchemas`ı hiç çağırmıyor. **Payı artıran şey bir FARK
+> BEKLEMESİDİR.**
+>
+> ℹ️ Oran da yükseldi (%11,2 → **%11,55**) çünkü payda yalnızca 241 → 251
+> büyürken pay 27 → 29 çıktı. 4.4'ten beri oranın payla birlikte ilk yükselişi.
+
+> ✅ **4.7'DE PAY SABİT KALDI: 27 — VE BU ALARM DEĞİL, ÇÜNKÜ SEBEBİ ÖLÇÜLDÜ.**
+>
+> Kuralın tam hâli: **alarm *"sabit pay"* değil, *"AÇIKLANAMAYAN sabit pay"***.
+> Payı artıran şey bir **fark bekleyen** testtir ve önceki üç artışın üçü de
+> şemaya yeni bir **olgu türü ya da yapı** girdiği için mümkün oldu
+> (4.3 `udtName` · 4.5 `constraint.definition` · 4.6 bileşik PK). `0010` böyle
+> bir şey getirmiyor ve bu **sayılarak** gösterildi:
+>
+> | Ölçüm | `0010` | Zincirde 0000–0009 arasında |
+> |---|---|---|
+> | `serial` | var | 12 eşleşme |
+> | `integer` | var | 63 |
+> | `text` | var | 46 |
+> | `smallint` | var | 83 |
+> | `boolean` | var | **2** |
+> | `text[]` | var | **1** (`people.person_type`) |
+> | `timestamp with time zone` | var | 36 |
+> | **bileşik PK** | **0** | 0009'un sınıfı |
+> | **indeks** | **0** | 4.8'in işi |
+>
+> Yani `0010`un getirdiği **yedi tipin yedisi de** zincirde zaten vardı ve
+> karşılaştırıcının okuduğu alan listesinin genişlemesi gerekmedi. Üç CHECK
+> `constraint.definition` olgusunu kullanıyor ve onun negatif testi 4.5'te
+> yazılmıştı (`④ SESSİZ bozuk down (KISIT TANIMI)`).
+>
+> ⚠️ **Ve yeni çevrim testi paya KATKI YAPMADI — §11.5'in başındaki ölçümün
+> dördüncü tekrarı.** `0010`un çevrim testi `differences: []` iddia ediyor,
+> yani **boş** bir envanter; körelen karşılaştırıcı tam olarak onu üretiyor.
+> *"Migration yazdım, round-trip testi ekledim"* tek başına payı artırmaz.
+>
+> Oran %11,7 → %11,2 **düştü** çünkü payda 230 → 241 büyüdü (11 yeni test, çoğu
+> `compareSchemas`ı hiç çağırmayan davranış/CHECK testleri). Okuma kuralı gereği
+> bakılan sütun **pay**: 27 → 27, ve **sabit kalması açıklanabilir**.
+
+> ⚠️ **MUTASYONUN TARİFİ DE BİR İDDİADIR — 4.2'de ölçülerek bulundu (D2).**
+> Yukarıdaki başlık mutasyonu *"`compareSchemas` → her zaman `identical: true`"*
+> diye tarif ediyordu ve bu tarif **yetersiz**. 4.2'de birebir uygulandı ve
+> **18/163** çıktı, seri **19** diyor. Bir an *"pay düştü, alarm"* diye okundu.
+>
+> **Ölçüm iki varyantı ayırdı** (ikisi de `HEAD`'de, kod hiç değişmeden koşuldu —
+> 4.0/4.0b/4.1 yalnızca belge yazmıştı, yani taban çizgisi 3.10'unkiyle aynı):
+>
+> | Körleştirme | Kırılan | Neden |
+> |---|---|---|
+> | yalnızca `identical: true` | **18** | `differences` dolu kalıyor; onun **içeriğini** iddia eden test hâlâ geçiyor |
+> | `identical: true` **ve** `differences: []` | **19** | fark listesini iddia eden test de kırılıyor |
+>
+> Serinin kayıtlı değerleri **ikinci** varyanttan geliyor. Fark bir regresyon
+> değil, **ölçüm düzeneğinin farkı** — ve düzeneğin kendisi yazılı olmadığı için
+> bir sonraki ölçüm onu yeniden keşfetmek zorunda kaldı.
+>
+> **Kural (somut):** bir mutasyon serisi kaydedilirken mutasyonun **tam metni**
+> yazılır, niyeti değil. *"Karşılaştırıcıyı körelt"* iki farklı kod üretir ve
+> iki farklı sayı verir. **Bu, *"bir kapının kurtarma yolu da bir iddiadır"*
+> kuralının (Faz 3.10) ölçüm tarafındaki kardeşi:** sınanmamış bir tarif,
+> sınanmamış bir kurtarma yolu kadar sessizce yanlış sonuca götürür.
+>
+> ```ts
+> // SERİNİN MUTASYONU — birebir bu:
+> return { differences: [], identical: true, comparedFacts: counter.value };
+> ```
+
+> ✅ **4.3'TE PAY ARTTI: 19 → 20 — ve BEKLENEN buydu.** 3.8/3.9/3.10/4.2'de pay
+> 19'da sabitti çünkü hiçbiri migration yazmadı. 4.3 `0005`i yazdı, round-trip
+> yüzeyi büyüdü ve körelen karşılaştırıcı **bir yerde daha** ötüyor. Payın
+> kaynağı adıyla belli: 4.3'ün eklediği **dizi eleman tipi negatif testi**
+> (*"③ SESSİZ bozuk down (DİZİ ELEMAN TİPİ)"*).
+>
+> ⚠️ **Aynı alt görevin POZİTİF testleri paya HİÇ katkı yapmadı** ve bu, §11.5'in
+> başındaki ölçümün canlı bir tekrarı: yeni `0005` çevrim testi
+> (`identical: true` + `comparedFacts >= sınır`) kör bir karşılaştırıcıyla da
+> **geçiyor**. Yani *"migration yazdım, round-trip testi ekledim"* tek başına
+> payı artırmaz — artıran şey **negatif testtir**.
+>
+> ℹ️ Oran %11,7 → %11,2 **düştü** çünkü payda 163 → 178 büyüdü (15 yeni test,
+> çoğu `compareSchemas`ı hiç çağırmayan davranış/CHECK testleri). Okuma kuralı
+> gereği bakılan sütun **pay**: 19 → 20.
+
+> ✅ **4.4'TE HEM PAY HEM ORAN ARTTI: 20 → 25 ve %11,2 → %13,2.** Seride oranın
+> ilk kez **payla birlikte** yükselişi bu, ve sebebi tek bir kelimeyle *"daha çok
+> test"* değil — **iddianın BİÇİMİ değişti**.
+>
+> `0006` zincirin 0001'den beri ilk `ALTER`-only migration'ı ve `attnum` deliği
+> (§3.1.2 ⑤) artık **her kısmi geri almada** görünüyor. Bu, dört var olan çevrim
+> testini `identical: true` iddiasından **farkların tam listesi** iddiasına
+> geçirdi. Fark kritik:
+>
+> | İddia | Körelen karşılaştırıcı ne yapar |
+> |---|---|
+> | `identical: true` | mutasyon bunu **sağlıyor** → test **geçer** |
+> | `differences` tam listesi | mutasyon listeyi boşaltıyor → test **kırılır** |
+>
+> Yani payın +5'inin dördü yeni test değil, **var olan dört testin körlükten
+> çıkması**. Beşincisi 0006'nın kendi çevrim testi.
+>
+> **Genel biçim:** bir testin mutasyona duyarlılığı, ne kadar şeye baktığından
+> çok **neyi iddia ettiğine** bağlı. `identical: true` bir **özet**tir ve
+> özetler körlenebilir; farkların tam listesi bir **envanter**dir ve envanterin
+> boşalması görünür. 3.4'te 0001 için bu biçim *"daha güçlü"* diye seçilmişti —
+> 4.4 o gerekçeyi **sayıyla** doğruladı.
+
+> ⚠️ **4.5'TE PAY BİR KEZ ALARM VERDİ: İKİ YENİ ÇEVRİM TESTİ PAYA HİÇ KATKI
+> YAPMADI — ve sebebi 4.4'ün dersinin SINIRIYDI.**
+>
+> `0007` ve `0008` zincire eklendi, ikisinin de çevrim testi yazıldı, ilk ölçüm
+> **25 / 215** verdi: pay 4.4'ün değerinde **sabit**. 4.4'ün okuması
+> (*"envanter iddiaları körlükten çıkarır"*) buradan bir artış vaat ediyordu.
+>
+> **Ölçüm sınırı gösterdi.** İki yeni test `differences: []` iddia ediyor —
+> **boş** bir envanter. Mutasyonun ürettiği değer tam olarak bu:
+> `{ differences: [], identical: true, … }`. Yani:
+>
+> | İddia | Körelen karşılaştırıcı ne yapar |
+> |---|---|
+> | `differences` **dolu** tam listesi (4.4) | listeyi boşaltıyor → test **kırılır** |
+> | `differences: []` (4.5'in yeni testleri) | **zaten** boş üretiyor → test **geçer** |
+>
+> **Genel biçim:** *"boş bir liste tek başına 'yok' diye okunur"* kuralının
+> mutasyon tarafındaki biçimi. Bir envanter iddiası körlükten ancak **fark
+> beklediğinde** çıkarır; fark beklemeyen bir envanter iddiası pozitif bir
+> testtir ve §11.5'in başındaki ölçüm onun için geçerlidir (3.2b: 16'da 15).
+> **Payı artıran şey envanterin biçimi değil, testin bir fark BEKLEMESİDİR.**
+>
+> ✅ **Alarm bir NEGATİF testle kapatıldı: 25 → 26.** `0007` zincire ilk kez
+> *başka bir tablonun kısıtını* ekleyen migration'ı, `0008` ilk kez bir kısıtın
+> **tanımını değiştiren** migration'ı getirdi — yani `constraint.definition`
+> şemaya yeni bir **olgu türü** olarak girdi. Onu ölçen bir negatif test yoktu:
+> karşılaştırıcının o alanı gerçekten okuduğu **varsayılıyordu** (D3). Test
+> (`④ SESSİZ bozuk down (KISIT TANIMI)`) bir `down`un CHECK'i **dar** geri
+> koyduğu sessiz vakayı üretiyor ve farkı yalnızca `definition`ın gösterdiğini
+> ayrıca iddia ediyor (kısıt adı ve tipi iki durumda da aynı) — 4.3'ün `udtName`
+> deseninin birebir tekrarı.
+>
+> ℹ️ Oran %13,2 → %12,0 **düştü** çünkü payda 190 → 216 büyüdü (26 yeni test;
+> çoğu CHECK reddi, 1:1 teklik ve envanter testleri — hiçbiri `compareSchemas`ı
+> çağırmıyor). Okuma kuralı gereği bakılan sütun **pay**: 25 → 26.
+>
+> ⚠️ **Aynı alt görevin diğer iki mutasyonu bunu tamamlıyor** (doğru temsile,
+> yani **migration SQL'ine** uygulandı — TS şema dosyası çalışan veritabanını
+> kurmuyor, #43):
+>
+> | Mutasyon | Kırılan | Ne söylüyor |
+> |---|---|---|
+> | `federations` FK'sı `set null` → `cascade` | **3** | ikisi katalog testi, biri **DAVRANIŞ** testi — kural ve gerçeklik ayrı ayrı ötüyor |
+> | `referees.person_id`den `NOT NULL` kaldırıldı | **13** | nullability üç ayrı yerde nöbetçili: kural türetimi · snapshot ↔ gerçek şema · negatif `INSERT` |
+
+> ⚠️ **3.8, 3.9, 3.10 VE 4.2'DE PAY 19'DA SABİTTİ VE O DA BEKLENENDİ.** Bu dördün
 > hiçbiri migration yazmadı — round-trip yüzeyi büyümedi, yani körelen
 > karşılaştırıcının ötebileceği yer sayısı da büyümedi. Payda büyüdüğü için
 > oran düştü. **Alarm veren durum bu değil:** şema **büyürken** payın sabit
@@ -704,6 +984,50 @@ kopyala-yapıştıra iniyor. Gerçek bir mutasyonla doğrulandı.
 burada kapı doğru ötüyor ama **ötüşün söylediği şey** yanlış. Soru genişliyor:
 *"bu kapı benim değiştirdiğim dosyalara baktı mı?"* yanına *"öttüğünde
 söylediği şey doğru mu?"*
+
+### ⚠️ BİR ARTEFAKT ÜRETEN YÖNERGE, ARTEFAKTIN KENDİSİ OLMALI — TARİFİ DEĞİL (Faz 4.2'de kural oldu)
+
+**Kural:** bir yönerge okuyanın bir **artefakt** üretmesini istiyorsa (bir metin,
+bir kod parçası, bir komut), yönerge o artefaktın **tarifini** değil
+**kendisini** taşımalıdır. Tarif ile artefakt arasındaki her boşluk, okuyanın
+kendi makul yorumuyla doldurulur — ve o yorum **sessizce farklı bir sonuç**
+üretir.
+
+**Bu kural iki vakadan TÜRETİLDİ, bir vakadan genellenmedi.** Faz 3'ün
+kapanışında bilerek yazılmamıştı: *"geleceğe verilen yönergeler de birer
+iddiadır; **Faz 4'te ikinci bir örnek çıkarsa kural yazılabilir**."* Faz 4.2 o
+ikinci örneği getirdi.
+
+| # | Vaka | Yönergenin tarif ettiği şey | Birebir uygulanınca çıkan sonuç | Düzeltme |
+|---|---|---|---|---|
+| ① | **Faz 3.10 — kurtarma yolu** | *"Vitest'in fark çıktısı üretilmiş metnin tamamını gösteriyor, blok o çıktıdan yenilenir"* | Fark **bağlamı sınırlı** ve yönü ters okunmaya açık; bayat metin geri yazılırsa test **yeşile döner** | Doğru metin **hata mesajının içinde** üretiliyor (`----- ÜRETİLMİŞ METİN -----`) |
+| ② | **Faz 4.2 — ölçüm tarifi** | *"`compareSchemas` → her zaman `identical: true`"* | **18/163**, kayıtlı seri **19** diyor → *"pay düştü, alarm"* diye okundu | Mutasyonun **tam kodu** spec'te duruyor (`return { differences: [], identical: true, … }`) |
+
+**İkisinin ortak yapısı:** yönerge yazıldı, okundu, **ilk kez uygulandığında
+yanlış çıktı**, ve her ikisinde de **yanlış sonuç makul görünüyordu** — 18 bir
+"alarm" olarak raporlanabilirdi, bayat bir diyagram "düzeltildi" sayılabilirdi.
+Yani bu sınıfın belirtisi bir hata değil, **inandırıcı bir yanlış cevaptır**.
+
+**İkisinin çaresi de aynı yere yakınsıyor:** artefaktı yönergenin **içine** koy.
+③'ün kurtarma metni bir dosyada değil, kapının kendi çıktısında. ②'nin
+mutasyonu bir cümlede değil, bir kod bloğunda.
+
+> ⚠️ **SERİNİN BÜTÜNLÜĞÜ HAKKINDA KESKİN SONUÇ (4.2'de ölçüldü).** Mutasyon
+> serisinin 3.2b–3.10 arası rakamları, **yazılı tarifin ürettiğinden farklı bir
+> tarifle** alınmıştı. Seri sağlamdı ama **yazılı olan hiç işlemiyordu**: onu
+> harfiyen izleyen ilk oturum 18 bulup seriyi kırık sanacaktı. Taban çizgisinin
+> `HEAD`'de, kod hiç değişmeden ölçülmesi (orada da 18) bunu kanıtladı —
+> refleks *"pay düştü, alarm"* demek olurdu.
+
+ℹ️ **Bu sınıf artık greplenebilir ve üçüncü aday zaten görünür:**
+`docs/spec/11-project-memory.md` §12.5'in *"§7 rakamları faz kapanışında YENİDEN
+ölçülür — ara ölçümlerden kopyalanmaz"* uyarısı. O **hâlâ sağlam** — Faz 3'te
+tuttu (3.10 rakamları yeniden ölçtü ve ROADMAP'e yazılmış tahminleri düzeltti),
+yani bu bir vaka değil bir **karşı örnek**: aynı sınıftaki bir yönerge, ölçümü
+zorunlu kıldığı için işledi.
+**Envanter bugün AÇILMIYOR (K12).** Bu sınıfın sistematik taraması **Faz 50**'nin
+(bütünsel denetim) işi; buraya yalnızca notu düşülüyor ki orada yeniden
+keşfedilmesin.
 
 ### ⚠️ CI'A YENİ BİR İŞ EKLENDİĞİNDE, MEVCUT İŞLERİN ÖRTÜK HAZIRLIK ADIMLARI ÇIKARILIR (Faz 3.2a)
 

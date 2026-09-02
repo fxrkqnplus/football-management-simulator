@@ -72,9 +72,37 @@ const logger = createNoopLogger();
 const DRIZZLE_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 const SCHEMA_DOC = fileURLToPath(new URL('../../../docs/schema/world.md', import.meta.url));
 
-/** Bugünün ölçülmüş şema büyüklüğü — Faz 4 bunları güncelleyecek. */
-const EXPECTED_TABLE_COUNT = 11;
-const EXPECTED_FOREIGN_KEY_COUNT = 12;
+/**
+ * Bugünün ölçülmüş şema büyüklüğü.
+ *
+ * 🆕 **4.3'te beklendiği gibi kırıldı: 11 → 13 tablo, 12 → 16 FK.** Sayılar
+ * tahmin edilmedi — `drizzle-kit generate` çıktısından ve `pg_constraint`ten
+ * okundu (`people` + `players`; dört yeni FK: iki uyruk, `person_id`, `club_id`).
+ * Faz 4'ün kalan dokuz master tablosu 4.5–4.7'de gelecek ve burayı yine kıracak.
+ *
+ * 🆕 **4.4'te YALNIZCA FK SAYISI kırıldı: 16 → 19, tablo sayısı 13'te SABİT.**
+ * `0006` yeni tablo yaratmıyor, var olan üçüne birer sütun ve birer FK ekliyor
+ * (`federations.president_person_id` · `clubs.chairman_person_id` ·
+ * `referees.person_id`). İki sabitin **ayrı** olmasının değeri tam olarak bu:
+ * tek bir "şema büyüklüğü" sayısı olsaydı, bir tablo eklenip bir FK silinen bir
+ * değişiklik sessizce geçebilirdi.
+ */
+// 🆕 4.5: 13 → 15 tablo, 19 → 21 FK. İki tablo (`player_attributes`,
+// `player_hidden_attributes`) ve her birinin `players`a bakan tek FK'sı.
+// `0008` şema büyüklüğüne hiç dokunmuyor — yalnızca bir CHECK tanımını
+// genişletiyor, yani iki sayı da onun için değişmiyor.
+// 🆕 4.6: 15 → 18 tablo, 21 → 26 FK. Üç tablo ve **beş** FK — `player_positions`
+// ve `player_traits` birer tane (`players`), `player_stats_history` üç tane
+// (`players` · `competitions` · `clubs`). İki sayının ayrı olmasının değeri
+// burada yine görünüyor: tablo başına FK sayısı sabit DEĞİL, yani tek bir
+// "büyüklük" sayısı bu değişimi doğru anlatamazdı.
+// 🆕 4.7: 18 → 22 tablo, 26 → 32 FK. Dört tablo ve **altı** FK — `staff` ve
+// `managers` ikişer (`people` + `clubs`), iki nitelik tablosu birer. FK/tablo
+// oranı yine sabit değil: 4.6'da üç tablo beş FK getirmişti, burada dört tablo
+// altı. Tek bir "büyüklük" sayısı bu değişimi doğru anlatamazdı.
+// **Faz 4'ün on bir master tablosu bu alt görevle kapandı.**
+const EXPECTED_TABLE_COUNT = 22;
+const EXPECTED_FOREIGN_KEY_COUNT = 32;
 
 let container: StartedPostgreSqlContainer;
 let close: () => Promise<void>;

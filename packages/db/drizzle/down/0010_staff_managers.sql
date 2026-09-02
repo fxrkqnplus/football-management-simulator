@@ -1,0 +1,65 @@
+-- 0010_staff_managers — GERİ ALMA (elle yazıldı)
+--
+-- drizzle-kit `down` migration ÜRETMİYOR (Faz 3.0'da ölçüldü,
+-- docs/spec/01-database.md §3.0). Bu dosya elle yazılır; doğruluğunun
+-- karşılaştırılacağı yer `meta/0009_snapshot.json` — yani on sekiz tablo
+-- ayakta, bu dördü yok.
+--
+-- ⚠️ SAF `CREATE TABLE` MIGRATION'I — §3.1.2 ⑤'İN SİMETRİK SONUCU GEÇERLİ.
+--
+-- Hiçbir sütun eklenmiyor, hiçbiri düşürülmüyor: dört tablo düşüyor ve yeniden
+-- yaratılıyor, yani `pg_attribute.attnum` 1'den başlıyor ve delik kalmıyor.
+-- Bu migration'ın kendi çevriminde `identical: true` BEKLENİR — `0009`unkiyle
+-- aynı sınıf. Ayraç `ALTER` değil SÜTUN: bir `ALTER` bile (örneğin `0008`) sütun
+-- eklemiyorsa kayma üretmiyor (4.5'te ölçüldü).
+--
+-- ⚠️ VE ZİNCİRDEKİ `0006` BU BEKLENTİYİ DEĞİŞTİRMİYOR. Kaymalar yalnızca
+-- 0006'nın İÇİNDEN GEÇEN geri almalarda görünüyor; bu geri alma zincirin en
+-- üstünde ve 0006'ya hiç dokunmuyor, yani kaymalar çevrimin iki ucunda da aynı.
+-- Kayma bir ZİNCİR özelliği değil, bir GERİ ALMA DERİNLİĞİ özelliği.
+--
+-- ────────────────────────────────────────────────────────────────────────────
+-- ⚠️ SIRA BURADA BİR TERCİH DEĞİL, ZORUNLU — 0009'DAN FARKI TAM OLARAK BU
+-- ────────────────────────────────────────────────────────────────────────────
+--
+-- `0009`un üç tablosu birbirine bakmıyordu ve o dosyanın kendi başlığı sırayı
+-- "okunabilirlik tercihi" diye yazıyordu. Burada durum farklı: bu migration
+-- **iki katmanlı iki zincir** getiriyor.
+--
+--     staff_attributes  →  staff
+--     manager_attributes → managers
+--
+-- `DROP TABLE` (CASCADE'siz) kendisine bakan bir FK varken **reddedilir**
+-- (`cannot drop table X because other objects depend on it` — PG 18.6'da
+-- 3.5'te ölçüldü). Yani uydular önce düşmek ZORUNDA. Sıranın gerekliliği
+-- varsayılmıyor, `round-trip.itest.ts` yanlış sıralı bir fixture `down`unun
+-- patladığını ayrıca ölçüyor — nöbetçi iki yönlü.
+--
+-- `CASCADE` yazılmıyor: bu migration'ın YARATMADIĞI nesneleri de sessizce
+-- götürürdü (3.2b'nin "fazla giden down" sınıfı) ve tam olarak bu sıranın
+-- gizlediği bağımlılığı görünür kılıyor. `staff` ve `managers` birbirine
+-- bakmıyor, yani iki zincirin göreli sırası serbest.
+--
+-- `DROP TABLE` tabloya ait kısıtları (PK, CHECK, FK) zaten götürür; üç CHECK
+-- (`staff_role_check` · `managers_coaching_badge_check` ·
+-- `managers_experience_level_check`) ayrıca düşürülmez — 0001'de
+-- düşürülüyorlardı çünkü orada tablo değil SÜTUN düşüyordu ve kısıt tabloya
+-- aitti, sütuna değil.
+--
+-- ⚠️ 0008'İN SINIRI MİRAS ALINIYOR — VE BU MIGRATION ONU BÜYÜTMÜYOR.
+--
+-- `0008`in `down`u `people_person_type_check`i daraltıyor ve `ADD CONSTRAINT …
+-- CHECK` var olan satırları doğruluyor; `down` LIFO çalıştığı için dolu bir
+-- `people` tablosunda `'referee'` varken zincirin HİÇBİR geri alması
+-- başlayamıyor. Bu dosyanın `down`u o sınırın ALTINDA kalıyor.
+--
+-- ℹ️ 4.7'de testlerin bu engeli kaldırma biçimi DEĞİŞTİ: artık her test
+-- `narrowRefereePersonTypesForDown()`ı elle çağırmıyor, gerçek zinciri geri alan
+-- çağrılar `migrateDownPastRefereeCheck()` sarmalayıcısından geçiyor. Sınır
+-- kaybolmadı — kendi testi hâlâ ham `migrateDown` çağırıyor ve engeli adıyla
+-- ölçüyor. Gerekçe sarmalayıcının başlığında.
+
+DROP TABLE "manager_attributes";--> statement-breakpoint
+DROP TABLE "managers";--> statement-breakpoint
+DROP TABLE "staff_attributes";--> statement-breakpoint
+DROP TABLE "staff";

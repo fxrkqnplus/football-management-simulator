@@ -21,6 +21,7 @@
     "lint": "eslint . --cache --cache-location node_modules/.cache/eslint/",
     "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
     "arch:check": "node tools/arch-check/index.mjs",
+    "gaps:check": "node ./scripts/check-gap-coverage.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",

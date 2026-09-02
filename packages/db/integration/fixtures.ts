@@ -112,6 +112,24 @@ const idOf = (table: string, column: string, value: string | null | undefined): 
     ? 'NULL::integer'
     : `(SELECT "id" FROM "${table}" WHERE "${column}" = ${quote(value)})`;
 
+/**
+ * `players.id`yi KİŞİNİN anahtarından çözen iki kademeli alt sorgu (Faz 4.5).
+ *
+ * ⚠️ **AYRI BİR YARDIMCI, `idOf('players', 'key', …)` DEĞİL** — ve sebebi
+ * yapısal: `players` `key` sütunu **taşımıyor** (§3.1.0'ın altı taşıyıcısı
+ * arasında değil, uydu tablo). Bir oyuncuya testten erişmenin tek yolu kişisi.
+ *
+ * ⚠️ **G-17 TAM BURADA YAŞIYOR.** İki kademe var çünkü `people.id` ile
+ * `players.id` **farklı** kimlikler ve ikisi de `integer`: iç sorgu kişiyi,
+ * dış sorgu oyuncuyu veriyor. İç sorgu tek başına kullanılsaydı `player_id`
+ * sütununa bir **kişi kimliği** yazılırdı, FK bunu yakalamazdı (o kimlikte bir
+ * oyuncu büyük olasılıkla vardır — yalnızca yanlış oyuncudur) ve testler yeşil
+ * kalırdı. Fonksiyonun adı ayrımı görünür tutuyor; tip seviyesinde kapanması
+ * Faz 12'nin işi (G-17).
+ */
+const playerIdOfPerson = (personKey: string): string =>
+  `(SELECT "id" FROM "players" WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = ${quote(personKey)}))`;
+
 /** `stadiums` satırı — yalnızca sınanan alanlar dışarıdan veriliyor. */
 export interface StadiumFixture {
   readonly key: string;
@@ -183,6 +201,14 @@ export interface ClubFixture {
   readonly supporterCount?: number;
   readonly supporterExpectation?: number;
   readonly isNational?: boolean;
+  /**
+   * 🆕 Faz 4.4 — kulüp başkanı (`people.key`). Verilmezse `null` = bilinmiyor.
+   *
+   * ⚠️ **`clubKey` gibi ZORUNLU DEĞİL ve bu kasıtlı:** sütun nullable, yani
+   * *"başkanı bilinmiyor"* geçerli bir durum. Karşılaştır: `RefereeFixture.personKey`
+   * **zorunlu**, çünkü `referees.person_id` `NOT NULL`.
+   */
+  readonly chairmanPersonKey?: string | null;
 }
 
 /** `clubs`un TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
@@ -210,6 +236,7 @@ export function clubInsertSql(rows: readonly ClubFixture[]): string {
         String(row.supporterCount ?? 1_000_000),
         String(row.supporterExpectation ?? 70),
         String(row.isNational ?? false),
+        idOf('people', 'key', row.chairmanPersonKey === undefined ? null : row.chairmanPersonKey),
       ].join(','),
     )
     .join('),\n      (');
@@ -219,7 +246,50 @@ export function clubInsertSql(rows: readonly ClubFixture[]): string {
       ("key","source","external_ids","competition_id","country_id","name","short_name",
        "abbreviation","founded_year","city","stadium_id","reputation","color_primary",
        "color_secondary","color_tertiary","crest_asset_id","crest_seed","supporter_count",
-       "supporter_expectation","is_national")
+       "supporter_expectation","is_national","chairman_person_id")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `federations` satırı — Faz 4.4'te fixture'a alındı.
+ *
+ * **Neden şimdi:** `federations` bugüne kadar testlerde ham `INSERT` ile
+ * yazılıyordu ve iki yerde kopyası vardı. `0006` tabloya
+ * `president_person_id`i ekliyor ve kopyalar aynı anda güncellenmek zorunda
+ * kalırdı — dosyanın başlığındaki #23 kuralının tam olarak tarif ettiği durum
+ * (*"bir düzeltme, hatanın görüldüğü yeri değil SINIFININ geçtiği her yeri
+ * kapsar"*). Sınıf tek bir yere indiriliyor.
+ *
+ * `presidentPersonKey` verilmezse `null` — sütun nullable ve `ON DELETE SET NULL`
+ * alan **tek** FK'nın kaynağı (bkz. `src/schema/federations.ts` başlığı).
+ */
+export interface FederationFixture {
+  readonly countryCode: string;
+  readonly name?: string;
+  readonly foundedYear?: number | null;
+  readonly assetId?: string | null;
+  readonly presidentPersonKey?: string | null;
+}
+
+/** `federations`ın TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
+export function federationInsertSql(rows: readonly FederationFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        idOf('countries', 'code', row.countryCode),
+        quote(row.name ?? `${row.countryCode} Futbol Federasyonu`),
+        intOrNull(row.foundedYear === undefined ? 1923 : row.foundedYear),
+        textOrNull(row.assetId === undefined ? null : row.assetId),
+        idOf('people', 'key', row.presidentPersonKey === undefined ? null : row.presidentPersonKey),
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "federations"
+      ("country_id","name","founded_year","asset_id","president_person_id")
     VALUES
       (${values})
   `;
@@ -402,10 +472,34 @@ export function clubKitInsertSql(rows: readonly ClubKitFixture[]): string {
   `;
 }
 
-/** `referees` satırı — altı nitelik 1-20, `person_id` YOK (Faz 4). */
+/**
+ * `referees` satırı — altı nitelik 1-20.
+ *
+ * ⚠️ **`personKey` ZORUNLU (Faz 4.4).** `referees.person_id` `NOT NULL`: bir
+ * hakem bir kişidir ve kişisiz bir hakem satırı yoktur. Diğer iki ileri FK
+ * (`clubs.chairman_person_id`, `federations.president_person_id`) nullable, o
+ * yüzden onların fixture alanları isteğe bağlı — üçü aynı migration'da geldi ama
+ * üçü aynı sözleşmeyi taşımıyor.
+ *
+ * ✅ **`personKey`in gösterdiği kişi ARTIK `['referee']` TAŞIYOR (Faz 4.5, G-18
+ * kapandı).** 4.4'te bu mümkün değildi: kapalı küme `player | staff | manager |
+ * chairman` hakemi ifade etmiyordu ve CHECK boş diziyi de reddediyordu, yani
+ * hakem kişileri `personInsertSql`in `['player']` varsayılanına düşüyordu —
+ * *entegrasyon testlerindeki her hakem oyuncu olarak kayıtlıydı.* O gün bu bir
+ * *"modelleme iddiası değil"* diye yazılmıştı ve doğruydu, ama SAPMA-026'nın
+ * yasağı (*"kimsenin belirlemediği alana değer uydurma"*) yine de ihlal
+ * ediliyordu — yalnızca yazılı olarak.
+ *
+ * `0008` kümeye `'referee'` ekledi. **Hakem kişisi yazan her fixture artık
+ * `personType: ['referee']` verir** ve varsayılana düşmediği `schema-constraints`
+ * testinde `referees ⋈ people` join'iyle ayrıca **iddia edilir** — bir
+ * konvansiyonun koşan bir nöbetçisi olmazsa ateşlendiğinde hiçbir şey olmaz
+ * (SAPMA-033).
+ */
 export interface RefereeFixture {
   readonly key: string;
   readonly countryCode: string;
+  readonly personKey: string;
   readonly source?: string;
   readonly externalIds?: string;
   readonly strictness?: number;
@@ -432,6 +526,7 @@ export function refereeInsertSql(rows: readonly RefereeFixture[]): string {
         String(row.consistency ?? 14),
         String(row.advantagePlay ?? 13),
         String(row.bigGameExperience ?? 9),
+        idOf('people', 'key', row.personKey),
       ].join(','),
     )
     .join('),\n      (');
@@ -439,7 +534,642 @@ export function refereeInsertSql(rows: readonly RefereeFixture[]): string {
   return `
     INSERT INTO "referees"
       ("key","source","external_ids","country_id","strictness","foul_tolerance",
-       "home_bias","consistency","advantage_play","big_game_experience")
+       "home_bias","consistency","advantage_play","big_game_experience","person_id")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `people` satırı — Faz 4.3.
+ *
+ * ⚠️ `personType` bir **dizi** ve tipli literal ZORUNLU: çok satırlı bir
+ * `VALUES` listesinde tipsiz bir `ARRAY[...]` ortak tip çözümünde `text[]`e
+ * düşmeyebilir. Dosya başlığındaki kural (*"kaybolabilecek her tipe cast
+ * yazılır"*) dizilerde de geçerli — ve burada bedeli daha ağır olurdu, çünkü
+ * `person_type` sütunu bir CHECK taşıyor ve yanlış tip **kısıt hatası** olarak
+ * görünürdü, tip hatası olarak değil.
+ */
+export interface PersonFixture {
+  readonly key: string;
+  readonly countryCode: string;
+  readonly secondCountryCode?: string | null;
+  readonly source?: string;
+  readonly externalIds?: string;
+  readonly firstName?: string;
+  readonly lastName?: string;
+  readonly commonName?: string | null;
+  readonly birthDate?: string;
+  readonly birthCity?: string | null;
+  readonly portraitAssetId?: string | null;
+  readonly portraitSeed?: number;
+  readonly gender?: string;
+  readonly personType?: readonly string[];
+}
+
+/** `people`ın TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
+export function personInsertSql(rows: readonly PersonFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        quote(row.key),
+        quote(row.source ?? 'pack'),
+        `${quote(row.externalIds ?? '{}')}::jsonb`,
+        quote(row.firstName ?? 'Ad'),
+        quote(row.lastName ?? 'Soyad'),
+        textOrNull(row.commonName === undefined ? null : row.commonName),
+        `${quote(row.birthDate ?? '1998-03-14')}::date`,
+        idOf('countries', 'code', row.countryCode),
+        idOf(
+          'countries',
+          'code',
+          row.secondCountryCode === undefined ? null : row.secondCountryCode,
+        ),
+        textOrNull(row.birthCity === undefined ? 'İstanbul' : row.birthCity),
+        textOrNull(row.portraitAssetId === undefined ? null : row.portraitAssetId),
+        String(row.portraitSeed ?? 1),
+        quote(row.gender ?? 'male'),
+        `ARRAY[${(row.personType ?? ['player']).map(quote).join(',')}]::text[]`,
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "people"
+      ("key","source","external_ids","first_name","last_name","common_name","birth_date",
+       "nationality_country_id","second_nationality_country_id","birth_city",
+       "portrait_asset_id","portrait_seed","gender","person_type")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `players` satırı — Faz 4.3.
+ *
+ * `personKey` `people.key`i çözüyor, `clubKey` `clubs.key`i. `clubKey`
+ * verilmezse oyuncu **serbest** (`club_id IS NULL`) — `spec/01`'in kendi
+ * ifadesi ve `ON DELETE SET NULL`ın hedef durumu.
+ */
+export interface PlayerFixture {
+  readonly personKey: string;
+  readonly clubKey?: string | null;
+  readonly squadNumber?: number | null;
+  readonly primaryPosition?: string;
+  readonly heightCm?: number;
+  readonly weightKg?: number;
+  readonly preferredFootRight?: number;
+  readonly preferredFootLeft?: number;
+  readonly currentAbility?: number;
+  readonly potentialAbility?: number;
+  readonly paRangeMin?: number;
+  readonly paRangeMax?: number;
+  readonly isNewgen?: boolean;
+  readonly retiredAt?: string | null;
+}
+
+/** `players`ın TÜM `NOT NULL` sütunlarını dolduran tek `INSERT` üretir. */
+export function playerInsertSql(rows: readonly PlayerFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        idOf('people', 'key', row.personKey),
+        idOf('clubs', 'key', row.clubKey === undefined ? null : row.clubKey),
+        intOrNull(row.squadNumber === undefined ? 10 : row.squadNumber),
+        quote(row.primaryPosition ?? 'MC'),
+        String(row.heightCm ?? 180),
+        String(row.weightKg ?? 75),
+        String(row.preferredFootRight ?? 18),
+        String(row.preferredFootLeft ?? 8),
+        String(row.currentAbility ?? 130),
+        String(row.potentialAbility ?? 150),
+        String(row.paRangeMin ?? 140),
+        String(row.paRangeMax ?? 160),
+        String(row.isNewgen ?? false),
+        row.retiredAt == null ? 'NULL::date' : `${quote(row.retiredAt)}::date`,
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "players"
+      ("person_id","club_id","squad_number","primary_position","height_cm","weight_kg",
+       "preferred_foot_right","preferred_foot_left","current_ability","potential_ability",
+       "pa_range_min","pa_range_max","is_newgen","retired_at")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_attributes` satırı — Faz 4.5. **47 sütunluk `INSERT` YALNIZCA BURADA.**
+ *
+ * ⚠️ Bu fonksiyonun var olma sebebi günlük **#28**: `0001` altı `NOT NULL` sütun
+ * ekledi, üç ayrı dosyadaki `INSERT` kopyaları bir anda geçersizleşti ve **14
+ * test** kırıldı. 47 sütunluk bir `INSERT` dağıtılsaydı, 48'inci sütunu ekleyen
+ * gün üç dosyayı birden düzeltmek gerekirdi.
+ *
+ * ⚠️ **Alan adları `VISIBLE_ATTRIBUTES`ten TÜRETİLMİYOR ve bu kasıtlı.** Sabitten
+ * türetilseydi, sabitin kendisi bozulduğunda fixture da onunla birlikte bozulur
+ * ve `player-attributes.test.ts`in envanter iddiası **fixture tarafından
+ * doğrulanmış gibi** görünürdü. Burada sütun adları bağımsız yazılıyor: iki
+ * liste ayrışırsa `INSERT` gürültülü patlar (`column "..." does not exist`).
+ *
+ * Değerler bir **profil** taşıyor, hepsi aynı sayı değil: bir orta saha
+ * oyuncusunun makul dağılımı (kaleci nitelikleri 1-3 arasında, `spec/02` §4.1'in
+ * kendi kuralı). Hepsi 10 olsaydı, sütun sırası karışsa bile hiçbir test ötmezdi.
+ */
+export interface PlayerAttributesFixture {
+  readonly personKey: string;
+  /** Tüm SAHA niteliklerini tek seferde ezer — kaleci nitelikleri hariç. */
+  readonly outfieldOverride?: number;
+  /** Tüm KALECİ niteliklerini tek seferde ezer. */
+  readonly goalkeepingOverride?: number;
+  /** Transfer arama testleri için tek tek ezilebilen üç sütun (Faz 4.8'in tüketicileri). */
+  readonly finishing?: number;
+  readonly passing?: number;
+  readonly pace?: number;
+}
+
+export function playerAttributesInsertSql(rows: readonly PlayerAttributesFixture[]): string {
+  const values = rows
+    .map((row) => {
+      const out = (value: number): string => String(row.outfieldOverride ?? value);
+      const gk = (value: number): string => String(row.goalkeepingOverride ?? value);
+      return [
+        playerIdOfPerson(row.personKey),
+        // Teknik (14)
+        out(9),
+        out(12),
+        out(14),
+        String(row.finishing ?? row.outfieldOverride ?? 11),
+        out(15),
+        out(8),
+        out(10),
+        out(11),
+        out(6),
+        out(9),
+        String(row.passing ?? row.outfieldOverride ?? 16),
+        out(12),
+        out(10),
+        out(15),
+        // Zihinsel (14)
+        out(11),
+        out(13),
+        out(10),
+        out(14),
+        out(13),
+        out(15),
+        out(16),
+        out(12),
+        out(9),
+        out(13),
+        out(12),
+        out(15),
+        out(16),
+        out(14),
+        // Fiziksel (8)
+        out(13),
+        out(14),
+        out(12),
+        out(10),
+        out(15),
+        String(row.pace ?? row.outfieldOverride ?? 13),
+        out(16),
+        out(11),
+        // Kaleci (11) — saha oyuncusunda 1-3 (`spec/02` §4.1)
+        gk(2),
+        gk(1),
+        gk(3),
+        gk(2),
+        gk(1),
+        gk(3),
+        gk(2),
+        gk(1),
+        gk(2),
+        gk(3),
+        gk(1),
+      ].join(',');
+    })
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_attributes"
+      ("player_id",
+       "corners","crossing","dribbling","finishing","first_touch","free_kick_taking",
+       "heading","long_shots","long_throws","marking","passing","penalty_taking",
+       "tackling","technique",
+       "aggression","anticipation","bravery","composure","concentration","decisions",
+       "determination","flair","leadership","off_the_ball","positioning","teamwork",
+       "vision","work_rate",
+       "acceleration","agility","balance","jumping_reach","natural_fitness","pace",
+       "stamina","strength",
+       "aerial_reach","command_of_area","communication","eccentricity","handling",
+       "kicking","one_on_ones","reflexes","rushing_out","tendency_to_punch","throwing")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_hidden_attributes` satırı — Faz 4.5. **10 sütunluk `INSERT` tek yerde.**
+ *
+ * Değerler yine bir profil: `professionalism` yüksek, `dirtiness` düşük — yani
+ * `spec/02` §4.6'nın `derivePersonality` zincirinde ayırt edilebilir bir kişilik
+ * üretecek bir satır. Faz 10 bu fixture'ı bir başlangıç noktası olarak
+ * kullanabilir; hepsi 10 olan bir satır orada hiçbir kuralı ayırt etmezdi.
+ */
+export interface PlayerHiddenAttributesFixture {
+  readonly personKey: string;
+  readonly override?: number;
+  readonly injuryProneness?: number;
+}
+
+export function playerHiddenAttributesInsertSql(
+  rows: readonly PlayerHiddenAttributesFixture[],
+): string {
+  const values = rows
+    .map((row) => {
+      const v = (value: number): string => String(row.override ?? value);
+      return [
+        playerIdOfPerson(row.personKey),
+        v(15),
+        v(13),
+        String(row.injuryProneness ?? row.override ?? 6),
+        v(4),
+        v(14),
+        v(17),
+        v(12),
+        v(11),
+        v(9),
+        v(16),
+      ].join(',');
+    })
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_hidden_attributes"
+      ("player_id","consistency","important_matches","injury_proneness","dirtiness",
+       "pressure","professionalism","ambition","loyalty","adaptability","temperament")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_positions` satırı — Faz 4.6.
+ *
+ * ⚠️ **BENZERSİZLİK PROGRAMATİK DOĞRULANIYOR — günlük #10'un kuralı.** Bu
+ * tablonun PK'si `(player_id, position)` bileşik ve testler **aynı
+ * veritabanını paylaşıyor** (`afterEach` temizliği yok). Gözle seçilmiş bir
+ * *"herhalde bu mevki boştur"*, 4.3'te `countries_code_unique` ile patlayan
+ * hatanın birebir aynısını üretirdi. `assertDistinctPairs` çağrısı çifti
+ * **girdide** kontrol ediyor; tabloda zaten var olan bir çiftle çakışma ise
+ * kısıt tarafından gürültülü yakalanır — ikisi farklı hata sınıfı ve ikisi de
+ * sessiz değil.
+ */
+export interface PlayerPositionFixture {
+  readonly personKey: string;
+  readonly position: string;
+  readonly level?: string;
+}
+
+/**
+ * Aynı `INSERT` içinde tekrarlanan bileşik anahtarı **erken** yakalar.
+ *
+ * ⚠️ Bu, kısıtın yerine geçmiyor — kısıt zaten var. Aradaki fark hata
+ * **mesajı**: veritabanı `duplicate key value violates unique constraint
+ * "player_positions_player_id_position_pk"` der ve hangi satırın kurgusunun
+ * bozuk olduğunu söylemez; burası fixture'ın kendi hatasını adıyla gösterir.
+ */
+function assertDistinctPairs(pairs: readonly string[], label: string): void {
+  const duplicates = pairs.filter((pair, index) => pairs.indexOf(pair) !== index);
+  if (duplicates.length > 0) {
+    throw new Error(`${label} fixture'ında tekrarlanan anahtar: ${duplicates.join(', ')}`);
+  }
+}
+
+export function playerPositionInsertSql(rows: readonly PlayerPositionFixture[]): string {
+  assertDistinctPairs(
+    rows.map((row) => `${row.personKey}/${row.position}`),
+    'player_positions',
+  );
+
+  const values = rows
+    .map((row) =>
+      [playerIdOfPerson(row.personKey), quote(row.position), quote(row.level ?? 'natural')].join(
+        ',',
+      ),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_positions" ("player_id","position","level")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_traits` satırı — Faz 4.6.
+ *
+ * `trait_code` bir CHECK taşımıyor (küme açık uçlu, gerekçe
+ * `src/schema/player-traits.ts` başlığında), yani buradaki değerler **serbest**.
+ * Yine de `spec/12` §17.4'ün gerçek biçimi kullanılıyor (snake_case, İngilizce):
+ * uydurma bir kod, formatın ne olduğu sorusunu sonraki oturuma açık bırakırdı.
+ */
+export interface PlayerTraitFixture {
+  readonly personKey: string;
+  readonly traitCode: string;
+}
+
+export function playerTraitInsertSql(rows: readonly PlayerTraitFixture[]): string {
+  assertDistinctPairs(
+    rows.map((row) => `${row.personKey}/${row.traitCode}`),
+    'player_traits',
+  );
+
+  const values = rows
+    .map((row) => [playerIdOfPerson(row.personKey), quote(row.traitCode)].join(','))
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_traits" ("player_id","trait_code")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `player_stats_history` satırı — Faz 4.6. **31 sütunluk `INSERT` TEK YERDE.**
+ *
+ * ⚠️ Var olma sebebi günlük **#28**: `0001` altı `NOT NULL` sütun ekledi ve üç
+ * ayrı dosyadaki `INSERT` kopyaları bir anda geçersizleşti (14 test). 31
+ * sütunluk bir `INSERT` dağıtılsaydı 32'nci sütunu ekleyen gün aynı bedel
+ * ödenirdi.
+ *
+ * ⚠️ **Sütun adları `player-stats-history.ts`ten TÜRETİLMİYOR** — 4.5'in
+ * `playerAttributesInsertSql` kararının aynısı. Türetilseydi şema dosyası
+ * bozulduğunda fixture da onunla birlikte bozulur ve envanter testi **fixture
+ * tarafından doğrulanmış gibi** görünürdü. Bağımsız yazıldığı için iki liste
+ * ayrışırsa `INSERT` gürültülü patlar (`column "..." does not exist`).
+ *
+ * Değerler bir **profil** taşıyor: hücumcu bir orta saha (gol/asist dolu,
+ * kaleci sütunları 0). Hepsi aynı sayı olsaydı sütun sırası karışsa bile hiçbir
+ * test ötmezdi.
+ */
+export interface PlayerStatsHistoryFixture {
+  readonly personKey: string;
+  readonly seasonYear: number;
+  readonly competitionKey: string;
+  /** `undefined` = sütun atlanmıyor, **`NULL` yazılıyor** (kulüp bilinmiyor). */
+  readonly clubKey?: string | null;
+  readonly goals?: number;
+  readonly xg?: string;
+}
+
+export function playerStatsHistoryInsertSql(rows: readonly PlayerStatsHistoryFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        playerIdOfPerson(row.personKey),
+        String(row.seasonYear),
+        idOf('competitions', 'key', row.competitionKey),
+        idOf('clubs', 'key', row.clubKey === undefined ? null : row.clubKey),
+        '34', // appearances
+        '2870', // minutes
+        String(row.goals ?? 12),
+        '9', // assists
+        quote(row.xg ?? '10.45'), // xg
+        quote('8.20'), // xa
+        '1840', // passes_attempted
+        '1573', // passes_completed
+        '212', // progressive_passes
+        '96', // dribbles_attempted
+        '58', // dribbles_completed
+        '241', // duels_won
+        '480', // duels_total
+        '31', // aerials_won
+        '88', // aerials_total
+        '44', // tackles
+        '37', // interceptions
+        '12', // blocks
+        '29', // fouls_committed
+        '5', // yellow_cards
+        '0', // red_cards
+        // Kaleci sütunları — saha oyuncusunda 0, "bilinmiyor" DEĞİL.
+        '0', // saves
+        '0', // goals_conceded
+        quote('0.00'), // xga
+        '0', // clean_sheets
+        '0', // penalties_saved
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "player_stats_history"
+      ("player_id","season_year","competition_id","club_id",
+       "appearances","minutes","goals","assists","xg","xa",
+       "passes_attempted","passes_completed","progressive_passes",
+       "dribbles_attempted","dribbles_completed","duels_won","duels_total",
+       "aerials_won","aerials_total","tackles","interceptions","blocks",
+       "fouls_committed","yellow_cards","red_cards",
+       "saves","goals_conceded","xga","clean_sheets","penalties_saved")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `staff` satırı — Faz 4.7.
+ *
+ * ⚠️ **`personKey` UNIQUE DEĞİL ve fixture bunu KULLANIYOR.** `players` bir
+ * kişiye tek satır bağlıyor (`person_id UNIQUE`), `staff` bağlamıyor: aynı kişi
+ * iki kulüpte iki rol taşıyabilir. Bu, spec'in yazımından okunan ölçülmüş bir
+ * fark (`staff.ts` başlığı) ve seed'de temsil ediliyor — aksi hâlde teklik
+ * varsayımı hiç sınanmazdı.
+ *
+ * `clubKey` verilmezse personel **işsiz** (`club_id IS NULL`) — `SET NULL`ın
+ * hedef durumu, `players.club_key`in kardeşi.
+ */
+export interface StaffFixture {
+  readonly personKey: string;
+  readonly role: string;
+  readonly clubKey?: string | null;
+}
+
+export function staffInsertSql(rows: readonly StaffFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        idOf('people', 'key', row.personKey),
+        idOf('clubs', 'key', row.clubKey === undefined ? null : row.clubKey),
+        quote(row.role),
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "staff" ("person_id","club_id","role")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `staff.id`yi KİŞİ + ROL çiftinden çözen iki kademeli alt sorgu — Faz 4.7.
+ *
+ * ⚠️ **`playerIdOfPerson`in kardeşi ama BİR BİLEŞEN DAHA taşıyor, ve sebebi
+ * ölçülmüş:** `players.person_id` UNIQUE olduğu için kişi tek başına yeterliydi;
+ * `staff.person_id` UNIQUE **değil**, yani kişi tek başına birden çok satır
+ * seçebilir. Rol olmadan bu alt sorgu *"birden çok satır döndü"* ile patlar ya
+ * da — daha kötüsü — yanlış personel satırını seçerdi.
+ *
+ * ⚠️ **G-17 burada da yaşıyor ve bir kademe daha derin:** `people.id`,
+ * `players.id` ve artık `staff.id` üçü de `integer`. Bir `people.id`yi
+ * `staff_id` sütununa yazmak FK tarafından **yakalanmaz** (o kimlikte bir
+ * personel büyük olasılıkla vardır — yalnızca yanlış personeldir). Bugünkü
+ * savunma yine bir isimlendirme disiplini; tip seviyesinde kapanması Faz 12.
+ */
+const staffIdOfPerson = (personKey: string, role: string): string =>
+  `(SELECT "id" FROM "staff" WHERE "role" = ${quote(role)} AND "person_id" = (SELECT "id" FROM "people" WHERE "key" = ${quote(personKey)}))`;
+
+/** `staff_attributes` satırı — 16 niteliğin hepsi `NOT NULL`. */
+export interface StaffAttributesFixture {
+  readonly personKey: string;
+  readonly role: string;
+  /** Tek bir değeri tüm niteliklere yazar — sınır testleri için. */
+  readonly override?: number;
+}
+
+export function staffAttributesInsertSql(rows: readonly StaffAttributesFixture[]): string {
+  const values = rows
+    .map((row) => {
+      const v = (value: number): string => String(row.override ?? value);
+      return [
+        staffIdOfPerson(row.personKey, row.role),
+        v(12), // attacking
+        v(11), // defending
+        v(16), // fitness
+        v(7), // goalkeeping
+        v(13), // technical
+        v(14), // tactical
+        v(15), // motivating
+        v(17), // discipline
+        v(10), // judging_ability
+        v(9), // judging_potential
+        v(6), // physiotherapy
+        v(8), // sports_science
+        v(5), // scouting_network
+        v(13), // adaptability
+        v(18), // working_with_youngsters
+        v(11), // negotiating
+      ].join(',');
+    })
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "staff_attributes"
+      ("staff_id","attacking","defending","fitness","goalkeeping","technical","tactical",
+       "motivating","discipline","judging_ability","judging_potential","physiotherapy",
+       "sports_science","scouting_network","adaptability","working_with_youngsters",
+       "negotiating")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `managers` satırı — Faz 4.7.
+ *
+ * ⚠️ **`user_id` YOK ve olmaması bilinçli** — sütun Faz 13'te sınırıyla birlikte
+ * gelecek (SAPMA-032 / G-16). `isUserManager` onun yerini tutmuyor: biri *"bir
+ * insan mı oynuyor"*, diğeri *"hangi insan"*.
+ *
+ * `spokenLanguages` şemanın **ikinci** dizi sütunu; `people.person_type` gibi
+ * tipli literal ile yazılıyor — tipsiz bir `ARRAY[...]` çok satırlı bir `VALUES`
+ * listesinde ortak tip çözümünde kayabilir.
+ */
+export interface ManagerFixture {
+  readonly personKey: string;
+  readonly clubKey?: string | null;
+  readonly isUserManager?: boolean;
+  readonly coachingBadge?: string;
+  readonly experienceLevel?: string;
+  readonly philosophy?: string;
+  readonly reputation?: number;
+  readonly experiencePoints?: number;
+  readonly spokenLanguages?: readonly string[];
+}
+
+export function managerInsertSql(rows: readonly ManagerFixture[]): string {
+  const values = rows
+    .map((row) =>
+      [
+        idOf('people', 'key', row.personKey),
+        idOf('clubs', 'key', row.clubKey === undefined ? null : row.clubKey),
+        String(row.isUserManager ?? false),
+        quote(row.coachingBadge ?? 'pro'),
+        quote(row.experienceLevel ?? 'former_player_top'),
+        quote(row.philosophy ?? 'balanced'),
+        String(row.reputation ?? 120),
+        String(row.experiencePoints ?? 4200),
+        `ARRAY[${(row.spokenLanguages ?? ['tr', 'en']).map(quote).join(',')}]::text[]`,
+      ].join(','),
+    )
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "managers"
+      ("person_id","club_id","is_user_manager","coaching_badge","experience_level",
+       "philosophy","reputation","experience_points","spoken_languages")
+    VALUES
+      (${values})
+  `;
+}
+
+/**
+ * `managers.id`yi KİŞİNİN anahtarından çözen iki kademeli alt sorgu.
+ *
+ * ℹ️ **`staffIdOfPerson`den bir bileşen EKSİK ve bu ölçülmüş bir fark değil, bir
+ * fixture sözleşmesi:** `managers.person_id` de UNIQUE **değil** (`spec/01` öyle
+ * yazmıyor), ama bir kişinin iki menajer kaydı olması anlamlı bir durum değil ve
+ * seed bunu üretmiyor. Ayrım gerekirse `staffIdOfPerson`in biçimi hazır.
+ */
+const managerIdOfPerson = (personKey: string): string =>
+  `(SELECT "id" FROM "managers" WHERE "person_id" = (SELECT "id" FROM "people" WHERE "key" = ${quote(personKey)}))`;
+
+/** `manager_attributes` satırı — 8 niteliğin hepsi `NOT NULL`. */
+export interface ManagerAttributesFixture {
+  readonly personKey: string;
+  /** Tek bir değeri tüm niteliklere yazar — sınır testleri için. */
+  readonly override?: number;
+}
+
+export function managerAttributesInsertSql(rows: readonly ManagerAttributesFixture[]): string {
+  const values = rows
+    .map((row) => {
+      const v = (value: number): string => String(row.override ?? value);
+      return [
+        managerIdOfPerson(row.personKey),
+        v(17), // tactical_knowledge
+        v(15), // motivation
+        v(14), // player_management
+        v(12), // youth_development
+        v(13), // negotiating
+        v(11), // media_handling
+        v(16), // training_management
+        v(15), // judging_ability
+      ].join(',');
+    })
+    .join('),\n      (');
+
+  return `
+    INSERT INTO "manager_attributes"
+      ("manager_id","tactical_knowledge","motivation","player_management",
+       "youth_development","negotiating","media_handling","training_management",
+       "judging_ability")
     VALUES
       (${values})
   `;

@@ -8,11 +8,19 @@
  * ⚠️ BU ÖLÇÜM ÖNEMSİZ BİÇİMDE GEÇİYOR — ve bunu SAKLAMAK yerine YAZIYORUZ
  * ────────────────────────────────────────────────────────────────────────────
  *
- * Seed iki tablo dolduruyor: `countries` **6**, `competitions` **11**. Diğer
- * dokuzu **boş** (3.8'in kapsam kararı, K12). Altı satırlık bir tabloda her
- * sorgu mikrosaniyeler sürer — yani *"< 20 ms"* burada indeksler hakkında
- * **hiçbir şey** kanıtlamaz. Kriter yazıldığı hâliyle sağlanıyor; iddia da tam
- * olarak o kadar.
+ * Seed dört tablo dolduruyor: `countries` **6**, `competitions` **11**, ve
+ * 4.9'dan beri `people` **5.000** + `players` **5.000**. Diğer on sekizi
+ * **boş**. Altı satırlık bir tabloda her sorgu mikrosaniyeler sürer — yani
+ * *"< 20 ms"* burada indeksler hakkında **hiçbir şey** kanıtlamaz. Kriter
+ * yazıldığı hâliyle sağlanıyor; iddia da tam olarak o kadar.
+ *
+ * ⚠️ **4.9'UN HACMİ BU DOSYANIN DÖRT SORGUSUNU DEĞİŞTİRMİYOR — ve bu ölçüldü,
+ * varsayılmadı.** Aşağıdaki `QUERIES` listesi `clubs` · `competitions` ·
+ * `rivalries` üzerinde çalışıyor; üçü de 4.9'dan **etkilenmiyor** (`clubs` ve
+ * `rivalries` hâlâ boş, `competitions` hâlâ 11 satır). Yani 3.9'un iki
+ * iddiası — `ANALYZE` öncesi indeks, sonrası Seq Scan — 5.000 satırdan sonra
+ * da aynen geçiyor. **Faz 4'ün kabul kriteri 3'ü (`< 50 ms`, 5.000 hacminde)
+ * bu dosyanın işi DEĞİL: sahibi 4.10** ve orada `people ⋈ players` ölçülecek.
  *
  * *"Tüm temel sorgular < 20 ms"* cümlesi **hacim yazılmadan** yazılsaydı,
  * bakacak bir şey bulamayan bir kapı `✅` almış olurdu (SAPMA-024 sınıfı). Bu
@@ -134,28 +142,54 @@ afterAll(async () => {
 }, 60_000);
 
 describe('ölçümün ZEMİNİ — hangi hacim, hangi istatistik', () => {
-  it('seed hacmi: 2 tablo dolu, 9 tablo BOŞ', async () => {
-    const rows = await executor.rows<{ table_name: string; n: string }>(`
-      SELECT c.relname AS table_name,
-             (SELECT count(*)::text FROM pg_class x WHERE x.oid = c.oid) AS n
+  /**
+   * ⚠️ **BU TEST 4.9'DA YALANA DÖNMEK ÜZEREYDİ VE KIRILMAYACAKTI.**
+   *
+   * Eski başlığı *"seed hacmi: 2 tablo dolu, 20 tablo BOŞ"* idi ve sayım
+   * sorgusu yalnızca **dört** tabloyu soruyordu (`countries` · `competitions` ·
+   * `clubs` · `rivalries`) — dördü de 4.9'dan sonra **aynı** kalıyor. Yani
+   * başlık yanlışa dönecek, iddia geçmeye devam edecekti. **Bu, kırılmaktan
+   * daha kötü:** bu dosya 4.10'un ölçüm zeminini tarif ediyor ve zemin
+   * bayatlarsa 4.10 yanlış bir hacim iddiasının üstüne kurulur.
+   *
+   * Çare bir başlık düzeltmesi değil: sayım **bütün tabloları** dolaşıyor ve
+   * dolu/boş ayrımı artık **tam bir envanterle** iddia ediliyor. Yeni bir tablo
+   * dolduğu gün — hangisi olursa olsun — bu satır öter.
+   */
+  it('seed hacmi: 4 tablo dolu, 18 tablo BOŞ — envanterin TAMAMI iddia ediliyor', async () => {
+    const rows = await executor.rows<{ table_name: string }>(`
+      SELECT c.relname AS table_name
         FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
        WHERE ns.nspname = 'public' AND c.relkind = 'r'
     `);
-    expect(rows).toHaveLength(11);
+    // 🆕 4.3: 11 → 13 (`people` + `players`) · 4.5: 13 → 15
+    // (`player_attributes` + `player_hidden_attributes`) · 4.6: 15 → 18
+    // (`player_positions` + `player_traits` + `player_stats_history`) ·
+    // 4.7: 18 → 22 (`staff` + `staff_attributes` + `managers` +
+    // `manager_attributes`). 4.9 tablo EKLEMEDİ (KARAR 6).
+    expect(rows).toHaveLength(22);
 
-    const counts = await executor.rows<{ tablo: string; n: string }>(`
-      SELECT 'countries' AS tablo, count(*)::text AS n FROM "countries"
-      UNION ALL SELECT 'competitions', count(*)::text FROM "competitions"
-      UNION ALL SELECT 'clubs',        count(*)::text FROM "clubs"
-      UNION ALL SELECT 'rivalries',    count(*)::text FROM "rivalries"
-      ORDER BY tablo
-    `);
-    expect(Object.fromEntries(counts.map((row) => [row.tablo, Number(row.n)]))).toEqual({
-      clubs: 0,
-      competitions: 11,
-      countries: 6,
-      rivalries: 0,
-    });
+    // Her tablonun gerçek satır sayısı — dört tablo değil, YİRMİ İKİSİ.
+    const union = rows
+      .map(
+        (row) =>
+          `SELECT '${row.table_name}' AS tablo, count(*)::text AS n FROM "${row.table_name}"`,
+      )
+      .join(' UNION ALL ');
+    const counts = await executor.rows<{ tablo: string; n: string }>(`${union} ORDER BY tablo`);
+    const byTable = Object.fromEntries(counts.map((row) => [row.tablo, Number(row.n)]));
+
+    const filled = Object.entries(byTable)
+      .filter(([, n]) => n > 0)
+      .sort(([a], [b]) => a.localeCompare(b));
+    // ⚠️ 4.9 `people` ve `players`ı doldurdu — 2 tablo → 4.
+    expect(filled).toEqual([
+      ['competitions', 11],
+      ['countries', 6],
+      ['people', 5000],
+      ['players', 5000],
+    ]);
+    expect(Object.entries(byTable).filter(([, n]) => n === 0)).toHaveLength(18);
   });
 
   /**

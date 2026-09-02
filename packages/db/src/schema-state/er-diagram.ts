@@ -70,6 +70,7 @@
  */
 import { ValidationError } from '@fms/shared';
 
+import { foreignKeyNullability } from './foreign-key-nullability.js';
 import type { ColumnFacts, SchemaFacts, TableFacts } from './types.js';
 
 /** Bir diyagramdan sayılan iki olgu — `docs/schema/world.md`'nin sözü. */
@@ -223,9 +224,17 @@ function cardinality(
   sourceSingleUniques: ReadonlySet<string>,
   sourceCompositeUniques: readonly (readonly string[])[],
 ): string {
-  const allNotNull = foreignKey.sourceColumns.every(
-    (name) => sourceColumns.get(name)?.nullable === false,
+  // ⚠️ Nullability TEK BİR YERDE türetiliyor (Faz 4.2): `fk-policy.ts`'in
+  // `SET NULL` dalı ikinci bir tüketici getirdi ve iki kopya kaçınılmaz olarak
+  // ayrışırdı. Kardinalitenin sorduğu soru *"ilişki opsiyonel mi"* → `anyNullable`;
+  // `ON DELETE`in sorduğu *"SET NULL uygulanabilir mi"* → `allNullable`. İkisi
+  // AYRI okumalar ve ayrımın kendisi `foreign-key-nullability.test.ts`te sabit.
+  // Bilinmeyen bir sütun adı `nullable === false` denetimini geçemiyordu; aynı
+  // savunma korunuyor (bilinmeyen sütun → nullable sayılır, ilişki opsiyonel).
+  const { anyNullable } = foreignKeyNullability(
+    foreignKey.sourceColumns.map((name) => sourceColumns.get(name)?.nullable !== false),
   );
+  const allNotNull = !anyNullable;
 
   const sameColumns = (candidate: readonly string[]): boolean =>
     candidate.length === foreignKey.sourceColumns.length &&

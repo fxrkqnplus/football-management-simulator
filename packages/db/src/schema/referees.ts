@@ -19,22 +19,71 @@
  * §3.1.0'ın kendi gerekçesi şunu söylüyor: *"`key` neden `NOT NULL`:
  * `DATA_MODE=clean`'de her varlık prosedürel üretiliyor ve **yine de
  * adreslenebilir olmak zorunda**."* Yani anahtar pakette bulunmanın değil,
- * **adreslenebilirliğin** koşulu. Hakemler v1'de prosedürel üretiliyor
- * (`source = 'procedural'`) ve `SeededRng` deterministik bir anahtar veriyor
- * (K2); bir paket ileride `referees.json` getirirse eşleme yolu **zaten hazır**.
+ * **adreslenebilirliğin** koşulu. Hakemler v1'de prosedürel üretilecek
+ * (`source = 'procedural'`) ve anahtarları K2 gereği deterministik bir
+ * üreteçten gelecek; bir paket ileride `referees.json` getirirse eşleme yolu
+ * **zaten hazır**.
+ *
+ * ⚠️ **DÜZELTME (Faz 4.11) — bu cümle var olmayan bir sınıfı ŞİMDİKİ ZAMANDA
+ * anlatıyordu.** Eski hâli *"`SeededRng` deterministik bir anahtar **veriyor**"*
+ * diyordu; ölçüldü (4.9, günlük #36) ve `SeededRng` **repoda hiçbir yerde yok**
+ * — `packages/engine/src/index.ts`in gövdesi `export {};` ve sınıfın adı
+ * yalnızca yorum satırlarında geçiyor. Sınıf **Faz 22**'de doğuyor
+ * (`DebugPanel.tsx` bunu adıyla yazıyor) ve hakem satırlarını **üreten** hat
+ * da henüz yok (**G-19** — karar noktası Faz 7). Kararın kendisi değişmedi;
+ * yanlış olan tek şey kipti. `world-seed-data.ts:19`daki kardeşi 4.9'da
+ * düzeltilmişti, bu 4.11'e kaldı (K12 — o gün kapsam dışıydı).
+ *
+ * **Genel biçim:** *"gelecekte gelecek"* bir şeyi şimdiki zamanda anlatan bir
+ * yorum, o şey gelene kadar **sessizce yanlıştır** — ve hiçbir kapı yorumları
+ * denetlemiyor.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * `person_id` BUGÜN YOK — Faz 4 (üçüncü ve SON ileri FK)
+ * `person_id` 4.4'TE GELDİ — ÜÇÜNÜN TEK `NOT NULL`U VE TEK GERÇEK RİSKİ
  * ────────────────────────────────────────────────────────────────────────────
  *
- * `spec/01` bu sütunu `people` tablosuna işaret eden bir FK olarak tanımlıyor ve
- * `people` **Faz 4**'te geliyor. `federations.president_person_id` (3.4) ve
- * `clubs.chairman_person_id` (3.5) için aynısı yapıldı; ROADMAP Faz 4 üçünü de
- * **adıyla** sayıyor ve *"sütunu VE yabancı anahtarı BİRLİKTE eklemek zorunda"*
- * diyor — ayrıca bir kabul kriteri olarak yazılı.
+ * Sütun Faz 3'te bilerek yazılmadı; 4.4 onu ve FK'sını **birlikte** ekledi
+ * (`0006`). Hakemler artık isimli — bedeli ROADMAP'te yazılıydı (*"ilk
+ * görüntülendikleri yer Faz 26"*).
  *
- * **Bedeli ROADMAP'te açık:** hakemler Faz 4'e kadar **isimsiz** (ilk
- * görüntülendikleri yer Faz 26).
+ * ⚠️ **`NOT NULL` — ve üç ileri FK içinde tek olan bu.** `spec/01` sütunu
+ * işaretsiz yazıyor (`personId FK`, `?` veya `nullable` yok) ve SAPMA-026'nın
+ * türetme kuralı işaretsiz sütunu `NOT NULL` okur. Anlamı da aynı yeri
+ * gösteriyor: bir hakem **bir kişidir**, kişisi bilinmeyen bir hakem satırı
+ * yoktur. Karşılaştır: `federations.president_person_id` ve
+ * `clubs.chairman_person_id` `spec/01`'de açıkça nullable — *"başkanı
+ * bilinmiyor"* gerçek bir durum, *"hakemin kimliği bilinmiyor"* değil.
+ *
+ * ⚠️ **BUNUN ÖLÇÜLMÜŞ BİR BEDELİ VAR — `ADD COLUMN … NOT NULL` DOLU BİR TABLOYA
+ * UYGULANAMAZ.** `0006`nın `down`u sütunu düşürüyor ama **satırları düşürmüyor**;
+ * `up` yeniden koştuğunda var olan hakem satırlarına değer bulamıyor ve
+ * `column "person_id" of relation "referees" contains null values` ile patlıyor.
+ * Bu, `countries.source`un 0001'de yarattığı durumun **birebir aynısı** ve orada
+ * verilen karar burada da geçerli: davranış **gürültülü** (sessizce yanlış veri
+ * değil, açık bir hata) ve `round-trip.itest.ts` onu kendi testiyle sabitliyor —
+ * sonraki bir oturum bunu yeni bir regresyon sanmasın.
+ *
+ * ℹ️ **`UNIQUE` YOK — ve bu bir unutma değil.** `spec/01` `players`ı
+ * `personId FK UNIQUE` yazıyor, `referees`i yalnızca `personId FK`. Kimsenin
+ * belirlemediği bir kısıt uydurulmuyor (SAPMA-026).
+ *
+ * ✅ **G-18 KAPANDI (Faz 4.5, migration `0008`): bir hakemin `people` satırı
+ * `'referee'` taşır.** 4.4'te kapalı küme `player | staff | manager | chairman`
+ * idi ve hiçbiri hakemi anlatmıyordu, `person_type` CHECK'i boş diziyi de
+ * reddediyordu — yani bu FK, hakem satırı yazan ilk tarafı bir değer
+ * **uydurmaya** zorluyordu (SAPMA-026'nın yasağı) ve `fixtures.ts` gerçekten de
+ * `['player']` yazıyordu. Küme 4.5'te beşinci değeri aldı; gerekçe
+ * `people.ts`in `PERSON_TYPES` başlığında.
+ *
+ * ⚠️ **AÇIK BOŞLUK (G-19): bu tabloya satırı KİM yazacak?** `referees`
+ * §3.1.0'ın üç sütununu da taşıyor, yani bir **paket varlığı** — ama ROADMAP'in
+ * tüm hakem atıfları fazlarına göre çıkarıldığında (4.5'te ölçüldü) hiçbir faz
+ * veriyi **üretmiyor**: 23/26/29/45 **tüketici**, 46 var olan kadroyu **bakım**
+ * yapıyor, Faz 8 ve 9'un ingest listelerinde hakem **yok**. SAPMA-008'in
+ * birebir sınıfı. Karar noktası **Faz 7**'ye yazıldı (sağlayıcı zinciri) ve
+ * orada bir **kabul kriteri** taşıyor. ℹ️ `spec/12` §17.2'de `referees.json`
+ * yok, yani bugünkü dürüst cevap *"prosedürel"* — bu dosyanın `source`
+ * varsayılanının `procedural` olmasının sebebi de o.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * ALTI NİTELİK 1-20 — CHECK YOK
@@ -51,6 +100,7 @@ import { integer, pgTable, serial, smallint, timestamp } from 'drizzle-orm/pg-co
 import { masterTable } from '../client/master.js';
 import { countries } from './countries.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { people } from './people.js';
 
 export const referees = masterTable(
   pgTable(
@@ -79,6 +129,21 @@ export const referees = masterTable(
       bigGameExperience: smallint('big_game_experience').notNull(),
       createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      /**
+       * Hakemin kimliği. `NOT NULL` — gerekçesi ve ölçülmüş bedeli dosya
+       * başlığında.
+       *
+       * ⚠️ **SÜTUN SONDA — §3.1.2 ④.** Nöbetçisi `round-trip.itest.ts`teki
+       * *"referees fiziksel sütun sırası"* testi (3.6'da tam bu gün için yazıldı).
+       *
+       * `ON DELETE RESTRICT` — kural ② (kaynak `independent`). `referees` kendi
+       * `key`ini taşıyor; kişisi silinirken hakem satırı sessizce yok
+       * edilmemeli, silen taraf onu **ele almalı**. Ve `SET NULL` burada zaten
+       * uygulanamazdı: sütun `NOT NULL`.
+       */
+      personId: integer('person_id')
+        .notNull()
+        .references(() => people.id, { onDelete: 'restrict' }),
     },
     (table) => [sourceCheck('referees_source_check', table.source)],
   ),

@@ -9,7 +9,8 @@
 1. **`PROJECT_MEMORY.md`** → "ANLIK DURUM" bloğunu ve son iki faz kaydını oku.
 2. **`docs/ROADMAP.md`** → sıradaki fazın bölümünü oku.
 3. **`docs/spec/`** → o faza ait spesifikasyonları oku (eşleme: `docs/SESSION-TEMPLATE.md`).
-4. Oturum akışı için **`docs/SESSION-TEMPLATE.md`** şablonunu kullan.
+4. **`docs/SPEC-COVERAGE-GAPS.md`** → **bu faza atanmış satırları** oku (Faz 4.0'da eklendi).
+5. Oturum akışı için **`docs/SESSION-TEMPLATE.md`** şablonunu kullan.
 
 ## 📚 Belge Haritası
 
@@ -22,6 +23,7 @@
 | `docs/OUTPUT-FORMAT.md` | Alt görev rapor formatı + rapor arşivi kuralı | Her alt görev sonu |
 | `docs/reports/` | Alt görev raporlarının **ham arşivi** (append-only, otorite değil) | Her alt görev sonu — rapor terminale basılmadan ÖNCE buraya yazılır |
 | `docs/DEPENDENCY-WATCH.md` | Sürüm takip listesi | Her faz başı |
+| `docs/SPEC-COVERAGE-GAPS.md` | Spec istiyor ama hiçbir faza atanmamış maddeler (G-01…) | **Her faz başı — o faza atanmış satırlar** |
 | `docs/V2-BACKLOG.md` | Kapsam dışı fikirler | Fikir çıkınca |
 | `docs/spec/01-database.md` | Veritabanı şeması | Faz 3,4,7-9,11,12,46 |
 | `docs/spec/02-attributes.md` | Nitelik sistemi, CA/PA, türetme | Faz 10,11,14,30-38,46 |

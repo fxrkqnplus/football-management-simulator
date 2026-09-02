@@ -28,10 +28,13 @@
  * karşılaştırmanın kapsamı bu yüzden dar tutuldu ve darlığı **yazılı**:
  *
  *   ✅ tablo adları · ✅ sütun adları · ✅ sütun sırası · ✅ `NOT NULL` ·
- *   ✅ birincil anahtar sütunu · ✅ benzersizlik kısıtlarının adı ve sütunları
+ *   ✅ birincil anahtar sütunu (**tekil VE bileşik** — 4.6) ·
+ *   ✅ benzersizlik kısıtlarının adı ve sütunları
  *   ❌ SQL tipleri (soyutlama farkı) · ❌ sequence'lar (snapshot taşımıyor) ·
  *   ❌ `DEFAULT` ifadeleri (`now()` ↔ `now()` tutar ama `serial` tutmaz) ·
- *   ❌ indeks tanımları
+ *   ❌ indeks tanımları · ❌ CHECK kısıtları (`checkConstraints` snapshot'ta
+ *      **var** ama bu karşılaştırmaya girmiyor — round-trip onu `pg_constraint`
+ *      üzerinden zaten ölçüyor ve iki yerde denetlenmiyor, `spec/09` §11.5)
  *
  * **Kapsamın yazılı olmaması, bu karşılaştırmayı D3'e çevirirdi:** kapsamlı
  * görünen ama azına bakan bir denetim, "snapshot doğrulandı" izlenimi verirken
@@ -55,11 +58,40 @@ const uniqueSchema = z.object({
   columns: z.array(z.string().min(1)),
 });
 
+/**
+ * 🆕 **BİLEŞİK BİRİNCİL ANAHTAR — Faz 4.6'da eklendi, ve YOKLUĞU ÖLÇÜLDÜ.**
+ *
+ * ⚠️ **Bu, 4.3'ün `udtName` vakasının BİREBİR TEKRARI.** Orada şemaya yeni bir
+ * **tip ailesi** (dizi) girmişti ve `introspect` onu göremiyordu; burada yeni
+ * bir **yapı türü** (bileşik PK) girdi ve `snapshotToFacts` onu göremiyor.
+ *
+ * Mekanizma ölçüldü, tahmin edilmedi: `drizzle-kit` tek sütunlu bir PK'yi
+ * sütunun `primaryKey: true` alanında yazıyor, **bileşik** olanı ise ayrı bir
+ * `compositePrimaryKeys` nesnesinde — ve o durumda **her sütunun `primaryKey`i
+ * `false`** (`0009_snapshot.json`dan okundu). Yani eski kod bileşik PK taşıyan
+ * bir tabloda **sıfır** anahtar olgusu üretiyordu.
+ *
+ * ⚠️ **VE BU SESSİZ BİR KÖRLÜKTÜ, GÜRÜLTÜLÜ BİR HATA DEĞİL.** Karşılaştırma
+ * *"snapshot doğrulandı"* demeye devam ederdi: gerçek şema tarafı PK'yi
+ * `pg_constraint`ten okuyup iki olgu üretiyor, snapshot tarafı sıfır — fark
+ * `missingInSnapshot` olarak görünüyor. Onu **gören** şey 4.6'nın üç tablosu
+ * oldu; şemada bileşik PK olmadığı sürece bakacak bir şey yoktu (D3).
+ *
+ * **Genel biçim (4.3'ün kuralının genişlemiş hâli): şemaya yeni bir TİP AİLESİ
+ * ya da YAPI TÜRÜ girdiğinde, karşılaştırıcının okuduğu alan listesi gözden
+ * geçirilir ve genişletme bir NEGATİF testle kanıtlanır.**
+ */
+const compositePrimaryKeySchema = z.object({
+  name: z.string().min(1),
+  columns: z.array(z.string().min(1)),
+});
+
 const tableSchema = z.object({
   name: z.string().min(1),
   schema: z.string(),
   columns: z.record(z.string(), columnSchema),
   uniqueConstraints: z.record(z.string(), uniqueSchema).default({}),
+  compositePrimaryKeys: z.record(z.string(), compositePrimaryKeySchema).default({}),
 });
 
 const snapshotSchema = z.object({
@@ -112,14 +144,27 @@ export function snapshotToFacts(snapshot: DrizzleSnapshot): readonly ComparableF
       value: [...columnNames].sort().join(','),
     });
 
+    const primaryKeyColumns: string[] = [];
+
     for (const column of Object.values(table.columns)) {
       facts.push({
         path: `table.${table.name}.column.${column.name}.notNull`,
         value: String(column.notNull),
       });
-      if (column.primaryKey) {
-        facts.push({ path: `table.${table.name}.primaryKeyColumn`, value: column.name });
-      }
+      if (column.primaryKey) primaryKeyColumns.push(column.name);
+    }
+
+    // 🆕 4.6 — BİLEŞİK PK ayrı bir alanda ve o durumda sütunların `primaryKey`i
+    // `false`. İkisi aynı listede toplanıyor.
+    for (const composite of Object.values(table.compositePrimaryKeys)) {
+      primaryKeyColumns.push(...composite.columns);
+    }
+
+    if (primaryKeyColumns.length > 0) {
+      facts.push({
+        path: `table.${table.name}.primaryKeyColumns`,
+        value: [...primaryKeyColumns].sort().join(','),
+      });
     }
 
     for (const unique of Object.values(table.uniqueConstraints)) {
@@ -164,12 +209,19 @@ export function realSchemaToFacts(real: SchemaFacts): readonly ComparableFact[] 
       if (constraint.type === 'p') {
         const match = /PRIMARY KEY \(([^)]+)\)/.exec(constraint.definition);
         if (match?.[1] !== undefined) {
-          for (const column of match[1].split(',')) {
-            facts.push({
-              path: `table.${table.name}.primaryKeyColumn`,
-              value: column.trim().replace(/"/g, ''),
-            });
-          }
+          // 🆕 4.6 — TEK OLGU, sütun başına bir tane DEĞİL. Eski hâli çok
+          // sütunlu bir PK'de aynı yolu tekrarlıyordu ve `compareSnapshotToReal`
+          // yolları bir `Map`e koyuyor: **sonuncusu kazanır, öncekiler sessizce
+          // kaybolur.** Şemada bileşik PK olmadığı sürece bakacak bir şey yoktu
+          // (D3); `0009`un iki tablosu onu görünür kıldı.
+          facts.push({
+            path: `table.${table.name}.primaryKeyColumns`,
+            value: match[1]
+              .split(',')
+              .map((column) => column.trim().replace(/"/g, ''))
+              .sort()
+              .join(','),
+          });
         }
       }
       if (constraint.type === 'u') {

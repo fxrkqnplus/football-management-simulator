@@ -42,6 +42,28 @@ export interface ColumnFacts {
   readonly position: number;
   /** `information_schema.columns.data_type` — `serial` değil, `integer`. */
   readonly dataType: string;
+  /**
+   * `information_schema.columns.udt_name` — temel tipin katalog adı.
+   *
+   * ⚠️ **4.3'te EKLENDİ ve sebebi ölçülmüş bir körlüktü.** `data_type` tek
+   * başına bir dizinin ELEMAN TİPİNİ taşımıyor: PostgreSQL 18.6'ya karşı
+   * ölçüldü, `text[]` de `integer[]` de `data_type = 'ARRAY'` veriyor ve ayrım
+   * yalnızca burada görünüyor (`_text` / `_int4`). Şemanın ilk dizi sütunu
+   * `people.person_type` ile geldi; o âna kadar repoda hiç dizi yoktu
+   * (`grep '\.array()'` → 0 eşleşme), yani boşluk **hiç ötmemişti**.
+   *
+   * Bir sütunu `text[]`'ten `integer[]`'a çeviren bir `down` bu alan olmadan
+   * **sessizce geçerdi** — 3.2b'nin *"fazla giden `down`"* sınıfının dizi
+   * kardeşi. Negatif testi `round-trip.itest.ts` → *"③ SESSİZ bozuk down (DİZİ
+   * ELEMAN TİPİ)"*; o test `data_type`ın **değişmediğini** ayrıca iddia ediyor,
+   * yani alanın gerekliliği varsayılmıyor, gösteriliyor.
+   *
+   * ℹ️ Dizi olmayan sütunlarda da dolu (`text` → `text`, `integer` → `int4`) ve
+   * bu bir fazlalık değil: `data_type` bazı tipleri normalleştiriyor
+   * (`timestamp with time zone`), `udt_name` katalog adını veriyor (`timestamptz`).
+   * İkisi ayrışırsa fark **iki alanda birden** görünür.
+   */
+  readonly udtName: string;
   readonly maxLength: string | null;
   readonly numericPrecision: string | null;
   readonly numericScale: string | null;

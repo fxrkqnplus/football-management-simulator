@@ -81,6 +81,7 @@ import {
 import { masterTable } from '../client/master.js';
 import { clubs } from './clubs.js';
 import { kitTemplates } from './kit-templates.js';
+import { sqlLiterals } from './sql-literals.js';
 
 /**
  * Forma türü — `spec/01` §3.1'de **kapalı** bir küme (`'home'|'away'|'third'`),
@@ -126,7 +127,7 @@ export const clubKits = masterTable(
     (table) => [
       check(
         'club_kits_kit_type_check',
-        sql`${table.kitType} IN (${sql.raw(KIT_TYPES.map((type) => `'${type}'`).join(', '))})`,
+        sql`${table.kitType} IN (${sql.raw(sqlLiterals(KIT_TYPES))})`,
       ),
       unique('club_kits_club_id_kit_type_unique').on(table.clubId, table.kitType),
     ],

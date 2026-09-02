@@ -36,6 +36,55 @@
       "when": 1787876703077,
       "tag": "0004_search_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788036214228,
+      "tag": "0005_people_players",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788051726035,
+      "tag": "0006_forward_person_fks",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788056635659,
+      "tag": "0007_player_attributes",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788056794320,
+      "tag": "0008_person_type_referee",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788090451329,
+      "tag": "0009_player_positions_traits_stats",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788194648243,
+      "tag": "0010_staff_managers",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788216858364,
+      "tag": "0011_transfer_search_indexes",
+      "breakpoints": true
     }
   ]
 }

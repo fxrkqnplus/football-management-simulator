@@ -11,6 +11,37 @@
  * *dallanmalarını* kapsar (sahte çalıştırıcıyla, hızlı). Bu dosya Postgres'in
  * gerçekten öyle DAVRANDIĞINI kapsar — çünkü sahte bir veritabanına karşı
  * "çalışıyor" demek Faz 2 §5 **D5** deseninin ta kendisidir.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * ⚠️ BU DOSYA GERÇEK ZİNCİRİ KULLANIYOR — `0008`İN SINIRI BURAYA DA UZANIYOR
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * `source` aşağıda `createFileMigrationSource(DRIZZLE_DIR)` ile kuruluyor ve
+ * `DRIZZLE_DIR` **gerçek** `drizzle/` klasörü — yani buradaki `migrateDown`
+ * çağrıları (bugün **beş** tane) zincirin gerçek `0008`ini geri alıyor.
+ *
+ * `0008`in `down`u `people_person_type_check`i **daraltıyor** ve
+ * `ADD CONSTRAINT … CHECK` var olan satırları **doğruluyor**. Gerekçenin tamamı
+ * `round-trip.itest.ts`teki `narrowRefereePersonTypesForDown` başlığında.
+ *
+ * **Bu dosya bugün engeli hiç görmüyor** ve sebebi ölçüldü: `people`'a hiç
+ * hakem yazmıyor (fixture'ı yalnızca `countryInsertSql`). Yani sorun yok —
+ * ama **koşul bir tesadüf değil, bir bağımlılık**.
+ *
+ * ⚠️ **BURAYA `person_type`ında `'referee'` taşıyan bir satır yazan bir test
+ * eklenirse, o testin `migrateDown`u `people_person_type_check … is violated by
+ * some row` ile patlar** — ve hata mesajı testin konusuyla ilgisiz bir kısıtı
+ * gösterdiği için yazan kişi kendi testinde hata arar (4.5'te on altı test
+ * birden böyle kırıldı). O gün yapılacak şey `round-trip.itest.ts`teki
+ * `migrateDownPastRefereeCheck` sarmalayıcısının kardeşini buraya yazmaktır.
+ *
+ * ℹ️ **Neden sarmalayıcı bugün buraya taşınmadı** (Faz 4.7'de ölçülerek karar
+ * verildi): sarmalayıcı `executor`/`source`/`logger`ı **içeride bağlıyor** ve
+ * onu paylaşmak iki entegrasyon dosyasının kurulumunu birbirine bağlardı; bu
+ * dosyanın bugün bir sorunu yok, yani düzeltme K12'nin yasakladığı kapsam
+ * kaymasıydı. **Uyarı rapora değil buraya yazıldı** — bir nöbetçi, hatanın
+ * olacağı yerde yaşar; bu dosyaya test ekleyecek kişi bir alt görev raporunu
+ * değil bu başlığı okuyor.
  */
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -184,7 +215,7 @@ describe('migrateDown — gerçek Postgres', () => {
     );
 
     expect(result.dryRun).toBe(true);
-    // `countries` iki satırla, diğerleri boş: yapısal kayıp ON BİR tabloda da
+    // `countries` iki satırla, diğerleri boş: yapısal kayıp YİRMİ İKİ tabloda da
     // var, satır riski yalnızca `countries`te. Liste açıkça yazılıyor —
     // burada test edilen şey "koşucunun davranışı" değil "şemanın içeriği"
     // (ayrım `integration/fixtures.ts` başlığında). Bu liste her yeni
@@ -198,9 +229,26 @@ describe('migrateDown — gerçek Postgres', () => {
       { kind: 'table', table: 'countries', rowsAtRisk: 2 },
       { kind: 'table', table: 'federations', rowsAtRisk: 0 },
       { kind: 'table', table: 'kit_templates', rowsAtRisk: 0 },
+      // 🆕 Faz 4.7 — `0010`un dört tablosu; dördü de boş. Bu dosya `people`a hiç
+      // hakem YAZMADIĞI için `0008`in engeline takılmıyor; gerekçe dosya
+      // başlığındaki uyarıda.
+      { kind: 'table', table: 'manager_attributes', rowsAtRisk: 0 },
+      { kind: 'table', table: 'managers', rowsAtRisk: 0 },
+      // 🆕 Faz 4.3 — `0005`in iki tablosu; ikisi de boş, satır riski yok.
+      { kind: 'table', table: 'people', rowsAtRisk: 0 },
+      // 🆕 Faz 4.5 — `0007`nin iki tablosu; ikisi de boş.
+      { kind: 'table', table: 'player_attributes', rowsAtRisk: 0 },
+      { kind: 'table', table: 'player_hidden_attributes', rowsAtRisk: 0 },
+      // 🆕 Faz 4.6 — `0009`un üç tablosu; üçü de boş.
+      { kind: 'table', table: 'player_positions', rowsAtRisk: 0 },
+      { kind: 'table', table: 'player_stats_history', rowsAtRisk: 0 },
+      { kind: 'table', table: 'player_traits', rowsAtRisk: 0 },
+      { kind: 'table', table: 'players', rowsAtRisk: 0 },
       { kind: 'table', table: 'referees', rowsAtRisk: 0 },
       { kind: 'table', table: 'rivalries', rowsAtRisk: 0 },
       { kind: 'table', table: 'stadiums', rowsAtRisk: 0 },
+      { kind: 'table', table: 'staff', rowsAtRisk: 0 },
+      { kind: 'table', table: 'staff_attributes', rowsAtRisk: 0 },
     ]);
     // Rapor gerçek veriye dayandı — ve tablo hâlâ duruyor.
     expect(await tableExists('countries')).toBe(true);

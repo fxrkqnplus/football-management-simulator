@@ -6,6 +6,55 @@ sürümleme: [Semantic Versioning](https://semver.org/lang/tr/).
 
 ## [Yayınlanmamış]
 
+### Eklendi — Faz 4: Veritabanı Şeması II — Oyuncu, Sözleşme, Personel
+
+- **11 master tablo daha** (`people` · `players` · `player_attributes` (47
+  görünür) · `player_hidden_attributes` (10 gizli) · `player_positions` ·
+  `player_traits` · `player_stats_history` · `staff` · `staff_attributes` ·
+  `managers` · `manager_attributes`) — envanter **11 → 22**, FK **12 → 32**.
+  Sayılar `spec/01` §3.1'den **sayıldı**, ROADMAP'ten alınmadı (SAPMA-001'in
+  dersi)
+- **Faz 3'ten devredilen üç ileri yabancı anahtar** (`0006`):
+  `federations.president_person_id` · `clubs.chairman_person_id` ·
+  `referees.person_id` — üçü **üç farklı** `ON DELETE` aldı (SET NULL ·
+  RESTRICT · RESTRICT) ve üçü de **kuraldan türetildi**, listeden değil
+- **`fk-policy.ts` V3** — üçüncü olgu `is_nullable`, `SET NULL` üretimi, sıra
+  `dictionary → independent → nullable → satellite`. Faz 4 boyunca **32 FK'nın
+  32'si** hiçbir liste güncellenmeden denetlendi
+- **Transfer arama indeksleri** (`0011`): `players (primary_position,
+  current_ability)` ve `people (birth_date)` — indeks **4 → 6**
+- **5.000 sahte oyuncu seed'i** (`tools/data-cli`), **deterministik** (K2) ve
+  saflığı `Math.random`/`Date.now` patlatılarak **koşarak** kanıtlandı
+- **`packages/db/src/schema/sql-literals.ts`** — CHECK değer listesini SQL
+  literaline çeviren ifadenin **tek** yeri (BORÇ-008 ödendi, 4.11). Ortaklaştırma
+  `typecheck`le değil **üretilen migration'la** doğrulandı: `drizzle-kit
+  generate` → *"No schema changes"*; ve modül körlendiğinde **17 CHECK
+  kısıtının 17'si** birden değişiyor
+- **`pnpm gaps:check`** (`scripts/check-gap-coverage.mjs`) — her açık G-satırının
+  atandığı fazın ROADMAP kapsamında **adıyla** geçtiğini doğrular. Sayıları
+  kütükten **sayar**; ilk koşusunda gerçek bir uyuşmazlık buldu (**G-13 → Faz 5**)
+
+### Değişti — Faz 4
+
+- `docs/schema/world.md` — mermaid bloğu **22 tablo / 32 FK** (programatik,
+  nöbetçiyle korunuyor); **prose dört yerde bayattı ve düzeltildi** (başlık ·
+  tablo envanteri 15 → 22 · FK 16 → 32 · migration zinciri 9 → 12 · indeks
+  listesi 4 → 6). Nöbetçi bloğu koruyor, **prose'u hiçbir şey korumuyor**
+- `docs/spec/01-database.md` §3.1.0'ın *"taşımayan"* listesi · §3.0'a iki `down`
+  hata sınıfının ayrımı (*"fazla giden"* ve *"eksik kalan"* — **ikisi de sessiz
+  olabilir**)
+- `docs/spec/09-quality-protocol.md` §11.5 — mutasyon serisine dokuz satır
+  (4.2 → 4.11) ve üç yeni yöntem kuralı: *"determinizm testi tek başına bir
+  nöbetçi değildir"* · *"geçen bir bütçe testi ölçümün DOĞRU ALINDIĞINI
+  göstermez"* · *"bir refactor'ın davranışı değiştirmediğinin kanıtı üretilen
+  SQL'dir"*
+- `docs/SESSION-TEMPLATE.md` — **§0.5 süre kontrolü** (4.1) ve **`pnpm
+  gaps:check`** (4.11) faz kapanış adımlarına eklendi; ikisi de SAPMA-033'ün
+  çaresi (*"bir kuralın kontrol eden adımı yoksa, ateşlendiğinde hiçbir şey
+  olmaz"*)
+- **Faz 4 ikiye bölündü** — 4a (4.0→4.7) · 4b (4.8→4.11). Bölünmeyi bir tahmin
+  listesi değil **ölçüm** kararlaştırdı (§0.5 kontrol noktası, 2,633 gün)
+
 ### Eklendi — Faz 3: Veritabanı Şeması I — Dünya Çekirdeği
 
 - **11 master tablo** (`countries`, `federations`, `competitions`, `clubs`,

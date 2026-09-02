@@ -44,6 +44,7 @@ import { masterTable } from '../client/master.js';
 import type { CompetitionRules } from './competition-rules.js';
 import { countries } from './countries.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { sqlLiterals } from './sql-literals.js';
 
 /**
  * Yarışma türü — `spec/01` §3.1'de **kapalı** bir küme olarak yazılı, o yüzden
@@ -104,7 +105,7 @@ export const competitions = masterTable(
       sourceCheck('competitions_source_check', table.source),
       check(
         'competitions_type_check',
-        sql`${table.type} IN (${sql.raw(COMPETITION_TYPES.map((type) => `'${type}'`).join(', '))})`,
+        sql`${table.type} IN (${sql.raw(sqlLiterals(COMPETITION_TYPES))})`,
       ),
       /**
        * FK sütunu — PostgreSQL onu otomatik indekslemiyor. Tüketicisi bugün var:

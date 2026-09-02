@@ -14,6 +14,8 @@ export {
   mermaidTypeName,
   renderErDiagram,
 } from './er-diagram.js';
+export type { ForeignKeyNullability } from './foreign-key-nullability.js';
+export { foreignKeyNullability } from './foreign-key-nullability.js';
 export { introspectSchema, readSequencePosition } from './introspect.js';
 export type {
   ColumnFacts,

@@ -67,6 +67,7 @@ import {
 
 import { masterTable } from '../client/master.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { sqlLiterals } from './sql-literals.js';
 
 /**
  * Çalışma izni rejimi — `docs/spec/01-database.md` §3.1'de **kapalı** bir küme
@@ -126,7 +127,7 @@ export const countries = masterTable(
       sourceCheck('countries_source_check', table.source),
       check(
         'countries_work_permit_rule_key_check',
-        sql`${table.workPermitRuleKey} IN (${sql.raw(WORK_PERMIT_RULES.map((rule) => `'${rule}'`).join(', '))})`,
+        sql`${table.workPermitRuleKey} IN (${sql.raw(sqlLiterals(WORK_PERMIT_RULES))})`,
       ),
     ],
   ),
