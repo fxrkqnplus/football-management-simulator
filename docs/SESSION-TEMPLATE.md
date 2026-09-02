@@ -91,7 +91,7 @@ KURALLAR
 | **HEPSİ** | `PROJECT_MEMORY.md` (her oturumun ilk ve son işi) |
 | 1–2 | Bölüm 1, 2, 11, 12 |
 | 3–4 | Bölüm 3 |
-| 5 | Bölüm 13 |
+| 5 | ⚠️ **i18n'in bir spec bölümü YOK** — kaynak `docs/ROADMAP.md` Faz 5 + `CLAUDE.md` §14 terim sözlüğü. *(Bu satır 4.11'e kadar **Bölüm 13** diyordu; ölçüldü: Bölüm 13 = **DAĞITIM** (`docs/spec/10-deployment.md`). Yanlış yere gönderen bir tablo, hiç göndermeyenden tehlikelidir — SAPMA-035.)* |
 | 6 | Bölüm 7 |
 | 7–9 | Bölüm 3, 17 (`docs/spec/12-data-packs.md`) |
 | 10 | Bölüm 4 |
