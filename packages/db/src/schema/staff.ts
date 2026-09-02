@@ -84,6 +84,7 @@ import { check, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg
 import { masterTable } from '../client/master.js';
 import { clubs } from './clubs.js';
 import { people } from './people.js';
+import { sqlLiterals } from './sql-literals.js';
 
 /**
  * On iki personel rolü — `spec/01` §3.1 `staff.role` satırından **sayılarak**
@@ -109,9 +110,6 @@ export const STAFF_ROLES = [
 
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
-const literals = (values: readonly string[]): string =>
-  values.map((value) => `'${value}'`).join(', ');
-
 export const staff = masterTable(
   pgTable(
     'staff',
@@ -135,7 +133,7 @@ export const staff = masterTable(
       updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
-      check('staff_role_check', sql`${table.role} IN (${sql.raw(literals(STAFF_ROLES))})`),
+      check('staff_role_check', sql`${table.role} IN (${sql.raw(sqlLiterals(STAFF_ROLES))})`),
     ],
   ),
 );

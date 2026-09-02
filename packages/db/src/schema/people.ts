@@ -96,6 +96,7 @@ import { check, date, index, integer, pgTable, serial, text, timestamp } from 'd
 import { masterTable } from '../client/master.js';
 import { countries } from './countries.js';
 import { dataPackColumns, sourceCheck } from './data-pack-columns.js';
+import { sqlLiterals } from './sql-literals.js';
 import { TRANSFER_SEARCH_INDEXES } from './transfer-search.js';
 
 /**
@@ -154,9 +155,6 @@ export type PersonType = (typeof PERSON_TYPES)[number];
 export const GENDERS = ['male', 'female'] as const;
 
 export type Gender = (typeof GENDERS)[number];
-
-const literals = (values: readonly string[]): string =>
-  values.map((value) => `'${value}'`).join(', ');
 
 export const people = masterTable(
   pgTable(
@@ -217,7 +215,7 @@ export const people = masterTable(
     },
     (table) => [
       sourceCheck('people_source_check', table.source),
-      check('people_gender_check', sql`${table.gender} IN (${sql.raw(literals(GENDERS))})`),
+      check('people_gender_check', sql`${table.gender} IN (${sql.raw(sqlLiterals(GENDERS))})`),
       /**
        * İki iddia tek kısıtta: dizi **boş değil** ve her elemanı kapalı kümede.
        * İfade `PERSON_TYPES`ten türetiliyor — elle yazılsaydı tip ile kısıt
@@ -225,7 +223,7 @@ export const people = masterTable(
        */
       check(
         'people_person_type_check',
-        sql`cardinality(${table.personType}) > 0 AND ${table.personType} <@ ARRAY[${sql.raw(literals(PERSON_TYPES))}]::text[]`,
+        sql`cardinality(${table.personType}) > 0 AND ${table.personType} <@ ARRAY[${sql.raw(sqlLiterals(PERSON_TYPES))}]::text[]`,
       ),
       /**
        * TRANSFER ARAMASININ YAŞ YÜKLEMİ (4.8, `0011`) — kabul kriteri 3.

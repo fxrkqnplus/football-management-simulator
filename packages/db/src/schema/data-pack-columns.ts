@@ -43,6 +43,8 @@ import type { AnyPgColumn, CheckBuilder } from 'drizzle-orm/pg-core';
 import { check, jsonb, text } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 
+import { sqlLiterals } from './sql-literals.js';
+
 /**
  * Bir varlığın verisinin NEREDEN geldiği.
  *
@@ -109,6 +111,5 @@ export function dataPackColumns() {
  * olarak girmesi gerekiyor (parametre yer tutucusu bir DDL dosyasına yazılamaz).
  */
 export function sourceCheck(constraintName: string, column: AnyPgColumn): CheckBuilder {
-  const literals = DATA_SOURCES.map((value) => `'${value}'`).join(', ');
-  return check(constraintName, sql`${column} IN (${sql.raw(literals)})`);
+  return check(constraintName, sql`${column} IN (${sql.raw(sqlLiterals(DATA_SOURCES))})`);
 }

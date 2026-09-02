@@ -96,6 +96,7 @@ import {
 import { masterTable } from '../client/master.js';
 import { clubs } from './clubs.js';
 import { people } from './people.js';
+import { sqlLiterals } from './sql-literals.js';
 
 /** `spec/01` §3.1 `managers.coachingBadge`. Kapalı küme → CHECK. */
 export const COACHING_BADGES = ['none', 'c', 'b', 'a', 'pro'] as const;
@@ -112,9 +113,6 @@ export const MANAGER_EXPERIENCE_LEVELS = [
 ] as const;
 
 export type ManagerExperienceLevel = (typeof MANAGER_EXPERIENCE_LEVELS)[number];
-
-const literals = (values: readonly string[]): string =>
-  values.map((value) => `'${value}'`).join(', ');
 
 export const managers = masterTable(
   pgTable(
@@ -164,11 +162,11 @@ export const managers = masterTable(
     (table) => [
       check(
         'managers_coaching_badge_check',
-        sql`${table.coachingBadge} IN (${sql.raw(literals(COACHING_BADGES))})`,
+        sql`${table.coachingBadge} IN (${sql.raw(sqlLiterals(COACHING_BADGES))})`,
       ),
       check(
         'managers_experience_level_check',
-        sql`${table.experienceLevel} IN (${sql.raw(literals(MANAGER_EXPERIENCE_LEVELS))})`,
+        sql`${table.experienceLevel} IN (${sql.raw(sqlLiterals(MANAGER_EXPERIENCE_LEVELS))})`,
       ),
     ],
   ),

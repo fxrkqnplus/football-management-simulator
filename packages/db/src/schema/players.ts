@@ -131,6 +131,7 @@ import {
 import { masterTable } from '../client/master.js';
 import { clubs } from './clubs.js';
 import { people } from './people.js';
+import { sqlLiterals } from './sql-literals.js';
 import { TRANSFER_SEARCH_INDEXES } from './transfer-search.js';
 
 /**
@@ -215,7 +216,7 @@ export const players = masterTable(
     (table) => [
       check(
         'players_primary_position_check',
-        sql`${table.primaryPosition} IN (${sql.raw(PLAYER_POSITIONS.map((position) => `'${position}'`).join(', '))})`,
+        sql`${table.primaryPosition} IN (${sql.raw(sqlLiterals(PLAYER_POSITIONS))})`,
       ),
       /**
        * İLİŞKİ DEĞİŞMEZİ #1 — mevcut yetenek potansiyeli aşamaz (4.5, kriter 5).

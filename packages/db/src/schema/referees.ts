@@ -19,9 +19,24 @@
  * §3.1.0'ın kendi gerekçesi şunu söylüyor: *"`key` neden `NOT NULL`:
  * `DATA_MODE=clean`'de her varlık prosedürel üretiliyor ve **yine de
  * adreslenebilir olmak zorunda**."* Yani anahtar pakette bulunmanın değil,
- * **adreslenebilirliğin** koşulu. Hakemler v1'de prosedürel üretiliyor
- * (`source = 'procedural'`) ve `SeededRng` deterministik bir anahtar veriyor
- * (K2); bir paket ileride `referees.json` getirirse eşleme yolu **zaten hazır**.
+ * **adreslenebilirliğin** koşulu. Hakemler v1'de prosedürel üretilecek
+ * (`source = 'procedural'`) ve anahtarları K2 gereği deterministik bir
+ * üreteçten gelecek; bir paket ileride `referees.json` getirirse eşleme yolu
+ * **zaten hazır**.
+ *
+ * ⚠️ **DÜZELTME (Faz 4.11) — bu cümle var olmayan bir sınıfı ŞİMDİKİ ZAMANDA
+ * anlatıyordu.** Eski hâli *"`SeededRng` deterministik bir anahtar **veriyor**"*
+ * diyordu; ölçüldü (4.9, günlük #36) ve `SeededRng` **repoda hiçbir yerde yok**
+ * — `packages/engine/src/index.ts`in gövdesi `export {};` ve sınıfın adı
+ * yalnızca yorum satırlarında geçiyor. Sınıf **Faz 22**'de doğuyor
+ * (`DebugPanel.tsx` bunu adıyla yazıyor) ve hakem satırlarını **üreten** hat
+ * da henüz yok (**G-19** — karar noktası Faz 7). Kararın kendisi değişmedi;
+ * yanlış olan tek şey kipti. `world-seed-data.ts:19`daki kardeşi 4.9'da
+ * düzeltilmişti, bu 4.11'e kaldı (K12 — o gün kapsam dışıydı).
+ *
+ * **Genel biçim:** *"gelecekte gelecek"* bir şeyi şimdiki zamanda anlatan bir
+ * yorum, o şey gelene kadar **sessizce yanlıştır** — ve hiçbir kapı yorumları
+ * denetlemiyor.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * `person_id` 4.4'TE GELDİ — ÜÇÜNÜN TEK `NOT NULL`U VE TEK GERÇEK RİSKİ

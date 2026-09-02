@@ -71,6 +71,7 @@ import { check, integer, pgTable, primaryKey, text, timestamp } from 'drizzle-or
 import { masterTable } from '../client/master.js';
 import type { PlayerPosition } from './players.js';
 import { PLAYER_POSITIONS, players } from './players.js';
+import { sqlLiterals } from './sql-literals.js';
 
 /**
  * Yetkinlik dereceleri — `spec/01` §3.1 `player_positions.level` satırındaki
@@ -89,10 +90,6 @@ export const POSITION_LEVELS = [
 ] as const;
 
 export type PositionLevel = (typeof POSITION_LEVELS)[number];
-
-/** Bir kapalı kümeyi SQL `IN (…)` listesine çevirir — §3.1.2 ①: elle yazılmaz. */
-const inList = (values: readonly string[]): string =>
-  values.map((value) => `'${value}'`).join(', ');
 
 export const playerPositions = masterTable(
   pgTable(
@@ -113,11 +110,11 @@ export const playerPositions = masterTable(
       primaryKey({ columns: [table.playerId, table.position] }),
       check(
         'player_positions_position_check',
-        sql`${table.position} IN (${sql.raw(inList(PLAYER_POSITIONS))})`,
+        sql`${table.position} IN (${sql.raw(sqlLiterals(PLAYER_POSITIONS))})`,
       ),
       check(
         'player_positions_level_check',
-        sql`${table.level} IN (${sql.raw(inList(POSITION_LEVELS))})`,
+        sql`${table.level} IN (${sql.raw(sqlLiterals(POSITION_LEVELS))})`,
       ),
     ],
   ),
