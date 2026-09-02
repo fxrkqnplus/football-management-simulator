@@ -551,6 +551,32 @@ tarifi değil (4.2'de ölçülerek bulundu):
 | **4.8** | 22 tablo + **2 indeks** (`0011`) | **29 / 251** | **%11,55** ⬆ |
 | **4.9** | değişmedi (seed — 5.000 satır) | **29 / 277** | %10,47 ⬇ |
 | **4.10** | değişmedi (ölçüm — plan + süre) | **29 / 301** | %9,63 ⬇ |
+| **4.11** | değişmedi (refactor — BORÇ-008, üretilen SQL **birebir aynı**) | **29 / 301** | %9,63 → |
+
+> ✅ **4.11'DE PAY VE PAYDA İKİSİ DE SABİT: 29 / 301 — serinin ilk TAM DURAĞAN
+> satırı, ve bu bir alarm değil bir KANIT.**
+>
+> 4.11 bir **refactor** alt görevi (BORÇ-008: CHECK literal ifadesinin dokuz
+> kopyası tek modüle indi). Serinin diğer *"değişmedi"* satırlarından farkı,
+> burada `packages/db/src/schema/` altındaki **on dosyaya dokunulmuş** olması —
+> yani ilk kez şema **dosyaları** değişti ve şema **değişmedi**. İkisinin
+> ayrıldığı yer tam olarak bu tablo:
+>
+> | Soru | Ölçüm |
+> |---|---|
+> | Üretilen SQL değişti mi? | **Hayır** — `drizzle-kit generate` → *"No schema changes, nothing to migrate"* |
+> | Yeni olgu türü var mı? | **Hayır** — zincir 12 · tablo 22 · FK 32 · indeks 6 · sequence 14, beşi de sabit |
+> | 10 yeni test `compareSchemas` çağırıyor mu? | **Hayır** — hepsi **birim** testi (`pnpm test`), `test:db` paydası hiç kımıldamadı |
+> | Körelen karşılaştırıcı hangi dosyayı kırıyor? | **yalnızca `round-trip.itest.ts`** — 4.8'den beri aynı dosya, aynı 29 test |
+>
+> ⚠️ **VE REFACTOR'IN KENDİ KANITI BU SERİ DEĞİL, AYRI BİR MUTASYONDU.** Ortak
+> modül körlendi (`sqlLiterals` sabit bir dize döndürecek şekilde) ve
+> `drizzle-kit generate` koşuldu: üretilen migration **17 CHECK kısıtının
+> 17'sini birden** değiştirdi — yani dokuz çağrı yerinin hiçbiri bağlanmadan
+> kalmamış. **Bir refactor'ın "her yeri bağladım" iddiası ancak MUTASYONLA
+> kanıtlanır; geçen bir test çağrının yapıldığını göstermez.** Ve kanıtın
+> `typecheck` olamayacağı yapısal: ifade bir **SQL metni** üretiyor ve o metin
+> hiçbir tipe girmiyor.
 
 > ✅ **4.10'DA DA PAY SABİT: 29 — sebebi 4.9'unkiyle AYNI SINIF, ve yine ölçüldü.**
 > 4.10 bir **ölçüm** alt görevi: migration yok, yeni olgu türü yok. 24 yeni

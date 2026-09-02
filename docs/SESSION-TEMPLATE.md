@@ -64,6 +64,12 @@ FAZ KAPANIŞI
 20. Yeni sorun/borç/sapma varsa ilgili kütüğe ekle (SORUN-XXX, BORÇ-XXX, SAPMA-XXX).
 21. **docs/SPEC-COVERAGE-GAPS.md** — bu fazda kapanan satırların `Durum`u güncellendi mi?
     Yeni boşluk bulunduysa yeni bir "Tarama N" bölümü açıldı mı? (Satır SİLİNMEZ.)
+    **`pnpm gaps:check` KOŞULUR** — her açık G-satırı, atandığı fazın ROADMAP
+    kapsamında adıyla geçiyor mu? Kırmızıysa satır o fazın kapsamına yazılır.
+    ⚠️ Bu adım Faz 4.11'de eklendi ve adım 4'ün kardeşi: kütük 4.0'da bir OKUYUCU
+       kazandı, ama tutarlılığını DENETLEYEN bir adım yoktu — kural yalnızca
+       Faz 4'ün 4.11 maddesinde, sayı taşıyan (ve bayatlamış) bir cümle olarak
+       yaşıyordu. Betik sayıları kütükten sayar; talimat sayı taşımaz.
 22. CHANGELOG.md güncelle, ROADMAP.md'de fazı [x] işaretle.
 23. PR aç: feature/faz-[XX]-[slug] → develop
 24. Kısa demo notu + (arayüz fazıysa) ekran görüntüsü.

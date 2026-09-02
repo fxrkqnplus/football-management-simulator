@@ -1799,7 +1799,7 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 - [x] **"20–24 yaş, sağ bek, CA>120" sorgusu 5.000 oyuncu hacminde < 50 ms** *(SAPMA-031 — `değer<15M` yüklemi çıkarıldı)* — **4.10**, `transfer-search-criterion.itest.ts`. Ölçüm **istatistikle** alındı ve istatistiğin varlığı **`last_analyze` ile** denetlendi (`reltuples != -1` değil — o, autoanalyze sayesinde `ANALYZE` çağrılmadan da yeşil verir; 4.9'un ölçümü) + **karşı kontrol** `n_live_tup = 5000`. Süre bir sayı değil **dağılım** olarak raporlandı (9 örneklem): **medyan ~0,43 ms · en kötü ~0,46 ms**, yani bütçenin **~%1'i**; ısıtmasız ilk koşu da bütçenin altında. ⚠️ **Kriter SAĞLANDI ama SÜRE TARAFI ÖNEMSİZ ve bu saklanmadı:** aynı sorgu **indeksler kapalıyken de** bütçenin altında kalıyor (koşan bir testle iddia ediliyor) — yani bu ölçüm *"indeks çalışıyor"* demiyor, o iddia ayrı bir dosyada (İDDİA B). 🆕 **Plan tarafı önemsiz DEĞİL:** `0011`in iki indeksi aynı sorguda, aynı hacimde **zıt** davranıyor — `players` bileşik indeksi kullanıyor (%1,5 seçici), `people` **Seq Scan**'e düşüyor (%35,5) ve `people_birth_date_idx` **hiç kullanılmıyor**. 4.8'in *"hangisi olduğu 4.10'un ölçümüdür"* sorusu böylece cevaplandı
 - [x] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)* — **4.5**, `0007`; 57 nitelik sütununun (47 görünür + 10 gizli) hiçbiri CHECK almadı ve bu **negatif bir iddiayla** sabitlendi (`pg_constraint` katalogdan okunuyor, boş liste bekleniyor): *"kısıt eklemeyi unuttuk"* ile *"kısıt bilerek konmadı"* aynı şemayı üretir, ayıran tek şey koşan bir iddiadır. Kalibrasyon tarafının kısıtsızlığı `players`ta da ayrıca ölçüldü (CA=250 kabul ediliyor)
 - [x] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`** — **4.5**, `0007`; `ALTER TABLE … ADD CONSTRAINT` ile (tablo 4.3'te yaratılmıştı). **İKİ AYRI kısıt**, birleşik değil — hangi değişmezin ihlal edildiği hata mesajından okunsun. Reddi **negatif testle** kanıtlandı (CA>PA ve min>max ayrı ayrı reddediliyor) ve **sınır dahil** olduğu karşı örnekle gösterildi (CA=PA, min=max kabul ediliyor: `<` yazılsaydı ikisi de reddedilir ve hata ancak Faz 9 ingest'inde görülürdü). D5'te derlenmiş `dist` + düz `node` ile ayrı bir gerçek PG 18.6'ya karşı da koşuldu
-- [ ] Şema dokümanı güncellendi
+- [x] **Şema dokümanı güncellendi** — **4.11**, `docs/schema/world.md`. **İKİ TARAF AYRI AYRI ÖLÇÜLDÜ ve yalnızca biri korunuyordu.** ① **Mermaid bloğu:** `er-diagram.itest.ts` **3/3 geçti** — blok canlı katalogdan üretilen metnin birebir aynısı, 22 tablo / 32 ilişki; yani *"4.8–4.10 tablo eklemedi, herhâlde günceldir"* denmedi, **koşturuldu**. ② **PROSE — DÖRT YERDE BAYATTI ve hiçbir kapı göremezdi:** başlık *"TAMAMLANDI (Faz 3.10) … indeksler 3.7'de eklendi"* diyordu (bugün **altı** indeks, 3.7'nin dördü + 4.8'in ikisi) · `## Tablolar (15)` **4.5'te durmuştu**, 4.6/4.7'nin **yedi tablosu eksikti** (bugün **22**) · FK bölümü *"On altı FK … 16/16"* diyordu (bugün **32/32**) · migration zinciri **dokuz** dosya sayıyordu (bugün **on iki**). Dördü de düzeltildi. ⚠️ **Ders belgeye kendi başlığına yazıldı:** nöbetçi bloğu koruyor, prose'u **hiçbir şey** korumuyor — *"test geçti, belge günceldir"* geçersiz bir çıkarım. 🆕 **VE RENDER YENİDEN ÖLÇÜLDÜ:** belgenin kendi kuralı *"şema değişince render tek seferlik yeniden ölçülür"* diyordu ve 3.10'dan beri ateşlememişti; `mermaid-cli 11` ile koşuldu (repoya bağımlılık **eklenmedi**, `pnpm-lock.yaml` diff yok) → **954.908 bayt SVG, hata kutusu yok, 22 varlığın 22'si birebir bir kez, işaretler 15 `PK` · 8 `PK,FK` · 23 `FK` · 9 `UK`** — ve işaretler **iki kaynaktan** (üretilmiş `.mmd` ↔ render `.svg`) sayılıp karşılaştırıldı: **4/4 uyuşuyor**
 
 **Alt görevler** *(4.0/4.0b'de ölçüldü, kullanıcı onayıyla 2026-08-29'da işlendi — K11)*
 
@@ -2058,7 +2058,28 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       `ANALYZE` ile dolar; ölçümde +60 sn'de bile `NULL` kaldı). ⚠️ Aynı sebeple
       4.10'un plan ölçümü **seed'den hemen sonra alınmamalı**: aynı sorgu
       15 saniye arayla iki farklı plan verebilir ve fark **sessizdir**.
-- [ ] **4.11** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR. → kriter 6
+- [x] **4.11** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR. → kriter 6
+      **SONUÇ — FAZ 4 KAPANDI, KABUL KRİTERLERİ 6 / 6.** Şema **hiç değişmedi**
+      (zincir 12 · tablo 22 · FK 32 · indeks 6 · sequence 14 · CHECK 20 —
+      altısı da sabit) ve bu `drizzle-kit generate`in *"No schema changes"*
+      çıktısıyla iddia edildi, `typecheck`le değil.
+      **BORÇ-008 ÖDENDİ:** kopya sayısı bugün **yeniden sayıldı** → **dokuz**
+      (kütükteki sayı tuttu). ⚠️ Kaba tarama **onuncu** bir aday gösteriyordu
+      (`kit-templates.ts`) ve **ölçüm onu ayırdı**: `KIT_COLOR_SLOTS` bir
+      **sayı** dizisi (`[2, 3]`), çıktısı tırnaksız `2, 3` — bağlansaydı
+      üretilen SQL değişirdi. *"Aynı görünen"* ile *"aynı metni üreten"* farkı.
+      Tek modül `schema/sql-literals.ts`; **mutasyon 17 / 17** (modül körlendi,
+      üretilen migration **17 CHECK kısıtının 17'sini** birden değiştirdi →
+      bağlanmadan kalan çağrı yeri yok). `referees.ts:23`ün karşılıksız cümlesi
+      düzeltildi, düzeltme **görünür** bırakıldı.
+      🆕 **TUTARLILIK KONTROLÜ ARTIK BİR BETİK** (`pnpm gaps:check`) ve ilk
+      koşusunda **gerçek bir uyuşmazlık buldu: G-13 → Faz 5**. 20 satır ·
+      3 atlandı (G-03 · G-08 · G-18) · 17 tarandı · 1 ✗.
+      🆕 **AYNI SINIFIN BORÇ TARAFI DA ÖLÇÜLDÜ:** BORÇ-003 ve BORÇ-005 kütükte
+      *"Faz 5"* yazıyor ama ROADMAP'te yalnızca **Faz 2** bölümünde geçiyordu;
+      ikisi de Faz 5 kapsamına ve bir kabul kriterine yazıldı.
+      **D5 21/21** (derlenmiş `dist` + düz `node` + `fms_d5_411`) —
+      **dört uyuşmazlık** çıktı, **dördü de benim beklentimde**.
       ⚠️ **BORÇ-008 (CHECK literal ifadesinin dokuz kopyası) BURADA ÖDENİR** —
       vadesi bu alt görev.
       ⚠️ **VE `packages/db/src/schema/referees.ts:23`ÜN KARŞILIKSIZ CÜMLESİ
@@ -2077,13 +2098,23 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       ⚠️ **`SPEC-COVERAGE-GAPS` ↔ ROADMAP TUTARLILIK KONTROLÜ BURADA KOŞULUR**
       *(karar 4.3'te verildi ve buraya yazıldı — kütüğe kayıt yetmez, hedef fazın
       kapsamında görünmeli; 4.0'ın ① bulgusu tam olarak buydu).*
-      **Ne yapılacak:** `docs/SPEC-COVERAGE-GAPS.md`'deki **her** G-satırı için,
-      atandığı fazın ROADMAP kapsamında **adıyla** geçtiği `grep` ile doğrulanır
-      (bugün G-01…G-16). Eşleşmeyen satır **o alt görevde** hedef fazın kapsamına
-      yazılır. **Kontrol koşan bir adımdır, bir temenni değil** (SAPMA-033: bir
-      kuralın kontrol eden adımı yoksa, ateşlendiğinde hiçbir şey olmaz).
-      ⚠️ Tarama, kapatılmış satırları da (G-03, G-08) **listeler ama atlar** —
-      kapanmış bir satırın hedef fazda görünmesi gerekmez.
+      **Ne yapılacak:** `pnpm gaps:check` koşulur
+      (`scripts/check-gap-coverage.mjs`). Betik `docs/SPEC-COVERAGE-GAPS.md`'deki
+      **her** G-satırını kütükten sayar, açık/kapalı ayrımını **satırın kendi
+      durum sütunundan** okur ve açık olanların hedef fazın ROADMAP kapsamında
+      **adıyla** geçtiğini doğrular. Eşleşmeyen satır **o alt görevde** hedef
+      fazın kapsamına yazılır. **Kontrol koşan bir adımdır, bir temenni değil**
+      (SAPMA-033: bir kuralın kontrol eden adımı yoksa, ateşlendiğinde hiçbir şey
+      olmaz). Kapanmış satırlar **listelenir ama atlanır** — kapanmış bir satırın
+      hedef fazda görünmesi gerekmez.
+      ⚠️ **BU MADDE SAYI TAŞIMIYOR ve bu bilinçli — eski hâli TAŞIYORDU ve
+      BAYATLAMIŞTI.** *"(bugün G-01…G-16)"* ve *"kapatılmış satırları da
+      (G-03, G-08)"* yazıyordu; 4.11'de ölçüldü: kütükte **G-20**'ye kadar satır
+      var ve kapalı satırlardan biri (**G-18**) atlama listesinde yoktu. Talimat
+      olduğu gibi uygulansaydı kontrol **yeşil verir ve dört satıra hiç
+      bakmazdı** — D3'ün en saf biçimi, üstelik D3'ü yakalamak için yazılmış bir
+      adımda. **Bir talimatın içindeki sayı da bayatlar; sayıyı kaynaktan sayan
+      bir artefakt bayatlamaz.**
 
 **Her migration üç şey daha getirir:** `drizzle/down/<tag>.sql` (yoksa koşucu
 veritabanına **dokunmadan durur**) · round-trip testine bir `it()` · ER diyagramı
@@ -2118,6 +2149,32 @@ var: bölünme tahminle değil **ölçümle** kararlaştırılır. Çizgi hazır
 - ESLint kuralı: JSX içinde çıplak Türkçe metin **yasak** (otomatik yakalar)
 - `tools/i18n-check.ts`: eksik anahtar, kullanılmayan anahtar, boş çeviri raporu → CI'da çalışır
 - **Terim Sözlüğü** (`docs/glossary.md`): TR/EN karşılıklar + kod içi isimlendirme standardı (kod İngilizce, arayüz Türkçe)
+- **🆕 ÇEVİRİ KAYNAĞI BİR ARAMA KARARIDIR — `competitions.name_key` / `rivalries.name_key`** *(G-13, `docs/SPEC-COVERAGE-GAPS.md`; Faz 4.11'de eklendi)*
+  ROADMAP Faz 17 *"lig + turnuva"* dahil **beş varlık türünde** trigram araması
+  istiyor; ama bu iki tablonun görünen adı veritabanında **yok** — sütun bir i18n
+  anahtarı (`competition.tur.superlig`) ve onun üzerinde trigram araması anlamsız.
+  3.7 bu yüzden `competitions`a **bilerek indeks koymadı** (ölçüldü: indekslenecek
+  metin yok). **Faz 5'in payı mekanizmayı seçmek değil, çeviri kaynağının NEREDE
+  yaşadığını belirlemek** — üç seçeneğin (istemci tarafı arama · çevrilmiş adı
+  taşıyan arama tablosu · `nameKey`i tamamlayan `displayName` sütunu) hangisinin
+  mümkün olduğu doğrudan bu karara bağlı. Mekanizmanın kendisi **Faz 17**'de.
+  ⚠️ Karar burada verilmezse Faz 17 onu **varsayarak** seçmek zorunda kalır.
+- **🆕 K5 BORÇLARININ VADESİ BURADA — BORÇ-003 ve BORÇ-005** *(Faz 4.11'de eklendi)*
+  İkisi de Faz 2'de açıldı, ödeme fazı olarak **Faz 5** yazıldı ve kütükte öyle
+  duruyor — ama 4.11'e kadar **bu fazın kapsamında hiç görünmüyorlardı**
+  (ölçüldü: `BORÇ-003`/`BORÇ-005` ROADMAP'te yalnızca Faz 2 bölümünde geçiyordu).
+  G-13'ün, G-17'nin ve 4.0'ın ① bulgusunun aynı sınıfı: **kapsam taşıması kütüğe
+  kayıtla bitmez, hedef fazın kapsamında görünmeli.**
+  - **BORÇ-003** — `apps/web/src/components/ErrorBoundary.tsx` yedek arayüzündeki
+    Türkçe metinler (`TODO(Faz 5)` ile işaretli, tek bileşende toplu; `title`
+    zaten **prop**, yani çağrı yerleri hazır). ℹ️ `components/dev/DebugPanel.tsx`
+    aynı sınıf metni taşıyor ama **atlanabilir ve bu bilinçli**: panel dev-only,
+    üretim paketinde hiç yok (kaynak haritasıyla kanıtlandı) — K5'in koruduğu şey
+    kullanıcıya görünen yüzey.
+  - **BORÇ-005** — `apps/api/src/common/filters/global-exception.filter.ts`
+    içindeki `MESSAGE_BY_KIND` tablosu. İş *"fırlatma yerlerini gezmek"* değil:
+    sözleşmenin aslı `code` + `context` ve ikisi de gövdede dönüyor, yani tablo
+    silinir ve istemci `t('errors:' + code, context)` ile üretir.
 
 **Ana dosyalar:**
 ```
@@ -2134,6 +2191,8 @@ docs/glossary.md
 - [ ] Türkçe ek motoru 50 test vakasının tamamını geçiyor (Galatasaray'ın, Beşiktaş'ın, Trabzonspor'un, Roma'nın, Liverpool'un…)
 - [ ] Tarih "23 Ağustos 2026", para "€1,2 mn" formatında
 - [ ] Sözlükte en az 120 terim tanımlı
+- [ ] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)*
+- [ ] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — `ErrorBoundary` ve `MESSAGE_BY_KIND` metinleri `t()` üzerinden geliyor; ödendiği kütükte işaretli *(K5)*
 
 **Bağımlılık:** Faz 1
 

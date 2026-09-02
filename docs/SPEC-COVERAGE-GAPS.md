@@ -134,7 +134,7 @@ arama isteyen fazlarına karşı tek tek soruldu.
 
 | #    | Spec referansı | Ne istiyor | Hangi faza ait olmalı | Durum |
 | ---- | -------------- | ---------- | --------------------- | ----- |
-| G-13 | `docs/ROADMAP.md` Faz 17 — *"Global arama (`/`): oyuncu + kulüp + personel + **lig + turnuva** — tek kutu, Türkçe karakter toleranslı (pg_trgm)"* | Beş varlık türünde trigram araması. **İkisi bugünkü şemayla yapılamaz:** `competitions`ın görünen adı `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`) — onun üzerinde trigram araması anlamsız. Aynı sorun `rivalries.nameKey`te de var. Yani arama, veritabanında **bulunmayan** bir metin üzerinde yapılmak zorunda. | **Faz 5** (i18n altyapısı) çeviri kaynağını belirler; **Faz 17** arama mekanizmasını seçer | ✅ **ROADMAP Faz 17 kapsamına eklendi (Faz 4.0).** 3.7 `competitions`a trigram indeksi **koymadı** — indekslenecek bir metin yok. Seçenekler Faz 17'ye bırakıldı (çeviriler üzerinde istemci tarafı arama · çevrilmiş adı taşıyan bir arama tablosu · `nameKey`i tamamlayan bir `displayName` sütunu). Karar `packages/db/src/schema/competitions.ts` yorumunda. ✅ **ROADMAP Faz 17 kapsamına eklendi (Faz 4.0)** — üç seçenek kapsam maddesinde sayıldı ve *"arama beş varlık türünün beşini de kapsıyor"* diye bir **kabul kriteri** eklendi, yani faz bu boşluk sessizce açık kalarak kapanamaz. |
+| G-13 | `docs/ROADMAP.md` Faz 17 — *"Global arama (`/`): oyuncu + kulüp + personel + **lig + turnuva** — tek kutu, Türkçe karakter toleranslı (pg_trgm)"* | Beş varlık türünde trigram araması. **İkisi bugünkü şemayla yapılamaz:** `competitions`ın görünen adı `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`) — onun üzerinde trigram araması anlamsız. Aynı sorun `rivalries.nameKey`te de var. Yani arama, veritabanında **bulunmayan** bir metin üzerinde yapılmak zorunda. | **Faz 5** (i18n altyapısı) çeviri kaynağını belirler; **Faz 17** arama mekanizmasını seçer | ✅ **ROADMAP Faz 17 kapsamına eklendi (Faz 4.0).** 3.7 `competitions`a trigram indeksi **koymadı** — indekslenecek bir metin yok. Seçenekler Faz 17'ye bırakıldı (çeviriler üzerinde istemci tarafı arama · çevrilmiş adı taşıyan bir arama tablosu · `nameKey`i tamamlayan bir `displayName` sütunu). Karar `packages/db/src/schema/competitions.ts` yorumunda. ✅ **ROADMAP Faz 17 kapsamına eklendi (Faz 4.0)** — üç seçenek kapsam maddesinde sayıldı ve *"arama beş varlık türünün beşini de kapsıyor"* diye bir **kabul kriteri** eklendi, yani faz bu boşluk sessizce açık kalarak kapanamaz. ⚠️ **AMA ATAMANIN YARISI EKSİKTİ ve bunu 4.11'in KOŞAN kontrolü buldu:** bu satır **iki** faza atanmış (*"**Faz 5** çeviri kaynağını belirler; **Faz 17** arama mekanizmasını seçer"*) ve 4.0 yalnızca Faz 17'ye işlemişti — `pnpm gaps:check` **17 açık satırdan 16'sını** ✓, bunu ✗ verdi. ✅ **Faz 5 kapsamına da eklendi (Faz 4.11)**, bir **kabul kriteriyle**. ℹ️ Satır bayat talimatın menzilindeydi (*"bugün G-01…G-16"*), yani onu kaçıran şey menzil değil **kontrolün hiç koşmamış olması**ydı — SAPMA-033'ün bir kez daha aynı biçimi. |
 
 ---
 
@@ -301,6 +301,44 @@ kural listesi) ve hiçbirinde bulunamadı.
 | No | Nerede | Ne eksik | Kim yapmalı | Durum |
 |---|---|---|---|---|
 | G-20 | `docs/ROADMAP.md` Faz 4 kabul kriteri 1 (*"5.000 sahte oyuncu seed"*) ↔ Faz 9 (*"serbest oyuncu havuzu (~300 kişi)"*, *"3.500+ oyuncu"*) | **4.9'un 5.000 prosedürel oyuncusunun ÖMRÜ tanımsız.** Ülke/yarışma seed'i ile **yapısal olarak farklılar** ve fark ölçüldü: o satırlar gerçek veriyle **aynı `key`i** taşıyor, yani Faz 8 ingesti `DO UPDATE` ile üzerlerine yazıyor ve sayı değişmiyor. Oyuncu satırları ise ayrı bir namespace'te (`seed-player-*`, gerekçesi `player-seed-data.ts` başlığında: paket namespace'iyle çakışırsa biri diğerini **sessizce** ezerdi) — yani Faz 9'un `player-*` anahtarları onları **ezmez, yanlarına ekler**. Sonuç iki sayımı birden bozuyor: *"serbest oyuncu havuzu ~300"* **5.300** olur, *"3.500+ oyuncu"* kriteri **8.500** satırın üstünde ölçülür. ⚠️ **Ve satırların nitelikleri yok:** `spec/02` §4.2 CA'yı `round(Σ(attribute × weight) / Σ(weight) × 10)` ile **niteliklerden** hesaplıyor; 4.9'un yazdığı `current_ability` hiçbir nitelik satırından türemiyor (KARAR: 47+10 sütuna değer yazmak bir **dağılım** kararı, sahibi Faz 10 — SAPMA-026). Bugün zararsız (kriter 3'ün sorgusu yalnızca `players`a bakıyor), Faz 10 sonrasında **tutarsız**. | **Faz 9** (oyuncu ingesti) — çelişkinin ilk kez GERÇEKLEŞTİĞİ faz | ✅ **ROADMAP Faz 9 kapsamına eklendi (Faz 4.9) ve bir KABUL KRİTERİ getirdi** — yani faz bu boşluk sessizce açık kalarak kapanamaz. ⚠️ **SAHİP TAHMİNLE ATANMADI (G-18'in dersi): hedef fazın işi YAPABİLDİĞİ doğrulandı.** Üç aday okundu: **Faz 10** *yapamaz* — girdisi `player_stats_history` ve bu satırların istatistik geçmişi **yok**, yani nitelik türetemez. **Faz 11** doğrulayıcısının 40+ kuralı okundu; *"her kulüpte ≥ 18 oyuncu"*, *"CA ≤ PA"* gibi kurallar var ama *"her oyuncunun niteliği var"* **yok**, ve doğrulayıcı zaten **rapor eder, silmez**. **Faz 9** `players` tablosuna yazan ve serbest oyuncu havuzunun sayısını **kendi kriterinde taşıyan** faz — silme, bayrak arkasına alma ve prosedürel nitelik üretme seçeneklerinin üçü de oradan uygulanabilir. Üç seçenek ROADMAP Faz 9 kapsamına **tek tek** yazıldı; karar bugün verilmedi (K13 — bugün verilseydi Faz 8/9'un ingest hacmi bilinmeden verilmiş olurdu). |
+
+---
+
+## Tarama 13 — Faz 4.11 (2026-09-02)
+
+Yöntem: yeni boşluk taraması **değil** — kütüğün **kendi tutarlılığının** ölçümü,
+ve bu kez elle değil **koşan bir betikle**: `pnpm gaps:check`
+(`scripts/check-gap-coverage.mjs`). Betik satırları kütükten sayar, açık/kapalı
+ayrımını **satırın kendi durum sütunundan** okur, hedef fazı *"Hangi faza ait
+olmalı"* sütunundaki **kalın** `**Faz N**` atamalarından çıkarır (düz metinle
+anılan fazlar bir atama değil, bir bağlam atfıdır) ve ROADMAP'i `## FAZ N`
+başlıklarından dilimleyip satırın **adıyla** geçtiğini doğrular.
+
+**Sonuç: 20 satır · 3 atlandı (kapalı: G-03 · G-08 · G-18) · 17 tarandı · 1 ✗.**
+
+| Bulgu | Ne çıktı |
+|---|---|
+| **G-13 → Faz 5** | ✗ **Atamanın yarısı eksikti.** Satır iki faza atanmış (Faz 5 çeviri kaynağını belirler, Faz 17 mekanizmayı seçer); 4.0 yalnızca Faz 17'ye işlemişti. **Faz 5 kapsamına bir kabul kriteriyle yazıldı (4.11).** |
+| Kalan 16 açık satır | ✓ hepsi hedef fazının ROADMAP kapsamında adıyla geçiyor |
+| Yeni boşluk | **YOK** — 4.11 hiçbir boşluk açmadı |
+
+> ⚠️ **TALİMATIN KENDİSİ BAYATTI ve kontrol tam da onu yakaladı.** ROADMAP'in
+> 4.11 maddesi *"(bugün G-01…G-16)"* ve *"kapatılmış satırları da (G-03, G-08)"*
+> diyordu. Ölçüldü: kütükte **G-20**'ye kadar satır var (dört satır menzil
+> dışında kalırdı) ve kapalı satırlardan **G-18** atlama listesinde yoktu.
+> Talimat olduğu gibi uygulansaydı kontrol **yeşil verir ve dört satıra hiç
+> bakmazdı**. Çare bir sayı güncellemesi değil — o da bayatlardı: talimat sayı
+> taşımayan bir cümleye çevrildi ve sayılar artık **betikten** geliyor.
+>
+> ℹ️ Ve G-13 **bayat menzilin içindeydi** (13 < 16), yani onu kaçıran şey menzil
+> değil **kontrolün hiç koşmamış olması**ydı. SAPMA-033'ün aynı biçimi: yazılı
+> bir kural, koşan bir adımı yoksa ateşlendiğinde hiçbir şey yapmaz.
+
+> ℹ️ **AYNI SINIFIN BORÇ TARAFI DA ÖLÇÜLDÜ (4.11).** `BORÇ-003` ve `BORÇ-005`
+> kütükte *"ödenmesi gereken faz: 5"* yazıyor, ama ROADMAP'te yalnızca **Faz 2**
+> bölümünde geçiyorlardı — Faz 5'in kapsamında ikisi de yoktu. İkisi de kapsama
+> ve bir kabul kriterine yazıldı. Bu kütüğün kapsamı değil (borç ≠ boşluk), ama
+> **ayracı aynı**: *"kapsam taşıması kütüğe kayıtla bitmez."*
 
 ---
 

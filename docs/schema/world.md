@@ -1,12 +1,22 @@
 # Dünya Çekirdeği Şeması — Master World
 
-> **Durum: TAMAMLANDI (Faz 3.10).** Tablo envanteri 3.6'da kapandı, sütun
-> tanımları 3.4–3.6'da yazıldı, indeksler 3.7'de eklendi, **ER diyagramı 3.10'da
-> gerçek şemadan üretildi.**
+> **Durum: FAZ 3 + FAZ 4 KAPANDI (son güncelleme 4.11).** Faz 3'ün on bir
+> tablosu 3.6'da, Faz 4'ün on bir tablosu 4.7'de kapandı; sütun tanımları
+> 3.4–3.6 ve 4.3–4.7'de yazıldı, indeksler **iki turda** geldi (3.7 → dört ·
+> 4.8 → iki), **ER diyagramı 3.10'dan beri gerçek şemadan üretiliyor.**
 >
 > **Otorite sırası:** `docs/spec/01-database.md` (sütun tanımları) →
-> `docs/ROADMAP.md` Faz 3 tablo envanteri (kapsam kararları) → bu dosya (özet).
-> Çelişki olursa spec kazanır.
+> `docs/ROADMAP.md` Faz 3 ve Faz 4 tablo envanterleri (kapsam kararları) → bu
+> dosya (özet). Çelişki olursa spec kazanır.
+>
+> ⚠️ **BU BAŞLIK 4.11'DE DÜZELTİLDİ ve düzeltmenin sebebi bir DESEN.** Eski hâli
+> *"TAMAMLANDI (Faz 3.10) … indeksler 3.7'de eklendi"* diyordu ve **dört alt
+> görev** boyunca öyle kaldı. Mermaid bloğunu koşan bir nöbetçi koruyor
+> (`er-diagram.itest.ts`); **prose'u hiçbir şey korumuyor** — o yüzden blok
+> güncelken metin bayatlayabiliyor, ve bu dosyada 4.11'de **dört yerde birden**
+> bayatlamış bulundu (bu başlık · tablo envanteri · FK sayısı · indeks listesi).
+> Nöbetçinin kapsamı burada yazılı olsun ki bir sonraki tur *"test geçti, belge
+> günceldir"* diye okumasın.
 
 ## Diyagram nasıl üretiliyor — ve kim denetliyor
 
@@ -44,9 +54,34 @@ değil. Üstelik yön **ters okunmaya açık**: `- Expected` satırları **üret
 yazılır ve **test yeşile döner**. Sessiz bir yanlış düzeltme. Bu yüzden doğru
 metin artık hata mesajının **içinde** duruyor ve fark okunmasına gerek yok.
 
-✅ **Render 3.10'da ölçüldü** — `mermaid-cli 11.16.0` (tek seferlik, repoya
-bağımlılık **eklenmedi**): 403 KB SVG, hata kutusu yok, on bir varlık adının
-her biri birebir bir kez, işaretler 9 `PK` + 2 `PK,FK` + 10 `FK` + 8 `UK`.
+✅ **Render 4.11'de YENİDEN ÖLÇÜLDÜ — çünkü bu paragrafın kendi kuralı öyle
+diyordu ve şema 11 varlıktan 22'ye çıkmıştı.** `mermaid-cli 11` (tek seferlik,
+repoya bağımlılık **eklenmedi** — `pnpm-lock.yaml` diff yok, ölçüldü):
+
+| | 3.10 (11 varlık) | **4.11 (22 varlık)** |
+|---|---|---|
+| SVG | 403 KB | **954.908 bayt** |
+| Hata kutusu | yok | **yok** |
+| Varlık adı birebir bir kez | 11/11 | **22/22** |
+| İşaretler | 9 `PK` · 2 `PK,FK` · 10 `FK` · 8 `UK` | **15 `PK` · 8 `PK,FK` · 23 `FK` · 9 `UK`** |
+
+⚠️ **İşaretler İKİ KAYNAKTAN sayıldı ve karşılaştırıldı** — üretilmiş metin
+(`.mmd`) ve render (`.svg`): **4/4 uyuşuyor**. Tek kaynaktan sayılsaydı,
+render'ın bir işareti düşürmesi görünmezdi.
+
+⚠️ **VE ÖLÇÜM ARACI İKİ KEZ YANLIŞ CEVAP ÜRETTİ (D2), ikisi de aynı koşuda
+yakalandı:** ① *"hata kutusu"* dedektörü `error-icon` arıyordu ve **yanlış
+pozitif** verdi — o dize mermaid'in **varsayılan CSS'inde** duruyor
+(`.error-icon{fill:#552222;}`), bir hata kutusu değil bir stil kuralı; gerçek
+imzalar (`aria-roledescription="error"`, görünür `Syntax error`) ikisi de **0**.
+② `.mmd` işaret sayacı işareti **satır sonunda** arıyordu, oysa yorumlu
+nitelikler tırnaklı bir metinle bitiyor (`integer club_id FK "null"`) — `FK`
+**12** sayıldı, gerçek **23**. Uyuşmazlığı gösteren şey, iki kaynaklı sayımın
+kendisiydi.
+
+ℹ️ **Bu hâlâ kalıcı bir kapı DEĞİL** (aşağıdaki gerekçe geçerli); ama kural
+artık bir kez daha koştu ve **koştuğu kaydedildi** — *"şema değişince yeniden
+ölçülür"* cümlesi 3.10'dan 4.11'e kadar ateşlenmemişti.
 ⚠️ **Bu kalıcı bir kapı DEĞİL.** Nöbetçi diyagramın **içeriğini** koruyor
 (katalogla birebir aynı mı), **sözdizimini** koruyan bir şey yok — sürekli
 koşan bir render kontrolü bir `mermaid` bağımlılığı ve tarayıcı indirmesi
@@ -545,7 +580,7 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 şemada (`spec/01` §3.0 — tavuk-yumurta çözümü) ve `introspectSchema()` yalnızca
 `public`'i okuyor.
 
-## Tablolar (15)
+## Tablolar (22)
 
 | # | Tablo | Alt görev | `key`/`source`/`externalIds` | Not |
 |---|---|---|---|---|
@@ -565,18 +600,30 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 | 14 | `player_attributes` | **4.5** | — | **47 görünür nitelik, tek satır** (`jsonb` değil — `spec/01`'in kendi notu: filtre performansı kritik). Sayı `spec/02` §4.1'den **sayılarak** doğrulandı (14+14+8+11), ROADMAP'ten alınmadı (SAPMA-001). `playerId` **PK = FK** → CASCADE; ayraç (*"tabloya gelen FK sayısı"*) **koşturuldu**: `player_attributes`'a bakan **0**, yani 3.5 deseni — `players`ınki kopyalanmadı. ⚠️ **47 sütunun hiçbiri CHECK ALMIYOR** (SAPMA-028): aralık kalibrasyondur, denetim Faz 11. Kaleci nitelikleri saha oyuncusunda da `NOT NULL` (`spec/02`: *"1-3 arası sabitlenir"* — bilgi var, düşük) |
 | 15 | `player_hidden_attributes` | **4.5** | — | **10 gizli nitelik**. ⚠️ Bu tablo **SAPMA-001'in kendi vakası**: ROADMAP 8 diyordu, `spec/02` §4.5 `adaptability` (Faz 34) ve `temperament` (Faz 44) ile 10'a çıkardı ve tutarsızlık 3.0'a kadar sürdü. `playerId` **PK = FK** → CASCADE; ayraç **ayrıca** koşturuldu (kardeş tablodan kopyalanmadı) ve ikinci bir gerekçe bu tabloya özgü: okuyucuları (`derivePersonality`, gelişim, sakatlık) hepsi oyuncudan yola çıkıyor, satırın kendi kimliğini kimse taşımıyor. `player_personalities` **açılmadı** — `spec/02` §4.6 kişiliği **türetiyor**, saklamıyor (G-15) |
 
-> ✅ **FAZ 3'ÜN ENVANTERİ KAPANDI — 11/11 (Faz 3.6); FAZ 4 ONU BÜYÜTÜYOR (13 → 4.3, 15 → 4.5).**
+| 16 | `player_positions` | **4.6** | — | Mevki yetkinlik matrisi. **Faz 4'ün ilk 1:N tablosu ve şemanın ilk BİLEŞİK PK'si** (`playerId + position`). İki CHECK: `position` (12 kod, `players.ts`ten **ithal** — iki kopya ayrışamasın) ve `level` (5 derece). `playerId` → CASCADE |
+| 17 | `player_traits` | **4.6** | — | Özel yetenekler (PPM). Bileşik PK (`playerId + traitCode`), `playerId` → CASCADE. ⚠️ **`traitCode` CHECK ALMADI** ve bu ölçülmüş bir karar: küme `spec/02`'de **hiç tanımlı değil** (0 eşleşme) ve ROADMAP *"~30"* diyor — **sayılamayan bir küme kapalı iddia edilemez** (§3.1.2 ②) |
+| 18 | `player_stats_history` | **4.6** | — | Sezon × turnuva gerçek dünya istatistiği; Faz 10 nitelik türetiminin **girdisi**. Eski adı `player_career_history` (SAPMA-030). ⚠️ **`clubId` spec'te YOKTU ve eklendi** (0 eşleşme) — onsuz Faz 19 *"kariyer bazında istatistik"* ve Faz 47 *"her kulüp, süre"* cevaplanamıyordu. Üç FK, üç farklı cevap: `playerId` **CASCADE** · `competitionId` **CASCADE** (sezgiye aykırı — kural ② hedefin değil **kaynağın** sınıfına bakıyor) · `clubId` **SET NULL** |
+| 19 | `staff` | **4.7** | — | Teknik ekip. `role` CHECK (**12** değer, `spec/01` §3.1'den sayıldı). ⚠️ **`personId` UNIQUE DEĞİL** — `players`tan ölçülmüş bir fark (`spec/01` `players`a `FK UNIQUE`, `staff`a yalnızca `FK` yazıyor): aynı kişi iki kulüpte iki rol taşıyabilir ve fixture bunu **kullanıyor**. `personId` → CASCADE · `clubId` **nullable** → **SET NULL** (işsiz personel geçerli bir durum) |
+| 20 | `staff_attributes` | **4.7** | — | **16 antrenörlük niteliği**, tek satır (19 sütun = 1 + 16 + 2). `staffId` **PK = FK** → CASCADE; 1:1 ayracı **ayrıca koşturuldu** (`staffAttributeId` → 0 gelen FK). Nitelikler CHECK **almadı** (kalibrasyon, SAPMA-028) — ve bu kümenin `spec/02`'de **hiç geçmediği** ayrıca ölçüldü |
+| 21 | `managers` | **4.7** | — | Menajerler (teknik direktörler). İki CHECK: `coachingBadge` (5) ve `experienceLevel` (5). ⚠️ **`philosophy` CHECK ALMADI** — `spec/01` kümeyi `...` ile bitiriyor, yani **sayılamıyor** (`traitCode`ün aynı gerekçesi). ⚠️ **`userId` HİÇ YAZILMADI** — `users` §3.2 save katmanında ve **Faz 13**'te doğuyor; kısıtsız bir sütun *"tüm FK'lar tanımlı"* kriterini görünürde sağlayıp gerçekte delerdi (SAPMA-032 / **G-16**). Yokluğu bir birim testiyle **iddia ediliyor** |
+| 22 | `manager_attributes` | **4.7** | — | **8 menajerlik niteliği**, tek satır (11 sütun = 1 + 8 + 2). `managerId` **PK = FK** → CASCADE. İki nitelik tablosunun **kesişimi** ayrıca iddia ediliyor — 16 ile 8 ayrı kümeler |
+
+> ✅ **FAZ 3'ÜN ENVANTERİ 11/11 KAPANDI (3.6); FAZ 4'ÜNKİ 11/11 KAPANDI (4.7) → 22.**
 > Sayı gözle sayılmıyor:
 > `packages/db/integration/schema-constraints.itest.ts` gerçek
 > `information_schema`'dan okuyup tablo adlarını tek tek iddia ediyor,
 > `round-trip.itest.ts` aynı listeyi çevrimin iki ucunda karşılaştırıyor ve
 > **3.10'dan itibaren** `er-diagram.itest.ts` sayıyı bu belgenin metninden de
 > okuyup katalogla karşılaştırıyor.
-> ⏳ **Faz 4'ün kalan yedi master tablosu 4.6–4.7'de gelecek** (ROADMAP, SAPMA-030).
-> Migration zinciri: `0000_countries_initial` · `0001_geography_institutions` ·
-> `0002_club_core` · `0003_visual_assets_referees` · `0004_search_indexes` ·
-> `0005_people_players` · `0006_forward_person_fks` · `0007_player_attributes` ·
-> `0008_person_type_referee` — **dokuzunun da elle yazılmış `down`u var**.
+> ✅ **Faz 4'ün son yedi master tablosu 4.6–4.7'de geldi** (ROADMAP, SAPMA-030) —
+> envanter 4.7'de kapandı ve 4.8–4.11 hiç tablo eklemedi.
+> Migration zinciri **on iki dosya**: `0000_countries_initial` ·
+> `0001_geography_institutions` · `0002_club_core` ·
+> `0003_visual_assets_referees` · `0004_search_indexes` · `0005_people_players` ·
+> `0006_forward_person_fks` · `0007_player_attributes` ·
+> `0008_person_type_referee` · `0009_player_positions_traits_stats` ·
+> `0010_staff_managers` · `0011_transfer_search_indexes` — **on ikisinin de elle
+> yazılmış `down`u var** (`drizzle-kit` `down` üretmiyor).
 > ⚠️ **4.5 tek alt görevde İKİ migration yazdı** ve bu bir iddia ayrımı kararı:
 > `0007` iki tablo yaratıp `players`a iki kısıt ekliyor, `0008` yalnızca
 > `people`ın CHECK tanımını genişletiyor (G-18). Birleştirilselerdi birinin
@@ -586,11 +633,17 @@ uzunluk varsa sona. Uzun ama her tip için doğru.
 
 ## Yabancı anahtarlar — bir LİSTE değil, bir KURAL (3.9)
 
-On altı FK'nın `ON DELETE` davranışı elle sayılmıyor; `spec/01` §3.1.2 ③ + ⑧'den
-**türetiliyor** (`packages/db/src/schema/fk-policy.ts`) ve entegrasyon testi
-türetilen değeri `pg_constraint`teki gerçekle karşılaştırıyor: **16/16, 0
-uyumsuzluk** (PG 18.6). Faz 4.3'ün dört yeni FK'sı **hiçbir liste
-güncellenmeden** denetlendi — kuralın var olma sebebi buydu.
+**Otuz iki** FK'nın `ON DELETE` davranışı elle sayılmıyor; `spec/01` §3.1.2 ③ +
+⑧'den **türetiliyor** (`packages/db/src/schema/fk-policy.ts`) ve entegrasyon
+testi türetilen değeri `pg_constraint`teki gerçekle karşılaştırıyor: **32/32, 0
+uyumsuzluk** (PG 18.6).
+
+⚠️ **KURALIN GERÇEK SINAVI FAZ 4'TE OLDU ve sayı 12 → 32'ye çıkarken hiçbir
+liste güncellenmedi.** 4.3'ün dört FK'sı, 4.4'ün üç ileri FK'sı, 4.5'in ikisi,
+4.6'nın beşi ve 4.7'nin altısı **kuraldan türetilerek** denetlendi. Faz 4 kuralı
+ayrıca **genişletti**: ③ (`SET NULL`) 4.2'de eklendi ve ilk canlı vakasını 4.3'te
+buldu. ℹ️ Bu sayı 4.11'e kadar **16** yazılı kaldı — mermaid bloğunu koşan bir
+nöbetçi koruyor, bu paragrafı koruyan bir şey yok.
 
 ```
 ① hedef dictionary                → RESTRICT
@@ -649,14 +702,31 @@ yanlış olduğunda hiçbir şey ötmezdi.
   `COLLATE "tr-TR-x-icu"`. Türkçe arama için `unaccent` **şart** ve `IMMUTABLE`
   sarmalayıcı istiyor — ölçüm ROADMAP Faz 3.7 ve Faz 8 maddelerinde.
 
-## İndeksler (Faz 3.7)
+## İndeksler (altı — 3.7'de dört, 4.8'de iki)
 
-| İndeks | Tablo | Tür | Tüketici |
-|---|---|---|---|
-| `clubs_competition_id_idx` | `clubs` | btree | `ON DELETE RESTRICT` denetimi (bugün) · lig kadrosu sorgusu (Faz 16/18) |
-| `competitions_country_id_idx` | `competitions` | btree | `ON DELETE RESTRICT` denetimi (bugün) |
-| `clubs_name_trgm_idx` | `clubs` | **GIN** `immutable_unaccent(lower(name)) gin_trgm_ops` | Faz 8 kabul kriteri (`besiktas` → `Beşiktaş`) · Faz 17 global arama |
-| `rivalries_pair_unique_idx` | `rivalries` | **UNIQUE** `(least(a,b), greatest(a,b))` | Çift tekliği — sıradan bağımsız (G-11 daraldı) |
+| İndeks | Tablo | Tür | Geldiği alt görev | Tüketici |
+|---|---|---|---|---|
+| `clubs_competition_id_idx` | `clubs` | btree | 3.7 (`0004`) | `ON DELETE RESTRICT` denetimi (bugün) · lig kadrosu sorgusu (Faz 16/18) |
+| `competitions_country_id_idx` | `competitions` | btree | 3.7 (`0004`) | `ON DELETE RESTRICT` denetimi (bugün) |
+| `clubs_name_trgm_idx` | `clubs` | **GIN** `immutable_unaccent(lower(name)) gin_trgm_ops` | 3.7 (`0004`) | Faz 8 kabul kriteri (`besiktas` → `Beşiktaş`) · Faz 17 global arama |
+| `rivalries_pair_unique_idx` | `rivalries` | **UNIQUE** `(least(a,b), greatest(a,b))` | 3.7 (`0004`) | Çift tekliği — sıradan bağımsız (G-11 daraldı) |
+| `players_primary_position_current_ability_idx` | `players` | btree **bileşik** `(primary_position, current_ability)` | **4.8** (`0011`) | Faz 4 kabul kriteri 3 (transfer arama) — **kullanılıyor**, 4.10'da plan olarak ölçüldü |
+| `people_birth_date_idx` | `people` | btree | **4.8** (`0011`) | ⚠️ **Kriter 3'ün sorgusu tarafından KULLANILMIYOR** — aşağıya bak |
+
+⚠️ **`0011`İN İKİ İNDEKSİ AYNI SORGUDA ZIT DAVRANIYOR — 4.10'da ölçüldü.**
+Planlayıcı bir **Hash Join** kuruyor ve iki tarafa **zıt** karar veriyor: 5.000
+satırlık `players` tarafı **%1,5** seçici → **Bitmap Index Scan** (bileşik
+indeks); `people` tarafı **%35,5** → **Seq Scan**, yani `people_birth_date_idx`
+**hiç kullanılmıyor** — ve planlayıcı **haklı**. İndeks *kaldırılmadı* (bu bir
+şema değişikliği olurdu ve kararın sahibi tüketici faz); yeniden değerlendirme
+**ROADMAP Faz 32** kapsamına plan tablosu ve üç somut soruyla yazıldı. Karar
+`packages/db/integration/transfer-search-criterion.itest.ts` başlığında.
+
+⚠️ **VE AYRAÇ İKİ BOYUTLU ÖLÇÜLDÜ (4.10):** yedi kademeli bir hacim merdiveni
+(1.000 → 200.000, **200×**) planlayıcının kararını **hiç** çevirmedi; aranan
+*"çevrilme noktası"* **bulunamadı ve yokluğu bir bulgu**. Çeviren tek şey
+seçicilik oldu (%0,36'da indeks, %94'te Seq Scan). 3.9'un dersinin en dar
+biçimi: burada hacim bir **değişken bile değil**.
 
 ⚠️ PostgreSQL FK sütunlarını **otomatik indekslemiyor**; ilk iki indeksin
 tüketicisi gelecekte değil **bugün**.
