@@ -29,12 +29,12 @@
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | ▶️ **FAZ 5 — i18n. On bir alt görev, 5a/5b bölünme çizgisi, kontrol noktası 5.5 sonunda (ölçümle).** Sıradaki: **5.1 — Türkçe ek motoru** (`packages/shared/src/i18n/turkish-suffix.ts`, saf, sıfır bağımlılık). ⚠️ **50 vaka bir SAYI değil bir LİSTE** (`SUFFIX_CASES`, testin kendi iddiası) ve vakalar **5.1'de** yazılır — 5.0 yalnızca kaynağı belirledi. ⚠️ **Paket hâlâ kurulmadı** — 5.3'ün işi |
-| **Son tamamlanan** | ✅ **5.0 — doğrulama alt görevi (kod yok).** **TEK KARAR verildi: tipli anahtarlar AÇILIYOR + her dinamik ailenin tek bir yardımcısı olur** (ikisi aynı kararın iki yüzü — tipleme açıksa `t('errors:' + code)` derlenmez). Ön koşullar **zaten yerinde** ölçüldü (`strict` ✓ `resolveJsonModule` ✓ TS ~6.0.3 peer aralığında ✓). ⚠️ **Karar KOŞULLU:** 5.3 bir kontrol deneyiyle doğrular — kasten yanlış anahtar `typecheck`i kırmalı. Changelog'lar **okundu**: iki majör atlamanın tek kırıcı maddesi bile dokunmuyor (hepsi ya kaldırılan eski seçenek ya var olan çeviri dosyalarını etkileyen düzeltme; bizim dosyamız yok). 🆕 **SAPMA-037** (yol) · 🆕 **SAPMA-038** (`kind` gövdede yok) |
+| **Aktif faz / alt görev** | ▶️ **FAZ 5 — i18n. On bir alt görev, 5a/5b bölünme çizgisi, kontrol noktası 5.5 sonunda (ölçümle).** Sıradaki: **5.2 — `Intl` biçimlendiriciler** (`packages/shared/src/i18n/format.ts` + saf barrel `i18n/index.ts`): tarih `23 Ağustos 2026` · para `€1,2 mn` · sayı → **kriter 4**. Saf; `Date.now()` yok, girdi parametre. ⚠️ **Paket hâlâ kurulmadı** — 5.3'ün işi |
+| **Son tamamlanan** | ✅ **5.1 — Türkçe ek motoru. KRİTER 3 KAPANDI: 55 / 55** (eşik 50). Commit: `c7b9db6`. Dört ünlü sınıfının dördü, sekiz bileşimin sekizi temsil edildi ve **dağılım tek tek sabitlendi** — uzunluk tek başına kör bir kontroldü. **Mutasyon 3/3** (motor tablosu · harf tuzağı koruması · vaka beklentisi), ve etiket çapraz kontrolü mistagging'i **bağımsız** yakaladı. 🆕 **İki harf tuzağı ÖLÇÜLDÜ:** `'IĞDIR'.toLowerCase()` → `'iğdir'` (kalın `I` → ince `i`) ve `'İ'.toLowerCase()` **iki kod birimi**; motor **hiç küçük harfe çevirmiyor** + `normalize('NFC')`. **D5 22/22** derlenmiş `dist` üzerinden |
 | **Tarih / ilerleme / dallar** | 2026-09-02 · **4 / 50 faz (%8)**, Faz 5 **başladı**. `main` → `develop` → **`feature/faz-05-i18n`** (taban `2b5075e`, upstream kuruldu). ✅ **PR #5 MERGE EDİLDİ** (merge commit, squash değil). ✅ **`GH007` push blokajı KALKTI** — kullanıcı e-posta ayarını public yaptı; sebep commit'lerde değildi (aynı e-posta `f4e53a0` ile daha önce push edilmişti, ölçülmüştü). §0.5 süre sayacı `84a6d5f`ten başlıyor |
-| **CI** | ✅ **`feature/faz-05-i18n` ilk koşusu: `33680116874` (`f8b981c`) — success.** Dalda **1 koşu, 1 yeşil** (liste sorgusu). ✅ Merge sonrası `develop`: `33674720478` (`2b5075e`) success. Faz 4 dalı kapanış sayımı: 18 koşu = 14 yeşil · 1 kırmızı · 3 iptal |
-| **Kapılar** | ✅ **typecheck 10/10 SOĞUK** (`.turbo/cache` silindi → `Cached: 0`, 13,8 s) · lint 0 · **gaps:check 20/3 atlandı/17 tarandı/0 ✗** · **test 977/67** · **test:db 301/10** · arch **9 kural** (kaynaktan sayıldı). ⚠️ **`format` 5.0'da da BAKACAK BİR ŞEY BULAMADI** — üç değişen dosyanın üçü de `prettier --file-info` → `"ignored": true` (SAPMA-024). ⚠️ test/build/arch **koşturulmadı**: 5.0 tek bir `.ts` dosyasına dokunmadı |
-| **Kapsam** | fonksiyon **%80,31 (355/442)** — satır %88,34 · ifade %88,45 · dal %88,94; eşik `vitest.config.ts`ten **70** (okundu, hatırlanmadı). Marj: `355 / 0,70 = 507` → payda en fazla **507**, bugün **442**, **boşluk 65 fonksiyon**. ⚠️ 5.0-ön kod eklemedi, payda değişmedi; **5.1'den itibaren büyüyecek ve bu beklenen** |
+| **CI** | ✅ Dalda **2 koşu, 2 yeşil** (liste sorgusu): `33680116874` (`f8b981c`) · `33681281420` (`6494283`). ⏳ 5.1'in koşusu yazım anında bilinmiyor. ✅ Merge sonrası `develop`: `33674720478` (`2b5075e`) success |
+| **Kapılar** | ✅ **typecheck 10/10 SOĞUK** · **build 8/8 SOĞUK** (ikisi için cache AYRI AYRI silindi, ikisi de `Cached: 0`) · lint 0 · **format 0 — bu kez GERÇEKTEN baktı** (`.ts` denetleniyor) · arch **9 kural** temiz · **test 995/68** (977/67 idi) · **test:db 301/10** · **gaps:check 20/3/17/0 ✗** · 🆕 **D5 22/22** · **mutasyon 3/3**. ⚠️ *"Soğukluk cache silinmesiyle değil KOMUTUN ÇIKTISIYLA iddia edilir"* — günlük #1 |
+| **Kapsam** | fonksiyon **%80,44 (358/445)** — satır %88,57 · ifade %88,66 · dal %89,15; eşik `vitest.config.ts`ten **70**. 🆕 **5.1 paydayı 442 → 445 büyüttü ve payı da 355 → 358** — üç yeni fonksiyonun **üçü de kapsandı**, oran **yükseldi**. Marj yeniden hesaplandı: `358 / 0,70 = 511` → payda en fazla **511**, bugün **445**, **boşluk 66 fonksiyon**. Eşik düşürülmedi, dosya dışlanmadı, import testi yazılmadı |
 | **Şema / veri** | **DEĞİŞMEZ SAYILIYOR — Faz 5 şemaya dokunmuyor.** 22 master tablo · 32 FK · 6 indeks · 14 sequence · 20 CHECK · 12 migration. **4 / 22 tablo dolu** (`countries` 6 · `competitions` 11 · `people` 5.000 · `players` 5.000). ⚠️ **G-13 bir KARAR, şema değişikliği DEĞİL** (5.8) |
 | **Ortam** | PostgreSQL **18.6** · Node 24.19.0 · pnpm 11.23.0 · `.npmrc` **`strict-peer-dependencies=true`** (peer bir KAPI) · TS **`~6.0.3` pinli** · `tsconfig.base.json` **`strict` ✓ `resolveJsonModule` ✓** (tipleme ön koşulu, ölçüldü). ⚠️ **`i18next` hâlâ KURULU DEĞİL** — `pnpm-lock.yaml`da 0 eşleşme. Kurulacak sürümler 5.0'da **bugün** okundu: **26.4.1 / 17.0.13 / 8.2.1**; peer'lar uyumlu, ama gerçek kapı `pnpm install` ve o **5.3'te** ateşlenir |
 | **Kütükler** | Açık sorun **0** · teknik borç **7** (003·005 → **Faz 5, 5.4** · 001·002·004 → Faz 16 · 007 → Faz 12 · 006 → Faz 50) · SAPMA **38** 🆕 (Faz 5'in payı üç: 036·037·038) · boşluk **20**, açık **17**; **G-13 → Faz 5 + Faz 17** ✓ |
@@ -1035,14 +1035,17 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+| 2 | 5.1 | **Lint, `[...str]` kullanımını reddetti** (`@typescript-eslint/no-misused-spread`, üç yerde) | Kural yanlış pozitif **değildi**: uyarısı tam olarak bu modülün alanıydı. Ayrışmış (NFD) `İ` = `I` + `U+0307` ve tablo araması taban `I`'ye düşüp onu **kalın** ünlü sayardı — `İzmir` yanlışlıkla `'ın` alırdı | Kural **bastırılmadı**. `normalize('NFC')` eklendi ve tarama indeksle yapıldı; NFD girdi artık doğru çözülüyor ve bir regresyon testi eklendi (`'İzmir'.normalize('NFD')` → `'in`) | **Bir lint kuralının uyarısını okumadan bastırma** — `global-exception.filter.ts`'in `no-base-to-string` emsali aynıydı: orada da kural haklıydı ve dallar tek tek ayrıldı |
+| 1 | 5.1 | **`pnpm build` `Cached: 2 cached, 8 total` verdi** — SOĞUK build ritüeli uygulandığı hâlde | `turbo.json`:12 → **`typecheck` `dependsOn: ["^build"]`**. Sıra *cache sil → typecheck → build* idi; typecheck upstream `build` görevlerini koşturup **önbelleğe yazdı**, sonraki `build` onları hazır buldu. Yani ritüel uygulandı ama **ölçüm aracı** yanlış cevap verdi | Cache **`build`den hemen önce** silindi → `Cached: 0 cached, 8 total`, 8,16 s. Her iki kapı için ayrı ayrı silindi ve ikisi de `Cached: 0` doğrulandı | ⚠️ **Soğukluk, cache'in silinmesiyle değil KOMUTUN ÇIKTISIYLA iddia edilir.** `docs/spec/09` §11.5b'ye ölçümüyle yazıldı: araya giren herhangi bir turbo görevi soğukluğu sessizce bozabilir |
 
-> **Faz 5 açıldı (2026-09-02), tablo boş.** Boş olması bir iddia değil bir
-> başlangıç durumu: bu fazda henüz hiçbir hata **oluşmadı**. Karşılaşılan her
-> hata buraya **anında** yazılır — *"çalışma günlüğü bir YAPILACAKLAR listesi
-> değildir"*, olmuş şeyleri taşır.
-> ℹ️ **5.0-ön'ün SAPMA-036'sı buraya yazılmadı ve bu bilinçli:** o bir *hata*
-> değil, bir *ölçüm bulgusu* — kütüğün yeri SAPMA tablosu. Günlük çalışırken
-> kırılan şeyleri taşır.
+> **Faz 5 açıldı (2026-09-02).** Tablo 5.0-ön ve 5.0 boyunca **boştu** ve bu bir
+> iddia değil bir durumdu: o iki alt görev `.md` üretti, hiçbir şey kırılmadı.
+> **İlk iki satır 5.1'de doğdu** — fazın ilk kod alt görevi.
+> ℹ️ **SAPMA-036/037/038 buraya YAZILMADI ve bu bilinçli:** üçü de birer *ölçüm
+> bulgusu*, birer *hata* değil — kütüğün yeri SAPMA tablosu. Günlük çalışırken
+> **kırılan** şeyleri taşır, bulunanları değil.
+> ⚠️ İki satırın ikisi de **D2**: ölçüm aracının kendisi yanlış cevap üretti
+> (biri turbo önbelleği, biri bir lint kuralının haklı uyarısı).
 > **Faz 6 açılışında başlık `🧪 FAZ 6 — ÇALIŞMA GÜNLÜĞÜ` olarak güncellenir.**
 
 <details>

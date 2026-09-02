@@ -2221,7 +2221,7 @@ docs/glossary.md
 **Kabul kriterleri:**
 - [ ] Sabit kodlanmış metin eklenince ESLint hata veriyor
 - [ ] `i18n-check` eksik anahtarları buluyor, CI'da kırıyor
-- [ ] Türkçe ek motoru 50 test vakasının tamamını geçiyor (Galatasaray'ın, Beşiktaş'ın, Trabzonspor'un, Roma'nın, Liverpool'un…)
+- [x] **Türkçe ek motoru 50 test vakasının tamamını geçiyor** — **5.1**; ölçüm **55 / 55** (eşik 50), kriterin beş örneğinin beşi de listede ve `criterion` etiketiyle ayrıca iddia ediliyor. ⚠️ **Uzunluk tek başına kör bir kontroldür** (55 tane `Roma` yazılsa da geçerdi), bu yüzden **kapsam ayrıca ve tam** iddia edildi: dört ünlü uyumu sınıfının **dördü**, sekiz `sınıf × bitiş` bileşiminin **sekizi**, ve dağılım **tek tek sabit** (bir satır eklemek testi kırar). ⚠️ Kriterin beş örneği kuralın tamamı **değildi** (F3): beşi yalnızca iki ünlü sınıfını temsil ediyordu — ince düz (`e`,`i`) ve ince yuvarlak (`ö`,`ü`) örneklerde **hiç yoktu**, liste onları kapattı. **Mutasyon 3/3**: motor tablosu · harf tuzağı koruması · vaka beklentisi ayrı ayrı bozuldu, üçü de kırıldı — ve etiket çapraz kontrolü mistagging'i **bağımsız** yakaladı. **D5 22/22** derlenmiş `dist` + düz `node` + paket barrel'ı üzerinden
 - [ ] Tarih "23 Ağustos 2026", para "€1,2 mn" formatında
 - [ ] Sözlükte en az 120 terim tanımlı
 - [ ] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)*
@@ -2384,13 +2384,31 @@ docs/glossary.md
       > **Kayıtlar:** **SAPMA-037** (yol çelişkisi, atıf sözü tutuldu) ·
       > **SAPMA-038** 🆕 (BORÇ-005'in yedeği — `kind` gövdede yok).
       > → `docs/reports/faz-05/5.0-*.md`
-- [ ] **5.1** **Türkçe ek motoru** — `packages/shared/src/i18n/turkish-suffix.ts`.
+- [x] **5.1** **Türkçe ek motoru** — `packages/shared/src/i18n/turkish-suffix.ts`.
       Saf, sıfır bağımlılık (`Intl` serbest, yerleşik). Ünlü uyumu + son harf
       analizi + kesme işareti. ⚠️ **50 vaka bir SAYI değil bir LİSTE**
       (`VISIBLE_ATTRIBUTES` emsali, 4.5): `SUFFIX_CASES` testin **kendisi
       tarafından kriterin kendisi olarak** iddia edilir — bir satır eklemek testi
-      kırar. Vakalar **uydurulmaz**: kaynak ünlü uyumu kuralları + 17 gerçek seed
-      adı. → kriter 3
+      kırar. → kriter 3
+      ⚠️ ~~Vakaların kaynağı: ünlü uyumu kuralları + **17 gerçek seed adı**~~ —
+      **BU CÜMLE BAYATTI VE 5.1'DE DÜZELTİLDİ.** 5.0 ölçtü: `world-seed-data.ts`
+      görünen ad **tutmuyor**, `nameKey` tutuyor (`'country.tur'`, `'Türkiye'`
+      değil; dosyanın kendi yorumu satır 151'de bunu yazıyor). Türkçe adlar
+      dosyada yalnızca bir **yorumda** geçiyor, veri olarak yok. Yani 5.1'in
+      vakaları **dilbilgisi kurallarından türetildi ve kapsam için seçildi** —
+      *"gerçek veriden alındı"* değil, ve test dosyası bunu **dürüstçe** yazıyor.
+      **17 seed anahtarıyla çapraz doğrulama 5.3'ün işi** (`locales/tr/common.json`
+      yazıldığında gerçek adlar doğacak).
+      **SONUÇ:** **55 vaka** (eşik 50) · dört ünlü sınıfının **dördü**, sekiz
+      bileşimin **sekizi** temsil edildi ve dağılım **tek tek sabitlendi**.
+      🆕 İki karar: **yabancı adlarda yazım ≠ okunuş** → `PRONUNCIATION_OVERRIDES`
+      (veri, satır başına gerekçeli; `Chelsea` yazımla **kesin yanlış** çözülüyor)
+      · **ünlüsüz kısaltmalar** (`TFF`, `PSG`) aynı tabloda, tabloda **olmayan**
+      ünlüsüz ad **fırlatıyor** — sessiz varsayılan yok.
+      🆕 **Ölçülmüş harf tuzağı:** `'IĞDIR'.toLowerCase()` → `'iğdir'` (noktasız
+      `I` noktalı `i` oluyor) ve `'İ'.toLowerCase()` **iki kod birimi** üretiyor;
+      motor bu yüzden **hiç küçük harfe çevirmiyor** + `normalize('NFC')`.
+      Mutasyon **3/3** kırdı. → `docs/reports/faz-05/5.1-*.md`
 - [ ] **5.2** **`Intl` biçimlendiriciler** — `packages/shared/src/i18n/format.ts`
       + `index.ts` (saf barrel). Tarih `23 Ağustos 2026` · para `€1,2 mn` · sayı.
       `Date.now()` yok, girdi parametre. → kriter 4
@@ -4110,6 +4128,23 @@ docs/glossary.md
 - **Sonuç seviyeleri:** Çok Olumlu / Olumlu / Nötr / Olumsuz / Çok Olumsuz → moral, ilişki puanı, `Determination`, soyunma odası etkisi
 - **Risk göstergesi (S140):** ton seçmeden önce ipucu ("Bu oyuncu Kararsız kişilikte — sert eleştiri ters tepebilir"). Sonuç yine de garanti değil.
 - **Toplam varyasyon hedefi:** 80 durum × 6 ton × 25 kişilik × bağlam ≈ **2.000+ benzersiz sonuç metni**
+- **🆕 TÜRKÇE EK MOTORUNA YÖNELME / BULUNMA / AYRILMA HÂLLERİ EKLENİR** *(Faz 5.1'de ölçüldü)*
+  `packages/shared/src/i18n/turkish-suffix.ts` Faz 5.1'de **yalnızca tamlayan
+  (ilgi) hâlini** uyguladı ve bu bilinçliydi: Faz 5 kabul kriteri 3'ün beş
+  örneğinin **beşi de** tamlayan hâliydi, fazlası K12 ihlali olurdu.
+  Diyalog metinleri `Galatasaray'a` (yönelme), `Beşiktaş'ta` (bulunma),
+  `Trabzon'dan` (ayrılma) isteyecek — **tüketici bu faz**.
+  ⚠️ **API buna kapatılmadı ve bu ölçülebilir:** ekler bir `switch` değil bir
+  **veri tablosu** (`CASE_SUFFIXES`, `hâl → bitiş türü → uyum sınıfı`) ve ünlü
+  uyumu çözücüsü (`resolveEnding`) paylaşılıyor. Yeni hâl eklemek bir **satır**.
+  ⚠️ **AMA BULUNMA/AYRILMA BİR ŞEY DAHA İSTİYOR: ünsüz sertleşmesi.**
+  `Beşiktaş'ta` doğru, `Beşiktaş'da` yanlış — yani `afterConsonant` o gün ikiye
+  ayrılır (`afterVoicedConsonant` / `afterVoicelessConsonant`) ve sert ünsüz
+  kümesi (`f ş ç k t s h p`) yazılır. Tablo şekli buna hazır: **yeni bir anahtar
+  eklenir, var olan satırlar değişmez**. Tamlayan hâli sertleşmeden etkilenmiyor
+  çünkü eki ünlüyle ya da `n` ile başlıyor — bu yüzden 5.1'de gerekmedi.
+  ⚠️ `PRONUNCIATION_OVERRIDES` tablosu da büyüyecek (yazım ≠ okunuş); büyümesi
+  bir **veri** işidir, kod değil.
 - **Soyunma odası sistemi (S141):**
   - Takım morali (bireysel morallerin ağırlıklı ortalaması + lider oyuncuların etkisi)
   - Klik oluşumu: uyruk, dil, yaş, kişilik benzerliğine göre gruplar
