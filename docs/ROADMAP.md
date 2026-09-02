@@ -1796,7 +1796,7 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
 **Kabul kriterleri:**
 - [x] **5.000 sahte oyuncu seed → şema tutarlı** — **4.9**; migration YOK (zincir 12'de sabit, tablo 22, FK 32). `people` + `players` dolduruldu, **nitelik tabloları bilerek boş** (dağılımın sahibi Faz 10) ve bu bir sessiz atlama değil **koşan bir sınır**. Tutarlılık üç katmanda ölçüldü: ① `0007`nin iki CHECK'i **inşa gereği** sağlanıyor (`clamp(CA, 200, …)`) **ve** kısıtların gerçekten ısırdığı ihlal eden **tek** satırla ayrıca gösterildi — *"5.000 satır girdi, patlamadı"* tek başına kör bir kontroldü ② FK'ler anahtarla çözüldü (`nationality_country_id` `NOT NULL`, çözülemeyen anahtar gürültülü patlardı) ③ D5'te derlenmiş `dist` + düz `node` + ayrı gerçek veritabanı → **54/54**
 - [x] **Üç ileri FK eklendi ve `ON DELETE` davranışı tanımlı** (Faz 3 devri) — **4.4**, `0006`; üçü **üç farklı** davranış aldı (SET NULL · RESTRICT · RESTRICT) ve üçünün de **davranışı** gerçek PG 18.6'ya karşı ölçüldü, yalnızca katalogdan okunmadı
-- [ ] **"20–24 yaş, sağ bek, CA>120" sorgusu 5.000 oyuncu hacminde < 50 ms** *(SAPMA-031 — `değer<15M` yüklemi çıkarıldı)*
+- [x] **"20–24 yaş, sağ bek, CA>120" sorgusu 5.000 oyuncu hacminde < 50 ms** *(SAPMA-031 — `değer<15M` yüklemi çıkarıldı)* — **4.10**, `transfer-search-criterion.itest.ts`. Ölçüm **istatistikle** alındı ve istatistiğin varlığı **`last_analyze` ile** denetlendi (`reltuples != -1` değil — o, autoanalyze sayesinde `ANALYZE` çağrılmadan da yeşil verir; 4.9'un ölçümü) + **karşı kontrol** `n_live_tup = 5000`. Süre bir sayı değil **dağılım** olarak raporlandı (9 örneklem): **medyan ~0,43 ms · en kötü ~0,46 ms**, yani bütçenin **~%1'i**; ısıtmasız ilk koşu da bütçenin altında. ⚠️ **Kriter SAĞLANDI ama SÜRE TARAFI ÖNEMSİZ ve bu saklanmadı:** aynı sorgu **indeksler kapalıyken de** bütçenin altında kalıyor (koşan bir testle iddia ediliyor) — yani bu ölçüm *"indeks çalışıyor"* demiyor, o iddia ayrı bir dosyada (İDDİA B). 🆕 **Plan tarafı önemsiz DEĞİL:** `0011`in iki indeksi aynı sorguda, aynı hacimde **zıt** davranıyor — `players` bileşik indeksi kullanıyor (%1,5 seçici), `people` **Seq Scan**'e düşüyor (%35,5) ve `people_birth_date_idx` **hiç kullanılmıyor**. 4.8'in *"hangisi olduğu 4.10'un ölçümüdür"* sorusu böylece cevaplandı
 - [x] **Nitelik aralıkları (1–20) CHECK kısıtı ALMAZ — denetim Faz 11 `validate:world`'ün işi** *(SAPMA-028)* — **4.5**, `0007`; 57 nitelik sütununun (47 görünür + 10 gizli) hiçbiri CHECK almadı ve bu **negatif bir iddiayla** sabitlendi (`pg_constraint` katalogdan okunuyor, boş liste bekleniyor): *"kısıt eklemeyi unuttuk"* ile *"kısıt bilerek konmadı"* aynı şemayı üretir, ayıran tek şey koşan bir iddiadır. Kalibrasyon tarafının kısıtsızlığı `players`ta da ayrıca ölçüldü (CA=250 kabul ediliyor)
 - [x] **İLİŞKİ değişmezleri CHECK ile korunuyor: `CA <= PA` ve `pa_range_min <= pa_range_max`** — **4.5**, `0007`; `ALTER TABLE … ADD CONSTRAINT` ile (tablo 4.3'te yaratılmıştı). **İKİ AYRI kısıt**, birleşik değil — hangi değişmezin ihlal edildiği hata mesajından okunsun. Reddi **negatif testle** kanıtlandı (CA>PA ve min>max ayrı ayrı reddediliyor) ve **sınır dahil** olduğu karşı örnekle gösterildi (CA=PA, min=max kabul ediliyor: `<` yazılsaydı ikisi de reddedilir ve hata ancak Faz 9 ingest'inde görülürdü). D5'te derlenmiş `dist` + düz `node` ile ayrı bir gerçek PG 18.6'ya karşı da koşuldu
 - [ ] Şema dokümanı güncellendi
@@ -2005,10 +2005,40 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       (pay sabit ve **sebebi ölçüldü**: 4.9 `compareSchemas`ın yüzeyine
       dokunmuyor); üretecin kendi mutasyonu **7 / 967** + **3 / 277**.
       → `docs/reports/faz-04/4.9-sahte-oyuncu-seedi.md`
-- [ ] **4.10** **Kriter 3'ün ölçümü** — `ANALYZE` şart (`reltuples != -1` denetlenir) ·
+- [x] **4.10** **Kriter 3'ün ölçümü** — `ANALYZE` şart (`reltuples != -1` denetlenir) ·
       **A** = 5.000 (kriteri kapatır) / **B** = sentetik hacim (indeksin gerekçesi) ·
       **seçici + seçici olmayan** iki terim · mimari etiketi (amd64, üretim ARM64).
       → kriter 3
+      **SONUÇ:** migration **YAZILMADI** (zincir 12, tablo 22, FK 32, indeks 6,
+      sequence 14, `COMPARED_FACTS_FLOOR` 4.209 — altısı da sabit). İki yeni
+      entegrasyon dosyası, **iki ayrı konteyner**: `transfer-search-criterion`
+      (A) ve `transfer-search-index` (B). ⚠️ **4.9'un envanter nöbetçisi
+      GEVŞETİLMEDİ** — B'nin 50.000 sentetik satırı ayrı bir veritabanında
+      yaşıyor (D6: nöbetçi doğru, sayıyı büyütmek yanlış olurdu).
+      **A:** medyan **0,43 ms** / en kötü **0,46 ms** (bütçe 50 ms) · 27 satır ·
+      plan **kararlı** (5 koşu, tek plan). **B:** 50.000 satır (hacim
+      **uydurulmadı**, ROADMAP Faz 32'nin *"50.000 oyuncuda"* kriterinden alındı)
+      · indeksli **2,20 ms** vs indekssiz **6,08 ms** = **2,76×** · KONTROL ve
+      SIZINTI testleri 3.9'dan **uyarlandı**.
+      🆕 **YEDİ KADEMELİ HACİM MERDİVENİ KOŞTURULDU (1.000 → 200.000) ve ARANAN
+      ÇEVRİLME NOKTASI BULUNAMADI — yokluğu bir bulgu:** planlayıcı seçici
+      yüklemde indeksi **1.000 satırda bile** seçiyor, **200×** hacim değişimi
+      kararı **hiç** çevirmedi; çeviren tek şey **seçicilik** oldu
+      (%0,36 → %94'te Seq Scan). 3.9'un *"ayraç hacim değil seçicilik"* dersi
+      böylece **iki boyutlu** ölçüldü.
+      🆕 **`ANALYZE`IN ŞART OLDUĞU KOŞAN BİR TESTLE KANITLANDI:** istatistiksiz
+      planlayıcı **iki indeksi de** seçiyor; ölçüm `ANALYZE`sız alınsaydı rapora
+      *"her iki indeks de kullanılıyor"* yazılırdı ve bu **yanlış** olurdu.
+      *"Öncesi"* durumu **yarıştan çekildi** (`autovacuum_enabled = false`) ve
+      tarif ayrı bir sonda betiğiyle, aynı koşuda bir **karşı kontrolle**
+      doğrulandı (D2). Mutasyon: `ANALYZE` kaldırılınca **2 / 78** kırılıyor ve
+      ikisi de tam o iş için yazılmış nöbetçiler — ⚠️ **süre testleri
+      KIRILMADI**, yani geçen bir bütçe testi ölçümün doğru alındığını
+      göstermiyor.
+      **Mimari etiketi:** ölçüm **amd64** (Docker Engine `linux/amd64`, ADIM 0'da
+      okundu); üretim **ARM64** (Oracle Ampere A1, K14) — sayılar oraya
+      taşınmaz. Test **967 / 66** (değişmedi), `test:db` **277 → 301 / 10**.
+      → `docs/reports/faz-04/4.10-kriter-3-olcumu.md`
       ⚠️ **4.9'DA ÖLÇÜLDÜ — `reltuples != -1` DENETİMİ TEK BAŞINA YETMİYOR.**
       Yukarıdaki cümle *"`ANALYZE` şart"* diyor ve denetimi `reltuples != -1`e
       bağlıyor; 4.9 bunun bir **D3 yanılsaması** üretebileceğini ölçtü. Gerçek
@@ -2029,6 +2059,21 @@ yazıldı ve **Faz 7**'ye (DataProvider) atandı; tabloyu dolduran hat orada. `c
       4.10'un plan ölçümü **seed'den hemen sonra alınmamalı**: aynı sorgu
       15 saniye arayla iki farklı plan verebilir ve fark **sessizdir**.
 - [ ] **4.11** ER diyagramı + `docs/schema/world.md` + faz kaydı + PR. → kriter 6
+      ⚠️ **BORÇ-008 (CHECK literal ifadesinin dokuz kopyası) BURADA ÖDENİR** —
+      vadesi bu alt görev.
+      ⚠️ **VE `packages/db/src/schema/referees.ts:23`ÜN KARŞILIKSIZ CÜMLESİ
+      DÜZELTİLİR** *(4.9 günlük #36'da bulundu, 4.10'da sahiplendirildi).*
+      Satır *"`SeededRng` deterministik bir anahtar **veriyor**"* diyor —
+      **şimdiki zamanda, var olmayan bir sınıf için**: `SeededRng` repoda
+      hiçbir yerde yok (ölçüldü: `packages/engine/src/index.ts` gövdesi
+      `export {};`) ve **Faz 22**'de doğuyor. 4.9 o dosyaya bilerek dokunmadı
+      (K12 — alt görevin kapsamı seed'di) ve aynı sınıfın `world-seed-data.ts`
+      kardeşini düzeltti.
+      **Neden buraya yazıldı:** çalışma günlüğü bir **yapılacaklar listesi
+      değildir** — faz kapanışında boşaltılıp faz kaydının §5 tablosuna
+      işleniyor (`spec/11` §12.2), yani #36 orada bir **kayıt** olarak yaşar,
+      bir **iş** olarak değil. BORÇ-008'in 4.7'de öğrettiği şeyin aynısı:
+      *"raporda (ya da günlükte) kalan bir gözlemin sahibi yoktur."*
       ⚠️ **`SPEC-COVERAGE-GAPS` ↔ ROADMAP TUTARLILIK KONTROLÜ BURADA KOŞULUR**
       *(karar 4.3'te verildi ve buraya yazıldı — kütüğe kayıt yetmez, hedef fazın
       kapsamında görünmeli; 4.0'ın ① bulgusu tam olarak buydu).*
@@ -3281,6 +3326,33 @@ docs/glossary.md
 - **Karşılaştırma:** shortlist'ten 4 oyuncuya kadar yan yana + radar grafiği
 - **Çalışma izni uyarısı (Boşluk-6):** İngiltere için GBE puanı hesaplanır ve gösterilir ("Bu oyuncu 12 GBE puanı alıyor, 15 gerekli — çalışma izni alamaz")
 - **Kota uyarısı (Boşluk-7):** Türkiye için "Kadronuzda 14 yabancı var, bu transfer kotayı aşar"
+- ⚠️ **`people_birth_date_idx` YENİDEN DEĞERLENDİRİLİR — Faz 4.10'un ölçümü, bu fazın önüne konuyor**
+  4.8 o indeksi kriter 3'ün yaş yüklemi için ekledi ve *"planlayıcının seçtiği
+  iddia edilmiyor"* diye yazdı; **4.10 ölçtü ve planlayıcı onu SEÇMİYOR.**
+  Kriter 3'ün sorgusu bir **Hash Join** kuruyor ve iki tarafa **zıt** karar
+  veriyor — aynı sorgu, aynı hacim (5.000):
+
+  | Taraf | Yüklemin seçiciliği | Planlayıcının kararı |
+  |---|---|---|
+  | `players` (bileşik indeks) | 75 / 5.000 = **%1,5** | **Bitmap Index Scan** ✅ |
+  | `people` (`birth_date` indeksi) | 1.776 / 5.000 = **%35,5** | **Seq Scan** — indeks kullanılmıyor |
+
+  ⚠️ **Ayraç hacim değil seçicilik ve bu iki boyutlu ölçüldü:** 1.000 → 200.000
+  arası yedi kademede (200× hacim) karar **hiç** değişmedi; seçicilik %0,36 →
+  %94 olunca **çevrildi**. Yani indeksi haklı çıkaracak şey daha çok satır
+  **değil**, daha dar bir yaş penceresi ya da farklı bir dağılım.
+  **Bu fazda üç şey birlikte cevaplanır** (üçü de bugün ölçülemedi ve sebebi
+  yazılı): ① yaş penceresi gerçek kullanımda (kullanıcının seçtiği aralık)
+  ne kadar seçici? ② `değer<15M` yüklemi eklendiğinde plan değişiyor mu? ③
+  **kısmi indeks** (`WHERE person_type @> ARRAY['player']`) kazanç sağlıyor mu
+  — 4.8 bunu adıyla sormuştu ve 4.10'da **ölçülemedi**, çünkü bugün `people`ın
+  **5.000/5.000'i oyuncu** (`staff`/`manager`/`chairman`/`referee` satırı yok),
+  yani o yüklem **hiçbir şeyi elemiyor** ve kısmi indeksin kazancı bu veride
+  **tanımsız**. Oyuncu dışı kişiler Faz 8 (başkan) ve Faz 37 (personel) ile
+  geliyor; oran ancak burada ölçülebilir.
+  ℹ️ Emsal `spec/01` §3.1'in kendi kararı: *"`(finishing)`, `(passing)`,
+  `(pace)` tekil indeksleri de tüketicisi olan fazda (Faz 32, transfer
+  filtreleri) değerlendirilir."* Aynı ayraç, aynı faz.
 
 **Kabul kriterleri:**
 - [ ] 50.000 oyuncuda tüm filtreler < 300 ms

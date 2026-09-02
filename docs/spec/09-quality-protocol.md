@@ -550,6 +550,34 @@ tarifi değil (4.2'de ölçülerek bulundu):
 | **4.7** | **22 tablo** + 3 CHECK (`0010`) | **27 / 241** | %11,2 ⬇ |
 | **4.8** | 22 tablo + **2 indeks** (`0011`) | **29 / 251** | **%11,55** ⬆ |
 | **4.9** | değişmedi (seed — 5.000 satır) | **29 / 277** | %10,47 ⬇ |
+| **4.10** | değişmedi (ölçüm — plan + süre) | **29 / 301** | %9,63 ⬇ |
+
+> ✅ **4.10'DA DA PAY SABİT: 29 — sebebi 4.9'unkiyle AYNI SINIF, ve yine ölçüldü.**
+> 4.10 bir **ölçüm** alt görevi: migration yok, yeni olgu türü yok. 24 yeni
+> entegrasyon testinin **hiçbiri** `compareSchemas` çağırmıyor ve körelen
+> karşılaştırıcı yine yalnızca `round-trip.itest.ts`i kırıyor (aynı dosya, aynı
+> 29 test). Oran düştü (%10,47 → **%9,63**) çünkü payda 277 → 301 büyüdü.
+>
+> ⚠️ **AMA 4.10'UN KENDİ NÖBETÇİLERİ İKİ AYRI MUTASYONLA ÖLÇÜLDÜ** ve ikisi de
+> seriye girmiyor, çünkü hedefleri `compareSchemas` değil **ölçümün kendisi**:
+>
+> ```ts
+> // MUTASYON ② — A'nın istatistik kurulumu kaldırıldı:
+> //   await executor.run('ANALYZE "people"');   ← silindi
+> //   await executor.run('ANALYZE "players"');  ← silindi
+> // MUTASYON ③ — B'nin indeks kapatması etkisizleştirildi:
+> //   await tx.run('SELECT 1');   // yerine: SET LOCAL enable_indexscan/bitmapscan = off
+> ```
+>
+> **② → 2 / 78** (istatistik denetimi + *"`people` tarafı indeksi kullanmıyor"*
+> plan iddiası). **③ → 2 / 78** (KONTROL testi + süre karşılaştırması).
+>
+> ⚠️ **VE ②'NİN ASIL BULGUSU KIRILANLARDA DEĞİL, KIRILMAYANLARDA:** `< 50 ms`
+> **süre testleri kırılmadı**. Yani istatistiksiz — dolayısıyla **yanlış** —
+> alınmış bir ölçüm, bütçe testini kusursuz geçiyor. **Genel biçim: geçen bir
+> bütçe testi, ölçümün DOĞRU ALINDIĞINI göstermez; onu ancak ölçümün ön
+> koşulunu iddia eden ayrı bir nöbetçi gösterir.** 4.9'un *"determinizm testi
+> tek başına bir nöbetçi değildir"* kuralının ölçüm tarafındaki kardeşi.
 
 > ✅ **4.9'DA PAY SABİT KALDI: 29 — VE BU DA ALARM DEĞİL, ÇÜNKÜ SEBEBİ ÖLÇÜLDÜ.**
 >
