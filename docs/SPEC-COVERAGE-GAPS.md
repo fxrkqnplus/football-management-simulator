@@ -211,7 +211,13 @@ tam olarak bir okuyucunun yokluğunda beklenen şey.
    yazıldı ama `Durum`u **kapanmadı** olarak kaldı — o Faz 11'in doğrulayıcısında kapanır.
 2. **Kütüğe bir okuyucu bağlandı** — `CLAUDE.md` belge haritası + "Her Oturumun İlk İşi"
    listesi ve `docs/SESSION-TEMPLATE.md` faz açılış ritüeli (adım 4) + faz kapanış
-   kontrol listesi (adım 20).
+   kontrol listesi (adım 21).
+   > ⚠️ **Bu satır "adım 20" diyordu ve BAYATTI** (Faz 5.0-ön'de ölçüldü).
+   > 4.1 şablona **adım 15 — süre ölçümü**'nü ekleyip listeyi `1..24`e yeniden
+   > dizdi; kapanış adımı 20 → **21** oldu ve buradaki karşı atıf güncellenmedi.
+   > **Bu dosyanın kendi dersinin başına gelen şey:** bir belge, koşan bir testin
+   > koruduğu bloğun **dışında** sessizce bayatlar — *"test geçti, belge
+   > günceldir"* geçersiz bir çıkarımdır. Kayıt: **SAPMA-036**.
 
 **Aynı sınıftan ikinci bir vaka bu ölçüm sırasında bulundu ve düzeltildi:**
 `docs/DEPENDENCY-WATCH.md` kendi başlığında *"Her faz açılışında bu tablo kontrol edilir

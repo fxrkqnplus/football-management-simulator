@@ -992,6 +992,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | ID | Tür | Faz | Sapma | Gerekçe | Spec/ROADMAP güncellendi mi |
 |---|---|---|---|---|---|
+| SAPMA-036 | `düzeltme` | 5 (5.0-ön) | **`SESSION-TEMPLATE`in ADIM NUMARALARI İKİ KEZ YENİDEN DİZİLDİ, KARŞI ATIFLAR GÜNCELLENMEDİ — biri bugün hâlâ canlıydı.** Ölçüldü: `docs/SPEC-COVERAGE-GAPS.md`:214 faz kapanış adımını *"adım 20"* diye gösteriyordu; gerçek **21**. Kayma 4.1'in eklediği **adım 15 (süre ölçümü)** yüzünden oldu (`1..24` yeniden dizildi) ve o commit atfı düzeltmedi. Aynı dosya 4.0'da da bir kez yeniden dizilmişti (`1–23`). | **Bulgu 5.0-ön'ün İŞİ DEĞİLDİ — yeni adımı nereye koyacağıma karar verirken çıktı, ve kararı DEĞİŞTİRDİ.** Plan *"§15.1 kontrolü için bir adım eklenir"* diyordu; numaralı bir adım eklemek listeyi **üçüncü kez** kaydıracak ve aynı sınıftan yeni bayat atıflar üretecekti. Yerine doğrulama **adım 3'ün içine**, okumadan **önce** kondu — numaralar sabit kaldı, sıfır yeni atıf riski. **Gerekçe bu projenin kendi kuralı:** *"nöbetçi, hatanın olacağı YERDE yaşar"* — hata, biri adım 3'e uyup listelenen spec'i açtığında oluyor; kontrolün yeri tam orası, ayrı bir numara değil. ⚠️ **Sınıf tanıdık: adım numaraları elle yazılmış bir ENVANTER ve okuyucuları başka dosyalarda** (F1). Envanteri koruyan hiçbir kapı yok ve olamaz da — bir Markdown listesinin numarasına atıf veren bir metni test edecek bir şey yok. Çare bir kapı değil, **kaydırmamak**: `SESSION-TEMPLATE`in KURALLAR bloğuna *"yeniden dizme; zorunluysa iki dosya AYNI commit'te düzeltilir"* notu ve atıf veren canlı dosyaların **adı** yazıldı. ℹ️ `docs/reports/` ve `PROJECT_MEMORY.md` faz kayıtlarındaki numaralara **dokunulmadı** — append-only, ve oradaki numara yazıldığı günün doğrusu. | ✅ `docs/SESSION-TEMPLATE.md` adım 3 (doğrulama, kapsam sınırıyla) + KURALLAR bloğuna yeniden-dizme yasağı ve canlı atıf listesi · ✅ `docs/SPEC-COVERAGE-GAPS.md`:214 **20 → 21** düzeltildi, gerekçesi yanına yazıldı |
 | SAPMA-035 | `düzeltme` | 4 (4.11) | **`SESSION-TEMPLATE` §15.1 SIRADAKİ FAZI YANLIŞ BELGEYE YÖNLENDİRİYOR — ve doğru belge YOK.** Tablo *"Faz 5 → **Bölüm 13**"* diyor; ölçüldü: **Bölüm 13 = DAĞITIM** (`docs/spec/10-deployment.md` — Oracle, Caddy, yedekleme). Faz 5 **i18n altyapısı**. Üstelik doğru bir hedef de yok: `MASTER-SPEC.md`'nin **on yedi bölümünün hiçbiri i18n değil** ve `docs/spec/` altında **13 numaralı dosya yok** (ikisi de sayıldı). `i18next`/`turkish-suffix` dosyanın tamamında **dört** kez geçiyor ve üçü yığın listesi/dizin ağacı; dördüncüsü §12'nin **kurgusal** *"Örnek Doldurulmuş Kayıt"*ının içinde. ⚠️ `CLAUDE.md` belge haritasında da **Faz 5'i gösteren hiçbir satır yok**. | **Bu, SAPMA-033'ün ve 4.0'ın ① bulgusunun ÜÇÜNCÜ akrabası: ritüel var, işaret ettiği yer yok.** Ama sınıfı biraz farklı ve fark önemli — orada *"kuralı kontrol eden adım yoktu"*, burada **adım var ve yanlış yeri gösteriyor**. Bir okuyucuyu **yanlış yere göndermek**, hiç göndermemekten tehlikelidir: hiç göndermeyen bir tablo okuyucuyu ölçmeye zorlar, yanlış gönderen tablo ona *"kaynağı okudum"* dedirtir (`spec/11` §12.3'ün *"eksik bir alan okuyanı ölçmeye gönderir, yanlış bir alan okuyanı yanlış yere gönderir"* kuralının birebir aynısı, orada bir **veri** alanı için yazılmıştı). ⚠️ **Ve bu 4.11'de tesadüfen bulundu:** faz kaydının §11'i *"sıradaki oturumun okuması gereken spec"* satırını doldururken dosya adı **kontrol edildi** ve bulunamadı. Kontrol edilmeseydi Faz 5 oturumu dağıtım spesifikasyonunu okuyarak açılacaktı. | ✅ `docs/SESSION-TEMPLATE.md` §15.1'de Faz 5 satırı **gerçeğe** çevrildi: i18n'in bir spec bölümü **yok**, kaynak `docs/ROADMAP.md` Faz 5 + `CLAUDE.md` §14 terim sözlüğü. ⚠️ **Bir i18n spec'i YAZILMADI** — kapsam Faz 5'in kendisi (K12); satır yalnızca *"kaynak burası değil, şurası"* diyor. Faz 48 (Tutorial) de aynı tabloda **Bölüm 13**'e bakıyor ve o da şüpheli; **ölçülmedi** ve sahibi Faz 48 |
 | SAPMA-034 | `düzeltme` | 4 | **ROADMAP'in Faz 4 migration numaraları BİR KAYMIŞTI.** 4.6 `(0008)`, 4.7 `(0009)`, 4.8 `(0010)` yazılıydı; oysa `0008` **4.5'te kullanıldı** (`0008_person_type_referee`, G-18'in kapanışı). Doğru numaralar: 4.6 → **`0009`**, 4.7 → **`0010`**, 4.8 → **`0011`**. | **Kayma 4.5'in çift-migration kararının ölçülmemiş yan sonucu.** ROADMAP listesi (`8203ac1`) her alt göreve **bir** migration varsayarak numaralandırılmıştı; 4.5 bir **iddia ayrımı** gerekçesiyle iki migration yazdı (`0007` + `0008`) ve o karar doğruydu, ama numaralandırma güncellenmedi. ⚠️ **Bedeli düşük ama sınıfı tanıdık:** kimse `0008`i ikinci kez üretmeye çalışmadı çünkü `drizzle-kit generate` sıradaki numarayı **kendisi** veriyor — yani hata sessiz kalırdı ve yalnızca ROADMAP'i okuyan bir insanı yanıltırdı. **Genel biçim: bir plandaki türetilmiş numaralar, planın bir adımı beklenenden fazla üretince sessizce bayatlar.** Bir alt görevin birden fazla migration yazabildiği 4.5'te kurallaştı; numaralandırmanın da o kuraldan etkilendiği **görülmedi**. | ✅ `docs/ROADMAP.md` 4.6 / 4.7 / 4.8 numaraları düzeltildi (4.6'nın eskisi `~~0008~~ → 0009` biçiminde **görünür** bırakıldı) |
 | SAPMA-033 | `karar` | 4 | **ROADMAP §0.5'in bölünme kuralı ATEŞLENDİ ama işlemedi — Faz 3 dört gün sürdü, bölünmedi, istisna kaydedilmedi.** §0.5: *"hiçbir faz 3 günü aşmaz; aşacaksa ikiye bölünür ve **bu belgeye kaydedilir**."* Faz 3 kaydı: *"2026-08-26 → 2026-08-29 · **Süre: 4 gün**"*. Faz 1 ve 2 ikişer gündü, yani bu **ilk ihlal**. | **Teşhis ölçüldü ve *"kimse bakmadı"*dan daha keskin:** ROADMAP:3730 bir **"bölünme riski yüksek fazlar"** listesi taşıyor (6·10·13·16·23·27·28·33·40·41·44·47) ve Faz 6 ile Faz 47 kendi bölümlerinde açık bölünme planları da taşıyor — yani mekanizma **var**. Ama **Faz 3 o listede yoktu ve yine de aştı**: liste bir **TAHMİN**, bir **KONTROL** değil. Ve `SESSION-TEMPLATE`'te *"süre"* kelimesi **hiç geçmiyor** (`grep` exit 1), yani faz kapanışında gerçek süreyi **ölçen** bir adım yok. ⚠️ **Faz 4 de o listede değil** — aynı kör nokta. **`SPEC-COVERAGE-GAPS`'in okuyucusuzluğu ve `DEPENDENCY-WATCH`'un olmayan karşı atfıyla aynı ailenin ÜÇÜNCÜ üyesi:** kural yazılı, kuralı **kontrol eden adım** yok. **Faz 3 geriye dönük bölünmüyor** (kayıt append-only ve iş bitti); düzeltme ileriye dönük. | ✅ `docs/SESSION-TEMPLATE.md` faz kapanışına **süre ölçümü adımı** · ✅ `docs/ROADMAP.md` Faz 4'e **4.7 kontrol noktası** (bölünme tahminle değil **ölçümle**) · ✅ `docs/ROADMAP.md` §0.5'e *"tahmin listesi bir kontrol değildir"* notu |
@@ -1030,7 +1031,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 ---
 
-## 🧪 FAZ 4 — ÇALIŞMA GÜNLÜĞÜ
+## 🧪 FAZ 5 — ÇALIŞMA GÜNLÜĞÜ
 
 > **Kalıcı yapı, geçici içerik.** Kurallar: `docs/spec/11-project-memory.md` §12.2.
 > Faz süresince karşılaşılan hatalar buraya **anında** yazılır; faz kapanışında
@@ -1040,6 +1041,18 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+
+> **Faz 5 açıldı (2026-09-02), tablo boş.** Boş olması bir iddia değil bir
+> başlangıç durumu: bu fazda henüz hiçbir hata **oluşmadı**. Karşılaşılan her
+> hata buraya **anında** yazılır — *"çalışma günlüğü bir YAPILACAKLAR listesi
+> değildir"*, olmuş şeyleri taşır.
+> ℹ️ **5.0-ön'ün SAPMA-036'sı buraya yazılmadı ve bu bilinçli:** o bir *hata*
+> değil, bir *ölçüm bulgusu* — kütüğün yeri SAPMA tablosu. Günlük çalışırken
+> kırılan şeyleri taşır.
+> **Faz 6 açılışında başlık `🧪 FAZ 6 — ÇALIŞMA GÜNLÜĞÜ` olarak güncellenir.**
+
+<details>
+<summary>Faz 4 günlüğünün kapanış notu (arşiv)</summary>
 
 > **Faz 4 kapanışında boşaltıldı (2026-09-02).** Tablo **38 satır** taşıyordu
 > (#1…#38, ölçüldü — elle sayılmadı) ve hepsi faz kaydının **§5** tablosuna
@@ -1062,6 +1075,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 > Başlık kalıyor (`docs/spec/11-project-memory.md` §12.2): aksi hâlde her faz
 > aynı ihtiyacı yeniden keşfeder ve bölümü yeniden icat eder.
 > **Faz 5 açılışında başlık `🧪 FAZ 5 — ÇALIŞMA GÜNLÜĞÜ` olarak güncellenir.**
+> ✅ Yapıldı — 5.0-ön, 2026-09-02.
+
+</details>
 
 <details>
 <summary>Faz 3 günlüğünün kapanış notu (arşiv)</summary>

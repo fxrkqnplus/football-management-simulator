@@ -2154,7 +2154,7 @@ var: bölünme tahminle değil **ölçümle** kararlaştırılır. Çizgi hazır
   `spec/09`:506 yalnızca komut adını veriyor. Otorite sırası (`CLAUDE.md` #1) tercihi
   ortadan kaldırıyor: ROADMAP outlier'dı. Desen de aynı yöne bakıyor — `tools/arch-check/`
   ve `tools/bash-text-guard/` dizin, ve dizin yanına `index.test.mjs` konabilmesini
-  sağlıyor (K10). Kayıt: **SAPMA-036**.
+  sağlıyor (K10). Kayıt: **SAPMA-037** (5.0'da açılır).
 - **Terim Sözlüğü** (`docs/glossary.md`): TR/EN karşılıklar + kod içi isimlendirme standardı (kod İngilizce, arayüz Türkçe)
 - **🆕 ÇEVİRİ KAYNAĞI BİR ARAMA KARARIDIR — `competitions.name_key` / `rivalries.name_key`** *(G-13, `docs/SPEC-COVERAGE-GAPS.md`; Faz 4.11'de eklendi)*
   ROADMAP Faz 17 *"lig + turnuva"* dahil **beş varlık türünde** trigram araması
@@ -2229,7 +2229,7 @@ docs/glossary.md
 
 **Alt görevler** *(faz açılışında ölçüldü, kullanıcı onayıyla 2026-09-02'de işlendi — K11)*
 
-- [ ] **5.0-ön** **Süreç boşluğu — KOD YOK.** `SESSION-TEMPLATE`in faz açılış
+- [x] **5.0-ön** **Süreç boşluğu — KOD YOK.** `SESSION-TEMPLATE`in faz açılış
       akışına tek adım: *fazın §15.1 satırındaki her belge AÇILIR ve konusunun
       fazla eşleştiği doğrulanır; eşleşmezse satır düzeltilir ve SAPMA açılır.*
       Gerekçe SAPMA-035: yanlış satırı yakalayan şey bir **adım** değil bir
@@ -2240,6 +2240,13 @@ docs/glossary.md
       satırını açılışta kontrol eder; toplu denetim tüketicisi olmayan bir iştir.
       **Faz 48'in şüpheli satırına dokunulmaz** — sahibi SAPMA-035'te Faz 48.
       Ayrı commit, faz işinden **önce**.
+      **SONUÇ:** doğrulama koşturuldu — **Faz 5'in §15.1 satırı EŞLEŞİYOR** (4.11'in
+      düzeltmesi yerinde). ⚠️ Ama adım **yeni bir numara ALMADI**: numaralandırmayı
+      üçüncü kez kaydırmak yeni bayat karşı atıflar üretecekti ve bunlardan **biri
+      bugün hâlâ canlıydı** — `SPEC-COVERAGE-GAPS`:214 kapanış adımını *"20"* diye
+      gösteriyordu, gerçek **21** (4.1'in eklediği adım 15 kaydırmıştı). Doğrulama
+      **adım 3'ün içine**, okumadan önce kondu. → **SAPMA-036**,
+      `docs/reports/faz-05/5.0-on-*.md`
 - [ ] **5.0** **Doğrulama alt görevi — KOD YOK, ÖLÇÜM VAR.** ① i18next 24→26 ve
       react-i18next 15→17 changelog notları okunur, karar yazılır ② üç bulgu
       `DEPENDENCY-WATCH`a işlenir: `i18next-browser-languagedetector` satırı

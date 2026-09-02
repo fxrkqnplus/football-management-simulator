@@ -11,7 +11,23 @@ BAĞLAM (bu sırayla)
 1. PROJECT_MEMORY.md → "ANLIK DURUM" bloğunu ve son İKİ faz kaydını oku.
    Açık sorun / teknik borç / sapma kütüklerini gözden geçir.
 2. docs/ROADMAP.md içindeki Faz [XX] bölümünü oku.
-3. Şu spesifikasyonları oku: docs/spec/[ilgili dosyalar]
+3. ÖNCE §15.1'İ DOĞRULA, SONRA OKU.
+   (a) Bu fazın §15.1 satırındaki her belgeyi AÇ ve konusunun fazla eşleştiğini
+       doğrula. Eşleşmiyorsa: satırı gerçeğe çevir, SAPMA aç, sonra oku.
+   (b) Şu spesifikasyonları oku: docs/spec/[ilgili dosyalar]
+   ⚠️ (a) Faz 5.0-ön'de eklendi (SAPMA-035). Adım ZATEN VARDI ama HEDEFİNİ
+      doğrulamıyordu: tablo "Faz 5 → Bölüm 13" diyordu, ölçüldü — Bölüm 13
+      DAĞITIM (docs/spec/10-deployment.md) ve i18n'in doğru bir hedefi hiç yoktu.
+      Yanlış satırı yakalayan şey bir ADIM değil bir RASTLANTI oldu: faz kaydının
+      §11'i doldurulurken dosya adı kontrol edildi. Edilmeseydi Faz 5 oturumu
+      dağıtım spesifikasyonunu okuyarak açılacaktı.
+      SAPMA-033'ün daha kötü hâli: orada kuralı kontrol eden adım YOKTU, burada
+      adım VAR ve yanlış yeri gösteriyor. Hiç göndermeyen bir tablo okuyanı
+      ölçmeye zorlar; yanlış gönderen tablo ona "kaynağı okudum" dedirtir.
+   ⚠️ KAPSAM SINIRI (K12): yalnızca BU fazın satırı doğrulanır. Kalan satırlar
+      için toplu bir denetim YAZILMAZ — her faz kendi satırını açılışta kontrol
+      eder; tüketicisi olmayan bir iş yazmak kapsam kaymasıdır. Faz 48'in satırı
+      da şüpheli (SAPMA-035 adıyla yazdı) ve sahibi Faz 48'dir.
 4. docs/SPEC-COVERAGE-GAPS.md → "Hangi faza ait olmalı" sütunu Faz [XX] olan
    satırları oku. Bunlar ROADMAP kapsamına da yazılıdır; kütük "neden" ve
    ölçümü taşır, ROADMAP "ne yapılacak"ı.
@@ -82,6 +98,19 @@ KURALLAR
 - Kapsam dışı fikir → docs/V2-BACKLOG.md, uygulama YOK.
 - Belirsizlik → tahmin etme, sor.
 - Spesifikasyonda eksik varsa → sor, cevabı docs/spec/'e işle ve SAPMA kütüğüne yaz.
+
+⚠️ ADIM NUMARALARI BİR ENVANTERDİR VE KARŞI ATIFLARI VAR — YENİDEN DİZME.
+   Bu liste iki kez yeniden dizildi (4.0 → 1-23, 4.1 → 1-24) ve her ikisi de
+   başka dosyalardaki karşı atıfları BAYATLATTI. Ölçüldü (Faz 5.0-ön):
+   docs/SPEC-COVERAGE-GAPS.md faz kapanış adımını "adım 20" diye gösteriyordu,
+   gerçek 21'di — 4.1'in eklediği adım 15 onu kaydırmıştı ve atıf güncellenmedi.
+   Numaralara atıf veren canlı yerler: docs/SPEC-COVERAGE-GAPS.md, docs/ROADMAP.md.
+   (docs/reports/ ve PROJECT_MEMORY.md faz kayıtları append-only — DEĞİŞTİRİLMEZ,
+   oradaki numara yazıldığı günün doğrusudur.)
+   Bu yüzden 5.0-ön'ün adımı YENİ BİR NUMARA ALMADI: doğrulama, hatanın olacağı
+   yere — adım 3'ün içine, okumadan ÖNCE — kondu. Nöbetçi hatanın olduğu yerde
+   yaşar. Bir adım eklemek gerekirse numaraları kaydırmayan bir yer aranır;
+   kaydırma zorunluysa yukarıdaki iki dosya AYNI commit'te düzeltilir.
 ```
 
 ## 15.1 Faz → Spesifikasyon Haritası
