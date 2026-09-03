@@ -2222,7 +2222,7 @@ docs/glossary.md
 - [ ] Sabit kodlanmış metin eklenince ESLint hata veriyor
 - [ ] `i18n-check` eksik anahtarları buluyor, CI'da kırıyor
 - [x] **Türkçe ek motoru 50 test vakasının tamamını geçiyor** — **5.1**; ölçüm **55 / 55** (eşik 50), kriterin beş örneğinin beşi de listede ve `criterion` etiketiyle ayrıca iddia ediliyor. ⚠️ **Uzunluk tek başına kör bir kontroldür** (55 tane `Roma` yazılsa da geçerdi), bu yüzden **kapsam ayrıca ve tam** iddia edildi: dört ünlü uyumu sınıfının **dördü**, sekiz `sınıf × bitiş` bileşiminin **sekizi**, ve dağılım **tek tek sabit** (bir satır eklemek testi kırar). ⚠️ Kriterin beş örneği kuralın tamamı **değildi** (F3): beşi yalnızca iki ünlü sınıfını temsil ediyordu — ince düz (`e`,`i`) ve ince yuvarlak (`ö`,`ü`) örneklerde **hiç yoktu**, liste onları kapattı. **Mutasyon 3/3**: motor tablosu · harf tuzağı koruması · vaka beklentisi ayrı ayrı bozuldu, üçü de kırıldı — ve etiket çapraz kontrolü mistagging'i **bağımsız** yakaladı. **D5 22/22** derlenmiş `dist` + düz `node` + paket barrel'ı üzerinden
-- [ ] Tarih "23 Ağustos 2026", para "€1,2 mn" formatında
+- [x] **Tarih "23 Ağustos 2026", para "€1,2 mn" formatında** — **5.2**; kriterin **İKİ yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). Tarih `Intl`den doğrudan geliyor; para **gelmiyor** ve son eki biz küçültüyoruz (`Mn` → `mn`), çünkü ölçüldü: `compactDisplay: 'long'` `style: 'currency'` ile çalışmıyor. ⚠️ **Ayırıcı bölünmez boşluk `U+00A0`** ve bu testte **kod noktalarıyla** iddia ediliyor — normal boşlukla yazılmış bir sözleşme sessizce yanlış olurdu. ⚠️ **Zaman dilimi varsayılmıyor:** `DEFAULT_TIME_ZONE = 'UTC'`, ve sınır vakası (`22:30Z` → UTC 23, İstanbul 24 Ağustos) koşan bir testle sabitlendi. **Üç katman ayrı iddia edildi** (ICU'nun parçaları · bizim saf son işlemimiz · kriterin tam dizesi), ölçüm ortamı yazılı (**ICU 78.3 / CLDR 48.0**). **Mutasyon 3/3 · D5 22/22**. ⚠️ **Tarayıcı ICU'su doğrulanmadı** — jsdom kendi ICU'sunu getirmiyor (ölçüldü); doğrulama **Faz 17'nin kabul kriterine** yazıldı
 - [ ] Sözlükte en az 120 terim tanımlı
 - [ ] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)*
 - [ ] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — `ErrorBoundary` ve `MESSAGE_BY_KIND` metinleri `t()` üzerinden geliyor; ödendiği kütükte işaretli *(K5)*
@@ -2409,9 +2409,33 @@ docs/glossary.md
       `I` noktalı `i` oluyor) ve `'İ'.toLowerCase()` **iki kod birimi** üretiyor;
       motor bu yüzden **hiç küçük harfe çevirmiyor** + `normalize('NFC')`.
       Mutasyon **3/3** kırdı. → `docs/reports/faz-05/5.1-*.md`
-- [ ] **5.2** **`Intl` biçimlendiriciler** — `packages/shared/src/i18n/format.ts`
+- [x] **5.2** **`Intl` biçimlendiriciler** — `packages/shared/src/i18n/format.ts`
       + `index.ts` (saf barrel). Tarih `23 Ağustos 2026` · para `€1,2 mn` · sayı.
       `Date.now()` yok, girdi parametre. → kriter 4
+      **SONUÇ — üç tuzak ölçüldü, hiçbiri tahmin edilmedi:**
+      ① **Ayırıcı boşluk `U+00A0`** (bölünmez), `U+0020` değil — normal boşlukla
+      yazılmış bir karşılaştırma **eşleşmezdi**. Korundu (doğru tipografi) ve
+      testte **kod noktalarıyla** iddia edildi; test dosyasında gerçek karakter
+      **gömülü değil**, `const NBSP = '\u00A0'` olarak adlandırıldı — gömülü
+      olsaydı normal boşluktan gözle ayırt edilemezdi.
+      ② **`compactDisplay: 'long'` para ile ÇALIŞMIYOR:** `style` olmadan
+      `1,2 milyon` (zaten küçük harf) üretiyor, `style: 'currency'` ile
+      **`€1,2 Mn`**'e düşüyor. Küçültmeyi **biz** yapıyoruz.
+      ③ **Varsayılan zaman dilimi sessiz bir hata kaynağı:** bu makinenin
+      varsayılanı `Europe/Istanbul` ve `2026-08-23T22:30Z` → UTC'de **23**,
+      İstanbul'da **24 Ağustos**. `DEFAULT_TIME_ZONE = 'UTC'`, makineden
+      **okunmuyor**.
+      ⚠️ **İKİ KATMAN AYRI TUTULDU** — `Intl`in parçaları (ICU'ya ait, **yapıyla**
+      iddia edilir) ve `lowerCompactSuffix` (bize ait, **`Intl`siz** test edilir).
+      Tek bir tam-dize iddiası ikisini birden ölçerdi ve kırıldığı gün hangisinin
+      kırıldığı belli olmazdı. Ölçüm ortamı yazıldı: **Node 24.19.0 · ICU 78.3 ·
+      CLDR 48.0**.
+      **Mutasyon 3/3** — ve ikisi **birer** testle yakalandı: kapsam genişletmesi
+      (17 pozitif test **geçti**, yakalayan tek şey karşı kontroldü) ve zaman
+      dilimi (yakalayan tek şey sınır vakasıydı).
+      ⚠️ **Tarayıcı doğrulaması YAPILAMADI** ve sebebi ölçüldü: jsdom kendi
+      ICU'sunu getirmiyor. **Faz 17'nin kapsamına ve bir kabul kriterine yazıldı.**
+      → `docs/reports/faz-05/5.2-*.md`
 - [ ] **5.3** **i18next + on namespace + tarayıcı dil algılama** —
       `apps/web/src/app/i18n.ts` · `apps/web/src/locales/tr/*.json`.
       Namespace'ler **tek tek yazılı ve on tane**: `common, squad, tactics,
@@ -2465,6 +2489,16 @@ docs/glossary.md
       aynı negatif testle kanıtlanır. ⚠️ **Betik kendi kopyasını denetlemez** —
       4.1'in dersi: doğrulama betiği kendi kopyasına baktığı için bir mutasyona
       hiçbir şey dememişti. → kriter 2
+      🆕 **GÖRÜNMEZ KARAKTER TARAMASI DA BURAYA DÜŞÜYOR** *(Faz 5.2'de ölçüldü)*
+      5.2'de gömülü `U+00A0` **dört ayrı dosyada** ortaya çıktı ve dördü de
+      *"bu karakteri açık yazacağım"* diye yazılırken oldu — biri tuzağı
+      **anlatan** başlığın altında, biri tuzağı **günlüğe kaydeden** satırın
+      içinde. Niyet hiç işe yaramadı çünkü karakter **görünmez**; tek çalışan
+      şey **koşan bir tarama** oldu (geçici betik, `0 dosya`).
+      `i18n-check` zaten `locales/**` dosyalarını okuyacak — doğal ev burası.
+      ⚠️ **Kural körü körüne "NBSP yasak" OLAMAZ:** bir çeviri metni bölünmez
+      boşluğu **meşru** olarak isteyebilir (sayı + birim). Tarama **kaynak
+      koda ve belgelere** bakar, `locales/**` içinde ise **rapor eder, kırmaz**.
 - [ ] **5.7** **`docs/glossary.md`** — çekirdek `CLAUDE.md` §14'ün **77 terimi**
       (sayıldı, başlık satırı hariç; biri `Regen` negatif girdisi). Eksik **≥43**
       terim `docs/spec/02/03/04/07`den **toplanır, uydurulmaz** (SAPMA-026).
@@ -3185,9 +3219,27 @@ docs/glossary.md
   hale geldiği faz burası, kurulum buraya düşüyor. Kapsam: Playwright yapılandırması
   (masaüstü + 375px mobil projeleri), CI adımı, ve **tek** kritik akış (giriş → ana kabuk →
   bölüm gezinme). Tam senaryo paketi Faz 50'de kalır.
+- **🆕 `Intl` ÇIKTILARI GERÇEK BİR TARAYICIDA DOĞRULANIR** *(Faz 5.2'de ölçüldü)*
+  Faz 5.2'nin biçimlendiricileri (`€1,2 mn`, `23 Ağustos 2026`) **Node'un
+  ICU'suna** karşı doğrulandı: **ICU 78.3 · CLDR 48.0 · Unicode 17.0**. Ama
+  çıktı **tarayıcıda** görünecek ve tarayıcı **ayrı bir ICU** taşır — aynı
+  çağrı farklı bir dize üretebilir (özellikle kısaltma son ekleri `B`/`Mn`/
+  `Mr`/`Tn` ve ayırıcı **bölünmez boşluk U+00A0**).
+  ⚠️ **Bu doğrulama 5.2'de YAPILAMADI ve sebebi ölçüldü, varsayılmadı:** depoda
+  gerçek bir tarayıcı koşturan hiçbir kapı yok. `vitest.config.ts`'te yalnızca
+  **bir** proje `jsdom` kullanıyor (`apps/web`) ve **jsdom kendi ICU'sunu
+  getirmiyor** — aynı Node sürecinde koşuyor, `Intl` Node'un ICU'su. Ölçüldü:
+  jsdom ortamında `window` varken bile çıktı Node'unkiyle **birebir aynı**.
+  Yani bir jsdom testi bu riski **göremez**.
+  → Playwright burada kurulduğuna göre doğrulama da buraya düşüyor. **Kapsam
+  dar:** kriterin iki dizesi (`€1,2 mn` ve `23 Ağustos 2026`) gerçek tarayıcıda
+  üretilip **kod noktalarıyla** karşılaştırılır. Ayrışma çıkarsa bu bir hata
+  değil bir **karar** açar: son işlem katmanı mı genişler, yoksa dize mi
+  gevşetilir.
 
 **Kabul kriterleri:**
 - [ ] 12 bölüm arasında gezinme masaüstü ve mobilde sorunsuz
+- [ ] **`Intl` çıktıları gerçek tarayıcıda doğrulandı** — `€1,2 mn` ve `23 Ağustos 2026` kod noktalarıyla karşılaştırıldı; ayrışma varsa kararı yazılı *(Faz 5.2'den taşındı)*
 - [ ] `pnpm test:e2e` çalışıyor; ilk kritik akış hem masaüstü hem 375px projesinde yeşil, CI'da koşuyor *(G-02)*
 - [ ] Inbox 500 mesajda akıcı, filtre < 100 ms
 - [ ] Arama "besiktas" yazınca "Beşiktaş" buluyor, sonuç < 150 ms
