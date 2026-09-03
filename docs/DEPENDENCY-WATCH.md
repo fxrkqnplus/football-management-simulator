@@ -26,8 +26,8 @@
 | `ioredis` | 5.11.1 | **Faz 16** | **BORÇ-001** — 6.0.0 mevcut ama kurulum anında 3 haftalıktı. |
 | `bullmq` | 5.81.3 | **Faz 16** | **BORÇ-002** — 6.2.0 mevcut; v6 `ioredis`'i peer'a taşıdı, `pg`/`redis` peer'ları ekledi (kuyruk yapılandırmasını değiştiren mimari değişiklik). |
 | `@tanstack/react-table` | 9.1.2 | **Faz 18** | Taze majör (9.0 → 4 Ağu 2026). v8 Nis 2025'ten beri güncellenmiyor, bu yüzden v9'da başlandı; notlar tablo motoru yazılırken okunacak. |
-| `i18next` / `react-i18next` | **26.4.1 / 17.0.13** | ~~Faz 5~~ ✅ **5.0'da ELE ALINDI — notlar OKUNDU, karar verildi** | Kurulum **5.3**'te. Sonuç aşağıda. ⚠️ Satır `26.4.0 / 17.0.12` diyordu ve **bayattı** — sürümler 5.0'da registry'den yeniden okundu. |
-| `i18next-browser-languagedetector` | **8.2.1** | ~~Faz 5~~ ✅ **5.0'da EKLENDİ ve ele alındı** | ⚠️ **Bu satır HİÇ YOKTU** ve 5.0'ın açılış ölçümünde bulundu: ROADMAP Faz 5 kapsamı *"tarayıcı dil algılama"* istiyor, yani paket **gerekli**, ama takip tablosunda adı geçmiyordu. Majör atlama **yok** (ilk kurulum). `peerDependencies` **boş** — ölçüldü. Kurulum 5.3'te. |
+| `i18next` / `react-i18next` | **26.4.1 / 17.0.13** | ~~Faz 5~~ ✅ **5.0'da karar · 5.3'te KURULDU** | Sonuç aşağıda. ⚠️ Satır `26.4.0 / 17.0.12` diyordu ve **bayattı**; sürümler 5.0'da **ve** 5.3'te registry'den yeniden okundu (ikisinde de aynı). |
+| `i18next-browser-languagedetector` | **8.2.1** | ~~Faz 5~~ ✅ **5.0'da EKLENDİ · 5.3'te KURULDU** | ⚠️ **Bu satır HİÇ YOKTU** ve 5.0'ın açılış ölçümünde bulundu: ROADMAP Faz 5 kapsamı *"tarayıcı dil algılama"* istiyor, yani paket **gerekli**, ama takip tablosunda adı geçmiyordu. Majör atlama **yok** (ilk kurulum). `peerDependencies` **boş**. |
 | `recharts` | 3.10.1 | **Faz 29** | 2 → 3 majör atlaması, notlar okunmadı. İlk kullanım maç sonrası analiz. |
 | `postgres` (Docker) | **18** | ~~Faz 3~~ ✅ **3.0'da BUMP EDİLDİ (16 → 18)** | Sonuç aşağıda. Sonraki majör değerlendirmesi Faz 50 (dağıtım). |
 | `redis` (Docker) | 7 | **Faz 16** | 8 mevcut (8.8.2). `ioredis`/`bullmq` majör kararlarıyla (BORÇ-001, BORÇ-002) aynı fazda birlikte değerlendirilir. |
@@ -92,6 +92,27 @@ uyumu **registry meta verisinden** okundu, `pnpm install` koşturulmadı (5.0'da
 paket kurulmuyor). Gerçek kapı `pnpm install --frozen-lockfile`tır ve 5.3'te
 ateşlenir. Buradaki tablo *"kurulmalı"* demiyor, *"engelleyen bir peer
 görünmüyor"* diyor.
+
+### ✅ 5.3'TE KURULDU — kapı ateşlendi ve geçti (2026-09-03)
+
+`pnpm --filter @fms/web add i18next@26.4.1 react-i18next@17.0.13 i18next-browser-languagedetector@8.2.1`
+
+| Ölçüm | Sonuç |
+|---|---|
+| `strict-peer-dependencies` kapısı | **Ötmedi** — peer uyarısı/hatası yok |
+| Lockfile paket girdisi | **642 → 647** |
+| Eklenen | **5**: `i18next@26.4.1` · `react-i18next@17.0.13` · `i18next-browser-languagedetector@8.2.1` · **`html-parse-stringify@4.0.1`** (geçişli — `Trans` bileşeninin HTML ayrıştırıcısı) · **`use-sync-external-store@1.6.0`** (geçişli — React abonelik shim'i) |
+| Silinen | **0** |
+| Üretim paketi etkisi | `321,49 → 373,22 kB` ham · gzip `104,48 → 120,67 kB` (**+16,19 kB**) — kontrol deneyiyle ölçüldü, çünkü modülün bugün tüketicisi yok |
+
+⚠️ **Paket boyutu artışı Faz 6'nın `perf:budget` kapısının girdisidir** (G-01).
+Bugün bir bütçe yok, o yüzden bu bir **ölçüm**, bir ihlal değil.
+
+⚠️ **`nonExplicitSupportedLngs` DENENDİ VE SİLİNDİ.** Kurulum sırasında
+eklenmişti; mutasyon onu yakalayamadı ve izole bir deney (dört kombinasyon)
+i18next 26'nın `tr-TR → tr` indirgemesini **zaten** yaptığını gösterdi.
+Hiçbir şey yapmayan bir ayar bırakılmadı — gerekçe `apps/web/src/app/i18n.ts`
+dosya başında, ölçüm tablosuyla.
 
 > Kural 3: bump edilen satır silinmez, sonucu buraya yazılır.
 

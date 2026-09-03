@@ -2436,12 +2436,42 @@ docs/glossary.md
       ⚠️ **Tarayıcı doğrulaması YAPILAMADI** ve sebebi ölçüldü: jsdom kendi
       ICU'sunu getirmiyor. **Faz 17'nin kapsamına ve bir kabul kriterine yazıldı.**
       → `docs/reports/faz-05/5.2-*.md`
-- [ ] **5.3** **i18next + on namespace + tarayıcı dil algılama** —
+- [x] **5.3** **i18next + on namespace + tarayıcı dil algılama** —
       `apps/web/src/app/i18n.ts` · `apps/web/src/locales/tr/*.json`.
       Namespace'ler **tek tek yazılı ve on tane**: `common, squad, tactics,
       transfer, match, finance, dialogue, news, tutorial, errors`. 17 seed
       anahtarı (`country.*`, `competition.*`) `common`a girer. Paketler burada
       kurulur (5.0'ın kararıyla).
+      **SONUÇ:**
+      🆕 **KURULUM:** `26.4.1 / 17.0.13 / 8.2.1` — lockfile **642 → 647**, tam
+      **+5** paket (ikisi geçişli: `html-parse-stringify`, `use-sync-external-store`),
+      **0 silinen**. `strict-peer-dependencies=true` **ötmedi** — 5.0'ın *"gerçek
+      kapı `pnpm install`"* cümlesi ateşlendi ve geçti.
+      🆕 **5.0'IN KOŞULLU TİPLEME KARARI DOĞRULANDI — İKİ YÖNLÜ kontrol deneyi:**
+      ① yanlış anahtar → `typecheck` **kırıldı** (`TS2345`, çıkış 2) ve hata
+      mesajı **17 geçerli anahtarı tek tek saydı** ② doğru anahtar → **geçti**.
+      Tek yön yeterli olmazdı (SAPMA-012: her şeyi reddeden bozuk bir
+      yapılandırma da "kırılıyor" derdi). Sonda **silindi**.
+      🆕 **BİR MUTASYON HİÇBİR ŞEY YAKALAMADI VE EN DEĞERLİSİ O OLDU:**
+      `nonExplicitSupportedLngs` eklenmişti; mutasyon `0/16` verdi. İzole bir
+      deney (dört kombinasyon) gerekçeyi **çürüttü** — i18next 26 indirgemeyi
+      zaten yapıyor. **Ayar SİLİNDİ** (SAPMA-026: hiçbir şey yapmayan bir ayar
+      bir sonraki okuyucuya *"bu gerekli"* dedirtir). `supportedLngs`in gerçek
+      işi ölçüldü ve **başka çıktı**: çeviri onsuz da çözülüyor, fark
+      **`i18n.language`**'ta (`en` kalıyor, `<html lang>` ve `localStorage` onu
+      okuyor) — iddia düzeltildi ve yeni hâli mutasyonla **yakalandı** (`1/16`).
+      🆕 **ÇAPRAZ DOĞRULAMA 17/17 KOŞTU ve İKİSİ ISIRDI** — `Premier League`
+      (yazım ünlüyle biter, okunuş `lig` ünsüzle → `League'nin` yanlış) ve
+      `FA Cup` (yazımın `u`su kalın yuvarlak, okunuş `kap` kalın düz →
+      `Cup'un` yanlış). İkisi de **veri** olarak çözüldü:
+      `PRONUNCIATION_OVERRIDES` 3 → **5** satır, `SUFFIX_CASES` 55 → **57**.
+      5.1'in *"bir satır eklemek testi kırar"* nöbetçisi **ateşledi**.
+      ⚠️ **D5 BİR ŞEY BULDU:** çeviriler üretim paketinde **YOK** — modülün
+      **tüketicisi yok**, ağaç sarsma siliyor. Statik paketleme bir **kontrol
+      deneyiyle** kanıtlandı (geçici tüketici → beş çeviri de pakette; paket
+      **321,49 → 373,22 kB**, gzip **+16,19 kB**), sonda **söküldü**.
+      **Bağlama işi 5.4'ün** — `useTranslation` zaten oraya gerekiyor.
+      → `docs/reports/faz-05/5.3-*.md`
 - [ ] **5.4** **İHLAL ENVANTERİ + BORÇ-003 + BORÇ-005 ödemesi.**
       ⚠️ **İLK İŞ BİR ENVANTER, ödeme değil.** 5.5'in kural taslağı `warn` olarak
       (ya da eşdeğer AST taramasıyla) koşturulur ve **ihlal listesi ölçülüp
@@ -2499,6 +2529,15 @@ docs/glossary.md
       ⚠️ **Kural körü körüne "NBSP yasak" OLAMAZ:** bir çeviri metni bölünmez
       boşluğu **meşru** olarak isteyebilir (sayı + birim). Tarama **kaynak
       koda ve belgelere** bakar, `locales/**` içinde ise **rapor eder, kırmaz**.
+      🆕 **5.3'TE ESLint'İN NEREDE KÖR OLDUĞU ÖLÇÜLDÜ — nöbetçi buna göre
+      tasarlanır.** `no-irregular-whitespace` kuralı **zaten var ve çalışıyor**:
+      5.3'te bir **regex literalindeki** görünmez karakteri yakaladı. Ama 5.2'nin
+      sekiz NBSP'sini **görmemişti** ve sebep iki gözlemden çıkarıldı: onlar
+      **dize** içindeydi ve kuralın varsayılanı `skipStrings: true`.
+      → Yani boşluk şurada: **dizeler** (ESLint atlıyor) ve **`.md` dosyaları**
+      (ESLint hiç bakmıyor — 5.2'de dört dosyanın üçü `.md`ydi). `i18n-check`in
+      taraması bu iki yüzeyi hedefler; ESLint tarafında `skipStrings: false`
+      düşünülür ama o bir **ESLint yapılandırma kararı**, ölçülerek verilir.
 - [ ] **5.7** **`docs/glossary.md`** — çekirdek `CLAUDE.md` §14'ün **77 terimi**
       (sayıldı, başlık satırı hariç; biri `Regen` negatif girdisi). Eksik **≥43**
       terim `docs/spec/02/03/04/07`den **toplanır, uydurulmaz** (SAPMA-026).
@@ -2514,7 +2553,19 @@ docs/glossary.md
       > ℹ️ §14 **büyütülmez**: anayasa her oturumda otomatik yükleniyor, 120+ satır
       > her oturumun sabit bağlam maliyetini artırırdı ve terimlerin çoğu
       > (Faz 30–45'in alanı) o oturumlarda okunmuyor. → kriter 5
-- [ ] **5.8** **G-13 kararı** — `competitions.name_key` / `rivalries.name_key` için
+- [ ] **5.8** **G-13 kararı** — 🆕 **5.3'ÜN FİYAT NOTUNU ÖNCE OKU.**
+      5.3, 17 anahtarın Türkçe karşılığını `apps/web/src/locales/tr/common.json`a
+      yazdı ve bu G-13'ü **kapatmıyor** (üç seçenek de **arama** hakkında,
+      gösterim hakkında değil — gösterim her üç dünyada da JSON'dan gelir).
+      ⚠️ **Ama FİYATI değiştiriyor ve bu ölçüldü:** çeviri artık **yalnızca
+      istemci JSON'ında** yaşıyor. Seçenek ② (çevrilmiş adı taşıyan arama
+      tablosu) ve ③ (`displayName` sütunu) aynı dizeyi **veritabanında
+      kopyalamak** demek — yani `Süper Lig` iki yerde durur ve iki kopya bir gün
+      **ayrışır**. Bu, bu projenin en çok tekrarlanan hata sınıfı (BORÇ-008'in
+      dokuz kopyası · `spec/09` §11.5'in *"hiçbir kural iki yerde denetlenmez"*).
+      Seçenek ① (istemci tarafı arama) bu maliyeti **taşımıyor** ama arama
+      yükünü istemciye veriyor. **Karar 5.8'in, girdi 5.3'ün.**
+      — `competitions.name_key` / `rivalries.name_key` için
       çeviri kaynağının **NEREDE yaşadığı**. Üç seçeneğin (istemci tarafı arama ·
       çevrilmiş adı taşıyan arama tablosu · `nameKey`i tamamlayan `displayName`
       sütunu) hangilerinin **mümkün** olduğu yazılır. ⚠️ **Mekanizma Faz 17'nin
