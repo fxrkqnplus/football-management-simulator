@@ -2243,7 +2243,23 @@ docs/glossary.md
       bir heuristik **denenmedi çünkü ölçüm onu çürüttü**: bugün `DebugPanel`in
       dört dize haritasının **dördüne birden** öterdi ve biri i18n anahtar
       tablosu, yani sorunun **çözümü**. Boşluğun sahibi **5.6**
-- [ ] `i18n-check` eksik anahtarları buluyor, CI'da kırıyor
+- [x] **`i18n-check` eksik anahtarları buluyor, CI'da kırıyor** — **5.6**; kriterin
+      **İKİ yarısı da** ayrı ayrı kanıtlandı (yarısı sağlanan bir kriter
+      sağlanmamıştır). ① **"Buluyor":** sahte bir depoda anahtar silinince
+      `missing` ötüyor, ve `pnpm i18n:check` **alt süreç olarak** çıkış kodu
+      **1** veriyor — karşı kontrolüyle birlikte (sağlam depoda **0**; hep 1
+      dönen bozuk bir CLI de tek yönü geçerdi). ② **"CI'da kırıyor":** adım
+      `ci.yml`de **var** ve **maskelenmemiş** (`continue-on-error` · `if:` ·
+      `|| true` yokluğu ayrı bir testle iddia ediliyor) — çünkü *"bir kapının
+      VAR olması onun KOŞTUĞUNU göstermez"* (5.5'in dersi) ve maskelenmiş bir
+      adım bir kapı değil bir temennidir.
+      ⚠️ **Kapsam cümlesi kriterin üstünde ve ÜÇÜ DE yapıldı:** eksik anahtar ·
+      kullanılmayan anahtar · boş çeviri — artı ROADMAP'in 5.6'ya yazdığı
+      **görünmez karakter** taraması (`locales/**` içinde rapor eder, kırmaz).
+      🆕 **Aynı commit'te `pnpm gaps:check` de CI'a bağlandı** — 4.11'den beri
+      hiçbir workflow'da yoktu, yani kapının kendi gerekçesi (*"kontrol koşan
+      bir adımdır, bir temenni değil"*) kendi başına gelmişti.
+      **Mutasyon 7/7**, her birinin yerine oturduğu ayrıca doğrulandı
 - [x] **Türkçe ek motoru 50 test vakasının tamamını geçiyor** — **5.1**; ölçüm **55 / 55** (eşik 50), kriterin beş örneğinin beşi de listede ve `criterion` etiketiyle ayrıca iddia ediliyor. ⚠️ **Uzunluk tek başına kör bir kontroldür** (55 tane `Roma` yazılsa da geçerdi), bu yüzden **kapsam ayrıca ve tam** iddia edildi: dört ünlü uyumu sınıfının **dördü**, sekiz `sınıf × bitiş` bileşiminin **sekizi**, ve dağılım **tek tek sabit** (bir satır eklemek testi kırar). ⚠️ Kriterin beş örneği kuralın tamamı **değildi** (F3): beşi yalnızca iki ünlü sınıfını temsil ediyordu — ince düz (`e`,`i`) ve ince yuvarlak (`ö`,`ü`) örneklerde **hiç yoktu**, liste onları kapattı. **Mutasyon 3/3**: motor tablosu · harf tuzağı koruması · vaka beklentisi ayrı ayrı bozuldu, üçü de kırıldı — ve etiket çapraz kontrolü mistagging'i **bağımsız** yakaladı. **D5 22/22** derlenmiş `dist` + düz `node` + paket barrel'ı üzerinden
 - [x] **Tarih "23 Ağustos 2026", para "€1,2 mn" formatında** — **5.2**; kriterin **İKİ yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). Tarih `Intl`den doğrudan geliyor; para **gelmiyor** ve son eki biz küçültüyoruz (`Mn` → `mn`), çünkü ölçüldü: `compactDisplay: 'long'` `style: 'currency'` ile çalışmıyor. ⚠️ **Ayırıcı bölünmez boşluk `U+00A0`** ve bu testte **kod noktalarıyla** iddia ediliyor — normal boşlukla yazılmış bir sözleşme sessizce yanlış olurdu. ⚠️ **Zaman dilimi varsayılmıyor:** `DEFAULT_TIME_ZONE = 'UTC'`, ve sınır vakası (`22:30Z` → UTC 23, İstanbul 24 Ağustos) koşan bir testle sabitlendi. **Üç katman ayrı iddia edildi** (ICU'nun parçaları · bizim saf son işlemimiz · kriterin tam dizesi), ölçüm ortamı yazılı (**ICU 78.3 / CLDR 48.0**). **Mutasyon 3/3 · D5 22/22**. ⚠️ **Tarayıcı ICU'su doğrulanmadı** — jsdom kendi ICU'sunu getirmiyor (ölçüldü); doğrulama **Faz 17'nin kabul kriterine** yazıldı
 - [ ] Sözlükte en az 120 terim tanımlı
@@ -2644,7 +2660,7 @@ docs/glossary.md
       araç da girmiyordu, silinmesi bu yüzden hiçbir şeyi oynatmadı).
       **Mutasyon 4/4 · görünmez karakter 0.**
       → `docs/reports/faz-05/5.5-*.md`
-- [ ] **5.6** **`tools/i18n-check/` + `pnpm i18n:check` + CI.** Eksik anahtar ·
+- [x] **5.6** **`tools/i18n-check/` + `pnpm i18n:check` + CI.** Eksik anahtar ·
       kullanılmayan anahtar (5.0'ın dinamik anahtar kararıyla) · boş çeviri.
       Nöbetçi **negatif testle** kanıtlanır: kasten bozulmuş bir locale üzerinde
       **kırılmalı**. `ci.yml`e adım eklenir ve adım kaldırılınca CI'nın gerçekten
@@ -2672,6 +2688,64 @@ docs/glossary.md
       (ESLint hiç bakmıyor — 5.2'de dört dosyanın üçü `.md`ydi). `i18n-check`in
       taraması bu iki yüzeyi hedefler; ESLint tarafında `skipStrings: false`
       düşünülür ama o bir **ESLint yapılandırma kararı**, ölçülerek verilir.
+      **SONUÇ:**
+      🆕 **DÖRT DENETİM, HEPSİ İKİ YÖNLÜ:** eksik anahtar · kullanılmayan
+      anahtar · boş çeviri · gömülü görünmez karakter. Bugünkü ölçüm:
+      **59 tanımlı anahtar · 34'ü `t()` ile kullanılıyor · 3 dinamik ön ek ·
+      12 kaynak dosya · 301 dosya görünmez tarama** — ve *"temiz"* iddiası
+      ancak bu sayılar sıfırdan büyük olduğu için bir şey söylüyor (SAPMA-024,
+      ayrı bir testle iddia ediliyor).
+      🆕 **KAPI KENDİ YAZARINI YAKALADI — ilk koşu 8 "kullanılmayan" bildirdi
+      ve YARISI GERÇEKTİ.** Dördü (`errors:boundary.*`) aracın kusuruydu:
+      anahtarlar `t()`ye bir **prop** üzerinden gidiyor
+      (`<ErrorBoundary titleKey="boundary.screen">`). Dördü (`errors:status.*`)
+      **gerçek bir bulgu**: 5.4'te yazılan yedek ailenin bugün **sıfır
+      tüketicisi** var (`api.ts` hata gövdesini hiç parse etmiyor). ⚠️ Kolay yol
+      `errors:boundary.` ön ekini beyan etmekti ve **on** anahtarı birden
+      susturur, altısı gerçekten kullanılıyorken. Bunun yerine iki denetim
+      **iki ayrı çözümlemeye** ayrıldı: *eksik* namespace çözümü ister,
+      *kullanılmayan* yalnızca **atıf** ister. → günlük **#11**
+      🆕 **5.0'IN DİNAMİK ANAHTAR KARARI UYGULANDI, YENİDEN VERİLMEDİ.** Beyan
+      modülü (`apps/web/src/app/i18n-dynamic-keys.ts`) **yoktu** — ölçüldü:
+      depoda tek bir dinamik `t()` çağrısı yok, yani 5.4'ün *"ilk tüketici"*
+      notu gerçekleşmemişti. **İlk gerçek tüketici 5.6.** İkinci bir allowlist
+      **yazılmadı** (5.0 onu elemişti); tip kaçış yardımcısı ilk dinamik
+      çağrıyla **aynı dosyaya** gelecek. ⚠️ İlk yazımda üç aileden **ikisi**
+      yazıldı ve kapı eksiği buldu (günlük **#12**).
+      🆕 **`debugPanel.tab.*` BEYAN EDİLMEDİ, ÇÖZÜLDÜ.** O anahtarlar da `t()`ye
+      bir modül sabiti üzerinden gidiyor ama sabit **aynı dosyada** ve statik;
+      araç `t(TAB_LABEL_KEYS[id])` çağrısından bütün değerleri çıkarıyor.
+      **Çözülebilen bir şey beyan edilmez** — beyan, çözümün mümkün olmadığı
+      yerde kullanılır. ⚠️ Simetri yazılı: 5.5 ölçtü ki AST *"bu dize düz metin
+      mi?"* sorusuna cevap veremiyor; *"bu dize `t()`ye ulaşıyor mu?"* **başka
+      bir soru** ve AST'nin cevabı **var**.
+      🆕 **NBSP NÖBETÇİSİ BİR TUZAĞI ÖNCEDEN ÖLÇTÜ.** Dosya kümesi seçilmeden
+      **önce** deponun durumu ölçüldü (sonra ölçülseydi küme kapı yeşile
+      dönene kadar daraltılırdı): 349 izlenen dosyada gömülü **tek** karakter
+      `README.md`:11'deki `U+200D` ve o **meşru** — `🧑‍💻` bir emoji ZWJ dizisi.
+      Körü körüne *"ZWJ yasak"* diyen bir kural ilk koşuda ateşlenirdi. Kural
+      daraltıldı (ZWJ yalnızca iki komşusu da emoji ise geçer) ve **iki yönlü**
+      test edildi. Tarayıcının **öz denetimi** de koşuyor: dokuz kod noktasının
+      dokuzu da görülebiliyor — *"0 bulundu"* ile *"hiçbir şey aramadı"* aksi
+      hâlde ayırt edilemez.
+      🆕 **KÖR NOKTA (5.5'ten devralındı) KAPATILMADI — ve gerekçe bir ÖLÇÜM.**
+      Modül düzeyi metin sabitleri için anahtar-kümesi heuristiği ölçüldü:
+      `apps/web/src`te **17** sabit, **5'i** JSX'e akıyor, heuristik **3'ünü
+      yanlış** bildirirdi, **gerçek pozitif 0**. Bugün modül düzeyinde düz metin
+      taşıyan tek sabit JSX'e akmıyor. Boşluk **kabul edildi ve kütüğe evi
+      verildi** → **BORÇ-009** (Faz 6, ilk gerçek vakalar bileşenlerle gelecek).
+      🆕 **5.5'İN SAHİPSİZ GÖZLEMİ DE EVE TAŞINDI** → **BORÇ-010**: ölçüldü,
+      `no-hardcoded-path` kanaryası yalnızca 5.5'in **raporunda** yaşıyordu
+      (ROADMAP · kütükler · `SPEC-COVERAGE-GAPS` → 0 eşleşme).
+      **Kapılar:** typecheck **10/10 SOĞUK** · build **8/8 SOĞUK** · lint 0
+      (önbellek silinmiş) · format 0 · arch 9 kural · **test 1100 / 74**
+      (1062/72 idi: +34 araç, +4 beyan) · test:db 301/10 · gaps 20/3/17/0 ✗ ·
+      **i18n 4 denetim temiz** · kapsam **364/451 = %80,70 değişmedi**
+      (`tools/i18n-check/` `.mjs` ve `src/` altında değil → paydada yok, tıpkı
+      `arch-check` ve `bash-text-guard` gibi; beyan modülü ise `apps/*/src/**`
+      olduğu için **girdi** ve +1 ifadesi **kapsandı**).
+      **Mutasyon 7/7** — her birinin yerine oturduğu ayrıca doğrulandı.
+      → `docs/reports/faz-05/5.6-*.md`
 - [ ] **5.7** **`docs/glossary.md`** — çekirdek `CLAUDE.md` §14'ün **77 terimi**
       (sayıldı, başlık satırı hariç; biri `Regen` negatif girdisi). Eksik **≥43**
       terim `docs/spec/02/03/04/07`den **toplanır, uydurulmaz** (SAPMA-026).
