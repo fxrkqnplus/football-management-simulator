@@ -2146,7 +2146,14 @@ var: bölünme tahminle değil **ölçümle** kararlaştırılır. Çizgi hazır
 - Namespace yapısı: `common`, `squad`, `tactics`, `transfer`, `match`, `finance`, `dialogue`, `news`, `tutorial`, `errors`
 - Türkçe çoğullama, sayı/tarih/para formatı (`Intl` API)
 - **Türkçe ek motoru:** dinamik cümlelerde doğru ek seçimi (`{{club}}'{{suffix}}` → "Galatasaray'ın", "Fenerbahçe'nin") — ünlü uyumu + son harf analizi
-- ESLint kuralı: JSX içinde çıplak Türkçe metin **yasak** (otomatik yakalar)
+- ESLint kuralı: JSX içinde çıplak metin **yasak** (otomatik yakalar).
+  ⚠️ **CÜMLE 5.5'TE DÜZELTİLDİ — eskiden *"çıplak **Türkçe** metin"* yazıyordu ve
+  o sıfat bir ÖLÇÜMLE çürütüldü** (SAPMA-039). 5.4 saydı: `ErrorBoundary.tsx`teki
+  `Tekrar dene` gerçek bir K5 ihlali ve **hiçbir Türkçe'ye özgü karakter
+  taşımıyor**; `App.tsx`in `base` / `api prefix` etiketleri ise doğrudan
+  **İngilizce** ve yine de ihlal. Yani kural **dile bakamaz** — yazılabilen şey
+  *"JSX'te çıplak metin"*. Kuralın adı da bu yüzden `no-hardcoded-turkish`
+  değil **`no-bare-jsx-text`**.
 - `tools/i18n-check/`: eksik anahtar, kullanılmayan anahtar, boş çeviri raporu → CI'da çalışır.
   Komut **`pnpm i18n:check`** (`docs/spec/09` §11.5 ve bu belgenin §EK'i aynı adı veriyor).
   ⚠️ **Yol 5.0'da düzeltildi: `tools/i18n-check.ts` (dosya) → `tools/i18n-check/` (dizin).**
@@ -2205,7 +2212,7 @@ packages/shared/src/i18n/format.ts       # kriter 4'ün evi (tarih / para / say�
 apps/web/src/app/i18n.ts                 # i18next örneği — apps/web tarafı
 apps/web/src/locales/tr/*.json           # on namespace
 tools/i18n-check/                        # + index.test.mjs (K10)
-tools/eslint-local-rules/no-hardcoded-turkish.js   # + .test.mjs — kriter 1'in evi
+tools/eslint-local-rules/no-bare-jsx-text.js       # + .test.mjs — kriter 1'in evi (ad 5.5'te düzeltildi, SAPMA-039)
 docs/glossary.md
 ```
 
@@ -2219,7 +2226,23 @@ docs/glossary.md
 > biçimlendiricileri saftır (`Intl` yerleşik); i18next örneği `apps/web`in işi.
 
 **Kabul kriterleri:**
-- [ ] Sabit kodlanmış metin eklenince ESLint hata veriyor
+- [x] **Sabit kodlanmış metin eklenince ESLint hata veriyor** — **5.5**; kriter bir
+      **DAVRANIŞ** iddiası, bir yapılandırma satırı değil, ve öyle kanıtlandı.
+      `local/no-bare-jsx-text` `error` seviyesinde açık; `pnpm lint` bağlandıktan
+      sonra (önbellek silinmiş hâlde) **0**. ⚠️ **`RuleTester` YETMEDİ ve bu
+      bilinçli:** o kuralı **izole** koşturur, *"`pnpm lint` bunu gerçekten
+      koşturuyor mu"* bambaşka bir iddiadır (D3 — 2.3b'de ölçüldü: bir kuralın
+      kablolaması koparıldığında 43 test birden geçmişti). **Kanarya GERÇEK
+      DEPODA yaşıyor:** ESLint Node API'si deponun **kendi `eslint.config.js`ini**
+      çözüyor ve **var olan gerçek bir kaynak dosyanın kimliği** altında lint
+      ediyor — kural sökülürse, `warn`/`off` yapılırsa, yol `ignores`a girerse ya
+      da muafiyet genişlerse kanarya **susar ve bir test kırılır**.
+      **Mutasyon 4/4** (seviye `off` → 3 · muafiyet `**/*.tsx` → 3 · kural
+      körletildi → 12 · kayıt kaldırıldı → 3).
+      ⚠️ **Kuralın GÖRMEDİĞİ de yazıldı** (modül düzeyi metin sabitleri) ve dar
+      bir heuristik **denenmedi çünkü ölçüm onu çürüttü**: bugün `DebugPanel`in
+      dört dize haritasının **dördüne birden** öterdi ve biri i18n anahtar
+      tablosu, yani sorunun **çözümü**. Boşluğun sahibi **5.6**
 - [ ] `i18n-check` eksik anahtarları buluyor, CI'da kırıyor
 - [x] **Türkçe ek motoru 50 test vakasının tamamını geçiyor** — **5.1**; ölçüm **55 / 55** (eşik 50), kriterin beş örneğinin beşi de listede ve `criterion` etiketiyle ayrıca iddia ediliyor. ⚠️ **Uzunluk tek başına kör bir kontroldür** (55 tane `Roma` yazılsa da geçerdi), bu yüzden **kapsam ayrıca ve tam** iddia edildi: dört ünlü uyumu sınıfının **dördü**, sekiz `sınıf × bitiş` bileşiminin **sekizi**, ve dağılım **tek tek sabit** (bir satır eklemek testi kırar). ⚠️ Kriterin beş örneği kuralın tamamı **değildi** (F3): beşi yalnızca iki ünlü sınıfını temsil ediyordu — ince düz (`e`,`i`) ve ince yuvarlak (`ö`,`ü`) örneklerde **hiç yoktu**, liste onları kapattı. **Mutasyon 3/3**: motor tablosu · harf tuzağı koruması · vaka beklentisi ayrı ayrı bozuldu, üçü de kırıldı — ve etiket çapraz kontrolü mistagging'i **bağımsız** yakaladı. **D5 22/22** derlenmiş `dist` + düz `node` + paket barrel'ı üzerinden
 - [x] **Tarih "23 Ağustos 2026", para "€1,2 mn" formatında** — **5.2**; kriterin **İKİ yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). Tarih `Intl`den doğrudan geliyor; para **gelmiyor** ve son eki biz küçültüyoruz (`Mn` → `mn`), çünkü ölçüldü: `compactDisplay: 'long'` `style: 'currency'` ile çalışmıyor. ⚠️ **Ayırıcı bölünmez boşluk `U+00A0`** ve bu testte **kod noktalarıyla** iddia ediliyor — normal boşlukla yazılmış bir sözleşme sessizce yanlış olurdu. ⚠️ **Zaman dilimi varsayılmıyor:** `DEFAULT_TIME_ZONE = 'UTC'`, ve sınır vakası (`22:30Z` → UTC 23, İstanbul 24 Ağustos) koşan bir testle sabitlendi. **Üç katman ayrı iddia edildi** (ICU'nun parçaları · bizim saf son işlemimiz · kriterin tam dizesi), ölçüm ortamı yazılı (**ICU 78.3 / CLDR 48.0**). **Mutasyon 3/3 · D5 22/22**. ⚠️ **Tarayıcı ICU'su doğrulanmadı** — jsdom kendi ICU'sunu getirmiyor (ölçüldü); doğrulama **Faz 17'nin kabul kriterine** yazıldı
@@ -2536,7 +2559,9 @@ docs/glossary.md
       > gün gerekirse sahibi Faz 6 ya da paneli büyüten fazdır.
       > **Bir kararı sessizce ters çevirmek, onu gerekçesiyle genişletmekle aynı
       > şey değildir** — kütüğe yazılacak cümle budur.
-- [ ] **5.5** **ESLint `local/no-hardcoded-turkish` + KANARYA.** Emsal
+- [x] **5.5** **ESLint `local/no-bare-jsx-text` + KANARYA.** *(planda adı
+      `no-hardcoded-turkish`di — 5.5'te ölçüm gerekçesiyle düzeltildi, SAPMA-039.)*
+      Emsal
       `no-hardcoded-path.js` (Faz 1.4) ve `index.js` satırı zaten yazılı:
       *"`no-hardcoded-turkish` → Faz 5"*. Kural **JSX'e dar** — log mesajları ve
       `AppError.message` K5 kapsamında **değil** (SAPMA-010: *"message geliştirici
@@ -2567,6 +2592,58 @@ docs/glossary.md
       **prototipi** odur: bugün `0` ihlal raporluyor, yani kural `error` olarak
       açıldığında `pnpm lint` **yeşil** kalmalı. Kalmıyorsa aradaki fark kuralın
       aracı aşan kapsamıdır ve **yazılır**.
+      **SONUÇ:**
+      🆕 **ADI DEĞİŞTİ — `no-hardcoded-turkish` → `no-bare-jsx-text`, ve gerekçe
+      bir TERCİH DEĞİL bir ÖLÇÜM.** Bu maddenin kendi ① notu zaten *"«Türkçe
+      metni yakala» diye bir kural yazılamaz"* diyordu; adı ve fazın kapsam
+      cümlesi o cümleyle **çelişik kalmıştı**. **Bir ad bir sözleşmedir** ve
+      kuralı örneklerinden geriye okuyan birine yanlış öğretirdi (F3).
+      Düzeltilen dört yer: kuralın kendisi · `index.js`in ayırdığı satır ·
+      fazın kapsam cümlesi · ana dosyalar bloğu. → **SAPMA-039**
+      🆕 **İKİ UYGULAMA BIRAKILMADI — `tools/i18n-inventory/` EMEKLİ EDİLDİ.**
+      Karar koda dokunmadan **önce** verildi. Gerekçe ölçüldü: aracın
+      **tüketicisi yoktu** (hiçbir betikte, CI'da veya kodda geçmiyordu —
+      yalnızca kendi vitest projesi), ve kuralın kapsamı onun **üstünde**
+      (`pnpm lint` deponun tamamına bakan bir **kapı**, elle çağrılan bir CLI
+      değil). ⚠️ **Emeklilikten ÖNCE İKİ UYGULAMANIN ANLAŞTIĞI ÖLÇÜLDÜ:** 5.4
+      öncesi dört dosya `git show` ile geri getirildi ve ikisi de koşturuldu —
+      `App.tsx` 19/19 · `main.tsx` 2/2 · `ErrorBoundary.tsx` 6/6 ·
+      `DebugPanel.tsx` 6/6, **toplam 33 = 33**, tek bir uyuşmazlık yok.
+      Aracın 11 testinin sabitlediği **negatif** anlamlar (yorum · `logger` ·
+      `AppError.message` · `data-testid` · JSX dışı dize · sayı) kuralın
+      `valid[]` listesine **taşındı** — emeklilik kanıtlanmış bir güvenceyi
+      sessizce düşürmedi. **Kör nokta kaydının yeni evi kuralın kendi başlığı**
+      (artı `DebugPanel.tsx`in yorumu, bu madde ve ANLIK DURUM).
+      🆕 **KABLOLAMA KANARYASI — ve mekanizması BAĞIMSIZ olarak doğrulandı.**
+      Kanarya diske **hiçbir şey yazmıyor**; ESLint Node API'si gerçek
+      `eslint.config.js`i çözüp **var olan gerçek bir dosyanın kimliği** altında
+      lint ediyor. Üç tasarım ölçümle elendi: `lintText` **sanal** bir yol için
+      `projectService` ayrıştırma hatası veriyor · diske yazılan bir `*.test.tsx`
+      vitest'in `web` projesinin glob'una takılabilir · aynı dosya
+      `coverage.include` ile eşleşip paydayı oynatabilir. Seçilen yolun
+      geçerliliği **bu kuraldan bağımsız** kanıtlandı: aynı mekanizmayla
+      bugünkü `local/no-hardcoded-path` da gerçekten ötüyor.
+      🆕 **MUAFİYET AYRI BİR BLOK OLDU (kısmi koruma değil).** Mevcut muafiyet
+      listesi `base-path.ts` / `tools/arch-check/**` gibi yol **tanım yerlerini**
+      de taşıyor; oraya bir satır eklemek yeni kuralı o dosyalarda da **sessizce**
+      kapatırdı. Bugün etkisi olmazdı (hiçbirinde JSX yok) — ama *"muafiyetin dar
+      kalması kuralın güvenilirliğinin şartı"*. Muafiyet **sessiz değil**: bir
+      birim testindeki ihlalin **ötmediği** ayrı bir vakayla, `*.spec.tsx`in
+      muaf **olmadığı** ise başka bir vakayla iddia ediliyor.
+      🆕 **ARAÇTAN İKİ BİLİNÇLİ SAPMA, ikisi de testle sabitlendi:** nitelik
+      konumundaki ifade kabına artık **nitelik politikası** uygulanıyor
+      (`data-testid={'x'}` ile `data-testid="x"` aynı cevabı veriyor; araçta
+      farklıydı) · ifadesiz **şablon literalleri** de görülüyor
+      (`` {`Metin`} `` — emsal `no-hardcoded-path`, aksi hâlde açık bir kaçış
+      deliği kalırdı).
+      **Kapılar:** `pnpm lint` **0** (önbellek silinmiş) · typecheck **10/10
+      SOĞUK** · build **8/8 SOĞUK** · test **1062 / 72** (1041 idi: −11 envanter,
+      +32 kural) · test:db **301/10** · kapsam **364/451 = %80,70 DEĞİŞMEDİ**
+      (ölçüldü: `coverage.include` `tools/*/src/**` istiyor, kural `src/` altında
+      değil ve `.js`/`.mjs` — ne kural ne testi paydaya giriyor; emekli edilen
+      araç da girmiyordu, silinmesi bu yüzden hiçbir şeyi oynatmadı).
+      **Mutasyon 4/4 · görünmez karakter 0.**
+      → `docs/reports/faz-05/5.5-*.md`
 - [ ] **5.6** **`tools/i18n-check/` + `pnpm i18n:check` + CI.** Eksik anahtar ·
       kullanılmayan anahtar (5.0'ın dinamik anahtar kararıyla) · boş çeviri.
       Nöbetçi **negatif testle** kanıtlanır: kasten bozulmuş bir locale üzerinde
@@ -2641,6 +2718,17 @@ docs/glossary.md
 > listesi bir kontrol değildir"*): ilk commit → o anki commit farkı **2 günü
 > aşmışsa** bölünme ateşlenir, 5b ayrı dal + ayrı PR olur. Faz 4 **4,562 gün**
 > sürdü ve bölünme çizgisi hazır olduğu için ucuz oldu.
+>
+> ✅ **KONTROL NOKTASI KOŞTURULDU (5.5 sonunda) — SONUÇ: BÖLÜNME ATEŞLENMEDİ.**
+> Ölçüm (`git show -s --format=%ct`, tahmin değil):
+> ilk commit **`84a6d5f`** `2026-09-02 23:12:53 +0300` → 5.5'in içerik commit'i
+> **`e7d46ae`** `2026-09-03 19:50:13 +0300` = **74.240 sn = 0,859 gün**.
+> Eşik **2 gün**; **aşılmadı** (marj 1,141 gün). Faz boyunca **15 commit**.
+> **5b ayrı dal AÇILMIYOR** — 5.6…5.9 aynı dalda ve aynı PR'da devam eder.
+> ⚠️ **Bir kuralın ateşlenmemesi de bir sonuçtur ve bu yüzden yazıldı** (Faz 4'ün
+> dersi): kaydedilmezse *"kontrol edildi mi?"* sorusu bir sonraki fazda yeniden
+> doğar ve o gün cevabı kimse bilmez. §0.5 kuralının **kendisi değiştirilmedi**;
+> yalnızca koşturuldu ve sonucu kaydedildi.
 
 **Bağımlılık:** Faz 1
 
