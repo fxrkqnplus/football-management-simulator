@@ -2225,7 +2225,7 @@ docs/glossary.md
 - [x] **Tarih "23 Ağustos 2026", para "€1,2 mn" formatında** — **5.2**; kriterin **İKİ yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). Tarih `Intl`den doğrudan geliyor; para **gelmiyor** ve son eki biz küçültüyoruz (`Mn` → `mn`), çünkü ölçüldü: `compactDisplay: 'long'` `style: 'currency'` ile çalışmıyor. ⚠️ **Ayırıcı bölünmez boşluk `U+00A0`** ve bu testte **kod noktalarıyla** iddia ediliyor — normal boşlukla yazılmış bir sözleşme sessizce yanlış olurdu. ⚠️ **Zaman dilimi varsayılmıyor:** `DEFAULT_TIME_ZONE = 'UTC'`, ve sınır vakası (`22:30Z` → UTC 23, İstanbul 24 Ağustos) koşan bir testle sabitlendi. **Üç katman ayrı iddia edildi** (ICU'nun parçaları · bizim saf son işlemimiz · kriterin tam dizesi), ölçüm ortamı yazılı (**ICU 78.3 / CLDR 48.0**). **Mutasyon 3/3 · D5 22/22**. ⚠️ **Tarayıcı ICU'su doğrulanmadı** — jsdom kendi ICU'sunu getirmiyor (ölçüldü); doğrulama **Faz 17'nin kabul kriterine** yazıldı
 - [ ] Sözlükte en az 120 terim tanımlı
 - [ ] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)*
-- [ ] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — `ErrorBoundary` ve `MESSAGE_BY_KIND` metinleri `t()` üzerinden geliyor; ödendiği kütükte işaretli *(K5)*
+- [x] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — **5.4**; **iki yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). **BORÇ-003:** `ErrorBoundary` metinleri `t()`den geliyor ve `title` propu **`titleKey`e** dönüştü — çağrı yerinin de K5'e uymasını zorunlu kılıyor; `DebugPanel` de çevrildi (gerekçe **genişletildi**, çürütülmedi). **BORÇ-005:** `MESSAGE_BY_KIND` ve `UNEXPECTED_MESSAGE` **silindi**, `message` alanı gövdeden çıkarıldı, yedek `status.*` ailesine taşındı. ⚠️ **Kriter iki borç istedi, kapatılan DÖRT yer:** envanter `App.tsx` (19) ve `main.tsx` (2) ihlallerini de gösterdi ve 5.5'in kuralı `error` açılacağı için onlar da kapatıldı. **Ölçüm: envanter 33 → 0.** Kütükte ikisi de **kapalı** işaretli. **Mutasyon 3/3 · D5 10/10** (derlenmiş paket gerçekten çalıştırıldı, ekranda ham anahtar yok)
 
 **Alt görevler** *(faz açılışında ölçüldü, kullanıcı onayıyla 2026-09-02'de işlendi — K11)*
 
@@ -2472,7 +2472,44 @@ docs/glossary.md
       **321,49 → 373,22 kB**, gzip **+16,19 kB**), sonda **söküldü**.
       **Bağlama işi 5.4'ün** — `useTranslation` zaten oraya gerekiyor.
       → `docs/reports/faz-05/5.3-*.md`
-- [ ] **5.4** **İHLAL ENVANTERİ + BORÇ-003 + BORÇ-005 ödemesi.**
+- [x] **5.4** **İHLAL ENVANTERİ + BORÇ-003 + BORÇ-005 ödemesi.**
+      **SONUÇ:**
+      🆕 **ENVANTER ARACI YAZILDI** (`tools/i18n-inventory/`, AST tabanlı) ve
+      **kendi karşı kontrolü** var (11 test, iki yönlü): bilinen ihlal
+      (`Tekrar dene`) listede **çıkıyor**, ihlal-olmayan (yorum · `logger` ·
+      `AppError.message` · `data-testid`) **çıkmıyor**. Tek yön yazılsaydı
+      **her şeyi ihlal sayan** bozuk bir araç da geçerdi.
+      🆕 **ENVANTER ROADMAP'in SAYDIĞINDAN BÜYÜK ÇIKTI: 33 ihlal / 4 dosya.**
+      Bu madde `App.tsx`te **6** satır listelemişti (kaba taramadan), AST
+      **19** buldu; ve **`main.tsx` bu listede hiç yoktu** (2 ihlal). Fark
+      dilden geliyor: kural **dile bakamaz** (`Tekrar dene` hiçbir Türkçe
+      karakter taşımıyor), yani `base`/`api prefix` gibi **İngilizce** teknik
+      etiketler de ihlal. Envanter **0**'a indirildi.
+      🆕 **ARACIN KÖR NOKTASI BULUNDU ve 5.5'e yazıldı:** `DebugPanel`in
+      `TAB_LABELS`/`EMPTY_TAB_NOTES` sabitleri **modül düzeyinde** yaşıyor,
+      JSX'e render ediliyor ama AST onları **görmüyor**. Yalnızca BORÇ-003
+      onları adıyla saydığı için yakalandı.
+      🆕 **i18n ÇÖKÜŞ KARARI — kontrol deneyiyle kanıtlandı.** i18n artık bir
+      **önyükleme ön koşulu**: `root.render()`tan önce kuruluyor ve
+      `isInitialized === true` **açıkça** denetleniyor (ölçüldü: i18next bozuk
+      yapılandırmada **fırlatmıyor**, sessizce `undefined` bırakıyor — bir
+      `try/catch` göremezdi). Başarısızsa React **hiç monte edilmiyor**, statik
+      bir metin basılıyor. Kalıcı nöbetçi: `main.boot-failure.test.tsx`.
+      🆕 **BORÇ-005 GÖVDE SÖZLEŞMESİNİ DEĞİŞTİRDİ ve bu bir API değişikliği:**
+      `message` alanı gövdeden **çıkarıldı**. ⚠️ Tüketicisi **sıfırdı** ve bu
+      ölçüldü — `api.ts` hata gövdesini **hiç parse etmiyor** (`response.json()`
+      yalnızca başarı yolunda). İlk okuma yanlıştı, kaynak takip edilince
+      düzeltildi. Yedek **`status`** üzerine kuruldu (SAPMA-038: `kind` gövdede
+      yok).
+      🆕 **TAM D5 — 5.3'ün borcu kapandı: 10/10.** Derlenmiş üretim paketi
+      jsdom global'leriyle **gerçekten çalıştırıldı**: React monte oluyor, her
+      etiket Türkçeye çözülüyor, ekranda **hiç ham anahtar yok**. Paket
+      **321.490 → 380.908 bayt** (+59.418, **%18,5**) — ⚠️ 5.3'ün sonda
+      ölçümü (373.220) **gerçeğin yerini tutmadı**.
+      **Mutasyon 3/3** — önyükleme koruması kaldırılınca ekran **boş** kaldı;
+      bir çeviri anahtarı silinince ekranda **ham anahtar** göründü; envanter
+      aracı körletilince kendi testi kırıldı.
+      → `docs/reports/faz-05/5.4-*.md`
       ⚠️ **İLK İŞ BİR ENVANTER, ödeme değil.** 5.5'in kural taslağı `warn` olarak
       (ya da eşdeğer AST taramasıyla) koşturulur ve **ihlal listesi ölçülüp
       yazılır**; 5.4 o listeyi kapatır, 5.5 kuralı `error`a çevirdiğinde liste
@@ -2510,6 +2547,26 @@ docs/glossary.md
       halihazırda iki muafiyet bloğu taşıyor (`:138` `tools/eslint-local-rules/**`,
       `:162` bir kapatma) — kural yazılıp bağlanmazsa `pnpm lint` **0 der ve
       hiçbir şeye bakmamıştır** (D3). → kriter 1
+      🆕 **5.4'ÜN ÖLÇTÜĞÜ ÜÇ ŞEY KURALIN TASARIMINI BELİRLİYOR:**
+      ① **KURAL DİLE BAKAMAZ.** `Tekrar dene` gerçek bir K5 ihlali ve hiçbir
+      Türkçe karakter taşımıyor — *"Türkçe metni yakala"* diye bir kural
+      **yazılamaz**. Uygulanabilir hâli *"JSX'te çıplak metin yakala"*, dilden
+      bağımsız. Sonuç: `base`, `api prefix` gibi **İngilizce** teknik etiketler
+      de kapsamda ve 5.4 onları da `t()`ye taşıdı.
+      ② **KÖR NOKTA: MODÜL DÜZEYİ METİN SABİTLERİ.** `DebugPanel`in sekme adları
+      JSX'e render ediliyordu ama AST taraması onları **görmedi** (yalnızca JSX
+      içindeki literallere bakıyor). 5.4'te onları yakalayan şey bir araç değil,
+      **BORÇ-003'ün onları adıyla sayması** oldu. Aynı kör nokta bu kuralda da
+      olacak — kural **neyi görmediğini kendi belgesinde söyler**; sessiz bir
+      sınır *"kısmi koruma D3 yanılsaması üretir"*.
+      ③ **BİRİM TESTLER MUAF** — emsal `no-hardcoded-path` (`eslint.config.js`:141):
+      testler metni **veri** olarak kullanır ve muafiyet olmazsa her test dosyası
+      `eslint-disable` ile dolar. Uzantı listesi **tam** tutulur (SAPMA-007
+      sınıfı); `*.spec.*` muaf **değildir** (Faz 17 uçtan uca gerçek arayüzü sürer).
+      ⚠️ **Envanter aracı 5.4'te yazıldı** (`tools/i18n-inventory/`) ve kuralın
+      **prototipi** odur: bugün `0` ihlal raporluyor, yani kural `error` olarak
+      açıldığında `pnpm lint` **yeşil** kalmalı. Kalmıyorsa aradaki fark kuralın
+      aracı aşan kapsamıdır ve **yazılır**.
 - [ ] **5.6** **`tools/i18n-check/` + `pnpm i18n:check` + CI.** Eksik anahtar ·
       kullanılmayan anahtar (5.0'ın dinamik anahtar kararıyla) · boş çeviri.
       Nöbetçi **negatif testle** kanıtlanır: kasten bozulmuş bir locale üzerinde
