@@ -2262,7 +2262,24 @@ docs/glossary.md
       **Mutasyon 7/7**, her birinin yerine oturduğu ayrıca doğrulandı
 - [x] **Türkçe ek motoru 50 test vakasının tamamını geçiyor** — **5.1**; ölçüm **55 / 55** (eşik 50), kriterin beş örneğinin beşi de listede ve `criterion` etiketiyle ayrıca iddia ediliyor. ⚠️ **Uzunluk tek başına kör bir kontroldür** (55 tane `Roma` yazılsa da geçerdi), bu yüzden **kapsam ayrıca ve tam** iddia edildi: dört ünlü uyumu sınıfının **dördü**, sekiz `sınıf × bitiş` bileşiminin **sekizi**, ve dağılım **tek tek sabit** (bir satır eklemek testi kırar). ⚠️ Kriterin beş örneği kuralın tamamı **değildi** (F3): beşi yalnızca iki ünlü sınıfını temsil ediyordu — ince düz (`e`,`i`) ve ince yuvarlak (`ö`,`ü`) örneklerde **hiç yoktu**, liste onları kapattı. **Mutasyon 3/3**: motor tablosu · harf tuzağı koruması · vaka beklentisi ayrı ayrı bozuldu, üçü de kırıldı — ve etiket çapraz kontrolü mistagging'i **bağımsız** yakaladı. **D5 22/22** derlenmiş `dist` + düz `node` + paket barrel'ı üzerinden
 - [x] **Tarih "23 Ağustos 2026", para "€1,2 mn" formatında** — **5.2**; kriterin **İKİ yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). Tarih `Intl`den doğrudan geliyor; para **gelmiyor** ve son eki biz küçültüyoruz (`Mn` → `mn`), çünkü ölçüldü: `compactDisplay: 'long'` `style: 'currency'` ile çalışmıyor. ⚠️ **Ayırıcı bölünmez boşluk `U+00A0`** ve bu testte **kod noktalarıyla** iddia ediliyor — normal boşlukla yazılmış bir sözleşme sessizce yanlış olurdu. ⚠️ **Zaman dilimi varsayılmıyor:** `DEFAULT_TIME_ZONE = 'UTC'`, ve sınır vakası (`22:30Z` → UTC 23, İstanbul 24 Ağustos) koşan bir testle sabitlendi. **Üç katman ayrı iddia edildi** (ICU'nun parçaları · bizim saf son işlemimiz · kriterin tam dizesi), ölçüm ortamı yazılı (**ICU 78.3 / CLDR 48.0**). **Mutasyon 3/3 · D5 22/22**. ⚠️ **Tarayıcı ICU'su doğrulanmadı** — jsdom kendi ICU'sunu getirmiyor (ölçüldü); doğrulama **Faz 17'nin kabul kriterine** yazıldı
-- [ ] Sözlükte en az 120 terim tanımlı
+- [x] **Sözlükte en az 120 terim tanımlı** — **5.7**; `docs/glossary.md`, ölçüm
+      **133 terim** ve sayı **prose'da DEĞİL**, dosyayı ayrıştıran bir testte
+      (`tools/glossary-check/`). Belgeye *"133 terim"* yazılsaydı bir satır
+      silindiğinde cümle sessizce yalan söylerdi — `world.md`nin prose'unun
+      dört yerde bayatlaması bunun ödenmiş bedeli.
+      ⚠️ **UZUNLUK TEK BAŞINA KÖR** (5.1'in dersi): 133 aynı satır da eşiği
+      geçerdi. Bu yüzden **dağılım kaynak bazında ayrı ayrı sabit**
+      (çekirdek 77 · teknik 14 · zihinsel 14 · fiziksel 8 · kaleci 11 ·
+      gizli 9) ve mutasyonla kanıtlandı: bir terim bölüm değiştirince
+      **toplam korundu, yalnızca dağılım testi ateşledi**.
+      ⚠️ **`CLAUDE.md` §14 eşleşmesi ANAHTAR *ve* DEĞER iddia ediyor** —
+      yalnızca terimleri karşılaştıran bir test, aynı İngilizcenin farklı bir
+      Türkçeyle durmasına izin verirdi; mutasyonla kanıtlandı (tek bir
+      karşılık değiştirildi, terim aynı kaldı, test kırıldı).
+      🆕 **`77 + 57 = 134` BİR EKSİK ÇIKTI:** iki envanterin ayrık olduğu
+      hiç ölçülmemişti; kesişim **1** (`injuryProneness` ↔ `Injury Proneness`)
+      → **133**. Terim bir kez yaşıyor, dedupe **adıyla** iddia ediliyor.
+      → **SAPMA-040**. **Mutasyon 5/5** · `i18n:check` **305 dosya, temiz**
 - [ ] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)*
 - [x] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — **5.4**; **iki yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). **BORÇ-003:** `ErrorBoundary` metinleri `t()`den geliyor ve `title` propu **`titleKey`e** dönüştü — çağrı yerinin de K5'e uymasını zorunlu kılıyor; `DebugPanel` de çevrildi (gerekçe **genişletildi**, çürütülmedi). **BORÇ-005:** `MESSAGE_BY_KIND` ve `UNEXPECTED_MESSAGE` **silindi**, `message` alanı gövdeden çıkarıldı, yedek `status.*` ailesine taşındı. ⚠️ **Kriter iki borç istedi, kapatılan DÖRT yer:** envanter `App.tsx` (19) ve `main.tsx` (2) ihlallerini de gösterdi ve 5.5'in kuralı `error` açılacağı için onlar da kapatıldı. **Ölçüm: envanter 33 → 0.** Kütükte ikisi de **kapalı** işaretli. **Mutasyon 3/3 · D5 10/10** (derlenmiş paket gerçekten çalıştırıldı, ekranda ham anahtar yok)
 
@@ -2746,7 +2763,7 @@ docs/glossary.md
       olduğu için **girdi** ve +1 ifadesi **kapsandı**).
       **Mutasyon 7/7** — her birinin yerine oturduğu ayrıca doğrulandı.
       → `docs/reports/faz-05/5.6-*.md`
-- [ ] **5.7** **`docs/glossary.md`** — çekirdek `CLAUDE.md` §14'ün **77 terimi**
+- [x] **5.7** **`docs/glossary.md`** — çekirdek `CLAUDE.md` §14'ün **77 terimi**
       (sayıldı, başlık satırı hariç; biri `Regen` negatif girdisi). Eksik **≥43**
       terim `docs/spec/02/03/04/07`den **toplanır, uydurulmaz** (SAPMA-026).
       Sayı bir testle iddia edilir.
@@ -2761,6 +2778,56 @@ docs/glossary.md
       > ℹ️ §14 **büyütülmez**: anayasa her oturumda otomatik yükleniyor, 120+ satır
       > her oturumun sabit bağlam maliyetini artırırdı ve terimlerin çoğu
       > (Faz 30–45'in alanı) o oturumlarda okunmuyor. → kriter 5
+      **SONUÇ:**
+      🆕 **`77 + 57 = 134` SIFIR KESİŞİM VARSAYIYORDU VE HİÇ ÖLÇÜLMEMİŞTİ.**
+      Kesişim programatik ölçüldü: **1** — `injuryProneness` (`HIDDEN_ATTRIBUTES`)
+      ile §14'ün `Injury Proneness | Sakatlığa Yatkınlık` satırı aynı terim.
+      Gerçek sayı **133**. Kriter etkilenmiyor (≥120) ama sayı düzeltildi ve
+      dedupe **sessiz bırakılmadı**: sözlükte terim **bir kez** yaşıyor,
+      çekirdek biçimiyle, ve bir test bunu adıyla iddia ediyor. → **SAPMA-040**
+      🆕 **5.0'IN SAYMADIĞI ÜÇ ENVANTER DAHA VAR** ve üçü de §14 ile **0
+      kesişimli**: `STAFF_ATTRIBUTES` (16) · `MANAGER_ATTRIBUTES` (8) ·
+      `POSITION_LEVELS` (5). Havuz aslında **162**. ⚠️ **Yazılmadılar (K12)** —
+      kriter 133 ile sağlanıyor ve Türkçe karşılıkları o niteliklerin ekrana
+      geldiği fazın işi. Sözlüğün §6'sı üçünü **adıyla ve sahibiyle** sayıyor,
+      yani gözlem raporda değil belgede yaşıyor.
+      🆕 **KAYNAK KOD, SPEC DEĞİL — ve bu ROADMAP'in cümlesiyle ÇELİŞMİYOR.**
+      Bu madde *"`docs/spec/02/03/04/07`den toplanır"* diyor; `spec/02`'nin
+      nitelikleri **hücre içinde** duruyor (`| Kategori | Nitelikler |`), elle
+      çıkarmak bayat bir envanter üretirdi. Kullanılan kaynak
+      `VISIBLE_ATTRIBUTES`/`HIDDEN_ATTRIBUTES` — ve bu sabitler **`spec/02`ye
+      karşı kendi testleriyle zaten sabitlenmiş** (`player-attributes.test.ts`
+      dört kategoriyi, adları ve **47**'yi; `player-hidden-attributes.test.ts`
+      **10**'u iddia ediyor). Yani koddan almak, spec'in **makine-okunur ve
+      testle çivilenmiş** izdüşümünden almaktır.
+      🆕 **TOPLANAN vs YAZILAN ayrı sayıldı:** İngilizce sütunun tamamı
+      **ölçüldü** (77 + 47 + 9); Türkçe karşılıkların **56'sı bu turda yazıldı**
+      (47 görünür + 9 gizli), çünkü `spec/02` nitelikleri yalnızca İngilizce
+      listeliyor (5.0'da ölçülmüştü). Bu SAPMA-026'ya aykırı değil — bir
+      sözlüğün tanımı gereği kendi alanı.
+      🆕 **SÖZLÜK ↔ LOCALE KARARI VERİLDİ, ve nöbetçi BU FAZDA YAZILMADI.**
+      Sözlük **sözleşme** (yukarı akış), `locales/tr/*.json` **çalışma zamanı
+      artefaktı** (aşağı akış); yön belgenin başlığında yazılı. ⚠️ Zorlayıcı
+      test yazılmadı çünkü bugün çakışma **yok** — `squad.json` boş (`{}`,
+      ölçüldü) ve bakacak bir şey bulamayan bir kontrol bir onay değildir
+      (SAPMA-024). Sahibi **Faz 18** ve oraya **kapsam maddesi olarak yazıldı**
+      (anahtar sözleşmesi o gün doğacak; bugün uydurmak Faz 18'in tasarımını
+      onun yerine sessizce vermek olurdu).
+      🆕 **BELGENİN OKUYUCUSU KURULDU** — `CLAUDE.md` belge haritasına
+      (okuyan fazlarla birlikte) ve `SESSION-TEMPLATE` §15.1'in Faz 5 satırına
+      eklendi. 4.0'ın ① bulgusunun sınıfı: okuyucusu olmayan bir belge
+      yazılmamış gibidir; atıf **hedef dosyada** aranır.
+      ⚠️ **İSİMLENDİRME STANDARDI: dil kuralı burada, BİÇİM tablosu değil.**
+      `CLAUDE.md` §1.3 zaten `kebab-case`/`PascalCase`/`snake_case` tablosunu
+      taşıyor; sözlük ona **atıf veriyor**, kopyalamıyor.
+      **Kapılar:** typecheck **10/10 SOĞUK** · build **8/8 SOĞUK** · lint 0 ·
+      format 0 ⚠️ *(`.md` `.prettierignore`da — glossary'ye BAKMADI)* ·
+      arch 9 · **test 1120 / 75** (1100/74 idi, **+20**) · test:db 301/10 ·
+      gaps 20/3/17/0 ✗ · **i18n:check 305 dosya temiz** (yeni Türkçe belgede
+      gömülü görünmez karakter **0**) · kapsam **364/451 = %80,70 değişmedi**
+      (`tools/glossary-check/` `.mjs` ve `src/` altında değil → paydada yok).
+      **Mutasyon 5/5**, her birinin yerine oturduğu ayrıca doğrulandı.
+      → `docs/reports/faz-05/5.7-*.md`
 - [ ] **5.8** **G-13 kararı** — 🆕 **5.3'ÜN FİYAT NOTUNU ÖNCE OKU.**
       5.3, 17 anahtarın Türkçe karşılığını `apps/web/src/locales/tr/common.json`a
       yazdı ve bu G-13'ü **kapatmıyor** (üç seçenek de **arama** hakkında,
@@ -3535,6 +3602,20 @@ docs/glossary.md
 **Kapsam:**
 - **Sekmeler:** İlk 11 / Yedekler / Rotasyon / Tüm Oyuncular / Genç Takım / Kiralıktakiler / Kadro Dışı
 - **DataTable yapılandırması:** 60+ seçilebilir sütun gruplandırılmış (Kimlik, Sözleşme, Nitelikler, İstatistik, Durum, Değer)
+- **🆕 NİTELİK ETİKETLERİ `docs/glossary.md`DEN GELİR — VE AYRIŞMAYI ÖNLEYEN NÖBETÇİ BU FAZDA YAZILIR** *(Faz 5.7'de eklendi)*
+  Sözlük **56 nitelik** için Türkçe karşılığı zaten tanımlıyor (`finishing` →
+  *Bitiricilik* gibi) ve **sözleşme odur**; `locales/tr/squad.json` ise
+  **çalışma zamanı artefaktı**. Bu faz o dizeleri `locales`e ilk yazan faz,
+  yani **iki listenin ilk kez aynı anda var olduğu** an burası.
+  ⚠️ **Nöbetçi 5.7'de YAZILMADI ve sebebi ölçüldü:** o gün `squad.json` boş
+  (`{}`) — bakacak bir şey bulamayan bir kontrol bir onay değildir (SAPMA-024),
+  ve anahtar adlandırma sözleşmesi (`attribute.<camelCase>` gibi) henüz
+  yoktu. Onu 5.7'de uydurmak, bu fazın tasarımını **onun yerine sessizce**
+  vermek olurdu.
+  **Yapılacak:** anahtar sözleşmesi seçildikten sonra koşan bir test —
+  sözlükteki her nitelik karşılığı ile `squad.json`daki değer **birebir aynı**
+  olmalı; ayrışırsa `pnpm test` kırılır. Emsal: `tools/glossary-check`in
+  `CLAUDE.md` §14 eşleşme testi (anahtar **ve** değer).
 - **Hazır görünümler:** Genel, Nitelikler, Sözleşme, İstatistik, Antrenman, Sağlık + kullanıcı tanımlı kayıtlı görünümler
 - Renk kodlama: nitelik ısı haritası, form göstergesi (G/B/M), moral ikonu, kondisyon çubuğu, sakatlık işareti, ceza işareti, uygunluk (kadro kaydı)
 - Sıralama, çoklu filtre, hızlı arama, sütun sürükleme, sütun genişliği kaydı
