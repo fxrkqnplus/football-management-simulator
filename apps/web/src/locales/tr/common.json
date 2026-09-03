@@ -1,0 +1,37 @@
+{
+  "country": {
+    "eng": "İngiltere",
+    "esp": "İspanya",
+    "ger": "Almanya",
+    "ita": "İtalya",
+    "fra": "Fransa",
+    "tur": "Türkiye"
+  },
+  "competition": {
+    "eng": {
+      "premier_league": "Premier League",
+      "fa_cup": "FA Cup"
+    },
+    "esp": {
+      "laliga": "LaLiga"
+    },
+    "ger": {
+      "bundesliga": "Bundesliga"
+    },
+    "ita": {
+      "serie_a": "Serie A"
+    },
+    "fra": {
+      "ligue_1": "Ligue 1"
+    },
+    "tur": {
+      "superlig": "Süper Lig",
+      "cup": "Türkiye Kupası"
+    },
+    "uefa": {
+      "ucl": "UEFA Şampiyonlar Ligi",
+      "uel": "UEFA Avrupa Ligi",
+      "uecl": "UEFA Konferans Ligi"
+    }
+  }
+}

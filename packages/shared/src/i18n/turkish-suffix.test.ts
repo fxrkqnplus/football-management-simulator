@@ -115,6 +115,15 @@ export const SUFFIX_CASES: readonly SuffixCase[] = [
     ending: 'afterConsonant',
     tags: ['casing'],
   },
+  // ⚠️ 5.3'ÜN ÇAPRAZ DOĞRULAMASINDA ISIRDI. Yazımın "u" harfi kalın YUVARLAK
+  // sayılıyordu (`Cup'un`); okunuş ("kap") kalın DÜZ → `Cup'ın`.
+  {
+    name: 'FA Cup',
+    expected: "FA Cup'ın",
+    harmony: 'backUnrounded',
+    ending: 'afterConsonant',
+    tags: ['foreign', 'multiWord', 'override'],
+  },
 
   // ── kalın düz (a, ı) · ünlüyle bitiyor → 'nın ─────────────────────────────
   {
@@ -185,6 +194,16 @@ export const SUFFIX_CASES: readonly SuffixCase[] = [
     harmony: 'frontUnrounded',
     ending: 'afterConsonant',
     tags: ['foreign', 'multiWord'],
+  },
+  // ⚠️ 5.3'ÜN ÇAPRAZ DOĞRULAMASINDA ISIRDI. Yazım "e" ile bitiyor → kural
+  // kaynaştırma "n" ekleyip `League'nin` üretiyordu; okunuş ("lig") ÜNSÜZLE
+  // bitiyor. Uyum sınıfı doğruydu, BİTİŞ TÜRÜ yanlıştı — iki ayrı eksen.
+  {
+    name: 'Premier League',
+    expected: "Premier League'in",
+    harmony: 'frontUnrounded',
+    ending: 'afterConsonant',
+    tags: ['foreign', 'multiWord', 'override'],
   },
 
   // ── ince düz (e, i) · ünlüyle bitiyor → 'nin ──────────────────────────────
@@ -370,24 +389,26 @@ describe('kapsam — uzunluk kör bir kontroldür, dağılım ayrıca iddia edil
 
     // Dağılım TEK TEK sabitleniyor: bir satır eklemek bu testi kırar.
     expect(Object.fromEntries(distribution.map((e) => [e.key, e.count]))).toEqual({
-      'backUnrounded/afterConsonant': 10,
+      'backUnrounded/afterConsonant': 11,
       'backUnrounded/afterVowel': 10,
-      'frontUnrounded/afterConsonant': 7,
+      'frontUnrounded/afterConsonant': 8,
       'frontUnrounded/afterVowel': 9,
       'backRounded/afterConsonant': 8,
       'backRounded/afterVowel': 5,
       'frontRounded/afterConsonant': 5,
       'frontRounded/afterVowel': 1,
     });
-    expect(SUFFIX_CASES).toHaveLength(55);
+    // 5.1'de 55'ti; 5.3'ün çapraz doğrulaması ISIRAN iki gerçek ad buldu
+    // (`Premier League`, `FA Cup`) ve ikisi de vaka olarak eklendi.
+    expect(SUFFIX_CASES).toHaveLength(57);
   });
 
   it('etiketli sınıflar sayılıyor ve boş değil', () => {
-    expect(countBy((item) => hasTag(item, 'foreign'))).toBe(11);
+    expect(countBy((item) => hasTag(item, 'foreign'))).toBe(13);
     expect(countBy((item) => hasTag(item, 'abbreviation'))).toBe(5);
-    expect(countBy((item) => hasTag(item, 'override'))).toBe(3);
+    expect(countBy((item) => hasTag(item, 'override'))).toBe(5);
     expect(countBy((item) => hasTag(item, 'casing'))).toBe(1);
-    expect(countBy((item) => hasTag(item, 'multiWord'))).toBe(1);
+    expect(countBy((item) => hasTag(item, 'multiWord'))).toBe(3);
   });
 
   it('kriterin BEŞ örneğinin beşi de listede', () => {
@@ -481,7 +502,14 @@ describe('tablolar — veri olarak sabit', () => {
     for (const [name, row] of rows) {
       expect(row.reason.length, `${name} satırının gerekçesi boş`).toBeGreaterThan(20);
     }
-    expect(Object.keys(PRONUNCIATION_OVERRIDES)).toEqual(['Chelsea', 'TFF', 'PSG']);
+    // 5.1'de üçtü; 5.3'ün çapraz doğrulaması iki gerçek adı daha buldu.
+    expect(Object.keys(PRONUNCIATION_OVERRIDES)).toEqual([
+      'Chelsea',
+      'TFF',
+      'PSG',
+      'Premier League',
+      'FA Cup',
+    ]);
   });
 
   it('istisna araması TAM EŞLEŞME — farklı yazım kendi satırını ister', () => {

@@ -187,6 +187,21 @@ export const PRONUNCIATION_OVERRIDES: Readonly<Record<string, PronunciationOverr
     endsWithVowel: true,
     reason: 'Harf harf okunur ("pe-se-ge"): son ses "e". Yazımda hiç ünlü yok.',
   },
+  // ── 5.3'ün ÇAPRAZ DOĞRULAMASINDA bulundu — gerçek adlar doğunca ─────────
+  // İkisi de yazımla ÇÖZÜLÜYOR ama YANLIŞ çözülüyor: uyum sınıfı ile BİTİŞ
+  // TÜRÜ ayrı eksenler ve yazım ikisinden birinde yanılıyor.
+  'Premier League': {
+    harmony: 'frontUnrounded',
+    endsWithVowel: false,
+    reason:
+      'Türkçede "lig" okunur: ÜNSÜZLE biter. Yazım "e" ile bittiği için kural kaynaştırma "n" ekler ve League\'nin üretir; doğrusu League\'in.',
+  },
+  'FA Cup': {
+    harmony: 'backUnrounded',
+    endsWithVowel: false,
+    reason:
+      'Türkçede "kap" okunur: son ünlü kalın DÜZ. Yazımın "u" harfi kalın yuvarlak sayılıyor ve kural Cup\'un üretiyor; doğrusu Cup\'ın.',
+  },
 };
 
 /**
