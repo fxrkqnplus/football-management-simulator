@@ -25,6 +25,7 @@
 | `docs/DEPENDENCY-WATCH.md` | Sürüm takip listesi | Her faz başı |
 | `docs/SPEC-COVERAGE-GAPS.md` | Spec istiyor ama hiçbir faza atanmamış maddeler (G-01…) | **Her faz başı — o faza atanmış satırlar** |
 | `docs/V2-BACKLOG.md` | Kapsam dışı fikirler | Fikir çıkınca |
+| `docs/glossary.md` | **TR/EN terim sözlüğü** — §14'ün süperkümesi (çekirdek + nitelikler) + dil standardı | **Arayüzde Türkçe metin yazan her faz** — özellikle 6, 14, 17-21, 30-38, 44-45. ⚠️ Çelişkide **§14 kazanır** (otorite #1); sözlük düzeltilir |
 | `docs/spec/01-database.md` | Veritabanı şeması | Faz 3,4,7-9,11,12,46 |
 | `docs/spec/02-attributes.md` | Nitelik sistemi, CA/PA, türetme | Faz 10,11,14,30-38,46 |
 | `docs/spec/03-match-engine.md` | Maç motoru formülleri | Faz 16,20-29,39-41 |

@@ -163,6 +163,21 @@ export default defineConfig({
         },
       },
       {
+        // TERİM SÖZLÜĞÜ NÖBETÇİSİ (5.7). Kabul kriteri 5 burada yaşıyor —
+        // sayı prose'da değil, `docs/glossary.md`yi AYRIŞTIRAN bir testte.
+        //
+        // ⚠️ Ayrı bir `pnpm glossary:check` komutu ve CI adımı BİLEREK YOK:
+        // kriter *"sayı bir testle iddia edilir"* diyor ve `pnpm test` zaten
+        // CI'da koşuyor. Onuncu bir CI adımı eklemek kapsam genişletmek olurdu
+        // (K12) ve hiçbir şey kazandırmazdı.
+        test: {
+          name: 'glossary-check',
+          root: './tools/glossary-check',
+          environment: 'node',
+          include: ['*.test.mjs'],
+        },
+      },
+      {
         // ÇEVİRİ KAYNAĞI KAPISI (5.6). Üç katman: saf çözümleme · sahte bir
         // depoda NEGATİF testler (CLI alt süreç olarak, çıkış kodu okunuyor) ·
         // `ci.yml`in bu kapıyı gerçekten koşturduğunu iddia eden KANARYA.
