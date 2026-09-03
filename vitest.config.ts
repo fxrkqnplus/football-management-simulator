@@ -162,6 +162,17 @@ export default defineConfig({
           include: ['*.test.mjs'],
         },
       },
+      {
+        // ÇEVİRİ KAYNAĞI KAPISI (5.6). Üç katman: saf çözümleme · sahte bir
+        // depoda NEGATİF testler (CLI alt süreç olarak, çıkış kodu okunuyor) ·
+        // `ci.yml`in bu kapıyı gerçekten koşturduğunu iddia eden KANARYA.
+        test: {
+          name: 'i18n-check',
+          root: './tools/i18n-check',
+          environment: 'node',
+          include: ['*.test.mjs'],
+        },
+      },
       // ⚠️ `i18n-inventory` PROJESİ 5.5'TE KALDIRILDI — araç emekli edildi.
       // 5.4'ün ihlal envanteri (`tools/i18n-inventory/`) ROADMAP'in kendi
       // ifadesiyle *"kuralın prototipi"*ydi ve 5.5'te yerini gerçek kapıya

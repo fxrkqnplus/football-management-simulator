@@ -89,6 +89,29 @@ jobs:
       - name: Mimari denetimi
         run: pnpm arch:check
 
+      # Çeviri kaynağı kapısı — Faz 5.6, kabul kriteri 2.
+      # Eksik anahtar · kullanılmayan anahtar · boş çeviri · gömülü görünmez
+      # karakter. Son maddenin burada olmasının sebebi ölçülmüş: ESLint'in
+      # `no-irregular-whitespace` kuralı DİZELERİ atlıyor (`skipStrings: true`)
+      # ve `.md` dosyalarına hiç bakmıyor — Faz 5'in sekiz NBSP'sinin hepsi tam
+      # o iki yüzeydeydi.
+      #
+      # ⚠️ `continue-on-error` YOK ve bu bilinçli: kabul kriteri "CI'da KIRIYOR"
+      # diyor. Maskelenmiş bir adım bir kapı değil bir temennidir (SAPMA-033).
+      # Maskelemenin yokluğu kuralın kendi testinde ayrıca iddia ediliyor.
+      - name: Çeviri kaynağı denetimi
+        run: pnpm i18n:check
+
+      # ⚠️ BU ADIM 4.11'DEN BERİ EKSİKTİ — ve eksik olan şey kapının KENDİ
+      # gerekçesiydi. `gaps:check` (SPEC-COVERAGE-GAPS ↔ ROADMAP tutarlılığı)
+      # 4.11'de tam şu cümleyle yazılmıştı: "kontrol koşan bir adımdır, bir
+      # temenni değil". Ama hiçbir workflow'a bağlanmadı; 5.0'da ölçüldü —
+      # `.github/workflows/` altında `gaps` için 0 eşleşme. Yani kural yazıldı,
+      # ateşleyen mekanizma kurulmadı ve kapı yalnızca biri hatırlarsa koştu.
+      # 5.6 zaten bu dosyaya dokunuyordu; bedel bir satır.
+      - name: Spec boşluğu ↔ ROADMAP tutarlılığı
+        run: pnpm gaps:check
+
   # Entegrasyon testleri AYRI iş — Faz 3.2a.
   #
   # `pnpm test`e katılmıyorlar çünkü `testcontainers` ile tek konteyner açılışı
