@@ -6,10 +6,13 @@ import {
   resetAssertionsForTests,
   resetBasePathForTests,
 } from '@fms/shared';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App.js';
+import { createI18n } from './app/i18n.js';
 
 /**
  * `App` alt yol kanıt ekranının testleri — Faz 2.0b.
@@ -62,6 +65,19 @@ const HEALTH_OK: HealthBody = {
   apiPrefix: '/fms/api',
   cookiePath: '/fms',
 };
+
+/**
+ * WARN: SAGLAYICI GERCEK — sahte bir `t` KULLANILMIYOR (5.4).
+ *
+ * Sahte bir ceviri fonksiyonu testi gecirirdi ama gercek anahtarlarin
+ * `locales/tr/**` icinde VAR OLDUGUNU kanitlamazdi: eksik bir anahtar sahte
+ * `t` ile fark edilmez. Gercek ornekle eksik anahtar ekranda ANAHTARIN
+ * KENDISI olarak gorunur ve test kirilir.
+ */
+const i18n = createI18n();
+
+const render = (ui: ReactElement): ReturnType<typeof rtlRender> =>
+  rtlRender(<I18nextProvider i18n={i18n}>{ui}</I18nextProvider>);
 
 describe('App — alt yol kanıt ekranı', () => {
   beforeEach(() => {

@@ -1,5 +1,6 @@
 import { basePathConfig } from '@fms/shared';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { apiRequest } from './lib/api.js';
@@ -10,8 +11,15 @@ import { apiRequest } from './lib/api.js';
  * Gerçek arayüz değil: `/fms` alt yolunun her katmanda tuttuğunu gösteren en
  * küçük yüzey. Faz 6'da tasarım sistemi, Faz 17'de gerçek kabuk gelecek.
  *
- * TODO(Faz 5): buradaki etiketler i18n altyapısı gelince `t()` üzerinden
- * alınacak (K5). Şu an i18n paketi henüz kurulmadı.
+ * ✅ **5.4'te K5'e uyduruldu.** Etiketler `t('diagnostics.*')` üzerinden
+ * geliyor. ⚠️ **Envanter ROADMAP'in saydığından FAZLA çıktı:** ROADMAP altı
+ * satır listelemişti (kaba Türkçe-karakter taramasından), AST tabanlı envanter
+ * bu dosyada **19** ihlal buldu — `base`, `api prefix` gibi **İngilizce**
+ * teknik etiketler de JSX'te çıplak metindi ve 5.5'in kuralı dile bakmıyor
+ * (bakamaz: `Tekrar dene` hiçbir Türkçe karakter taşımıyor). Bu yüzden
+ * `diagnostics.base` gibi anahtarların değeri de İngilizce — **çeviri değil,
+ * teknik alan adı**; K5'in istediği şey metnin `t()`den gelmesi, Türkçe
+ * olması değil.
  */
 interface HealthResponse {
   readonly status: string;
@@ -33,13 +41,17 @@ interface HealthResponse {
  */
 export function App(): React.ReactElement {
   return (
-    <ErrorBoundary name="ekran" title="Bu ekran yüklenemedi">
+    <ErrorBoundary name="ekran" titleKey="boundary.screen">
       <BasePathProbeScreen />
     </ErrorBoundary>
   );
 }
 
 function BasePathProbeScreen(): React.ReactElement {
+  // ⚠️ `common` namespace'i — bu ekranın etiketleri ve `value.*` ortak
+  // değerleri orada. Sınır başlıkları `errors`ta ve onları `ErrorBoundary`
+  // kendi HOC'uyla çözüyor, bu bileşen değil.
+  const { t } = useTranslation('common');
   const config = basePathConfig();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,57 +77,63 @@ function BasePathProbeScreen(): React.ReactElement {
 
   return (
     <main style={{ fontFamily: 'system-ui, sans-serif', padding: 24, lineHeight: 1.6 }}>
-      <h1>Alt yol kanıtı</h1>
+      <h1>{t('diagnostics.title')}</h1>
       <table>
         <tbody>
           <tr>
-            <td>base</td>
+            <td>{t('diagnostics.base')}</td>
             <td data-testid="base">{config.base}</td>
           </tr>
           <tr>
-            <td>router basename</td>
+            <td>{t('diagnostics.routerBasename')}</td>
             <td data-testid="basename">{config.routerBasename}</td>
           </tr>
           <tr>
-            <td>api prefix</td>
+            <td>{t('diagnostics.apiPrefix')}</td>
             <td data-testid="api-prefix">{config.apiPrefix}</td>
           </tr>
           <tr>
-            <td>servis çalışanı kapsamı</td>
+            <td>{t('diagnostics.serviceWorkerScope')}</td>
             <td data-testid="sw-scope">{config.serviceWorkerScope}</td>
           </tr>
           <tr>
-            <td>PWA start_url</td>
+            <td>{t('diagnostics.pwaStartUrl')}</td>
             <td data-testid="pwa-start">{config.pwa.startUrl}</td>
           </tr>
           <tr>
-            <td>konum</td>
+            <td>{t('diagnostics.location')}</td>
             <td data-testid="location">{window.location.pathname}</td>
           </tr>
           <tr>
-            <td>API durumu</td>
+            <td>{t('diagnostics.apiStatus')}</td>
             <td>
               {/* BİLEŞEN sınırı — hiyerarşinin en içi. Bu hücre çökerse
                   tablonun geri kalanı ayakta kalır; ekran sınırına tırmanmaz. */}
-              <ErrorBoundary name="bilesen" title="Bu alan gösterilemedi">
-                <span data-testid="api-status">{error ?? health?.status ?? 'bekleniyor'}</span>
+              <ErrorBoundary name="bilesen" titleKey="boundary.component">
+                <span data-testid="api-status">
+                  {error ?? health?.status ?? t('value.pending')}
+                </span>
               </ErrorBoundary>
             </td>
           </tr>
           <tr>
-            <td>çerez</td>
-            <td data-testid="cookie">{cookie === '' ? 'yok' : cookie}</td>
+            <td>{t('diagnostics.cookie')}</td>
+            <td data-testid="cookie">{cookie === '' ? t('value.none') : cookie}</td>
           </tr>
           <tr>
-            <td>correlationId</td>
+            <td>{t('diagnostics.correlationId')}</td>
             <td data-testid="correlation-id">
-              {correlationId === '' ? 'bekleniyor' : correlationId}
+              {correlationId === '' ? t('value.pending') : correlationId}
             </td>
           </tr>
           <tr>
-            <td>zincir kapandı mı</td>
+            <td>{t('diagnostics.chainClosed')}</td>
             <td data-testid="chain-closed">
-              {chainClosed === null ? 'bekleniyor' : chainClosed ? 'evet' : 'HAYIR'}
+              {chainClosed === null
+                ? t('value.pending')
+                : chainClosed
+                  ? t('value.yes')
+                  : t('value.no')}
             </td>
           </tr>
         </tbody>

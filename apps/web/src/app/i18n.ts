@@ -147,6 +147,19 @@ export function createI18n(): I18nInstance {
       },
       // Anahtar bulunamazsa sessizce anahtarı basmak yerine görünür olsun.
       returnNull: false,
+      react: {
+        /**
+         * ⚠️ `Suspense` KAPALI — ve gerekçesi hata arayüzünde.
+         *
+         * Açık olsaydı `withTranslation`/`useTranslation` çeviri "hazır"
+         * olana kadar askıya alır ve **her tüketici bir `Suspense` sınırı**
+         * isterdi. `ErrorBoundary` de bir tüketici; onu askıya alan bir
+         * mekanizma, hata anında ekranı boş bırakabilirdi.
+         * Kaynaklar zaten **statik paketlenmiş** ve `main.tsx` başlatmayı
+         * render'dan önce doğruluyor — beklenecek hiçbir şey yok.
+         */
+        useSuspense: false,
+      },
     });
 
   return instance;

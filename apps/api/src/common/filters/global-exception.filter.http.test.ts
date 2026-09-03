@@ -104,7 +104,10 @@ describe('filtre GERÇEKTEN kablolu — gövde tel üzerinden', () => {
     expect(status).toBe(409);
     expect(body['code']).toBe('transfer.budgetExceeded');
     expect(body['status']).toBe(409);
-    expect(typeof body['message']).toBe('string');
+    // ⚠️ `message` alanı 5.4'te gövdeden ÇIKARILDI (BORÇ-005) ve bu iddia
+    // gevşetilmedi, **tersine çevrildi**: alan artık TELDE DE bulunmamalı.
+    // Metni istemci `code` + `status`tan üretiyor.
+    expect(body['message']).toBeUndefined();
 
     const context = body['context'] as Record<string, unknown>;
     expect(context['budget']).toBe(12_400_000);

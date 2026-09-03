@@ -162,6 +162,17 @@ export default defineConfig({
           include: ['*.test.mjs'],
         },
       },
+      {
+        // İHLAL ENVANTERİ (5.4). Araç bir ÖLÇÜM aracı, yani kendisi de
+        // ölçülmeli (D2): testi iki yönlü — bilinen bir ihlal ÇIKMALI,
+        // bilinen bir ihlal-olmayan ÇIKMAMALI.
+        test: {
+          name: 'i18n-inventory',
+          root: './tools/i18n-inventory',
+          environment: 'node',
+          include: ['*.test.mjs'],
+        },
+      },
     ],
 
     coverage: {

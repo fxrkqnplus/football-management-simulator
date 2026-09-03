@@ -1,5 +1,6 @@
 import { captureException } from '@sentry/react';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { type WithTranslation, withTranslation } from 'react-i18next';
 
 import { currentCorrelationId } from '../lib/correlation-context.js';
 import { CRASH_TAG } from '../lib/sentry.js';
@@ -42,11 +43,54 @@ declare const __FMS_DEV__: boolean;
  * göstereyim", diğeri "kimi haberdar edeyim".
  */
 
+/**
+ * ⚠️ BORÇ-003 ÖDENDİ (5.4) — VE BİR TASARIM SORUSU ÖNCE CEVAPLANDI.
+ *
+ * *"Bir hata arayüzü, bozulmuş olabilecek sisteme bağlanamaz."* Bu bileşen
+ * **kök** hata sınırı; i18n'in kendisi çökerse onu yakalayacak olan da bu.
+ * O hâlde `t()` çağırması güvenli mi?
+ *
+ * **Evet — ama ancak i18n'in başlatılması RENDER'DAN ÖNCE doğrulandığı için.**
+ * `main.tsx` `createI18n()`i `root.render()`tan **önce** çağırıyor ve
+ * `isInitialized`i açıkça denetliyor; başarısızsa React **hiç monte
+ * edilmiyor**, statik bir yedek metin basılıyor. Yani bu bileşen render
+ * edildiği anda i18n'in çalıştığı **garanti**.
+ *
+ * ⚠️ Ve garanti bir varsayım değil bir ÖLÇÜM: i18next bozuk yapılandırmada
+ * **fırlatmıyor**, sessizce `isInitialized: undefined` bırakıyor (5.4'te
+ * koşturuldu) — bu yüzden `main.tsx` `try/catch`e değil **açık kontrole**
+ * dayanıyor. Kontrol deneyi raporda.
+ */
+/**
+ * Sınır başlığı olarak kullanılabilecek anahtarlar — `errors` namespace'i.
+ *
+ * ⚠️ **ÖN EK YOK — ve bu bir ölçüm sonucu, tercih değil.** İlk yazımda
+ * anahtarlar `errors:boundary.root` diye ön ekliydi ve gerekçe *"tip tarafında
+ * ön ek olmadan çözülmüyor"* diye yazılmıştı. `typecheck` **ikisini de
+ * reddetti** ve gerçek sebep başkaydı: `WithTranslation` **jenerik** ve
+ * namespace'i tip parametresi olarak alıyor (`WithTranslation<'errors'>`).
+ * Parametre verilince `t` zaten o namespace'e daralıyor ve ön ekli anahtar
+ * **hatalı** oluyor. Yani ilk gerekçe yanlıştı; kaynağı derleyici düzeltti.
+ */
+export type BoundaryTitleKey =
+  'boundary.root' | 'boundary.screen' | 'boundary.component' | 'boundary.debugPanel';
+
 export interface ErrorBoundaryProps {
   /** Bu sınırın adı — logda ve Sentry etiketinde görünür (`kök`/`ekran`/…). */
   readonly name: string;
-  /** Yedek arayüzün başlığı. TODO(Faz 5): `t()` üzerinden gelecek (BORÇ-003). */
-  readonly title: string;
+  /**
+   * Yedek arayüzün başlığının **i18n ANAHTARI** — metin değil.
+   *
+   * Sözleşme 5.4'te değişti: eskiden hazır Türkçe dize alıyordu (BORÇ-003).
+   * Anahtar almak, çağrı yerinin de K5'e uymasını **zorunlu** kılıyor —
+   * bir dize alsaydı çağıran taraf yine sabit metin yazabilirdi.
+   *
+   * ⚠️ Tip `string` DEĞİL, **kapalı bir birleşim**: tipli anahtarlar
+   * (`i18next.d.ts`) yalnızca literal anahtarları kabul ediyor ve `string`
+   * onları geniş tipe düşürüp korumayı **kapatırdı**. Yeni bir sınır başlığı
+   * eklemek hem bu birleşime hem `errors.json`a satır ekler.
+   */
+  readonly titleKey: BoundaryTitleKey;
   readonly children: ReactNode;
 }
 
@@ -62,7 +106,15 @@ const INITIAL_STATE: ErrorBoundaryState = {
   reported: false,
 };
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+/**
+ * ⚠️ SINIF BİLEŞENİ → `withTranslation()` HOC'u, `useTranslation()` DEĞİL.
+ * Kanca bir sınıfta çağrılamaz ve `componentDidCatch` bir sınıf gerektiriyor
+ * (React'te hata yakalamanın kanca karşılığı **yok**).
+ */
+class ErrorBoundaryBase extends Component<
+  ErrorBoundaryProps & WithTranslation<'errors'>,
+  ErrorBoundaryState
+> {
   override state: ErrorBoundaryState = INITIAL_STATE;
 
   /**
@@ -103,26 +155,30 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     const { error, correlationId, reported } = this.state;
     if (error === null) return this.props.children;
 
+    const { t } = this.props;
+
     return (
       <section
         role="alert"
         data-testid={`error-boundary-${this.props.name}`}
         style={{ fontFamily: 'system-ui, sans-serif', padding: 16, lineHeight: 1.6 }}
       >
-        {/* TODO(Faz 5): metinler `t()` üzerinden gelecek — BORÇ-003. */}
-        <h2>{this.props.title}</h2>
-        <p>Bu bölüm yüklenemedi. Sorunu bize bildirebilirsiniz.</p>
+        <h2>{t(this.props.titleKey)}</h2>
+        <p>{t('boundary.body')}</p>
 
         <p>
-          Hata kodu: <code data-testid="error-correlation-id">{correlationId ?? 'bilinmiyor'}</code>
+          {t('boundary.codeLabel')}{' '}
+          <code data-testid="error-correlation-id">
+            {correlationId ?? t('boundary.codeUnknown')}
+          </code>
         </p>
 
         <button type="button" onClick={this.handleRetry} data-testid="error-retry">
-          Tekrar dene
+          {t('boundary.retry')}
         </button>
 
         <p data-testid="error-reported">
-          {reported ? 'Hata otomatik olarak bildirildi.' : 'Hata bildirimi yapılamadı.'}
+          {reported ? t('boundary.reported') : t('boundary.notReported')}
         </p>
 
         {/* ⚠️ YIĞIN İZİ YALNIZCA GELİŞTİRMEDE. Üretimde sunucu dosya
@@ -136,3 +192,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     );
   }
 }
+
+/**
+ * Dışa aktarılan sınır — `errors` namespace'ine bağlı.
+ *
+ * `withTranslation` çeviri hazır olana kadar render'ı bekletebiliyor
+ * (`useSuspense`); burada **kapalı** çünkü kaynaklar statik paketlenmiş ve
+ * `main.tsx` başlatmayı render'dan önce doğruluyor — bekleyecek bir şey yok.
+ * Açık bırakılsaydı hata arayüzü bir `Suspense` sınırı isterdi ve o sınır da
+ * çökebilirdi.
+ */
+export const ErrorBoundary = withTranslation('errors')(ErrorBoundaryBase);

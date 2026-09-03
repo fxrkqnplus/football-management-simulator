@@ -33,5 +33,43 @@
       "uel": "UEFA Avrupa Ligi",
       "uecl": "UEFA Konferans Ligi"
     }
+  },
+  "value": {
+    "pending": "bekleniyor",
+    "none": "yok",
+    "yes": "evet",
+    "no": "HAYIR"
+  },
+  "diagnostics": {
+    "title": "Alt yol kanıtı",
+    "base": "base",
+    "routerBasename": "router basename",
+    "apiPrefix": "api prefix",
+    "serviceWorkerScope": "servis çalışanı kapsamı",
+    "pwaStartUrl": "PWA start_url",
+    "location": "konum",
+    "apiStatus": "API durumu",
+    "cookie": "çerez",
+    "correlationId": "correlationId",
+    "chainClosed": "zincir kapandı mı"
+  },
+  "debugPanel": {
+    "ariaLabel": "Geliştirici hata ayıklama paneli",
+    "close": "Kapat (Ctrl+Shift+D)",
+    "lines": "satır ·",
+    "assertionMode": "değişmez kipi:",
+    "clear": "Temizle",
+    "empty": "Henüz log satırı yok. Bir istek at veya sayfayı yenile.",
+    "tab": {
+      "logs": "Son 50 Log",
+      "save": "Kayıt Durumu",
+      "rng": "RNG Tohum Görüntüleyici",
+      "perf": "Performans Sayaçları"
+    },
+    "emptyTab": {
+      "save": "Kayıt verisi Faz 12'de (Master World + Delta) gelecek. Şu an gösterilecek kayıt yok.",
+      "rng": "SeededRng Faz 22'de (maç motoru) gelecek. Tohum görüntüleyici o zaman dolacak.",
+      "perf": "measure() henüz hiçbir ürün kodundan çağrılmıyor. Çağrı yerleri Faz 6'da (perf:budget) gelecek."
+    }
   }
 }

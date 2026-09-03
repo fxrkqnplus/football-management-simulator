@@ -28,7 +28,18 @@ const flattenKeys = (obj: unknown, prefix = ''): readonly (readonly [string, str
   });
 };
 
-const SEED_KEYS = flattenKeys(commonTr);
+/**
+ * Seed anahtarları — YALNIZCA `country.*` ve `competition.*`.
+ *
+ * ⚠️ 5.3'te `common.json` yalnızca bu ikisini taşıyordu ve liste dosyanın
+ * tamamından türetiliyordu. 5.4 dosyaya `value.*`, `diagnostics.*` ve
+ * `debugPanel.*` ekledi; kapsam **açıkça daraltıldı** ki "17 anahtar" iddiası
+ * anlamını korusun. Gevşetilmedi — **daraltıldı ve sebebi yazıldı**.
+ */
+const SEED_KEYS = [
+  ...flattenKeys(commonTr.country, 'country'),
+  ...flattenKeys(commonTr.competition, 'competition'),
+];
 
 describe('namespace envanteri — SAYI değil LİSTE', () => {
   it('ROADMAP kapsamının saydığı ON namespace, ADLARIYLA', () => {
@@ -52,11 +63,12 @@ describe('namespace envanteri — SAYI değil LİSTE', () => {
     expect(Object.keys(trResources).sort()).toEqual([...NAMESPACES].sort());
   });
 
-  it('BUGÜN yalnızca `common` dolu — ve bu bilerek', () => {
-    // Diğer dokuzu `{}`. Anahtar UYDURULMADI (SAPMA-026): içerik tüketicisiyle
-    // birlikte gelir (`errors` → 5.4, ekran metinleri → Faz 6+).
-    // ⚠️ Boşluk AYRICA iddia ediliyor — "boş bir liste tek başına «yok» diye
-    // okunur"; burada boşluk bir KARAR, bir kaza değil.
+  it('boş namespace listesi TAM — 5.4 birini doldurdu ve liste küçüldü', () => {
+    // ⚠️ 5.3'te DOKUZ namespace boştu; 5.4 `errors`ı doldurdu (BORÇ-005) ve
+    // bu iddia **kırıldı** — beklendiği gibi. Test GEVŞETİLMEDİ
+    // (`toBeGreaterThan` gibi), liste **güncellendi**: bir envanterin
+    // boşalması ancak envanter tam kalırsa görünür.
+    // Anahtar hâlâ UYDURULMUYOR (SAPMA-026): kalan sekizi tüketicisiyle dolar.
     const empty = NAMESPACES.filter((ns) => Object.keys(trResources[ns]).length === 0);
     expect([...empty]).toEqual([
       'squad',
@@ -67,9 +79,15 @@ describe('namespace envanteri — SAYI değil LİSTE', () => {
       'dialogue',
       'news',
       'tutorial',
-      'errors',
     ]);
-    expect(Object.keys(trResources.common)).toEqual(['country', 'competition']);
+    expect(Object.keys(trResources.common)).toEqual([
+      'country',
+      'competition',
+      'value',
+      'diagnostics',
+      'debugPanel',
+    ]);
+    expect(Object.keys(trResources.errors)).toEqual(['boundary', 'status']);
   });
 });
 

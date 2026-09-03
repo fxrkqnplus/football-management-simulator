@@ -1,10 +1,44 @@
 import { DomainError, EngineError, isCorrelationId } from '@fms/shared';
-import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
+import { createI18n } from '../app/i18n.js';
 import { resetCorrelationContextForTests } from '../lib/correlation-context.js';
 import { ErrorBoundary } from './ErrorBoundary.js';
+
+/**
+ * ⚠️ SAĞLAYICI GERÇEK — sahte bir `t` KULLANILMIYOR (5.4).
+ *
+ * Sınır artık `withTranslation` üzerinden metin alıyor. Sahte bir çeviri
+ * fonksiyonu enjekte etmek testi geçirirdi ama **gerçek anahtarların
+ * `errors.json`da var olduğunu** kanıtlamazdı: eksik bir anahtar sahte `t` ile
+ * fark edilmez. Gerçek örnek kullanılınca eksik anahtar ekranda **anahtarın
+ * kendisi** olarak görünür ve test kırılır.
+ */
+const i18n = createI18n();
+
+/**
+ * ⚠️ `rerender` DE SARMALANIYOR — ve bunu bir kırık test buldu.
+ *
+ * RTL'in `rerender`ı kökü **verdiğin ağaçla** değiştiriyor; yalnızca ilk
+ * render sarmalansaydı ikinci render sağlayıcıyı **kaybederdi** ve sınır
+ * `t()`ye ulaşamazdı. Belirti sessiz değildi (test kırıldı) ama sebebi
+ * görünmezdi: sarmalayıcı doğruydu, **kapsamı** eksikti.
+ */
+const render = (ui: ReactElement): ReturnType<typeof rtlRender> => {
+  const wrap = (node: ReactElement): ReactElement => (
+    <I18nextProvider i18n={i18n}>{node}</I18nextProvider>
+  );
+  const result = rtlRender(wrap(ui));
+  return {
+    ...result,
+    rerender: (next: ReactNode) => {
+      result.rerender(wrap(<>{next}</>));
+    },
+  };
+};
 
 /**
  * `ErrorBoundary` testleri — Faz 2 madde 2.6.
@@ -38,18 +72,22 @@ afterEach(() => {
 describe('yakalama ve yedek arayüz', () => {
   it('hatayı yakalayıp Türkçe yedek arayüz gösteriyor', () => {
     render(
-      <ErrorBoundary name="test" title="Bu bölüm yüklenemedi">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new Error('patladı')} />
       </ErrorBoundary>,
     );
 
     expect(screen.getByTestId('error-boundary-test')).toBeDefined();
-    expect(screen.getByText('Bu bölüm yüklenemedi')).toBeDefined();
+    // ⚠️ Başlık ARTIK `t()`den geliyor (`titleKey="boundary.screen"`), yani bu
+    // iddia bir **K5 kanıtı**: metin kodda değil `errors.json`da. Eksik bir
+    // anahtar olsaydı burada anahtarın kendisi görünür ve test kırılırdı.
+    expect(screen.getByRole('heading').textContent).toBe('Bu ekran yüklenemedi');
+    expect(screen.getByText(/Sorunu bize bildirebilirsiniz/)).toBeDefined();
   });
 
   it('hata YOKSA çocukları olduğu gibi render ediyor', () => {
     render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Saglikli />
       </ErrorBoundary>,
     );
@@ -60,7 +98,7 @@ describe('yakalama ve yedek arayüz', () => {
 
   it('yedek arayüz `role="alert"` taşıyor — ekran okuyucu duyurur', () => {
     render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new Error('x')} />
       </ErrorBoundary>,
     );
@@ -70,7 +108,7 @@ describe('yakalama ve yedek arayüz', () => {
 
   it('"Tekrar dene" durumu sıfırlıyor', async () => {
     const { rerender } = render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new Error('x')} />
       </ErrorBoundary>,
     );
@@ -79,7 +117,7 @@ describe('yakalama ve yedek arayüz', () => {
     // Düğmeye basmadan ÖNCE çocuk sağlıklı hâle getiriliyor; aksi hâlde
     // sıfırlama anında yeniden patlar ve düğme hiçbir şey kanıtlamazdı.
     rerender(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Saglikli />
       </ErrorBoundary>,
     );
@@ -95,9 +133,9 @@ describe('yakalama ve yedek arayüz', () => {
 describe('hiyerarşi — kayıtsız alandaki hata ÜST sınıra tırmanıyor', () => {
   it('en yakın sınır yakalıyor, üsttekiler devreye GİRMİYOR', () => {
     render(
-      <ErrorBoundary name="kok" title="kök başlık">
-        <ErrorBoundary name="ekran" title="ekran başlık">
-          <ErrorBoundary name="bilesen" title="bileşen başlık">
+      <ErrorBoundary name="kok" titleKey="boundary.screen">
+        <ErrorBoundary name="ekran" titleKey="boundary.screen">
+          <ErrorBoundary name="bilesen" titleKey="boundary.screen">
             <Patlayan error={new Error('hücre patladı')} />
           </ErrorBoundary>
         </ErrorBoundary>
@@ -112,8 +150,8 @@ describe('hiyerarşi — kayıtsız alandaki hata ÜST sınıra tırmanıyor', (
   it('KAYITSIZ alandaki hata bir ÜST sınıra tırmanıyor', () => {
     // Bileşen sınırı YOK — hata ekran sınırına çıkmalı.
     render(
-      <ErrorBoundary name="kok" title="kök başlık">
-        <ErrorBoundary name="ekran" title="ekran başlık">
+      <ErrorBoundary name="kok" titleKey="boundary.screen">
+        <ErrorBoundary name="ekran" titleKey="boundary.screen">
           <div>
             <Patlayan error={new Error('sınırsız alanda patladı')} />
           </div>
@@ -127,7 +165,7 @@ describe('hiyerarşi — kayıtsız alandaki hata ÜST sınıra tırmanıyor', (
 
   it('hiçbir ara sınır yoksa KÖKE kadar tırmanıyor', () => {
     render(
-      <ErrorBoundary name="kok" title="kök başlık">
+      <ErrorBoundary name="kok" titleKey="boundary.screen">
         <div>
           <Patlayan error={new Error('köke kadar')} />
         </div>
@@ -140,8 +178,8 @@ describe('hiyerarşi — kayıtsız alandaki hata ÜST sınıra tırmanıyor', (
   it('bir kardeş sınır çökse de diğeri AYAKTA kalıyor', () => {
     // Hiyerarşinin asıl değeri bu: tek bir hücre ekranın tamamını götürmüyor.
     render(
-      <ErrorBoundary name="kok" title="kök başlık">
-        <ErrorBoundary name="bilesen" title="bileşen başlık">
+      <ErrorBoundary name="kok" titleKey="boundary.screen">
+        <ErrorBoundary name="bilesen" titleKey="boundary.screen">
           <Patlayan error={new Error('yalnızca bu hücre')} />
         </ErrorBoundary>
         <Saglikli />
@@ -158,7 +196,7 @@ describe('hiyerarşi — kayıtsız alandaki hata ÜST sınıra tırmanıyor', (
 describe('correlationId — Karar 19', () => {
   it('hiç istek yapılmamışken bile kimlik gösteriyor', () => {
     render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new Error('x')} />
       </ErrorBoundary>,
     );
@@ -170,7 +208,7 @@ describe('correlationId — Karar 19', () => {
 
   it('bildirim yapıldığı ekranda söyleniyor', () => {
     render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new Error('x')} />
       </ErrorBoundary>,
     );
@@ -184,7 +222,7 @@ describe('yığın izi — yalnızca geliştirmede', () => {
   it('__FMS_DEV__ true iken yığın izi GÖSTERİLİYOR', () => {
     // `vitest.config.ts` web projesine `define: { __FMS_DEV__: 'true' }` veriyor.
     render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new Error('gizli iç ayrıntı')} />
       </ErrorBoundary>,
     );
@@ -210,7 +248,7 @@ describe('çökme Sentry’ye bildiriliyor', () => {
     // aşıyor. Etiketin filtreyi gerçekten aştığı `lib/sentry.test.ts`'te
     // ayrıca sınanıyor.
     render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new DomainError({ code: 'a.b', message: 'm' })} />
       </ErrorBoundary>,
     );
@@ -220,7 +258,7 @@ describe('çökme Sentry’ye bildiriliyor', () => {
 
   it('Error olmayan fırlatmada da yedek arayüz çıkıyor', () => {
     render(
-      <ErrorBoundary name="test" title="başlık">
+      <ErrorBoundary name="test" titleKey="boundary.screen">
         <Patlayan error={new EngineError({ code: 'a.b', message: 'm' })} />
       </ErrorBoundary>,
     );
@@ -234,17 +272,33 @@ describe('yedek arayüz patlarsa — ÖLÇÜLDÜ', () => {
   it('iç sınırın yedeği patlarsa hata ÜST sınıra çıkıyor, sonsuz döngü YOK', () => {
     // React'in davranışı: bir sınırın kendi render'ı patlarsa o sınır artık
     // yakalayamaz ve hata bir ÜSTE tırmanır. Sonsuz döngü olmaz.
-    // Bunu `title` yerine patlayan bir düğüm vererek zorluyoruz.
-    function PatlayanBaslik(): ReactNode {
+    //
+    // ⚠️ **ÇÖKERTME YÖNTEMİ 5.4'TE DEĞİŞTİ.** Eskiden `title` propuna patlayan
+    // bir düğüm veriliyordu; `titleKey` artık bir **dize anahtarı** ve `t()`
+    // ona patlamadan bir değer döndürüyor — yani eski hile artık çökertmiyor.
+    // Yerine gerçek yol kullanılıyor: iç sınır, `t()`si **fırlatan** bir i18n
+    // örneğinin altına konuyor. Çöken şey yedek arayüzün kendi render'ı.
+    const patlayanT = (): never => {
       throw new Error('yedek arayüzün kendisi patladı');
-    }
+    };
+    const patlayanI18n = {
+      ...i18n,
+      getFixedT: () => patlayanT,
+      // `withTranslation` hazır olup olmadığını buradan okuyor.
+      isInitialized: true,
+      language: 'tr',
+      options: i18n.options,
+      on: () => undefined,
+      off: () => undefined,
+    } as unknown as typeof i18n;
 
     render(
-      <ErrorBoundary name="kok" title="kök başlık">
-        {/* Bu sınırın yedeği render edilirken patlayacak bir başlık alıyor. */}
-        <ErrorBoundary name="ic" title={(<PatlayanBaslik />) as unknown as string}>
-          <Patlayan error={new Error('önce çocuk patlar')} />
-        </ErrorBoundary>
+      <ErrorBoundary name="kok" titleKey="boundary.screen">
+        <I18nextProvider i18n={patlayanI18n}>
+          <ErrorBoundary name="ic" titleKey="boundary.component">
+            <Patlayan error={new Error('önce çocuk patlar')} />
+          </ErrorBoundary>
+        </I18nextProvider>
       </ErrorBoundary>,
     );
 

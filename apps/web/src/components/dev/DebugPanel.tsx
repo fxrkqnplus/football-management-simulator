@@ -1,5 +1,6 @@
 import { assertionMode } from '@fms/shared';
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   clearLogBuffer,
@@ -54,13 +55,24 @@ const TABS = {
 
 type TabId = (typeof TABS)[keyof typeof TABS];
 
-/** TODO(Faz 5): metinler `t()` üzerinden gelecek — BORÇ-003. */
-const TAB_LABELS: Readonly<Record<TabId, string>> = {
-  logs: 'Son 50 Log',
-  save: 'Kayıt Durumu',
-  rng: 'RNG Tohum Görüntüleyici',
-  perf: 'Performans Sayaçları',
-};
+/**
+ * Sekme adlarının i18n ANAHTARLARI — BORÇ-003 ödendi (5.4).
+ *
+ * ⚠️ **ENVANTER ARACININ KÖR NOKTASI BURADA BULUNDU.** Bunlar modül düzeyi
+ * sabitler, JSX metni **değil** — AST taraması yalnızca JSX içindeki dize
+ * literallerine bakıyor ve bu satırları **görmüyordu**. Yine de JSX'e render
+ * ediliyorlar, yani kullanıcı onları görüyor: bir K5 ihlali envanterin
+ * dışında kaldı ve yalnızca **BORÇ-003 onları adıyla saydığı için** yakalandı
+ * (*"sekme adları, üç boş sekmenin açıklaması"*).
+ * → Aynı kör nokta **5.5'in ESLint kuralında da olacak** ve ROADMAP'in 5.5
+ *   maddesine yazıldı. *"Kısmi koruma D3 yanılsaması üretir."*
+ */
+const TAB_LABEL_KEYS = {
+  logs: 'debugPanel.tab.logs',
+  save: 'debugPanel.tab.save',
+  rng: 'debugPanel.tab.rng',
+  perf: 'debugPanel.tab.perf',
+} as const satisfies Readonly<Record<TabId, string>>;
 
 /**
  * Henüz verisi olmayan sekmelerin açıklaması.
@@ -68,11 +80,11 @@ const TAB_LABELS: Readonly<Record<TabId, string>> = {
  * Metin bilerek **ne zaman dolacağını** söylüyor: "yakında" demek, bir sonraki
  * oturumun bunu eksik iş sanıp doldurmaya çalışmasına yol açardı.
  */
-const EMPTY_TAB_NOTES: Readonly<Record<Exclude<TabId, 'logs'>, string>> = {
-  save: 'Kayıt verisi Faz 12’de (Master World + Delta) gelecek. Şu an gösterilecek kayıt yok.',
-  rng: 'SeededRng Faz 22’de (maç motoru) gelecek. Tohum görüntüleyici o zaman dolacak.',
-  perf: 'measure() henüz hiçbir ürün kodundan çağrılmıyor. Çağrı yerleri Faz 6’da (perf:budget) gelecek.',
-};
+const EMPTY_TAB_NOTE_KEYS = {
+  save: 'debugPanel.emptyTab.save',
+  rng: 'debugPanel.emptyTab.rng',
+  perf: 'debugPanel.emptyTab.perf',
+} as const satisfies Readonly<Record<Exclude<TabId, 'logs'>, string>>;
 
 const LEVEL_COLORS: Readonly<Record<LogEntry['level'], string>> = {
   fatal: '#ff6b6b',
@@ -90,6 +102,7 @@ function formatTime(at: number): string {
 }
 
 export function DebugPanel(): React.ReactElement {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabId>(TABS.logs);
 
@@ -139,7 +152,7 @@ export function DebugPanel(): React.ReactElement {
       {open ? (
         <section
           data-testid="debug-panel"
-          aria-label="Geliştirici hata ayıklama paneli"
+          aria-label={t('debugPanel.ariaLabel')}
           style={{
             background: '#12161f',
             color: '#e9ecef',
@@ -152,7 +165,7 @@ export function DebugPanel(): React.ReactElement {
           <header
             style={{ display: 'flex', gap: 4, padding: 6, borderBottom: '1px solid #343a40' }}
           >
-            {(Object.keys(TAB_LABELS) as TabId[]).map((id) => (
+            {(Object.keys(TAB_LABEL_KEYS) as TabId[]).map((id) => (
               <button
                 key={id}
                 type="button"
@@ -171,7 +184,7 @@ export function DebugPanel(): React.ReactElement {
                   font: 'inherit',
                 }}
               >
-                {TAB_LABELS[id]}
+                {t(TAB_LABEL_KEYS[id])}
               </button>
             ))}
             <span style={{ flex: 1 }} />
@@ -191,7 +204,7 @@ export function DebugPanel(): React.ReactElement {
                 font: 'inherit',
               }}
             >
-              Kapat (Ctrl+Shift+D)
+              {t('debugPanel.close')}
             </button>
           </header>
 
@@ -200,7 +213,7 @@ export function DebugPanel(): React.ReactElement {
               <LogsTab entries={entries} />
             ) : (
               <p data-testid={`debug-empty-${tab}`} style={{ margin: 0, color: '#adb5bd' }}>
-                {EMPTY_TAB_NOTES[tab]}
+                {t(EMPTY_TAB_NOTE_KEYS[tab])}
               </p>
             )}
           </div>
@@ -211,11 +224,13 @@ export function DebugPanel(): React.ReactElement {
 }
 
 function LogsTab({ entries }: { readonly entries: readonly LogEntry[] }): React.ReactElement {
+  const { t } = useTranslation();
   return (
     <>
       <p style={{ margin: '0 0 6px', color: '#adb5bd' }}>
-        <span data-testid="debug-log-count">{entries.length}</span> / {LOG_BUFFER_CAPACITY} satır ·{' '}
-        değişmez kipi: <span data-testid="debug-assertion-mode">{assertionMode()}</span>{' '}
+        <span data-testid="debug-log-count">{entries.length}</span> / {LOG_BUFFER_CAPACITY}{' '}
+        {t('debugPanel.lines')} {t('debugPanel.assertionMode')}{' '}
+        <span data-testid="debug-assertion-mode">{assertionMode()}</span>{' '}
         <button
           type="button"
           data-testid="debug-log-clear"
@@ -230,13 +245,13 @@ function LogsTab({ entries }: { readonly entries: readonly LogEntry[] }): React.
             font: 'inherit',
           }}
         >
-          Temizle
+          {t('debugPanel.clear')}
         </button>
       </p>
 
       {entries.length === 0 ? (
         <p data-testid="debug-log-empty" style={{ margin: 0, color: '#adb5bd' }}>
-          Henüz log satırı yok. Bir istek at veya sayfayı yenile.
+          {t('debugPanel.empty')}
         </p>
       ) : (
         <ol data-testid="debug-log-list" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
