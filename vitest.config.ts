@@ -162,17 +162,14 @@ export default defineConfig({
           include: ['*.test.mjs'],
         },
       },
-      {
-        // İHLAL ENVANTERİ (5.4). Araç bir ÖLÇÜM aracı, yani kendisi de
-        // ölçülmeli (D2): testi iki yönlü — bilinen bir ihlal ÇIKMALI,
-        // bilinen bir ihlal-olmayan ÇIKMAMALI.
-        test: {
-          name: 'i18n-inventory',
-          root: './tools/i18n-inventory',
-          environment: 'node',
-          include: ['*.test.mjs'],
-        },
-      },
+      // ⚠️ `i18n-inventory` PROJESİ 5.5'TE KALDIRILDI — araç emekli edildi.
+      // 5.4'ün ihlal envanteri (`tools/i18n-inventory/`) ROADMAP'in kendi
+      // ifadesiyle *"kuralın prototipi"*ydi ve 5.5'te yerini gerçek kapıya
+      // (`local/no-bare-jsx-text`, `pnpm lint` içinde) bıraktı. Aynı işi yapan
+      // iki kod yolu bir gün ayrışır. Emeklilikten ÖNCE anlaşma ölçüldü:
+      // 5.4 öncesi dört dosya üzerinde iki uygulama da **33** ihlal buldu,
+      // dosya dosya aynı. Aracın sabitlediği negatif anlamlar kuralın kendi
+      // `valid[]` listesine taşındı.
     ],
 
     coverage: {

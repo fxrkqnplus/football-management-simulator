@@ -115,10 +115,18 @@ export default tseslint.config(
   },
 
   // ─── 6. Yerel kurallar ─────────────────────────────────────────────────
-  // Türkçe metin kuralı (K5) Faz 5'te eklenecek.
+  //
+  // `no-bare-jsx-text` Faz 5.5'te eklendi (K5). Seviye bilinçli olarak
+  // `error`: 5.4 depodaki 33 ihlali **0**'a indirdiği için bugün hiçbir şeyi
+  // kırmıyor, ve `warn` ile açılsaydı hiçbir şeyi ZORLAMAZDI — kabul kriteri
+  // *"sabit kodlanmış metin eklenince ESLint HATA veriyor"* diyor.
+  //
+  // ⚠️ Kuralın adı ROADMAP'te `no-hardcoded-turkish` diye ayrılmıştı; 5.5'te
+  // ölçüm gerekçesiyle değişti (kural dile bakamaz) → SAPMA-039.
   {
     plugins: { local: localRules },
     rules: {
+      'local/no-bare-jsx-text': 'error',
       'local/no-hardcoded-path': 'error',
     },
   },
@@ -160,6 +168,30 @@ export default tseslint.config(
     ],
     rules: {
       'local/no-hardcoded-path': 'off',
+    },
+  },
+
+  // Birim testler METNİ de VERİ olarak kullanır: bir fixture'daki
+  // `title="başlık"` bir arayüz metni değildir ve hiçbir kullanıcıya
+  // gösterilmiyor. Muafiyet olmasaydı her test dosyası `eslint-disable` ile
+  // dolardı ve kural güvenilirliğini yitirirdi (yukarıdaki emsalin birebir
+  // gerekçesi).
+  //
+  // ⚠️ **AYRI BİR BLOK, ve bu bilinçli.** Yukarıdaki muafiyet listesi
+  // `base-path.ts`, `tools/arch-check/**` gibi yol TANIM YERLERİNİ de taşıyor;
+  // oraya bir satır eklemek bu kuralı o dosyalarda da sessizce kapatırdı.
+  // Bugün etkisi olmazdı (hiçbirinde JSX yok) ama muafiyetin DAR kalması
+  // kuralın güvenilirliğinin şartı — geniş bir muafiyet bir gün kapsamı yutar.
+  //
+  // ⚠️ UZANTI LİSTESİ TAM TUTULUR (SAPMA-007 sınıfı): soru *"bugün hangi
+  // uzantıda JSX var"* değil, *"bu muafiyet hangi dosyalar için geçerli"*.
+  // DİKKAT: yalnızca `*.test.*` muaf. Uçtan uca testler (`*.spec.tsx`,
+  // Faz 17+) gerçek arayüzü sürer ve muaf DEĞİLDİR — bu, kuralın kendi
+  // testindeki kanaryayla ayrıca iddia ediliyor.
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/*.test.mts', '**/*.test.cts', '**/*.test.mjs'],
+    rules: {
+      'local/no-bare-jsx-text': 'off',
     },
   },
 
