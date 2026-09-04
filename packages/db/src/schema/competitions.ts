@@ -116,6 +116,44 @@ export const competitions = masterTable(
        * ad `name_key`, yani bir **i18n anahtarı** (`competition.tur.superlig`).
        * Onun üzerinde Türkçe arama anlamsız. ROADMAP Faz 17 global aramayı
        * *"lig + turnuva"* için de istiyor → `docs/SPEC-COVERAGE-GAPS.md` **G-13**.
+       *
+       * ─────────────────────────────────────────────────────────────────────
+       * G-13 — FAZ 5'İN PAYI KARARA BAĞLANDI (5.8). ŞEMA DEĞİŞMEDİ.
+       * ─────────────────────────────────────────────────────────────────────
+       *
+       * **KARAR: çeviri kaynağı TEK yerde yaşar — `apps/web/src/locales/tr/*.json`.
+       * Veritabanı ANAHTARI taşır, görünen METNİ taşımaz.**
+       *
+       * Bu bir tercih değil bugünkü mimarinin adının konması: ölçüldü (5.8),
+       * `Süper Lig` / `Premier League` gibi adlar **yalnızca** `common.json`da
+       * (11 anahtar) — başka hiçbir üretim kaynağında yok, `docs/glossary.md`
+       * bile taşımıyor (özel ad bir terim değildir). 5.6 aynı mimariyi
+       * `i18n-dynamic-keys.ts`te `common:competition.` ön ekiyle **beyan
+       * etmişti**; bu satır o beyanın veritabanı tarafındaki karşılığı.
+       *
+       * **FAZ 17'NİN ÜÇ SEÇENEĞİ — hepsi MÜMKÜN, ikisi ŞARTLI:**
+       *
+       *   ① **İstemci tarafı arama** (çeviriler üzerinde) — **şartsız**.
+       *      Tek kaynak kararıyla tutarlı, kopya yok, indeks yok, migration
+       *      yok. Ölçüldü (5.3): çeviriler **statik paketleniyor**, yani
+       *      istemcide zaten hepsi var. Bedeli: arama yükü istemcide.
+       *   ② **Çevrilmiş adı taşıyan arama tablosu** — mümkün, **AMA** o metin
+       *      **türetilmiş** olmak zorunda (locale'den üretilen bir projeksiyon)
+       *      ve ayrışmayı önleyen **koşan bir kontrol** ister. Elle yazılan bir
+       *      kopya bu karara aykırıdır: `Süper Lig` iki yerde durur ve iki
+       *      kopya bir gün ayrışır.
+       *   ③ **`display_name` sütunu** — ②'nin şartı, **artı** master tabloda
+       *      bir migration (Faz 12'nin zeminini etkiler) ve `docs/spec/01`
+       *      güncellemesi.
+       *
+       * ⚠️ **5.8 HANGİSİNİN KULLANILACAĞINI SEÇMEZ — o Faz 17'nin işi** (K12).
+       * Burada karara bağlanan şey **verinin nerede yaşadığı**; Faz 17 hayatta
+       * kalan seçenekler arasından **aramanın nasıl uygulanacağını** seçer ve
+       * gerekçesini kendi kabul kriterine yazar.
+       *
+       * ℹ️ **G-13 satırı KAPATILMADI** ve bu bilinçli: satır **iki** faza
+       * atanmış, `gaps:check` kapalı bir satırı **tamamen atlıyor** — kapatmak
+       * Faz 17'nin yarısını kalıcı olarak denetimsiz bırakırdı.
        */
       index('competitions_country_id_idx').on(table.countryId),
     ],

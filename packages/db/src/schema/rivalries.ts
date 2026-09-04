@@ -95,6 +95,29 @@ export const rivalries = masterTable(
        * paketteki `rivals` girdisi yalnızca `key` + `intensity` taşıyor, ad
        * taşımıyor. "Kıtalar Arası Derbi" gibi bir ad **arayüzde görünen metindir**,
        * o yüzden i18n anahtarı (K5) — özel isim olan `clubs.name`in tersi.
+       *
+       * ─────────────────────────────────────────────────────────────────────
+       * G-13'ÜN KARARI BU SÜTUNU DA KAPSIYOR — ama ARAMA sorunu KAPSAMIYOR
+       * ─────────────────────────────────────────────────────────────────────
+       *
+       * **Mimari karar aynı (5.8):** çeviri kaynağı `locales/tr/*.json`da
+       * yaşar, veritabanı **anahtarı** taşır. Gerekçenin tamamı
+       * `competitions.ts`teki `name_key` yorumunda; burada tekrarlanmıyor.
+       *
+       * ⚠️ **AMA BU SÜTUN G-13'ÜN ARAMA YARISINA GİRMİYOR ve bu ölçüldü (5.8).**
+       * ROADMAP Faz 17 **beş** varlık türü sayıyor — oyuncu · kulüp · personel ·
+       * **lig · turnuva** — ve son ikisi de `competitions` satırlarıdır.
+       * `rivalries` o listede **yok**. G-13'ün metni bu sütunu *"aynı sorun"*
+       * diye anıyor ve bu **sınıf** olarak doğru (görünen ad bir i18n anahtarı),
+       * ama bir **arama gereksinimi** olarak değil.
+       *
+       * ⚠️ **VE BU SÜTUNUN ÜÇÜNCÜ BİR ÖZELLİĞİ VAR — yalnızca burada yazılabilir:**
+       * `null` meşru bir değer, yani rekabetlerin çoğunun **hiç adı yok**.
+       * Bir gün rekabet araması istenirse sorun *"metin başka yerde"* değil
+       * *"metin hiç yok"* olacak — `display_name` gibi bir sütun onu çözmez,
+       * yalnızca boşluğu taşır. Bugün tablo ayrıca **seed edilmiyor**
+       * (ölçüldü: `seed-sql.ts` `countries` · `competitions` · `people` ·
+       * `players` dolduruyor, `rivalries` **0 satır**).
        */
       nameKey: text('name_key'),
       createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
