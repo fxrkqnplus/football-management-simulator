@@ -19,26 +19,19 @@
 
 > **Alt görev başına yeniden yazılır** (SAPMA-004, `docs/spec/11-project-memory.md` §12.1)
 > — **~10 satır**. Bu bir **durum fotoğrafı**, bir arşiv değil.
->
-> ✅ **4.11'in verdiği söz tutuldu: 13 tablo satırı → 10.** İki satır kapandı —
-> `Veri durumu` `Şema/veri` içine katlandı, ve *"Faz 5'e giderken üç uyarı"*
-> **silindi** çünkü artık Faz 5'in **içindeyiz**: üç uyarının üçü de ROADMAP
-> Faz 5 kapsamına ve alt görev listesine yazılı, yani kalıcı bir yerde.
-> Faz 4'ün durumu kaybolmadı — **Faz 4 faz kaydı** (bu dosyada, 11 başlık) ve
-> `docs/reports/faz-04/` (13 dosya).
 
 | | |
 |---|---|
-| **Aktif faz / alt görev** | ▶️ **FAZ 5 KAPANDI — yedi kabul kriterinin YEDİSİ de sağlandı.** Faz kaydı (11 başlık) yazıldı, günlük boşaltıldı, PR `develop`a açıldı ve **merge kullanıcının**. **Sıradaki: FAZ 6 — Tasarım Sistemi ve Bileşen Kütüphanesi.** ⚠️ Faz 6 açılışında üç iş: `SESSION-TEMPLATE` §15.1 → **Bölüm 7** (`docs/spec/05-design-system.md`) **+ `docs/glossary.md`** okunur · günlük başlığı `🧪 FAZ 6` yapılır · **BORÇ-009 yeniden ÖLÇÜLÜR** (bugün 0 gerçek pozitif) |
-| **Son tamamlanan** | ✅ **5.9 — faz kapanışı.** Commit: `<içerik>`. 🆕 **§0.5 İKİ eşikle ölçüldü, ikisi de aşılmadı:** `84a6d5f` → `fb7feff` = **1,260 gün** (eşik A bölünme **2**, eşik B §0.5'in asıl sınırı **3**; marj **1,740**). Bölünme çizgisi çizilmişti ama **kullanılmadı** — ateşlenmemesi de bir sonuç. 🆕 **BORÇ-009/010 ve `glossary.md` Faz 6'nın kapsamında YOKTU** (ölçüldü: 0 eşleşme) — **ödeyebildiği gösterilerek** yazıldı. 🆕 **Prose taraması: 6 aday, 2'si bayat** (`CLAUDE.md` §2.2 `tools/` ağacı altıda ikisini listeliyordu · §2.1 `languagedetector`ı hiç anmıyordu) |
-| **Tarih / ilerleme / dallar** | 2026-09-04 · **5 / 50 faz (%10)**, Faz 5 **kapandı**. `main` → `develop` → **`feature/faz-05-i18n`** (taban `2b5075e`, **22 commit**, aralık `84a6d5f..fb7feff`). ⚠️ **PR açık ve MERGE EDİLMEDİ** — merge kullanıcının işi (merge commit, squash değil). Faz 6 dalı merge'den **sonra** açılır |
-| **CI** | ✅ Dalda **10 push koşusu, 10'u da success** (liste sorgusu, `event`+`conclusion` ile tek tek okundu); 5.8'inki `33829616049`. ⚠️ **Faz 4'ün KIRMIZI koşusu (`33419337117`, İmaj/amd64, Docker Hub auth zaman aşımı — kod dışı) HÂLÂ YENİDEN DENENMEDİ** ve bu **kullanıcının kararını bekliyor**. ⚠️ Kanıtlanmayan tek şey: **başarısız bir adımın işi kırdığı**. ⏳ 5.9'un koşusu yazım anında bilinmiyor |
-| **Kapılar** | ✅ **typecheck 10/10 SOĞUK** (`Cached: 0`) · **build 8/8 SOĞUK** (`Cached: 0`; cache **build'den hemen önce** silinir) · lint **0** · format **0** ⚠️ *(`.md` `.prettierignore`da — fazın en büyük ürünlerine hiç bakmadı, SAPMA-024)* · arch **9 kural** · **test 1120/75** (faz başında 977/67 → **+143/+8**) · **test:db 301/10** (değişmedi) · **gaps 20/3/17/0 ✗** · **i18n:check temiz — 307 dosya** · `drizzle-kit generate` → *"No schema changes"* |
-| **Kapsam** | fonksiyon **%80,70 (364/451)** — satır %88,88 · ifade %89,00 · dal %89,74; eşik **70**. Faz boyunca 355/442 → **364/451**. Marj: `364 / 0,70 = 520` → payda en fazla **520**, bugün **451**, **boşluk 69**. ⚠️ **`tools/` altındaki dört kapı aracı paydada DEĞİL** (`.mjs`, `src/` yok) — bu bir istisna değil, `coverage.include` deseninin sonucu; hiçbirine özel dışlama açılmadı. Eşik düşürülmedi, dosya dışlanmadı, import testi yazılmadı |
-| **Şema / veri** | **Faz 5 şemaya DOKUNMADI — kanıtlandı, varsayılmadı** (`drizzle-kit generate` → *"No schema changes"*, `drizzle/` git-temiz). 22 master tablo · 32 FK · 6 indeks · 14 sequence · 20 CHECK · 12 migration. **4 / 22 tablo dolu** (`countries` 6 · `competitions` 11 · `people` 5.000 · `players` 5.000); `rivalries` **0 satır ve hiç seed edilmiyor** |
-| **Ortam** | PostgreSQL **18.6** · Node **24.19.0** (ICU **78.3** · CLDR **48.0**) · pnpm 11.23.0 · TS `~6.0.3` · **i18next 26.4.1 / react-i18next 17.0.13 / languagedetector 8.2.1** (lockfile **647** girdi). **Tipli anahtarlar AÇIK**, koşan bir kontrol deneyiyle kanıtlı. Üretim paketi **380.908 bayt** (i18n bağlandıktan sonra, derlenmiş paket üzerinden ölçüldü — Faz 6 `perf:budget` girdisi) |
-| **Kütükler** | Açık sorun **0** · teknik borç **10 satır, 3 ÖDENDİ → açık 7**: 001·002·004 → Faz 16 · 007 → Faz 12 · 006 → Faz 50 · **009** (K5 kapılarının ortak kör noktası) ve **010** (`no-hardcoded-path` kanaryası) → **Faz 6, ve 5.9'da o fazın KAPSAMINA yazıldı** · SAPMA **40** (Faz 5'in payı beş: 036–040) · boşluk **20**, açık **17**. ⚠️ **G-13 → Faz 5 + Faz 17** ✓ — Faz 5'in payı yapıldı ama satır **bilerek açık**: kapalı bir satır `gaps:check`te tamamen atlanıyor ve Faz 17'nin yarısı denetimsiz kalırdı. **Faz 17 mekanizmayı seçince** kapanır |
-| **Bloke eden var mı?** | Hayır. ⚠️ Dört şey duruyor, hiçbiri bloke etmiyor: ① **PR merge edilmedi** — kullanıcının kararı ② `main.test.tsx` jsdom yıkım yarışı **KAPANMIŞ SAYILMIYOR**, gerçek sınavı **Faz 6** (yüzlerce DOM testi) ③ **Faz 4'ün kırmızı CI koşusu** yeniden denenmedi — kullanıcının kararı ④ **`errors:status.*`in bugün SIFIR tüketicisi var** (5.6'da kapı buldu); silinmediler çünkü aile **kapalı ve tasarlanmış**, beyan edildi ve sayısı bir testle sabit — ilk tüketici bir HTTP hata yüzeyiyle gelecek (Faz 13+) |
+| **Aktif faz / alt görev** | ▶️ **FAZ 6 — Tasarım Sistemi ve Bileşen Kütüphanesi**, alt görev **6.0 (doğrulama) BİTTİ, KARAR BEKLİYOR.** Alt görev listesi (6.0–6.12) kullanıcı onayıyla ROADMAP'e **yazıldı**, dal açıldı, günlük başlığı `🧪 FAZ 6` yapıldı. **Sıradaki: 6.1 (BORÇ-010 kanaryası)** — ama önce dört karar |
+| **Son tamamlanan** | ✅ **6.0 — kod yok, ölçüm var; paket kurulmadı.** 🆕 **Tarayıcı zinciri ÇÖZÜLÜYOR:** `@vitest/browser-playwright@4.1.11` peer `vitest: 4.1.11` (tam eşleşme) — ⚠️ ilk okumam `tail`in kuyruğuna bakıp *"yalnızca 5.x var"* demişti, **sayım 43 adet 4.x buldu**. 🆕 **§11.6'nın 15 satırından Faz 6'da ölçülebilen SIFIR**, ve ROADMAP'in saydığı *"üretim paketi boyutu"* §11.6'da **hiç yok** (0 eşleşme). 🆕 **`28 vs 30+` çelişkisi doğrulandı** (programatik sayıldı). 🆕 `DEPENDENCY-WATCH`e **beş satır eklendi, bir atama düzeltildi** (`react-table`: Faz 18 → **Faz 6**, 9.1.2 → **9.2.4**) |
+| **Tarih / ilerleme / dallar** | 2026-09-04 · **5 / 50 faz (%10)**, Faz 6 **açıldı**. `main` → `develop` (**`2ec1548`**, merge commit, iki ebeveyn — doğrulandı) → **`feature/faz-06-design-system`** (taban `2ec1548`, **0 commit** — 6.0 henüz commit edilmedi) |
+| **CI** | ✅ `develop`ın merge koşusu **`33835705656` success** (`2ec1548`, liste sorgusuyla okundu). ⚠️ **Faz 4'ün KIRMIZI koşusu (`33419337117`, İmaj/amd64, Docker Hub auth zaman aşımı — kod dışı) HÂLÂ YENİDEN DENENMEDİ** — kullanıcının kararı. ⚠️ Kalite kapıları **hem `ubuntu-24.04` hem native `ubuntu-24.04-arm`** üzerinde koşuyor (K14) — tarayıcı kararının bedeli buradan geliyor |
+| **Kapılar** | ✅ typecheck **10/10** (`Cached: 2` — soğuk **değil**) · lint **0** (çıkış kodu ayrıca ölçüldü; ilk ölçüm boru hattında `$?` okumuştu, D2) · format **0** ⚠️ `.md`ye bakmıyor (SAPMA-024) · arch **9 kural** (komut sayı basmıyor, `arch-check.test.mjs`ten sayıldı) · **test 1120/75** · **test:db 301/10** · **gaps 20·3·17·0 ✗** · **i18n:check temiz — 308 dosya** (hafıza 307 diyordu, +1) · build `Cached: 8` **FULL TURBO — soğuk DEĞİL** |
+| **Kapsam** | fonksiyon **%80,70 (364/451)**; satır %88,88 · ifade %89,00 · dal %89,74; eşik **70**. Marj `364/0,70 = 520` → payda boşluğu **69 fonksiyon**. ⚠️ `packages/ui/src/**` `coverage.include`da → 28 bileşen paydaya **girecek**; eşik düşürülmez, dosya dışlanmaz, import testi yazılmaz |
+| **Şema / veri** | Faz 6 şemaya dokunmuyor. 22 master tablo · 32 FK · 6 indeks · 14 sequence · 20 CHECK · 12 migration. **4 / 22 tablo dolu**; `rivalries` **0 satır** |
+| **Ortam** | PostgreSQL **18.6** · Node **24.19.0** · pnpm **11.23.0** · TS `~6.0.3` · Docker Desktop **4.89.0** / engine **29.7.2** · **jsdom 30.0.1** — sonda ölçtü: `matchMedia` **undefined** · `var()` **çözülmüyor** · rect **0×0** · `ResizeObserver`/`scrollIntoView`/`hasPointerCapture` **yok**. Üretim paketi **380.908 bayt** |
+| **Kütükler** | Açık sorun **0** (1 satır, kapalı) · teknik borç **10 satır, 3 ÖDENDİ → açık 7** (iki desenle sayıldı — `BORÇ-008` **kalın**) · SAPMA **40** · boşluk **20**, açık **17**. Faz 6'nın payı: **BORÇ-010 → 6.1** (erken) · **BORÇ-009 → 6.11** (geç, vaka doğduktan sonra) · **G-01 → 6.10** |
+| **Bloke eden var mı?** | ⚠️ **EVET — 6.1'e geçilmez, dört karar bekliyor:** ① tarayıcı yolu (zincir çözülüyor ama arm64 ikilisi **ölçülmedi**) ② `28 vs 30+` ③ §11.6'ya paket boyutu satırı eklensin mi (yoksa `perf:budget` ölçecek bir şey bulamaz) ④ kriter 3'ün (55+ fps) hedef fazı. ℹ️ Ayrıca duruyor: `main.test.tsx` jsdom yarışı **6.4'ten itibaren izlenecek** · Faz 4'ün kırmızı CI koşusu |
 
 ---
 
@@ -1029,7 +1022,7 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 ---
 
-## 🧪 FAZ 5 — ÇALIŞMA GÜNLÜĞÜ
+## 🧪 FAZ 6 — ÇALIŞMA GÜNLÜĞÜ
 
 > **Kalıcı yapı, geçici içerik.** Kurallar: `docs/spec/11-project-memory.md` §12.2.
 > Faz süresince karşılaşılan hatalar buraya **anında** yazılır; faz kapanışında
@@ -1039,6 +1032,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 
 | # | Alt görev | Hata (belirti) | Kök neden | Çözüm | Tekrar önleme |
 |---|---|---|---|---|---|
+
+<details>
+<summary>Faz 5 günlüğünün kapanış notu (arşiv)</summary>
 
 > **Faz 5 kapanışında boşaltıldı (2026-09-04).** Tablo **13 satır** taşıyordu ve
 > hepsi **Faz 5 kaydının §5 tablosuna** indirgendi (sekiz desene gruplanarak).
@@ -1061,6 +1057,9 @@ pnpm --filter @fms/web exec vite preview        # :3000/fms/
 > bulgusu*, birer *hata* değil — kütüğün yeri SAPMA tablosu. Günlük çalışırken
 > **kırılan** şeyleri taşır, bulunanları değil.
 > **Faz 6 açılışında başlık `🧪 FAZ 6 — ÇALIŞMA GÜNLÜĞÜ` olarak güncellenir.**
+> ✅ **Yapıldı — 6.0'da (2026-09-04).**
+
+</details>
 
 <details>
 <summary>Faz 4 günlüğünün kapanış notu (arşiv)</summary>
