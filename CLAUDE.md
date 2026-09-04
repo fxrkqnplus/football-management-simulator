@@ -208,7 +208,7 @@ Her PR açıklaması: faz numarası, kapsam özeti, kabul kriteri kontrol listes
     "charts":    "recharts 3",
     "render2d":  "pixi.js 8",
     "audio":     "howler 2",
-    "i18n":      "i18next 26 + react-i18next 17",
+    "i18n":      "i18next 26 + react-i18next 17 + i18next-browser-languagedetector 8",
     "icons":     "lucide-react 1",
     "forms":     "react-hook-form 7 + @hookform/resolvers 5 (zod)"
   },
@@ -312,9 +312,13 @@ football-management-simulator/
 │   │
 │   └── ui/                      # tasarım sistemi bileşenleri + Storybook
 │
-├── tools/
+├── tools/                       # ⚠️ AĞAÇ TAM TUTULUR — Faz 5.9'da dördü eksikti
+│   ├── arch-check/              # katman/saflık denetimi (9 kural) + kanaryası
+│   ├── bash-text-guard/         # PreToolUse kancası — ASCII olmayan kabuk argümanı
 │   ├── data-cli/                # veri ingest, doğrulama, üretim
-│   └── i18n-check/
+│   ├── eslint-local-rules/      # no-hardcoded-path (K6) · no-bare-jsx-text (K5)
+│   ├── glossary-check/          # docs/glossary.md ayrıştırıcısı — kriter sayısı burada
+│   └── i18n-check/              # eksik/kullanılmayan anahtar · boş çeviri · görünmez karakter
 │
 ├── docs/
 │   ├── ROADMAP.md               # 50 faz

@@ -2903,9 +2903,43 @@ docs/glossary.md
       **364/451 = %80,70 değişmedi**. Mutasyon **koşturulmadı** ve gerekçesi
       yazıldı (bu alt görev nöbetçi üretmiyor).
       → `docs/reports/faz-05/5.8-*.md`
-- [ ] **5.9** **Faz kapanışı** — süre ölçümü (§0.5) · yedi kriter tek tek ·
+- [x] **5.9** **Faz kapanışı** — süre ölçümü (§0.5) · yedi kriter tek tek ·
       kapılar (`typecheck` **soğuk**) · faz kaydı (11 başlık) · `gaps:check` ·
       CHANGELOG · PR → `develop`.
+      **SONUÇ:**
+      🆕 **§0.5 İKİ EŞİKLE ÖLÇÜLDÜ, İKİSİ DE AŞILMADI.** `84a6d5f`
+      (2026-09-02 23:12:53 +0300) → `fb7feff` (2026-09-04 05:27:50 +0300)
+      = **108.897 sn = 1,260 gün**. Eşik A (bölünme kontrol noktası, **2 gün**)
+      aşılmadı — 5.5'te de ölçülmüştü (0,859). Eşik B (**§0.5'in asıl sınırı,
+      3 gün**) aşılmadı, marj **1,740 gün**. Faz **22 commit**
+      (`84a6d5f..fb7feff`). ⚠️ **Bölünme çizgisi (5a/5b) çizilmişti ama
+      KULLANILMADI** — ateşlenmemesi de bir sonuçtur ve kaydedildi.
+      🆕 **BORÇ-009 ve BORÇ-010 FAZ 6'NIN KAPSAMINDA YOKTU — ölçüldü ve
+      düzeltildi.** İkisi de ROADMAP'te yalnızca **Faz 5** bölümünde geçiyordu
+      (5.6'nın SONUÇ bloğu). 4.11'in BORÇ-003/005 için bulduğunun **birebir
+      aynısı, bir faz sonra**. Faz 6'nın kapsamına **ödeyebildiği gösterilerek**
+      yazıldı: BORÇ-009'un ilk gerçek vakaları oradaki **28 bileşende** doğacak,
+      BORÇ-010'un işi 5.5'in kanaryasının kopyası.
+      🆕 **`docs/glossary.md` de Faz 6'nın kapsamına yazıldı.** 5.7 onu
+      `CLAUDE.md` belge haritasına eklemişti ama **fazın kendi kapsamında**
+      geçmiyordu — oysa bir oturum faz başında ROADMAP'in o bölümünü okuyor.
+      🆕 **PROSE TARAMASI — 6 aday ölçüldü, 2'si bayat çıktı ve düzeltildi:**
+      `CLAUDE.md` §2.2 `tools/` ağacı **altı dizinden ikisini** listeliyordu
+      (`arch-check` · `bash-text-guard` · `eslint-local-rules` · `glossary-check`
+      yoktu — üçü Faz 5'ten **önce** de eksikti) · §2.1 yığın tablosu
+      `i18next-browser-languagedetector`ı **hiç anmıyordu** (tablo başka
+      satırlarda eşlik paketlerini sayıyor). Güncel çıkanlar: `README.md` ·
+      `.env.example` · `SESSION-TEMPLATE` §15.1.
+      ⚠️ **ROADMAP'in "Ana dosyalar" bloğu BİLEREK GÜNCELLENMEDİ** — o bir
+      **plan** artefaktı ve sonradan yazmak, planın öngörmediği şeyi öngörmüş
+      gibi gösterirdi. Gerçekte üretilen dosyaların yeri faz kaydının **§9**'u.
+      🆕 **5.9 TALİMATI BAYAT DEĞİLDİ** (4.11'in tuzağı arandı): taşıdığı tek
+      sayı *"faz kaydı (11 başlık)"* ve `docs/spec/11` §12.1 **aynı sayıyı**
+      veriyor.
+      **Kapılar:** typecheck **10/10 SOĞUK** · build **8/8 SOĞUK** · lint 0 ·
+      format 0 · arch 9 · **test 1120/75** · test:db **301/10** ·
+      **gaps 20/3/17/0 ✗** · **i18n:check temiz** · kapsam **364/451 = %80,70**.
+      → `docs/reports/faz-05/5.9-*.md`
 
 > **BÖLÜNME ÇİZGİSİ (§0.5) — şimdiden çizildi, Faz 4'ün dersi.**
 > **5a** = 5.0-ön · 5.0 · 5.1 · 5.2 · 5.3 · 5.4 · 5.5 (altyapı + borçlar + nöbetçi #1)
@@ -2950,6 +2984,36 @@ docs/glossary.md
   `arch:check` ile birebir aynı boşluk (Faz 1 Ç3). Burada ilk ölçülebilir ekran doğduğu
   için kurulumu buraya düşüyor. Faz 6'da ölçülebilen alt küme: DataTable render, ekran
   geçişi, üretim paketi boyutu. Kalan metrikler ilgili fazlarda eklenir; Faz 49 genişletir.
+
+- **🆕 FAZ 5'TEN DEVREDEN İKİ BORÇ — BORÇ-009 ve BORÇ-010** *(Faz 5.9'da eklendi)*
+  İkisi de 5.6'da açıldı, ödeme fazı olarak **Faz 6** yazıldı ve kütükte öyle
+  duruyor — ama 5.9'a kadar **bu fazın kapsamında hiç görünmüyorlardı**
+  (ölçüldü: `BORÇ-009`/`BORÇ-010` ROADMAP'te yalnızca Faz 5 bölümünde geçiyordu).
+  4.11'in BORÇ-003/005 için bulduğu şeyin **birebir aynısı, bir faz sonra**:
+  *"kapsam taşıması kütüğe kayıtla bitmez, hedef fazın kapsamında görünmeli."*
+  - **BORÇ-009** — K5 kapılarının **ortak kör noktası**: modül düzeyi metin
+    sabitleri (`const TAB_LABELS = { logs: 'Kayıtlar' }`) JSX'e render edilir,
+    kullanıcı görür, ne `local/no-bare-jsx-text` ne `i18n:check` yakalar.
+    ⚠️ **BU FAZ ONU ÖDEYEBİLİR ÇÜNKÜ İLK GERÇEK VAKALARI BURADA DOĞACAK:**
+    kapsamdaki **on alan-özel bileşen** (`AttributeBadge`, `FormIndicator`,
+    `MoraleIcon`, `PositionMap`…) ve **18 temel bileşen** etiket taşıyor.
+    5.6'da ölçülmüştü: bugün heuristik **3 yanlış pozitif, 0 gerçek pozitif**
+    veriyor — ölçülecek vaka yoktu. Bu fazda olacak. **İlk iş yeniden ölçmek**;
+    heuristik hâlâ 0 gerçek pozitif veriyorsa çözüm bir kapı değil bir
+    **bileşen inceleme disiplinidir** ve öyle yazılır (SAPMA-026).
+  - **BORÇ-010** — `local/no-hardcoded-path` kuralının **kablolama kanaryası
+    yok**: kural `eslint.config.js`ten sessizce kalksa `pnpm lint` **0 der**.
+    ⚠️ **BU FAZ ONU ÖDEYEBİLİR:** iş, 5.5'in `no-bare-jsx-text.test.mjs`teki
+    kanaryasının **birebir kopyası** (var olan bir dosyanın kimliği altında
+    `lintText` + `calculateConfigForFile`), ve bu faz `apps/web`e yüzlerce
+    dosya getirdiği için `basePath()` disiplini tam burada sınanacak.
+- **🆕 `docs/glossary.md` BU FAZIN OKUMA LİSTESİNDE** *(Faz 5.9'da eklendi)*
+  Bileşen etiketleri Türkçe yazılacak ve sözlük **bağlayıcı sözleşme**:
+  `AttributeBadge` bir niteliği gösterirken kullanacağı Türkçe karşılık orada
+  (56 nitelik + 77 çekirdek terim). ⚠️ `CLAUDE.md` belge haritası bu fazı zaten
+  okuyucu olarak sayıyordu, ama **fazın kendi kapsamında geçmiyordu** — ve bir
+  oturum faz başında ROADMAP'in bu bölümünü okuyor. Çelişkide **`CLAUDE.md`
+  §14 kazanır**, sözlük düzeltilir.
 
 **Kabul kriterleri:**
 - [ ] Storybook'ta 30+ bileşen, her biri koyu/açık temada çalışıyor
