@@ -3248,12 +3248,92 @@ docs/glossary.md
       > değişmedi. `tools/eslint-local-rules/` `coverage.include` deseninin
       > (`tools/*/src/**`) dışında (`.mjs`, `src/` yok) — 5.5 ve 5.6 aynısını
       > ölçmüştü.
-- [ ] **6.2** **Tasarım token'ları** — `spec/05` §7.1 (renk, koyu+açık),
+- [x] **6.2** **Tasarım token'ları** — `spec/05` §7.1 (renk, koyu+açık),
       §7.2 (nitelik ısı skalası, 8 kademe), §7.3 (tipografi ölçeği),
       §7.4 (boşluk/geometri/z-index/animasyon) tek kaynakta. `ensureContrast()`
-      (kulüp rengi 4.5:1'in altına düşerse açıklaştırır) + renk körlüğü 3 tipi.
+      (kulüp rengi 4.5:1'in altına düşerse açıklaştırır).
       ⚠️ **Kontrast oranları saf aritmetikle iddia edilir** (WCAG AA) — kriter 5
       ve 7'nin bugünkü araçla **ölçülebilen** yarısı burada kapanır.
+      ⚠️ **«renk körlüğü 3 tipi» BU SATIRDAN ÇIKARILDI (6.2'de, SAPMA-043):**
+      `spec/05` §7.2'nin mekanizması bir renk dönüşümü **değil**, renge bağımlı
+      olmayan **ağırlık + desen** — ve onun uygulanması **6.6**'nın işi.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.2 (2026-09-04)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > `packages/ui` ilk içeriğini aldı: beş token modülü + altı test dosyası,
+      > **96 test**. Paket bugün **saf TypeScript** — JSX yok, React yok,
+      > Tailwind bağı yok; `tsconfig`e `jsx` **eklenmedi** ve `types: []`
+      > **duruyor** (ikisi de 6.3'ün işi, K12).
+      >
+      > **① KRİTER ↔ SPEC UYUŞMAZLIĞI BULUNDU VE KRİTER HİZALANDI (SAPMA-043).**
+      > Ayrıntı kabul kriterinin altındaki blokta. Ölçüm kararı verdi: komşu
+      > bant kontrastları **1,04 – 1,71** — parlaklık tek başına ayırmıyor.
+      >
+      > **② AÇIK TEMA SPEC'TE EKSİK — 20 token'ın yalnızca 8'i tanımlı.**
+      > Ölçüldü: §7.1'in açık tema bloğu `--bg-active` · `--bg-input` ·
+      > `--border-subtle` · `--border-strong` · `--text-inverse` · `--accent` ·
+      > `--accent-hover` · `--accent-muted` · `--danger` · `--warning` ·
+      > `--success` · `--info` için **hiçbir değer vermiyor**. Değerler
+      > **uydurulmadı** (SAPMA-026); eksiklik bir **liste** olarak yaşıyor ve
+      > kapsayıcılık testiyle korunuyor (geçersiz kılınan **8** + tanımsız
+      > **12** = koyu temanın **20** anahtarı; boşluk yok, çakışma yok).
+      > ⚠️ **Sessiz devralma reddedildi ve gerekçesi ölçülebilir:** `--bg-input`
+      > koyu temada `#0F131B`; devralınsaydı açık arayüzde siyaha yakın bir
+      > giriş alanı doğardı. **Kim dolduracak: 6.3.**
+      >
+      > **③ DOĞRUSALLAŞTIRMA EŞİĞİ BİR TERCİH DEĞİL, BİR KANIT ÇIKTI.**
+      > `0.03928` ve `0.04045` 8 bitlik **hiçbir** renk için farklı sonuç
+      > veremiyor: `0.03928 × 255 = 10,016…`, `0.04045 × 255 = 10,315…` ve
+      > aralarında **tam sayı yok**. Test bunu bir örnekte değil **256 kanal
+      > değerinin hepsinde** iddia ediyor, ayrıca bir **karşı kontrolle**
+      > (uydurma bir eşik fark üretiyor mu) eşiğin gerçekten bir dal seçtiği
+      > gösteriliyor. Seçilen: **0.04045**.
+      >
+      > **④ ROZET METNİ İÇİN TEK RENK YETMİYOR — ve bu bir HESAP.** Sekiz bandın
+      > hiçbiri tek bir metin rengiyle AA sağlamıyor; `--text-primary` koyu
+      > bantlarda, `--text-inverse` açık bantlarda kazanıyor.
+      > `pickAccessibleForeground()` seçimi hesapla yapıyor ve **sekiz bandın
+      > sekizi de** AA sağlıyor (4,56 – 8,17). **Karşı kontrol yazılı:** tek
+      > aday bırakılınca kapsama düşüyor — yani iki aday gereksiz değil.
+      >
+      > **⑤ İKİ ÖLÇÜLMÜŞ KUSUR — gevşetilmedi, İDDİA EDİLDİ.**
+      > `--text-muted` **her iki temada da** AA'nın altında (koyu 3,27–3,83 ·
+      > açık 2,86–3,07); 3:1'in üstünde kalıyor. Ve koyu temanın `--accent`i
+      > beyaz zeminde **2,31** — ②'nin eksikliğinin neden bir eksiklik olduğunun
+      > ölçümü. İkisi de teste **beklenen sonuç** olarak yazıldı; 6.8 ve Faz 49
+      > onları **devralıyor**, keşfetmiyor.
+      >
+      > **⑥ `ensureContrast()` SPEC'İ GENİŞLETMİYOR, SINIRINI BEYAN EDİYOR.**
+      > Spec'in fiili *"açıklaştırmak"*; açık zeminde beyaza yaklaşmak oranı
+      > **düşürür** ve hedef sağlanamaz. Koyulaştırma **eklenmedi** (yazılmamış
+      > bir karar olurdu); fonksiyon `reachedTarget: false` dönüyor —
+      > *"sessiz varsayılan yasak, davranış SEÇİLİR ve İDDİA EDİLİR."*
+      >
+      > **⑦ D5 — BUILD EDİLDİ VE ÇALIŞTIRILDI.** Soğuk build (`Cached: 0`)
+      > sonrası `packages/ui/dist/index.js` **doğrudan import edilip
+      > koşturuldu**: 8 bant · 20 koyu token · 12 tanımsız · siyah-beyaz **21** ·
+      > `ensureContrast` koyu zeminde **%41** açıklaştırıp 4,63'e çıkıyor, açık
+      > zeminde `reachedTarget: false` · aralık dışı değer ve alfa token
+      > **derlenmiş kodda da** fırlatıyor. Test dosyası `dist`e **sızmadı** (0).
+      >
+      > **⑧ MUTASYON 5/5**, her birinin yerine oturduğu `grep -c` ile ayrıca
+      > ölçüldü, geri almalar **dosya yedeğinden + md5**:
+      > ① bir hex (`#7A2E38`→`#7A2E39`) → **2** · ② bir bant sınırı
+      > (`18-20`→`18-19`, **uzunluk 8 kaldı**) → **5**, kapsayıcılık yakaladı ·
+      > ③ parlaklık katsayısı (`0.2126`→`0.3126`) → **5** · ④ tanımsız listeden
+      > bir ad düştü → **2** · ⑤ `--space-10: 40`→`44` (**envanter uzunluğu
+      > değişmedi**) → **2**, desen testi yakaladı.
+      >
+      > **⑨ KAPSAM PAYDASI İLK KEZ BÜYÜDÜ — ve ORAN YÜKSELDİ.**
+      > `364/451 = %80,70` → **`378/465 = %81,29`**. Payda **+14**, pay
+      > **+14**: token'lar veri + saf fonksiyon, yani tam kapsanabilir.
+      > Marj `378/0,70 = 540` → boşluk **69 → 75**. Eşik düşürülmedi, dosya
+      > dışlanmadı, import testi yazılmadı. ℹ️ Tek kapsanmayan satır
+      > `attribute-scale.ts`teki **erişilemez** savunma dalı — `.find()` `T |
+      > undefined` döndürdüğü için tip sistemi onu istiyor, ve kapsayıcılık
+      > testi erişilemezliği zaten iddia ediyor.
 - [ ] **6.3** **Tema + Tailwind 4 + fontlar.** Koyu (varsayılan) / Açık / Sistem
       + kulüp rengine göre dinamik vurgu · Inter + JetBrains Mono (`latin-ext`
       dahil, Türkçe alt küme) · font boyutu %90/100/115/130 · `prefers-reduced-motion`
@@ -3325,7 +3405,19 @@ docs/glossary.md
 - [ ] **Storybook'ta, bileşen envanterindeki HER bileşenin hikayesi var** — ve eşleşme **çift yönlü**: envanterdeki her bileşenin hikayesi var **ve** hikayesi olan her bileşen envanterde. Envanter **tek yerde** yaşar, sayı prose'da değil ayrıştıran bir testte *(SAPMA-041)*
 - [ ] `pnpm perf:budget` çalışıyor ve **bütçe aşımında kırıyor** (negatif testle kanıtlanır) *(G-01)*
 - [ ] DataTable 375px'te **kart moduna geçme KARARINI** doğru veriyor — genişlik → mod fonksiyonu, saf birim testi *(render doğrulaması Faz 18'e taşındı)*
-- [ ] Nitelik ısı skalasının **8 kademesi**, renk körlüğünün **üç tipinde** WCAG AA kontrast aritmetiğiyle ayırt edilebiliyor *(ekranda ayırt edilebilirlik Faz 49'a taşındı)*
+- [ ] Nitelik ısı skalasının **8 kademesindeki DEĞER** okunabiliyor — her bandın üzerindeki sayı WCAG AA (4.5:1) kontrast aritmetiğiyle iddia ediliyor, **ve yedekli kodlama (ağırlık + desen) uygulanmış** *(ekranda ayırt edilebilirlik Faz 49'a taşındı)* *(SAPMA-043)*
+  > ⚠️ **KRİTER 6.2'DE SPEC'E HİZALANDI — eski metni spec'in ÇÖZMEDİĞİ bir şeyi istiyordu.**
+  > 6.1'in yazdığı metin *"renk körlüğünün **üç tipinde** … ayırt edilebiliyor"* diyordu ve bu
+  > bir **renk dönüşümü** (CVD simülasyon matrisi) ima ediyordu. `spec/05` §7.2 ise renkleri
+  > **hiç değiştirmiyor**: *"Renk körlüğü modunda ek olarak **sayı kalınlaşır** ve **arka plan
+  > deseni** eklenir."* Yani mekanizma renge bağımlı olmayan **ikinci ve üçüncü kanal**.
+  > **Ve ölçüm spec'i doğruladı, tercih olmaktan çıkardı:** komşu bantların birbirine karşı
+  > kontrastı **1,04 – 1,71** (6.2'de sekiz bant üzerinde ölçüldü) — **tam renkli görüşte
+  > bile** parlaklık komşu bantları ayırmıyor. Yedekli kodlama bir süs değil, mekanizmanın
+  > kendisi. Kriter **spec'e hizalandı**, spec genişletilmedi (otorite #1).
+  > **6.2'nin payı:** ölçek + kontrast aritmetiği (**kapandı**). **6.6'nın payı:** ağırlık +
+  > desen (`AttributeBadge`). Kriter **[ ] kalıyor** — bir kriteri kısmen sağlamak
+  > sağlamamaktır.
 - [ ] Tüm etkileşimli bileşenler sadece klavyeyle kullanılabiliyor — ⚠️ jsdom'da `scrollIntoView`/`hasPointerCapture` **yok**; hangi doldurmanın **neyi sahtelediği** yazılır
 - [ ] **axe → 0 ihlal, VE atlanan kurallar adıyla listeleniyor** — ⚠️ `color-contrast` jsdom'da **koşmuyor** (`var()` çözülmüyor, `getBoundingClientRect` 0×0); *"0 ihlal"* neyin denetlenmediğini söylemeden yazılmaz *(SAPMA-024)*
 
