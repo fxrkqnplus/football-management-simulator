@@ -1,0 +1,20 @@
+{
+  "boundary": {
+    "root": "Uygulama beklenmedik bir hatayla karşılaştı",
+    "screen": "Bu ekran yüklenemedi",
+    "component": "Bu alan gösterilemedi",
+    "debugPanel": "Hata ayıklama paneli çöktü",
+    "body": "Bu bölüm yüklenemedi. Sorunu bize bildirebilirsiniz.",
+    "codeLabel": "Hata kodu:",
+    "codeUnknown": "bilinmiyor",
+    "retry": "Tekrar dene",
+    "reported": "Hata otomatik olarak bildirildi.",
+    "notReported": "Hata bildirimi yapılamadı."
+  },
+  "status": {
+    "400": "Gönderilen bilgi geçersiz. Lütfen alanları kontrol edip tekrar deneyin.",
+    "403": "Bu işlem için yetkiniz yok.",
+    "404": "İstenen kayıt bulunamadı.",
+    "default": "Beklenmeyen bir hata oluştu. Ekip bilgilendirildi."
+  }
+}

@@ -4,11 +4,14 @@ import {
   configureAssertions,
   configureBasePath,
 } from '@fms/shared';
+import type { i18n as I18nInstance } from 'i18next';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { I18nextProvider } from 'react-i18next';
 import { BrowserRouter } from 'react-router';
 
 import { App } from './App.js';
+import { createI18n } from './app/i18n.js';
 import { DebugPanel } from './components/dev/DebugPanel.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { currentCorrelationId } from './lib/correlation-context.js';
@@ -97,18 +100,67 @@ if (container === null) {
  */
 export const root = createRoot(container);
 
-root.render(
-  <StrictMode>
-    {/* basename tek kaynaktan; elle '/fms' yazılmaz (K6). */}
-    {/* KÖK sınır — buraya kadar tırmanan hiçbir şey beyaz ekrana dönüşmesin.
-        Üç katmanın en dışı; alttakiler yakalayamazsa son durak burası. */}
-    <ErrorBoundary name="kok" title="Uygulama beklenmedik bir hatayla karşılaştı">
-      <BrowserRouter basename={basePathConfig().routerBasename}>
-        <App />
-      </BrowserRouter>
-    </ErrorBoundary>
+/**
+ * ⚠️ i18n BİR ÖNYÜKLEME ÖN KOŞULU — `configureBasePath` ile aynı sınıfta.
+ *
+ * **Sorulan soru (5.4):** hata arayüzü `t()`ye bağlanırsa, i18n'in kendisi
+ * çöktüğünde ne olur? Kök `ErrorBoundary` onu yakalar ve sonra **az önce çöken
+ * sisteme** metin sormaya çalışır — kullanıcı boş ekran ya da ham anahtar görür.
+ * *"Bir hata arayüzü, bozulmuş olabilecek sisteme bağlanamaz."*
+ *
+ * **Çözüm:** i18n `root.render()`tan **ÖNCE** kurulur ve başarısı **açıkça
+ * denetlenir**. Başarılıysa React monte edilir ve her `t()` güvenlidir;
+ * başarısızsa React **hiç monte edilmez** — aşağıdaki statik metin basılır.
+ *
+ * ⚠️ **`try/catch` YETMEZ VE BU ÖLÇÜLDÜ:** i18next bozuk bir yapılandırmada
+ * **fırlatmıyor**, sessizce `isInitialized`ı `undefined` bırakıyor. Yani
+ * başarısızlık **falsy bir değer** olarak geliyor — *"falsy bir değer,
+ * «özellik yok» anlamına da gelebilir; karşı kontrol zorunlu."*
+ * Bu yüzden hem `try/catch` **hem de** `=== true` kontrolü var.
+ */
+const I18N_BOOT_FAILURE_MESSAGE =
+  'Uygulama başlatılamadı: dil dosyaları yüklenemedi. Lütfen sayfayı yenileyin.';
 
-    {/* ⚠️ HATA AYIKLAMA PANELİ — KÖK SINIRIN İÇİNDE DEĞİL, KARDEŞİ (2.8).
+/**
+ * ⚠️ K5'İN TEK BİLİNÇLİ MUAFİYETİ — ve gerekçesi yapısal, kolaylık değil.
+ *
+ * Yukarıdaki dize `t()` üzerinden **gelemez**, çünkü onu basmamızın sebebi
+ * `t()`nin çalışmamasıdır. Bir çeviri katmanının çöküş mesajı o katmandan
+ * alınamaz. Muafiyet **tek bir dize**, adlandırılmış bir sabit, ve React'in
+ * dışında — 5.5'in JSX kuralı buraya zaten bakmayacak, ama muafiyet
+ * **sessiz değil yazılı**.
+ */
+function bootI18n(): I18nInstance | undefined {
+  try {
+    const instance = createI18n();
+    return instance.isInitialized ? instance : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const i18n = bootI18n();
+
+if (i18n === undefined) {
+  assertionLogger.error({ code: 'i18n.bootFailed' }, 'i18n başlatılamadı — React monte edilmiyor');
+  container.textContent = I18N_BOOT_FAILURE_MESSAGE;
+}
+
+if (i18n !== undefined) {
+  root.render(
+    <StrictMode>
+      {/* basename tek kaynaktan; elle '/fms' yazılmaz (K6). */}
+      {/* KÖK sınır — buraya kadar tırmanan hiçbir şey beyaz ekrana dönüşmesin.
+        Üç katmanın en dışı; alttakiler yakalayamazsa son durak burası.
+        ⚠️ `t()` burada GÜVENLİ: i18n yukarıda doğrulandı. */}
+      <I18nextProvider i18n={i18n}>
+        <ErrorBoundary name="kok" titleKey="boundary.root">
+          <BrowserRouter basename={basePathConfig().routerBasename}>
+            <App />
+          </BrowserRouter>
+        </ErrorBoundary>
+
+        {/* ⚠️ HATA AYIKLAMA PANELİ — KÖK SINIRIN İÇİNDE DEĞİL, KARDEŞİ (2.8).
         İçeride olsaydı panelin çökmesi kök sınırı tetikler ve bir hata ayıklama
         aracı bütün uygulamayı yedek arayüze düşürürdü — aracın amacının tam
         tersi. Kendi sınırı var; panel çökse bile uygulama ayakta kalıyor.
@@ -117,10 +169,12 @@ root.render(
         importu kullanılmaz hale geliyor ve ağaç sarsma paneli paketten
         tamamen siliyor. Kanıtı grep DEĞİL, panelin içindeki dize nöbetçisi
         (`__FMS_DEV_PANEL__`) — Karar 3, günlük #53. */}
-    {__FMS_DEV__ ? (
-      <ErrorBoundary name="hata-ayiklama-paneli" title="Hata ayıklama paneli çöktü">
-        <DebugPanel />
-      </ErrorBoundary>
-    ) : null}
-  </StrictMode>,
-);
+        {__FMS_DEV__ ? (
+          <ErrorBoundary name="hata-ayiklama-paneli" titleKey="boundary.debugPanel">
+            <DebugPanel />
+          </ErrorBoundary>
+        ) : null}
+      </I18nextProvider>
+    </StrictMode>,
+  );
+}

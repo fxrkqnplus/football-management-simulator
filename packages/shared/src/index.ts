@@ -91,6 +91,31 @@ export {
   DEFAULT_THROTTLE_WINDOW_MS,
   MAX_TRACKED_FINGERPRINTS,
 } from './event-throttle.js';
+export type {
+  EndingKind,
+  FormatDateOptions,
+  FormatMoneyOptions,
+  GrammaticalCase,
+  NameEnding,
+  PronunciationOverride,
+  VowelHarmonyClass,
+} from './i18n/index.js';
+export {
+  COMPACT_SUFFIXES,
+  DEFAULT_CURRENCY,
+  DEFAULT_TIME_ZONE,
+  formatDate,
+  formatMoneyCompact,
+  formatNumber,
+  GRAMMATICAL_CASES,
+  lowerCompactSuffix,
+  PRONUNCIATION_OVERRIDES,
+  resolveEnding,
+  suffixFor,
+  UI_LOCALE,
+  VOWEL_HARMONY_CLASSES,
+  withSuffix,
+} from './i18n/index.js';
 export type { LogContextEnvelope, LogContextEnvelopeValue } from './log-context.js';
 export {
   LOG_CONTEXT_ENVELOPE_VERSION,

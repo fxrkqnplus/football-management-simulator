@@ -2146,8 +2146,22 @@ var: bölünme tahminle değil **ölçümle** kararlaştırılır. Çizgi hazır
 - Namespace yapısı: `common`, `squad`, `tactics`, `transfer`, `match`, `finance`, `dialogue`, `news`, `tutorial`, `errors`
 - Türkçe çoğullama, sayı/tarih/para formatı (`Intl` API)
 - **Türkçe ek motoru:** dinamik cümlelerde doğru ek seçimi (`{{club}}'{{suffix}}` → "Galatasaray'ın", "Fenerbahçe'nin") — ünlü uyumu + son harf analizi
-- ESLint kuralı: JSX içinde çıplak Türkçe metin **yasak** (otomatik yakalar)
-- `tools/i18n-check.ts`: eksik anahtar, kullanılmayan anahtar, boş çeviri raporu → CI'da çalışır
+- ESLint kuralı: JSX içinde çıplak metin **yasak** (otomatik yakalar).
+  ⚠️ **CÜMLE 5.5'TE DÜZELTİLDİ — eskiden *"çıplak **Türkçe** metin"* yazıyordu ve
+  o sıfat bir ÖLÇÜMLE çürütüldü** (SAPMA-039). 5.4 saydı: `ErrorBoundary.tsx`teki
+  `Tekrar dene` gerçek bir K5 ihlali ve **hiçbir Türkçe'ye özgü karakter
+  taşımıyor**; `App.tsx`in `base` / `api prefix` etiketleri ise doğrudan
+  **İngilizce** ve yine de ihlal. Yani kural **dile bakamaz** — yazılabilen şey
+  *"JSX'te çıplak metin"*. Kuralın adı da bu yüzden `no-hardcoded-turkish`
+  değil **`no-bare-jsx-text`**.
+- `tools/i18n-check/`: eksik anahtar, kullanılmayan anahtar, boş çeviri raporu → CI'da çalışır.
+  Komut **`pnpm i18n:check`** (`docs/spec/09` §11.5 ve bu belgenin §EK'i aynı adı veriyor).
+  ⚠️ **Yol 5.0'da düzeltildi: `tools/i18n-check.ts` (dosya) → `tools/i18n-check/` (dizin).**
+  Çelişen üç kaynak ölçüldü — `CLAUDE.md`:316 **dizin**, bu belge iki satırda **dosya**,
+  `spec/09`:506 yalnızca komut adını veriyor. Otorite sırası (`CLAUDE.md` #1) tercihi
+  ortadan kaldırıyor: ROADMAP outlier'dı. Desen de aynı yöne bakıyor — `tools/arch-check/`
+  ve `tools/bash-text-guard/` dizin, ve dizin yanına `index.test.mjs` konabilmesini
+  sağlıyor (K10). Kayıt: **SAPMA-037** (5.0'da açılır).
 - **Terim Sözlüğü** (`docs/glossary.md`): TR/EN karşılıklar + kod içi isimlendirme standardı (kod İngilizce, arayüz Türkçe)
 - **🆕 ÇEVİRİ KAYNAĞI BİR ARAMA KARARIDIR — `competitions.name_key` / `rivalries.name_key`** *(G-13, `docs/SPEC-COVERAGE-GAPS.md`; Faz 4.11'de eklendi)*
   ROADMAP Faz 17 *"lig + turnuva"* dahil **beş varlık türünde** trigram araması
@@ -2175,24 +2189,776 @@ var: bölünme tahminle değil **ölçümle** kararlaştırılır. Çizgi hazır
     içindeki `MESSAGE_BY_KIND` tablosu. İş *"fırlatma yerlerini gezmek"* değil:
     sözleşmenin aslı `code` + `context` ve ikisi de gövdede dönüyor, yani tablo
     silinir ve istemci `t('errors:' + code, context)` ile üretir.
+- **🆕 `pnpm gaps:check` CI'A BAĞLANIR** *(Faz 5.0'da ölçüldü)*
+  Kapı 4.11'de yazıldı ve `SESSION-TEMPLATE` adım 21'e kondu, ama **hiçbir
+  workflow'da yok**: `.github/workflows/` altında `gaps` için **0 eşleşme**
+  (ölçüldü). `ci.yml`in kalite kapıları `typecheck · lint · format:check ·
+  test:coverage · build · arch:check`; `gaps:check` **yalnızca biri hatırlarsa**
+  koşuyor. ⚠️ **Bu, kapının kendi gerekçesinin başına gelmesi:** 4.11 onu
+  *"kontrol koşan bir adımdır, bir temenni değil (SAPMA-033)"* diye yazmıştı —
+  kural yazıldı, ateşleyen mekanizma kurulmadı.
+  **Neden Faz 5:** 5.6 kriter 2 için `ci.yml`e zaten dokunuyor (`i18n:check`
+  adımı); bedel bir satır, dosya açık. Bir sonraki faza bırakmak, bir tur daha
+  *"kimse hatırlamazsa koşmayan"* bir kapı demek. **Kanıt bir negatif testtir:**
+  adım kaldırılınca CI gerçekten kırılıyor mu — kriter 2'nin ölçümünün aynısı.
+  ℹ️ Bir kabul kriteri **eklenmedi**; fazın yedi kriteri sabit kalıyor. Kontrol
+  eden adım aşağıdaki alt görev listesinin **5.6 satırıdır** ve `[ ]` taşıyor.
 
 **Ana dosyalar:**
 ```
-packages/shared/src/i18n/index.ts
+packages/shared/src/i18n/index.ts        # SAF barrel — ek motoru + Intl. i18next BURAYA GİRMEZ.
 packages/shared/src/i18n/turkish-suffix.ts
-apps/web/src/locales/tr/*.json
-tools/i18n-check.ts
+packages/shared/src/i18n/format.ts       # kriter 4'ün evi (tarih / para / sayı)
+apps/web/src/app/i18n.ts                 # i18next örneği — apps/web tarafı
+apps/web/src/locales/tr/*.json           # on namespace
+tools/i18n-check/                        # + index.test.mjs (K10)
+tools/eslint-local-rules/no-bare-jsx-text.js       # + .test.mjs — kriter 1'in evi (ad 5.5'te düzeltildi, SAPMA-039)
 docs/glossary.md
 ```
 
+> ⚠️ **`packages/shared/src/i18n/index.ts` SAF KALIR — bu bir karar, bir tercih değil.**
+> `apps/api`, `apps/worker` ve `packages/engine` `@fms/shared`ı import ediyor.
+> i18next'i oraya koymak onu üç katmana birden sokardı ve **SAPMA-012'de ölçüldü**
+> ki `sideEffects: false` ile `types: []` bir alt yol sızıntısını **engellemiyor**
+> (paket 229.320 → 299.370 bayt, `JWT_SECRET` tarayıcı paketinde) — sızıntıyı
+> yalnızca `arch:check` yakalamıştı ve onun i18next için bir kuralı **yok**.
+> `CLAUDE.md` §2.4: `packages/shared → (hiçbir şey)`. Ek motoru ve `Intl`
+> biçimlendiricileri saftır (`Intl` yerleşik); i18next örneği `apps/web`in işi.
+
 **Kabul kriterleri:**
-- [ ] Sabit kodlanmış metin eklenince ESLint hata veriyor
-- [ ] `i18n-check` eksik anahtarları buluyor, CI'da kırıyor
-- [ ] Türkçe ek motoru 50 test vakasının tamamını geçiyor (Galatasaray'ın, Beşiktaş'ın, Trabzonspor'un, Roma'nın, Liverpool'un…)
-- [ ] Tarih "23 Ağustos 2026", para "€1,2 mn" formatında
-- [ ] Sözlükte en az 120 terim tanımlı
-- [ ] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)*
-- [ ] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — `ErrorBoundary` ve `MESSAGE_BY_KIND` metinleri `t()` üzerinden geliyor; ödendiği kütükte işaretli *(K5)*
+- [x] **Sabit kodlanmış metin eklenince ESLint hata veriyor** — **5.5**; kriter bir
+      **DAVRANIŞ** iddiası, bir yapılandırma satırı değil, ve öyle kanıtlandı.
+      `local/no-bare-jsx-text` `error` seviyesinde açık; `pnpm lint` bağlandıktan
+      sonra (önbellek silinmiş hâlde) **0**. ⚠️ **`RuleTester` YETMEDİ ve bu
+      bilinçli:** o kuralı **izole** koşturur, *"`pnpm lint` bunu gerçekten
+      koşturuyor mu"* bambaşka bir iddiadır (D3 — 2.3b'de ölçüldü: bir kuralın
+      kablolaması koparıldığında 43 test birden geçmişti). **Kanarya GERÇEK
+      DEPODA yaşıyor:** ESLint Node API'si deponun **kendi `eslint.config.js`ini**
+      çözüyor ve **var olan gerçek bir kaynak dosyanın kimliği** altında lint
+      ediyor — kural sökülürse, `warn`/`off` yapılırsa, yol `ignores`a girerse ya
+      da muafiyet genişlerse kanarya **susar ve bir test kırılır**.
+      **Mutasyon 4/4** (seviye `off` → 3 · muafiyet `**/*.tsx` → 3 · kural
+      körletildi → 12 · kayıt kaldırıldı → 3).
+      ⚠️ **Kuralın GÖRMEDİĞİ de yazıldı** (modül düzeyi metin sabitleri) ve dar
+      bir heuristik **denenmedi çünkü ölçüm onu çürüttü**: bugün `DebugPanel`in
+      dört dize haritasının **dördüne birden** öterdi ve biri i18n anahtar
+      tablosu, yani sorunun **çözümü**. Boşluğun sahibi **5.6**
+- [x] **`i18n-check` eksik anahtarları buluyor, CI'da kırıyor** — **5.6**; kriterin
+      **İKİ yarısı da** ayrı ayrı kanıtlandı (yarısı sağlanan bir kriter
+      sağlanmamıştır). ① **"Buluyor":** sahte bir depoda anahtar silinince
+      `missing` ötüyor, ve `pnpm i18n:check` **alt süreç olarak** çıkış kodu
+      **1** veriyor — karşı kontrolüyle birlikte (sağlam depoda **0**; hep 1
+      dönen bozuk bir CLI de tek yönü geçerdi). ② **"CI'da kırıyor":** adım
+      `ci.yml`de **var** ve **maskelenmemiş** (`continue-on-error` · `if:` ·
+      `|| true` yokluğu ayrı bir testle iddia ediliyor) — çünkü *"bir kapının
+      VAR olması onun KOŞTUĞUNU göstermez"* (5.5'in dersi) ve maskelenmiş bir
+      adım bir kapı değil bir temennidir.
+      ⚠️ **Kapsam cümlesi kriterin üstünde ve ÜÇÜ DE yapıldı:** eksik anahtar ·
+      kullanılmayan anahtar · boş çeviri — artı ROADMAP'in 5.6'ya yazdığı
+      **görünmez karakter** taraması (`locales/**` içinde rapor eder, kırmaz).
+      🆕 **Aynı commit'te `pnpm gaps:check` de CI'a bağlandı** — 4.11'den beri
+      hiçbir workflow'da yoktu, yani kapının kendi gerekçesi (*"kontrol koşan
+      bir adımdır, bir temenni değil"*) kendi başına gelmişti.
+      **Mutasyon 7/7**, her birinin yerine oturduğu ayrıca doğrulandı
+- [x] **Türkçe ek motoru 50 test vakasının tamamını geçiyor** — **5.1**; ölçüm **55 / 55** (eşik 50), kriterin beş örneğinin beşi de listede ve `criterion` etiketiyle ayrıca iddia ediliyor. ⚠️ **Uzunluk tek başına kör bir kontroldür** (55 tane `Roma` yazılsa da geçerdi), bu yüzden **kapsam ayrıca ve tam** iddia edildi: dört ünlü uyumu sınıfının **dördü**, sekiz `sınıf × bitiş` bileşiminin **sekizi**, ve dağılım **tek tek sabit** (bir satır eklemek testi kırar). ⚠️ Kriterin beş örneği kuralın tamamı **değildi** (F3): beşi yalnızca iki ünlü sınıfını temsil ediyordu — ince düz (`e`,`i`) ve ince yuvarlak (`ö`,`ü`) örneklerde **hiç yoktu**, liste onları kapattı. **Mutasyon 3/3**: motor tablosu · harf tuzağı koruması · vaka beklentisi ayrı ayrı bozuldu, üçü de kırıldı — ve etiket çapraz kontrolü mistagging'i **bağımsız** yakaladı. **D5 22/22** derlenmiş `dist` + düz `node` + paket barrel'ı üzerinden
+- [x] **Tarih "23 Ağustos 2026", para "€1,2 mn" formatında** — **5.2**; kriterin **İKİ yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). Tarih `Intl`den doğrudan geliyor; para **gelmiyor** ve son eki biz küçültüyoruz (`Mn` → `mn`), çünkü ölçüldü: `compactDisplay: 'long'` `style: 'currency'` ile çalışmıyor. ⚠️ **Ayırıcı bölünmez boşluk `U+00A0`** ve bu testte **kod noktalarıyla** iddia ediliyor — normal boşlukla yazılmış bir sözleşme sessizce yanlış olurdu. ⚠️ **Zaman dilimi varsayılmıyor:** `DEFAULT_TIME_ZONE = 'UTC'`, ve sınır vakası (`22:30Z` → UTC 23, İstanbul 24 Ağustos) koşan bir testle sabitlendi. **Üç katman ayrı iddia edildi** (ICU'nun parçaları · bizim saf son işlemimiz · kriterin tam dizesi), ölçüm ortamı yazılı (**ICU 78.3 / CLDR 48.0**). **Mutasyon 3/3 · D5 22/22**. ⚠️ **Tarayıcı ICU'su doğrulanmadı** — jsdom kendi ICU'sunu getirmiyor (ölçüldü); doğrulama **Faz 17'nin kabul kriterine** yazıldı
+- [x] **Sözlükte en az 120 terim tanımlı** — **5.7**; `docs/glossary.md`, ölçüm
+      **133 terim** ve sayı **prose'da DEĞİL**, dosyayı ayrıştıran bir testte
+      (`tools/glossary-check/`). Belgeye *"133 terim"* yazılsaydı bir satır
+      silindiğinde cümle sessizce yalan söylerdi — `world.md`nin prose'unun
+      dört yerde bayatlaması bunun ödenmiş bedeli.
+      ⚠️ **UZUNLUK TEK BAŞINA KÖR** (5.1'in dersi): 133 aynı satır da eşiği
+      geçerdi. Bu yüzden **dağılım kaynak bazında ayrı ayrı sabit**
+      (çekirdek 77 · teknik 14 · zihinsel 14 · fiziksel 8 · kaleci 11 ·
+      gizli 9) ve mutasyonla kanıtlandı: bir terim bölüm değiştirince
+      **toplam korundu, yalnızca dağılım testi ateşledi**.
+      ⚠️ **`CLAUDE.md` §14 eşleşmesi ANAHTAR *ve* DEĞER iddia ediyor** —
+      yalnızca terimleri karşılaştıran bir test, aynı İngilizcenin farklı bir
+      Türkçeyle durmasına izin verirdi; mutasyonla kanıtlandı (tek bir
+      karşılık değiştirildi, terim aynı kaldı, test kırıldı).
+      🆕 **`77 + 57 = 134` BİR EKSİK ÇIKTI:** iki envanterin ayrık olduğu
+      hiç ölçülmemişti; kesişim **1** (`injuryProneness` ↔ `Injury Proneness`)
+      → **133**. Terim bir kez yaşıyor, dedupe **adıyla** iddia ediliyor.
+      → **SAPMA-040**. **Mutasyon 5/5** · `i18n:check` **305 dosya, temiz**
+- [x] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)* — **5.8**; kriterin **İKİ yarısı da** (yarısı sağlanan bir kriter sağlanmamıştır).
+      ① **KARAR:** çeviri kaynağı **tek yerde** yaşar — `apps/web/src/locales/tr/*.json`;
+      veritabanı **anahtarı** taşır, görünen **metni taşımaz**. Bu bir tercih değil
+      bugünkü mimarinin adının konması: ölçüldü, adlar **yalnızca** `common.json`da
+      (11 anahtar) ve `docs/glossary.md` bile taşımıyor (özel ad terim değildir).
+      ② **ÜÇÜ DE MÜMKÜN, İKİSİ ŞARTLI:** ① istemci tarafı arama **şartsız** ·
+      ② arama tablosu **ancak metin TÜRETİLMİŞSE** + koşan tutarlılık kontrolü ·
+      ③ `display_name` ②'nin şartı **artı** master migration + `spec/01`.
+      ⚠️ **Mekanizma SEÇİLMEDİ** — o Faz 17'nin işi (K12); *"mümkün"* ile
+      *"seçildi"* arasındaki sınır bilerek çizildi.
+      🆕 **`rivalries` arama yarısına girmiyor** (beş tür sayıldı; ikisi de
+      `competitions`) ve sütunu **nullable** + tablo **0 satır** — orada sorun
+      *"metin hiç yok"*. Karar `rivalries.ts` yorumuna da yazıldı.
+      ⚠️ **G-13 satırı KAPATILMADI ve bu ölçülmüş bir karar:** `gaps:check`
+      kapalı bir satırı **tamamen atlıyor**, yani kapatmak Faz 17'nin yarısını
+      kalıcı denetimsiz bırakırdı. Sayılar değişmedi: **20 · 3 · 17 · 0 ✗**
+- [x] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — **5.4**; **iki yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). **BORÇ-003:** `ErrorBoundary` metinleri `t()`den geliyor ve `title` propu **`titleKey`e** dönüştü — çağrı yerinin de K5'e uymasını zorunlu kılıyor; `DebugPanel` de çevrildi (gerekçe **genişletildi**, çürütülmedi). **BORÇ-005:** `MESSAGE_BY_KIND` ve `UNEXPECTED_MESSAGE` **silindi**, `message` alanı gövdeden çıkarıldı, yedek `status.*` ailesine taşındı. ⚠️ **Kriter iki borç istedi, kapatılan DÖRT yer:** envanter `App.tsx` (19) ve `main.tsx` (2) ihlallerini de gösterdi ve 5.5'in kuralı `error` açılacağı için onlar da kapatıldı. **Ölçüm: envanter 33 → 0.** Kütükte ikisi de **kapalı** işaretli. **Mutasyon 3/3 · D5 10/10** (derlenmiş paket gerçekten çalıştırıldı, ekranda ham anahtar yok)
+
+**Alt görevler** *(faz açılışında ölçüldü, kullanıcı onayıyla 2026-09-02'de işlendi — K11)*
+
+- [x] **5.0-ön** **Süreç boşluğu — KOD YOK.** `SESSION-TEMPLATE`in faz açılış
+      akışına tek adım: *fazın §15.1 satırındaki her belge AÇILIR ve konusunun
+      fazla eşleştiği doğrulanır; eşleşmezse satır düzeltilir ve SAPMA açılır.*
+      Gerekçe SAPMA-035: yanlış satırı yakalayan şey bir **adım** değil bir
+      **rastlantı** oldu (faz kaydının §11'i doldurulurken dosya adı kontrol
+      edildi). Adım **vardı** ama hedefi doğrulamıyordu — SAPMA-033'ün daha kötü
+      hâli: okuyana *"kaynağı okudum"* dedirtiyor.
+      ⚠️ **Kapsam sınırı (K12): kalan 28 satır DENETLENMEZ.** Her faz kendi
+      satırını açılışta kontrol eder; toplu denetim tüketicisi olmayan bir iştir.
+      **Faz 48'in şüpheli satırına dokunulmaz** — sahibi SAPMA-035'te Faz 48.
+      Ayrı commit, faz işinden **önce**.
+      **SONUÇ:** doğrulama koşturuldu — **Faz 5'in §15.1 satırı EŞLEŞİYOR** (4.11'in
+      düzeltmesi yerinde). ⚠️ Ama adım **yeni bir numara ALMADI**: numaralandırmayı
+      üçüncü kez kaydırmak yeni bayat karşı atıflar üretecekti ve bunlardan **biri
+      bugün hâlâ canlıydı** — `SPEC-COVERAGE-GAPS`:214 kapanış adımını *"20"* diye
+      gösteriyordu, gerçek **21** (4.1'in eklediği adım 15 kaydırmıştı). Doğrulama
+      **adım 3'ün içine**, okumadan önce kondu. → **SAPMA-036**,
+      `docs/reports/faz-05/5.0-on-*.md`
+- [x] **5.0** **Doğrulama alt görevi — KOD YOK, ÖLÇÜM VAR.** ① i18next 24→26 ve
+      react-i18next 15→17 changelog notları okunur, karar yazılır ② üç bulgu
+      `DEPENDENCY-WATCH`a işlenir: `i18next-browser-languagedetector` satırı
+      **hiç yoktu**, `26.4.0/17.0.12` **bayattı** (registry `26.4.1/17.0.13`),
+      peer aralıkları ölçüldü (`typescript ^5||^6||^7` → `~6.0.3` uyumlu ·
+      `react >=16.8.0` · `i18next >=26.2.0`) ve `.npmrc`
+      `strict-peer-dependencies=true` olduğu için peer bir **kapı**
+      ③ `i18n-check` yol çelişkisi → **SAPMA-037** ④ 🆕 **DİNAMİK ANAHTAR KARARI**
+      (aşağıda) ⑤ Faz 5'in *"asıl doğrulayıcı kapısı"* yazılır. **Paket kurulmaz.**
+      > ⚠️ **DİNAMİK ANAHTARLAR — `i18n-check`in "kullanılmayan anahtar" raporu
+      > ilk günden iki yanlış pozitif kaynağı taşıyor ve karar 5.6'da
+      > KEŞFEDİLMEZ, 5.0'da VERİLİR.** ① Seed anahtarları: `world-seed-data.ts`
+      > 17 anahtar **üretiyor** (`countryNameKey` · `competitionNameKey`) ve
+      > hiçbiri bir `t()` çağrısında literal geçmiyor — değer veritabanından
+      > geliyor ② `errors:` namespace'i: BORÇ-005'in çözümü
+      > `t('errors:' + code, context)`, yani anahtar **çalışma zamanında
+      > birleşiyor**. Statik tarama ikisini de *"kullanılmayan"* sayar; gürültü
+      > basan bir kapı kapatılır. Seçenekler: ön ek allowlist'i · üreteci okuma ·
+      > açık bildirim dosyası. ℹ️ **G-13'ün akrabası** (ikisi de *"çeviri anahtarı
+      > veritabanında yaşıyor"*tan doğuyor) — 5.8'in kararı bunu kolaylaştırabilir.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — TEK KARAR: TİPLİ ANAHTARLAR AÇILIR, DİNAMİK AİLELER BEYAN EDİLİR**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > *"Tipleme açılsın mı"* ile *"dinamik anahtarlar nasıl beyan edilecek"*
+      > **tek kararın iki yüzü**: tipleme açıksa birleştirilmiş bir dize tipli
+      > anahtar kümesine oturmaz ve `t('errors:' + code)` **derlenmez**. Ayrı
+      > verilseydi ikincisi birincisini geçersiz kılardı.
+      >
+      > **(a) TİPLEME AÇILIR.** Ölçüldü — ön koşulların tamamı **zaten** yerinde:
+      > `tsconfig.base.json`:24 `strict: true` · :40 `resolveJsonModule: true` ·
+      > TS `~6.0.3` (belge TS ≥ 5.0 istiyor) · `i18next@26.4.1` peer'ı
+      > `typescript: ^5 || ^6 || ^7`. Mekanizma `i18next.d.ts` içinde
+      > `CustomTypeOptions` modül genişletmesi. Kazanç gerçek: **yanlış yazılmış
+      > bir literal anahtar derleme hatası olur** ve bugün böyle bir kapı yok.
+      > ⚠️ Belgenin uyarısı da yazılıyor: tipleme **derleme süresini** etkiler ve
+      > büyük projelerde bellek tüketir; `enableSelector: "optimize"` (v25.4+,
+      > yani 26.4.1'de var) tembel çözümleme ile bunu azaltıyor. On namespace
+      > küçük bir yüzey, ama **ölçülmeden "sorun yok" denmiyor** → 5.3.
+      > ⚠️ **KARAR KOŞULLU VE YANLIŞLANABİLİR (D1):** tipleme `pnpm install`
+      > yapılmadan **koşturulamadı**. **5.3 bir kontrol deneyiyle doğrular:**
+      > kasten yanlış yazılmış bir anahtar `pnpm typecheck`i **kırmalı**;
+      > kırmıyorsa tipleme çalışmıyordur, karar yeniden açılır ve SAPMA yazılır.
+      > *"Belgede yazıyor"* bir ölçüm değildir.
+      >
+      > **(b) HER DİNAMİK AİLENİN TEK BİR YARDIMCISI OLUR.** Tipleme, şablon
+      > literallerinde *"literal değeri kaybeder"* (belgenin ifadesi) ve
+      > `as const` ile kaçış ister. O kaçış **satır içine dağıtılmaz**: her aile
+      > için bir yardımcı fonksiyon yazılır, girdisi **kapalı bir kümeye
+      > daraltılır**, ve kaçış **tek yerde** gerekçesiyle durur. Aynı modül
+      > `i18n-check`in dinamik aile **beyanı** olur — yani tip sınırı ile kapının
+      > beyanı **aynı kaynak**, ayrışamazlar. (Ayrı bir allowlist dosyası
+      > elenmişti: iki liste kaçınılmaz olarak ayrışır — `spec/09` §11.5'in
+      > *"hiçbir kural iki yerde denetlenmez"* disiplini.)
+      >
+      > **(c) ÜÇ DİNAMİK AİLE — SAYILDI, TAHMİN EDİLMEDİ:**
+      >
+      > | Aile | Kapalı mı | Bugünkü üye sayısı | Kaynak |
+      > |---|---|---|---|
+      > | `country.*` + `competition.*` | **kapalı** | **17** (6 ülke + 11 yarışma) | `world-seed-data.ts` `countryNameKey`/`competitionNameKey` |
+      > | `errors:code.*` | **açık** | **0 canlı** (aşağı bak) | fırlatma yerleri |
+      > | `errors:status.*` | **kapalı** | 4 (400 · 403 · 404 · genel) | `exceptionMessageFor` |
+      >
+      > **⚠️ (d) `errors:code.*` BUGÜN BOŞ — VE BU ÖLÇÜLDÜ, VARSAYILMADI.**
+      > Depoda **23 ayrık `code`** var (test dışı) ve **hepsi**
+      > `packages/db/src/migrate/`, `packages/db/src/schema-state/` ve
+      > `packages/shared` içinde — yani **CLI / derleme zamanı / geliştirici**
+      > yolları. **`apps/api` bugün tek bir `AppError` fırlatmıyor** (ölçüldü:
+      > 0 eşleşme). Sonuç: bir `code` bugün hiçbir kullanıcıya **ulaşmıyor**.
+      > Açık ailenin tiplenememesi bu yüzden **bugün bir maliyet değil**; ilk
+      > gerçek üye bir HTTP özelliğiyle gelecek (Faz 13+).
+      >
+      > **⚠️ (e) KAPALI YEDEK AİLESİ `kind` DEĞİL `status` ÜZERİNE KURULUR —
+      > VE BU BİR DÜZELTME.** BORÇ-005 `MESSAGE_BY_KIND`i siliyor; silinince
+      > anahtarı olmayan bir `code` geldiğinde i18next **anahtarın kendisini**
+      > basar ve kullanıcı ekranda `errors:code.transfer.budgetExceeded` görür.
+      > Yani bir **yedek** şart. Doğal aday `kind`di — ama ölçüldü:
+      > **`kind` yanıt gövdesinde YOK.** Gövde `status · code · message ·
+      > correlationId · context` taşıyor (`global-exception.filter.ts`:112-120);
+      > `kind` yalnızca **log bağlamında** (satır 83). İstemci `kind`i göremez.
+      > `status` **gövdede var** ve `exceptionMessageFor` zaten tam olarak ona
+      > bakıyor. → Yedek `t('errors:code.' + code, { defaultValue: t('errors:status.' + status) })`
+      > biçiminde kurulur; **gövde sözleşmesi DEĞİŞMEZ** (bir API yüzeyi
+      > değişikliği bu fazın kapsamında değil — K12). **5.4'ün işi budur.**
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — KAYNAKLAR VE FAZ 5'İN ASIL DOĞRULAYICI KAPISI**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **(f) SÖZLÜĞÜN ≥43 TERİMİ NEREDEN GELİYOR — sayıldı, uydurulmadı.**
+      > `CLAUDE.md` §14 bugün **77** terim taşıyor (5.0'da yeniden sayıldı).
+      > Eksik ≥43'ün kaynağı bir **koşan envanter**: `VISIBLE_ATTRIBUTES` +
+      > `HIDDEN_ATTRIBUTES` → **47 + 10 = 57** (programatik olarak sayıldı,
+      > elle değil). 77 + 57 = **134 ≥ 120**, tek terim uydurmadan.
+      > ⚠️ **AMA BİR AYRIM VAR VE SAKLANMIYOR:** `docs/spec/02-attributes.md`
+      > nitelikleri **yalnızca İngilizce** listeliyor (ölçüldü) — 57 niteliğin
+      > **Türkçe karşılıkları hiçbir yerde yok**. Yani İngilizce taraf
+      > **ölçülmüş**, Türkçe taraf **Faz 5'in yazacağı şey**. Bu SAPMA-026'ya
+      > (*"kimsenin belirlemediği alana değer uydurma"*) aykırı değil: sözlüğün
+      > tanımı gereği **sahibi** Faz 5 (*"TR/EN karşılıklar + kod içi
+      > isimlendirme standardı"*), yani burası boş bir alanı doldurmak değil
+      > **kendi alanını yazmak**. Terimler **5.7'de** yazılır, 5.0'da değil.
+      >
+      > **(g) EK MOTORUNUN VAKA KAYNAĞI.** İki kaynak: ① Türkçe **ünlü uyumu**
+      > kuralları (kalınlık/incelik + son harf sert/yumuşak + kesme işareti)
+      > ② **17 gerçek seed adı** — ama ⚠️ seed **`nameKey` tutuyor, görünen ad
+      > tutmuyor** (`'Türkiye'` değil `'country.tur'`), yani gerçek adlar
+      > **5.3'ün `locales/tr/common.json`u yazıldığında** doğacak. 5.1 ek
+      > motorunu 5.3'ten **önce** yazıyor, dolayısıyla 5.1'in vakaları ünlü
+      > uyumu kurallarından ve ROADMAP'in kendi örneklerinden (Galatasaray'ın,
+      > Beşiktaş'ın, Trabzonspor'un, Roma'nın, Liverpool'un) türetilir;
+      > **17 seed adı 5.3'te çapraz doğrulama** olarak eklenir. Vakalar
+      > **5.1'de** yazılır, 5.0'da değil.
+      >
+      > **(h) FAZ 5'İN ASIL DOĞRULAYICI KAPISI — (a) kararından SONRA yazıldı,
+      > ve plandaki cevap KISMEN GEÇERSİZLEŞTİ.** Plan *"TypeScript
+      > `t('squad:table.age')` içindeki dizgeyi bir anahtar olarak görmez"*
+      > diyordu. Bu **varsayılan yapılandırma için** doğru; tipleme açıldığında
+      > **değil**. Düzeltilmiş cevap dört kapı ve **sınırları ayrı ayrı yazılı**:
+      >
+      > | Kapı | Ne doğruluyor | Ne DOĞRULAMIYOR |
+      > |---|---|---|
+      > | **`typecheck`** 🆕 | **Literal** bir anahtarın çeviri kaynağında var olduğu | Dinamik anahtarlar · anahtarın **değeri** boş mu · kullanılmayan anahtar · metnin doğruluğu |
+      > | **`i18n:check`** | Eksik anahtar · kullanılmayan anahtar · boş çeviri | Metnin doğru Türkçe olduğu |
+      > | **ESLint kuralı + kanaryası** | JSX'e çıplak Türkçe metin **girmediği** | Zaten `t()`den gelen metnin doğruluğu |
+      > | **Gerçek i18next örneği (D5)** | Anahtarın tarayıcıda **çözüldüğü** — kurulum, namespace yüklemesi, dil algılama | Statik olanların hepsi (o üçü kapatıyor) |
+      >
+      > ⚠️ **Dördü de zorunlu ve hiçbiri diğerinin yerine geçmiyor.** Faz 4'ün
+      > dokuz turluk tespiti (*"asıl doğrulayıcı kapı `typecheck` değildi"*)
+      > Faz 5'te **kısmen** geçerli: `typecheck` artık bir şey görüyor, ama
+      > gördüğü şey dört sütunun **yalnızca biri**. `typecheck` yeşil diye
+      > i18n çalışıyor denmez.
+      >
+      > **Kayıtlar:** **SAPMA-037** (yol çelişkisi, atıf sözü tutuldu) ·
+      > **SAPMA-038** 🆕 (BORÇ-005'in yedeği — `kind` gövdede yok).
+      > → `docs/reports/faz-05/5.0-*.md`
+- [x] **5.1** **Türkçe ek motoru** — `packages/shared/src/i18n/turkish-suffix.ts`.
+      Saf, sıfır bağımlılık (`Intl` serbest, yerleşik). Ünlü uyumu + son harf
+      analizi + kesme işareti. ⚠️ **50 vaka bir SAYI değil bir LİSTE**
+      (`VISIBLE_ATTRIBUTES` emsali, 4.5): `SUFFIX_CASES` testin **kendisi
+      tarafından kriterin kendisi olarak** iddia edilir — bir satır eklemek testi
+      kırar. → kriter 3
+      ⚠️ ~~Vakaların kaynağı: ünlü uyumu kuralları + **17 gerçek seed adı**~~ —
+      **BU CÜMLE BAYATTI VE 5.1'DE DÜZELTİLDİ.** 5.0 ölçtü: `world-seed-data.ts`
+      görünen ad **tutmuyor**, `nameKey` tutuyor (`'country.tur'`, `'Türkiye'`
+      değil; dosyanın kendi yorumu satır 151'de bunu yazıyor). Türkçe adlar
+      dosyada yalnızca bir **yorumda** geçiyor, veri olarak yok. Yani 5.1'in
+      vakaları **dilbilgisi kurallarından türetildi ve kapsam için seçildi** —
+      *"gerçek veriden alındı"* değil, ve test dosyası bunu **dürüstçe** yazıyor.
+      **17 seed anahtarıyla çapraz doğrulama 5.3'ün işi** (`locales/tr/common.json`
+      yazıldığında gerçek adlar doğacak).
+      **SONUÇ:** **55 vaka** (eşik 50) · dört ünlü sınıfının **dördü**, sekiz
+      bileşimin **sekizi** temsil edildi ve dağılım **tek tek sabitlendi**.
+      🆕 İki karar: **yabancı adlarda yazım ≠ okunuş** → `PRONUNCIATION_OVERRIDES`
+      (veri, satır başına gerekçeli; `Chelsea` yazımla **kesin yanlış** çözülüyor)
+      · **ünlüsüz kısaltmalar** (`TFF`, `PSG`) aynı tabloda, tabloda **olmayan**
+      ünlüsüz ad **fırlatıyor** — sessiz varsayılan yok.
+      🆕 **Ölçülmüş harf tuzağı:** `'IĞDIR'.toLowerCase()` → `'iğdir'` (noktasız
+      `I` noktalı `i` oluyor) ve `'İ'.toLowerCase()` **iki kod birimi** üretiyor;
+      motor bu yüzden **hiç küçük harfe çevirmiyor** + `normalize('NFC')`.
+      Mutasyon **3/3** kırdı. → `docs/reports/faz-05/5.1-*.md`
+- [x] **5.2** **`Intl` biçimlendiriciler** — `packages/shared/src/i18n/format.ts`
+      + `index.ts` (saf barrel). Tarih `23 Ağustos 2026` · para `€1,2 mn` · sayı.
+      `Date.now()` yok, girdi parametre. → kriter 4
+      **SONUÇ — üç tuzak ölçüldü, hiçbiri tahmin edilmedi:**
+      ① **Ayırıcı boşluk `U+00A0`** (bölünmez), `U+0020` değil — normal boşlukla
+      yazılmış bir karşılaştırma **eşleşmezdi**. Korundu (doğru tipografi) ve
+      testte **kod noktalarıyla** iddia edildi; test dosyasında gerçek karakter
+      **gömülü değil**, `const NBSP = '\u00A0'` olarak adlandırıldı — gömülü
+      olsaydı normal boşluktan gözle ayırt edilemezdi.
+      ② **`compactDisplay: 'long'` para ile ÇALIŞMIYOR:** `style` olmadan
+      `1,2 milyon` (zaten küçük harf) üretiyor, `style: 'currency'` ile
+      **`€1,2 Mn`**'e düşüyor. Küçültmeyi **biz** yapıyoruz.
+      ③ **Varsayılan zaman dilimi sessiz bir hata kaynağı:** bu makinenin
+      varsayılanı `Europe/Istanbul` ve `2026-08-23T22:30Z` → UTC'de **23**,
+      İstanbul'da **24 Ağustos**. `DEFAULT_TIME_ZONE = 'UTC'`, makineden
+      **okunmuyor**.
+      ⚠️ **İKİ KATMAN AYRI TUTULDU** — `Intl`in parçaları (ICU'ya ait, **yapıyla**
+      iddia edilir) ve `lowerCompactSuffix` (bize ait, **`Intl`siz** test edilir).
+      Tek bir tam-dize iddiası ikisini birden ölçerdi ve kırıldığı gün hangisinin
+      kırıldığı belli olmazdı. Ölçüm ortamı yazıldı: **Node 24.19.0 · ICU 78.3 ·
+      CLDR 48.0**.
+      **Mutasyon 3/3** — ve ikisi **birer** testle yakalandı: kapsam genişletmesi
+      (17 pozitif test **geçti**, yakalayan tek şey karşı kontroldü) ve zaman
+      dilimi (yakalayan tek şey sınır vakasıydı).
+      ⚠️ **Tarayıcı doğrulaması YAPILAMADI** ve sebebi ölçüldü: jsdom kendi
+      ICU'sunu getirmiyor. **Faz 17'nin kapsamına ve bir kabul kriterine yazıldı.**
+      → `docs/reports/faz-05/5.2-*.md`
+- [x] **5.3** **i18next + on namespace + tarayıcı dil algılama** —
+      `apps/web/src/app/i18n.ts` · `apps/web/src/locales/tr/*.json`.
+      Namespace'ler **tek tek yazılı ve on tane**: `common, squad, tactics,
+      transfer, match, finance, dialogue, news, tutorial, errors`. 17 seed
+      anahtarı (`country.*`, `competition.*`) `common`a girer. Paketler burada
+      kurulur (5.0'ın kararıyla).
+      **SONUÇ:**
+      🆕 **KURULUM:** `26.4.1 / 17.0.13 / 8.2.1` — lockfile **642 → 647**, tam
+      **+5** paket (ikisi geçişli: `html-parse-stringify`, `use-sync-external-store`),
+      **0 silinen**. `strict-peer-dependencies=true` **ötmedi** — 5.0'ın *"gerçek
+      kapı `pnpm install`"* cümlesi ateşlendi ve geçti.
+      🆕 **5.0'IN KOŞULLU TİPLEME KARARI DOĞRULANDI — İKİ YÖNLÜ kontrol deneyi:**
+      ① yanlış anahtar → `typecheck` **kırıldı** (`TS2345`, çıkış 2) ve hata
+      mesajı **17 geçerli anahtarı tek tek saydı** ② doğru anahtar → **geçti**.
+      Tek yön yeterli olmazdı (SAPMA-012: her şeyi reddeden bozuk bir
+      yapılandırma da "kırılıyor" derdi). Sonda **silindi**.
+      🆕 **BİR MUTASYON HİÇBİR ŞEY YAKALAMADI VE EN DEĞERLİSİ O OLDU:**
+      `nonExplicitSupportedLngs` eklenmişti; mutasyon `0/16` verdi. İzole bir
+      deney (dört kombinasyon) gerekçeyi **çürüttü** — i18next 26 indirgemeyi
+      zaten yapıyor. **Ayar SİLİNDİ** (SAPMA-026: hiçbir şey yapmayan bir ayar
+      bir sonraki okuyucuya *"bu gerekli"* dedirtir). `supportedLngs`in gerçek
+      işi ölçüldü ve **başka çıktı**: çeviri onsuz da çözülüyor, fark
+      **`i18n.language`**'ta (`en` kalıyor, `<html lang>` ve `localStorage` onu
+      okuyor) — iddia düzeltildi ve yeni hâli mutasyonla **yakalandı** (`1/16`).
+      🆕 **ÇAPRAZ DOĞRULAMA 17/17 KOŞTU ve İKİSİ ISIRDI** — `Premier League`
+      (yazım ünlüyle biter, okunuş `lig` ünsüzle → `League'nin` yanlış) ve
+      `FA Cup` (yazımın `u`su kalın yuvarlak, okunuş `kap` kalın düz →
+      `Cup'un` yanlış). İkisi de **veri** olarak çözüldü:
+      `PRONUNCIATION_OVERRIDES` 3 → **5** satır, `SUFFIX_CASES` 55 → **57**.
+      5.1'in *"bir satır eklemek testi kırar"* nöbetçisi **ateşledi**.
+      ⚠️ **D5 BİR ŞEY BULDU:** çeviriler üretim paketinde **YOK** — modülün
+      **tüketicisi yok**, ağaç sarsma siliyor. Statik paketleme bir **kontrol
+      deneyiyle** kanıtlandı (geçici tüketici → beş çeviri de pakette; paket
+      **321,49 → 373,22 kB**, gzip **+16,19 kB**), sonda **söküldü**.
+      **Bağlama işi 5.4'ün** — `useTranslation` zaten oraya gerekiyor.
+      → `docs/reports/faz-05/5.3-*.md`
+- [x] **5.4** **İHLAL ENVANTERİ + BORÇ-003 + BORÇ-005 ödemesi.**
+      **SONUÇ:**
+      🆕 **ENVANTER ARACI YAZILDI** (`tools/i18n-inventory/`, AST tabanlı) ve
+      **kendi karşı kontrolü** var (11 test, iki yönlü): bilinen ihlal
+      (`Tekrar dene`) listede **çıkıyor**, ihlal-olmayan (yorum · `logger` ·
+      `AppError.message` · `data-testid`) **çıkmıyor**. Tek yön yazılsaydı
+      **her şeyi ihlal sayan** bozuk bir araç da geçerdi.
+      🆕 **ENVANTER ROADMAP'in SAYDIĞINDAN BÜYÜK ÇIKTI: 33 ihlal / 4 dosya.**
+      Bu madde `App.tsx`te **6** satır listelemişti (kaba taramadan), AST
+      **19** buldu; ve **`main.tsx` bu listede hiç yoktu** (2 ihlal). Fark
+      dilden geliyor: kural **dile bakamaz** (`Tekrar dene` hiçbir Türkçe
+      karakter taşımıyor), yani `base`/`api prefix` gibi **İngilizce** teknik
+      etiketler de ihlal. Envanter **0**'a indirildi.
+      🆕 **ARACIN KÖR NOKTASI BULUNDU ve 5.5'e yazıldı:** `DebugPanel`in
+      `TAB_LABELS`/`EMPTY_TAB_NOTES` sabitleri **modül düzeyinde** yaşıyor,
+      JSX'e render ediliyor ama AST onları **görmüyor**. Yalnızca BORÇ-003
+      onları adıyla saydığı için yakalandı.
+      🆕 **i18n ÇÖKÜŞ KARARI — kontrol deneyiyle kanıtlandı.** i18n artık bir
+      **önyükleme ön koşulu**: `root.render()`tan önce kuruluyor ve
+      `isInitialized === true` **açıkça** denetleniyor (ölçüldü: i18next bozuk
+      yapılandırmada **fırlatmıyor**, sessizce `undefined` bırakıyor — bir
+      `try/catch` göremezdi). Başarısızsa React **hiç monte edilmiyor**, statik
+      bir metin basılıyor. Kalıcı nöbetçi: `main.boot-failure.test.tsx`.
+      🆕 **BORÇ-005 GÖVDE SÖZLEŞMESİNİ DEĞİŞTİRDİ ve bu bir API değişikliği:**
+      `message` alanı gövdeden **çıkarıldı**. ⚠️ Tüketicisi **sıfırdı** ve bu
+      ölçüldü — `api.ts` hata gövdesini **hiç parse etmiyor** (`response.json()`
+      yalnızca başarı yolunda). İlk okuma yanlıştı, kaynak takip edilince
+      düzeltildi. Yedek **`status`** üzerine kuruldu (SAPMA-038: `kind` gövdede
+      yok).
+      🆕 **TAM D5 — 5.3'ün borcu kapandı: 10/10.** Derlenmiş üretim paketi
+      jsdom global'leriyle **gerçekten çalıştırıldı**: React monte oluyor, her
+      etiket Türkçeye çözülüyor, ekranda **hiç ham anahtar yok**. Paket
+      **321.490 → 380.908 bayt** (+59.418, **%18,5**) — ⚠️ 5.3'ün sonda
+      ölçümü (373.220) **gerçeğin yerini tutmadı**.
+      **Mutasyon 3/3** — önyükleme koruması kaldırılınca ekran **boş** kaldı;
+      bir çeviri anahtarı silinince ekranda **ham anahtar** göründü; envanter
+      aracı körletilince kendi testi kırıldı.
+      → `docs/reports/faz-05/5.4-*.md`
+      ⚠️ **İLK İŞ BİR ENVANTER, ödeme değil.** 5.5'in kural taslağı `warn` olarak
+      (ya da eşdeğer AST taramasıyla) koşturulur ve **ihlal listesi ölçülüp
+      yazılır**; 5.4 o listeyi kapatır, 5.5 kuralı `error`a çevirdiğinde liste
+      **boş** olmalı. **Kaba tarama bir ölçüm değildir ve bu kanıtlandı:**
+      `ErrorBoundary.tsx:121`'deki `Tekrar dene` gerçek bir K5 ihlali ve
+      Türkçe-karakter taramasında **0 eşleşme** veriyor (hiçbir çğışöü taşımıyor)
+      — yanlış negatif; aynı tarama yorum satırlarını da getiriyor — yanlış
+      pozitif. *"Hepsini düzelttik"* bir liste olmadan bir umuttur.
+      Kapsam: `ErrorBoundary.tsx` · `App.tsx` (ölçüldü: 36, 68, 84, 100, 106, 116
+      çıplak JSX taşıyor ve borç satırlarında **adı geçmiyor**) ·
+      `global-exception.filter.ts` (`MESSAGE_BY_KIND` **silinir**) ·
+      **`DebugPanel.tsx` ÇEVRİLİR** (aşağıda). → kriter 7
+      > ⚠️ **`DebugPanel.tsx` ÇEVRİLİR — ve BORÇ-003'ün notu ÇÜRÜTÜLMÜYOR,
+      > GENİŞLETİLİYOR.** Kütükteki *"panel atlanabilir, dev-only, üretim
+      > paketinde yok"* gerekçesi **yanlış değildi**: K5 *"kullanıcıya görünen
+      > yüzeyi"* koruyor ve panel orada değil. Değişen şey, artık **ikinci bir
+      > mekanizmanın** aynı satırlara bakması: ESLint kuralı **JSX'e** bakar,
+      > üretim paketine değil — yani iki mekanizma, **iki farklı kapsam**.
+      > Alternatif bir `eslint-disable` bloğuydu ve o **kısmi korumadır**:
+      > bugünkü on iki dizeyi affederken yarın eklenecek on üçüncüyü de sessizce
+      > affeder (*"kısmi koruma D3 yanılsaması üretir"*).
+      > ⚠️ **ON BİRİNCİ NAMESPACE AÇILMAZ (K12):** panelin dizeleri **`common`a**
+      > girer, gerekçe dosya başlığına yazılır. Ayrı bir `debug` namespace'i bir
+      > gün gerekirse sahibi Faz 6 ya da paneli büyüten fazdır.
+      > **Bir kararı sessizce ters çevirmek, onu gerekçesiyle genişletmekle aynı
+      > şey değildir** — kütüğe yazılacak cümle budur.
+- [x] **5.5** **ESLint `local/no-bare-jsx-text` + KANARYA.** *(planda adı
+      `no-hardcoded-turkish`di — 5.5'te ölçüm gerekçesiyle düzeltildi, SAPMA-039.)*
+      Emsal
+      `no-hardcoded-path.js` (Faz 1.4) ve `index.js` satırı zaten yazılı:
+      *"`no-hardcoded-turkish` → Faz 5"*. Kural **JSX'e dar** — log mesajları ve
+      `AppError.message` K5 kapsamında **değil** (SAPMA-010: *"message geliştirici
+      içindir, çevrilmez"*). Kural `error` olarak açılır (5.4 listeyi boşalttığı
+      için `pnpm lint` yeşil kalır). ⚠️ **İKİ YÖNLÜ KANIT ZORUNLU**, `arch:check`in
+      dokuz kuralının deseni: `RuleTester` `invalid[]` → **ötüyor**, `valid[]` →
+      **susuyor**. ⚠️ **VE KABLOLAMA AYRICA ÖLÇÜLÜR:** `eslint.config.js`
+      halihazırda iki muafiyet bloğu taşıyor (`:138` `tools/eslint-local-rules/**`,
+      `:162` bir kapatma) — kural yazılıp bağlanmazsa `pnpm lint` **0 der ve
+      hiçbir şeye bakmamıştır** (D3). → kriter 1
+      🆕 **5.4'ÜN ÖLÇTÜĞÜ ÜÇ ŞEY KURALIN TASARIMINI BELİRLİYOR:**
+      ① **KURAL DİLE BAKAMAZ.** `Tekrar dene` gerçek bir K5 ihlali ve hiçbir
+      Türkçe karakter taşımıyor — *"Türkçe metni yakala"* diye bir kural
+      **yazılamaz**. Uygulanabilir hâli *"JSX'te çıplak metin yakala"*, dilden
+      bağımsız. Sonuç: `base`, `api prefix` gibi **İngilizce** teknik etiketler
+      de kapsamda ve 5.4 onları da `t()`ye taşıdı.
+      ② **KÖR NOKTA: MODÜL DÜZEYİ METİN SABİTLERİ.** `DebugPanel`in sekme adları
+      JSX'e render ediliyordu ama AST taraması onları **görmedi** (yalnızca JSX
+      içindeki literallere bakıyor). 5.4'te onları yakalayan şey bir araç değil,
+      **BORÇ-003'ün onları adıyla sayması** oldu. Aynı kör nokta bu kuralda da
+      olacak — kural **neyi görmediğini kendi belgesinde söyler**; sessiz bir
+      sınır *"kısmi koruma D3 yanılsaması üretir"*.
+      ③ **BİRİM TESTLER MUAF** — emsal `no-hardcoded-path` (`eslint.config.js`:141):
+      testler metni **veri** olarak kullanır ve muafiyet olmazsa her test dosyası
+      `eslint-disable` ile dolar. Uzantı listesi **tam** tutulur (SAPMA-007
+      sınıfı); `*.spec.*` muaf **değildir** (Faz 17 uçtan uca gerçek arayüzü sürer).
+      ⚠️ **Envanter aracı 5.4'te yazıldı** (`tools/i18n-inventory/`) ve kuralın
+      **prototipi** odur: bugün `0` ihlal raporluyor, yani kural `error` olarak
+      açıldığında `pnpm lint` **yeşil** kalmalı. Kalmıyorsa aradaki fark kuralın
+      aracı aşan kapsamıdır ve **yazılır**.
+      **SONUÇ:**
+      🆕 **ADI DEĞİŞTİ — `no-hardcoded-turkish` → `no-bare-jsx-text`, ve gerekçe
+      bir TERCİH DEĞİL bir ÖLÇÜM.** Bu maddenin kendi ① notu zaten *"«Türkçe
+      metni yakala» diye bir kural yazılamaz"* diyordu; adı ve fazın kapsam
+      cümlesi o cümleyle **çelişik kalmıştı**. **Bir ad bir sözleşmedir** ve
+      kuralı örneklerinden geriye okuyan birine yanlış öğretirdi (F3).
+      Düzeltilen dört yer: kuralın kendisi · `index.js`in ayırdığı satır ·
+      fazın kapsam cümlesi · ana dosyalar bloğu. → **SAPMA-039**
+      🆕 **İKİ UYGULAMA BIRAKILMADI — `tools/i18n-inventory/` EMEKLİ EDİLDİ.**
+      Karar koda dokunmadan **önce** verildi. Gerekçe ölçüldü: aracın
+      **tüketicisi yoktu** (hiçbir betikte, CI'da veya kodda geçmiyordu —
+      yalnızca kendi vitest projesi), ve kuralın kapsamı onun **üstünde**
+      (`pnpm lint` deponun tamamına bakan bir **kapı**, elle çağrılan bir CLI
+      değil). ⚠️ **Emeklilikten ÖNCE İKİ UYGULAMANIN ANLAŞTIĞI ÖLÇÜLDÜ:** 5.4
+      öncesi dört dosya `git show` ile geri getirildi ve ikisi de koşturuldu —
+      `App.tsx` 19/19 · `main.tsx` 2/2 · `ErrorBoundary.tsx` 6/6 ·
+      `DebugPanel.tsx` 6/6, **toplam 33 = 33**, tek bir uyuşmazlık yok.
+      Aracın 11 testinin sabitlediği **negatif** anlamlar (yorum · `logger` ·
+      `AppError.message` · `data-testid` · JSX dışı dize · sayı) kuralın
+      `valid[]` listesine **taşındı** — emeklilik kanıtlanmış bir güvenceyi
+      sessizce düşürmedi. **Kör nokta kaydının yeni evi kuralın kendi başlığı**
+      (artı `DebugPanel.tsx`in yorumu, bu madde ve ANLIK DURUM).
+      🆕 **KABLOLAMA KANARYASI — ve mekanizması BAĞIMSIZ olarak doğrulandı.**
+      Kanarya diske **hiçbir şey yazmıyor**; ESLint Node API'si gerçek
+      `eslint.config.js`i çözüp **var olan gerçek bir dosyanın kimliği** altında
+      lint ediyor. Üç tasarım ölçümle elendi: `lintText` **sanal** bir yol için
+      `projectService` ayrıştırma hatası veriyor · diske yazılan bir `*.test.tsx`
+      vitest'in `web` projesinin glob'una takılabilir · aynı dosya
+      `coverage.include` ile eşleşip paydayı oynatabilir. Seçilen yolun
+      geçerliliği **bu kuraldan bağımsız** kanıtlandı: aynı mekanizmayla
+      bugünkü `local/no-hardcoded-path` da gerçekten ötüyor.
+      🆕 **MUAFİYET AYRI BİR BLOK OLDU (kısmi koruma değil).** Mevcut muafiyet
+      listesi `base-path.ts` / `tools/arch-check/**` gibi yol **tanım yerlerini**
+      de taşıyor; oraya bir satır eklemek yeni kuralı o dosyalarda da **sessizce**
+      kapatırdı. Bugün etkisi olmazdı (hiçbirinde JSX yok) — ama *"muafiyetin dar
+      kalması kuralın güvenilirliğinin şartı"*. Muafiyet **sessiz değil**: bir
+      birim testindeki ihlalin **ötmediği** ayrı bir vakayla, `*.spec.tsx`in
+      muaf **olmadığı** ise başka bir vakayla iddia ediliyor.
+      🆕 **ARAÇTAN İKİ BİLİNÇLİ SAPMA, ikisi de testle sabitlendi:** nitelik
+      konumundaki ifade kabına artık **nitelik politikası** uygulanıyor
+      (`data-testid={'x'}` ile `data-testid="x"` aynı cevabı veriyor; araçta
+      farklıydı) · ifadesiz **şablon literalleri** de görülüyor
+      (`` {`Metin`} `` — emsal `no-hardcoded-path`, aksi hâlde açık bir kaçış
+      deliği kalırdı).
+      **Kapılar:** `pnpm lint` **0** (önbellek silinmiş) · typecheck **10/10
+      SOĞUK** · build **8/8 SOĞUK** · test **1062 / 72** (1041 idi: −11 envanter,
+      +32 kural) · test:db **301/10** · kapsam **364/451 = %80,70 DEĞİŞMEDİ**
+      (ölçüldü: `coverage.include` `tools/*/src/**` istiyor, kural `src/` altında
+      değil ve `.js`/`.mjs` — ne kural ne testi paydaya giriyor; emekli edilen
+      araç da girmiyordu, silinmesi bu yüzden hiçbir şeyi oynatmadı).
+      **Mutasyon 4/4 · görünmez karakter 0.**
+      → `docs/reports/faz-05/5.5-*.md`
+- [x] **5.6** **`tools/i18n-check/` + `pnpm i18n:check` + CI.** Eksik anahtar ·
+      kullanılmayan anahtar (5.0'ın dinamik anahtar kararıyla) · boş çeviri.
+      Nöbetçi **negatif testle** kanıtlanır: kasten bozulmuş bir locale üzerinde
+      **kırılmalı**. `ci.yml`e adım eklenir ve adım kaldırılınca CI'nın gerçekten
+      kırıldığı ölçülür. 🆕 **AYNI COMMIT'TE `pnpm gaps:check` DE BAĞLANIR**
+      (yukarıdaki kapsam maddesi; bugün workflow'larda **0 eşleşme**) ve o da
+      aynı negatif testle kanıtlanır. ⚠️ **Betik kendi kopyasını denetlemez** —
+      4.1'in dersi: doğrulama betiği kendi kopyasına baktığı için bir mutasyona
+      hiçbir şey dememişti. → kriter 2
+      🆕 **GÖRÜNMEZ KARAKTER TARAMASI DA BURAYA DÜŞÜYOR** *(Faz 5.2'de ölçüldü)*
+      5.2'de gömülü `U+00A0` **dört ayrı dosyada** ortaya çıktı ve dördü de
+      *"bu karakteri açık yazacağım"* diye yazılırken oldu — biri tuzağı
+      **anlatan** başlığın altında, biri tuzağı **günlüğe kaydeden** satırın
+      içinde. Niyet hiç işe yaramadı çünkü karakter **görünmez**; tek çalışan
+      şey **koşan bir tarama** oldu (geçici betik, `0 dosya`).
+      `i18n-check` zaten `locales/**` dosyalarını okuyacak — doğal ev burası.
+      ⚠️ **Kural körü körüne "NBSP yasak" OLAMAZ:** bir çeviri metni bölünmez
+      boşluğu **meşru** olarak isteyebilir (sayı + birim). Tarama **kaynak
+      koda ve belgelere** bakar, `locales/**` içinde ise **rapor eder, kırmaz**.
+      🆕 **5.3'TE ESLint'İN NEREDE KÖR OLDUĞU ÖLÇÜLDÜ — nöbetçi buna göre
+      tasarlanır.** `no-irregular-whitespace` kuralı **zaten var ve çalışıyor**:
+      5.3'te bir **regex literalindeki** görünmez karakteri yakaladı. Ama 5.2'nin
+      sekiz NBSP'sini **görmemişti** ve sebep iki gözlemden çıkarıldı: onlar
+      **dize** içindeydi ve kuralın varsayılanı `skipStrings: true`.
+      → Yani boşluk şurada: **dizeler** (ESLint atlıyor) ve **`.md` dosyaları**
+      (ESLint hiç bakmıyor — 5.2'de dört dosyanın üçü `.md`ydi). `i18n-check`in
+      taraması bu iki yüzeyi hedefler; ESLint tarafında `skipStrings: false`
+      düşünülür ama o bir **ESLint yapılandırma kararı**, ölçülerek verilir.
+      **SONUÇ:**
+      🆕 **DÖRT DENETİM, HEPSİ İKİ YÖNLÜ:** eksik anahtar · kullanılmayan
+      anahtar · boş çeviri · gömülü görünmez karakter. Bugünkü ölçüm:
+      **59 tanımlı anahtar · 34'ü `t()` ile kullanılıyor · 3 dinamik ön ek ·
+      12 kaynak dosya · 301 dosya görünmez tarama** — ve *"temiz"* iddiası
+      ancak bu sayılar sıfırdan büyük olduğu için bir şey söylüyor (SAPMA-024,
+      ayrı bir testle iddia ediliyor).
+      🆕 **KAPI KENDİ YAZARINI YAKALADI — ilk koşu 8 "kullanılmayan" bildirdi
+      ve YARISI GERÇEKTİ.** Dördü (`errors:boundary.*`) aracın kusuruydu:
+      anahtarlar `t()`ye bir **prop** üzerinden gidiyor
+      (`<ErrorBoundary titleKey="boundary.screen">`). Dördü (`errors:status.*`)
+      **gerçek bir bulgu**: 5.4'te yazılan yedek ailenin bugün **sıfır
+      tüketicisi** var (`api.ts` hata gövdesini hiç parse etmiyor). ⚠️ Kolay yol
+      `errors:boundary.` ön ekini beyan etmekti ve **on** anahtarı birden
+      susturur, altısı gerçekten kullanılıyorken. Bunun yerine iki denetim
+      **iki ayrı çözümlemeye** ayrıldı: *eksik* namespace çözümü ister,
+      *kullanılmayan* yalnızca **atıf** ister. → günlük **#11**
+      🆕 **5.0'IN DİNAMİK ANAHTAR KARARI UYGULANDI, YENİDEN VERİLMEDİ.** Beyan
+      modülü (`apps/web/src/app/i18n-dynamic-keys.ts`) **yoktu** — ölçüldü:
+      depoda tek bir dinamik `t()` çağrısı yok, yani 5.4'ün *"ilk tüketici"*
+      notu gerçekleşmemişti. **İlk gerçek tüketici 5.6.** İkinci bir allowlist
+      **yazılmadı** (5.0 onu elemişti); tip kaçış yardımcısı ilk dinamik
+      çağrıyla **aynı dosyaya** gelecek. ⚠️ İlk yazımda üç aileden **ikisi**
+      yazıldı ve kapı eksiği buldu (günlük **#12**).
+      🆕 **`debugPanel.tab.*` BEYAN EDİLMEDİ, ÇÖZÜLDÜ.** O anahtarlar da `t()`ye
+      bir modül sabiti üzerinden gidiyor ama sabit **aynı dosyada** ve statik;
+      araç `t(TAB_LABEL_KEYS[id])` çağrısından bütün değerleri çıkarıyor.
+      **Çözülebilen bir şey beyan edilmez** — beyan, çözümün mümkün olmadığı
+      yerde kullanılır. ⚠️ Simetri yazılı: 5.5 ölçtü ki AST *"bu dize düz metin
+      mi?"* sorusuna cevap veremiyor; *"bu dize `t()`ye ulaşıyor mu?"* **başka
+      bir soru** ve AST'nin cevabı **var**.
+      🆕 **NBSP NÖBETÇİSİ BİR TUZAĞI ÖNCEDEN ÖLÇTÜ.** Dosya kümesi seçilmeden
+      **önce** deponun durumu ölçüldü (sonra ölçülseydi küme kapı yeşile
+      dönene kadar daraltılırdı): 349 izlenen dosyada gömülü **tek** karakter
+      `README.md`:11'deki `U+200D` ve o **meşru** — `🧑‍💻` bir emoji ZWJ dizisi.
+      Körü körüne *"ZWJ yasak"* diyen bir kural ilk koşuda ateşlenirdi. Kural
+      daraltıldı (ZWJ yalnızca iki komşusu da emoji ise geçer) ve **iki yönlü**
+      test edildi. Tarayıcının **öz denetimi** de koşuyor: dokuz kod noktasının
+      dokuzu da görülebiliyor — *"0 bulundu"* ile *"hiçbir şey aramadı"* aksi
+      hâlde ayırt edilemez.
+      🆕 **KÖR NOKTA (5.5'ten devralındı) KAPATILMADI — ve gerekçe bir ÖLÇÜM.**
+      Modül düzeyi metin sabitleri için anahtar-kümesi heuristiği ölçüldü:
+      `apps/web/src`te **17** sabit, **5'i** JSX'e akıyor, heuristik **3'ünü
+      yanlış** bildirirdi, **gerçek pozitif 0**. Bugün modül düzeyinde düz metin
+      taşıyan tek sabit JSX'e akmıyor. Boşluk **kabul edildi ve kütüğe evi
+      verildi** → **BORÇ-009** (Faz 6, ilk gerçek vakalar bileşenlerle gelecek).
+      🆕 **5.5'İN SAHİPSİZ GÖZLEMİ DE EVE TAŞINDI** → **BORÇ-010**: ölçüldü,
+      `no-hardcoded-path` kanaryası yalnızca 5.5'in **raporunda** yaşıyordu
+      (ROADMAP · kütükler · `SPEC-COVERAGE-GAPS` → 0 eşleşme).
+      **Kapılar:** typecheck **10/10 SOĞUK** · build **8/8 SOĞUK** · lint 0
+      (önbellek silinmiş) · format 0 · arch 9 kural · **test 1100 / 74**
+      (1062/72 idi: +34 araç, +4 beyan) · test:db 301/10 · gaps 20/3/17/0 ✗ ·
+      **i18n 4 denetim temiz** · kapsam **364/451 = %80,70 değişmedi**
+      (`tools/i18n-check/` `.mjs` ve `src/` altında değil → paydada yok, tıpkı
+      `arch-check` ve `bash-text-guard` gibi; beyan modülü ise `apps/*/src/**`
+      olduğu için **girdi** ve +1 ifadesi **kapsandı**).
+      **Mutasyon 7/7** — her birinin yerine oturduğu ayrıca doğrulandı.
+      → `docs/reports/faz-05/5.6-*.md`
+- [x] **5.7** **`docs/glossary.md`** — çekirdek `CLAUDE.md` §14'ün **77 terimi**
+      (sayıldı, başlık satırı hariç; biri `Regen` negatif girdisi). Eksik **≥43**
+      terim `docs/spec/02/03/04/07`den **toplanır, uydurulmaz** (SAPMA-026).
+      Sayı bir testle iddia edilir.
+      > ⚠️ **OTORİTE YÖNÜ DOSYA BAŞLIĞINA YAZILIR.** `glossary.md` **süperküme**dir
+      > ama §14 **kendi taşıdığı terimler için bağlayıcıdır**: çelişkide `CLAUDE.md`
+      > kazanır (otorite #1), glossary düzeltilir. Yazılmazsa *"hangisi doğru"*
+      > sorusu ilk çelişkide cevapsız kalır.
+      > ⚠️ **SENKRON TESTİ ÇİFT İDDİA EDER:** yalnızca *"77 terimin hepsi var"*
+      > demek yetmez — glossary aynı İngilizce terimi **farklı Türkçe karşılıkla**
+      > taşısa test yine geçerdi ve iki liste o gün ayrışmış olurdu. Test hem
+      > **varlığı** hem **Türkçe karşılığın birebir aynılığını** iddia eder.
+      > ℹ️ §14 **büyütülmez**: anayasa her oturumda otomatik yükleniyor, 120+ satır
+      > her oturumun sabit bağlam maliyetini artırırdı ve terimlerin çoğu
+      > (Faz 30–45'in alanı) o oturumlarda okunmuyor. → kriter 5
+      **SONUÇ:**
+      🆕 **`77 + 57 = 134` SIFIR KESİŞİM VARSAYIYORDU VE HİÇ ÖLÇÜLMEMİŞTİ.**
+      Kesişim programatik ölçüldü: **1** — `injuryProneness` (`HIDDEN_ATTRIBUTES`)
+      ile §14'ün `Injury Proneness | Sakatlığa Yatkınlık` satırı aynı terim.
+      Gerçek sayı **133**. Kriter etkilenmiyor (≥120) ama sayı düzeltildi ve
+      dedupe **sessiz bırakılmadı**: sözlükte terim **bir kez** yaşıyor,
+      çekirdek biçimiyle, ve bir test bunu adıyla iddia ediyor. → **SAPMA-040**
+      🆕 **5.0'IN SAYMADIĞI ÜÇ ENVANTER DAHA VAR** ve üçü de §14 ile **0
+      kesişimli**: `STAFF_ATTRIBUTES` (16) · `MANAGER_ATTRIBUTES` (8) ·
+      `POSITION_LEVELS` (5). Havuz aslında **162**. ⚠️ **Yazılmadılar (K12)** —
+      kriter 133 ile sağlanıyor ve Türkçe karşılıkları o niteliklerin ekrana
+      geldiği fazın işi. Sözlüğün §6'sı üçünü **adıyla ve sahibiyle** sayıyor,
+      yani gözlem raporda değil belgede yaşıyor.
+      🆕 **KAYNAK KOD, SPEC DEĞİL — ve bu ROADMAP'in cümlesiyle ÇELİŞMİYOR.**
+      Bu madde *"`docs/spec/02/03/04/07`den toplanır"* diyor; `spec/02`'nin
+      nitelikleri **hücre içinde** duruyor (`| Kategori | Nitelikler |`), elle
+      çıkarmak bayat bir envanter üretirdi. Kullanılan kaynak
+      `VISIBLE_ATTRIBUTES`/`HIDDEN_ATTRIBUTES` — ve bu sabitler **`spec/02`ye
+      karşı kendi testleriyle zaten sabitlenmiş** (`player-attributes.test.ts`
+      dört kategoriyi, adları ve **47**'yi; `player-hidden-attributes.test.ts`
+      **10**'u iddia ediyor). Yani koddan almak, spec'in **makine-okunur ve
+      testle çivilenmiş** izdüşümünden almaktır.
+      🆕 **TOPLANAN vs YAZILAN ayrı sayıldı:** İngilizce sütunun tamamı
+      **ölçüldü** (77 + 47 + 9); Türkçe karşılıkların **56'sı bu turda yazıldı**
+      (47 görünür + 9 gizli), çünkü `spec/02` nitelikleri yalnızca İngilizce
+      listeliyor (5.0'da ölçülmüştü). Bu SAPMA-026'ya aykırı değil — bir
+      sözlüğün tanımı gereği kendi alanı.
+      🆕 **SÖZLÜK ↔ LOCALE KARARI VERİLDİ, ve nöbetçi BU FAZDA YAZILMADI.**
+      Sözlük **sözleşme** (yukarı akış), `locales/tr/*.json` **çalışma zamanı
+      artefaktı** (aşağı akış); yön belgenin başlığında yazılı. ⚠️ Zorlayıcı
+      test yazılmadı çünkü bugün çakışma **yok** — `squad.json` boş (`{}`,
+      ölçüldü) ve bakacak bir şey bulamayan bir kontrol bir onay değildir
+      (SAPMA-024). Sahibi **Faz 18** ve oraya **kapsam maddesi olarak yazıldı**
+      (anahtar sözleşmesi o gün doğacak; bugün uydurmak Faz 18'in tasarımını
+      onun yerine sessizce vermek olurdu).
+      🆕 **BELGENİN OKUYUCUSU KURULDU** — `CLAUDE.md` belge haritasına
+      (okuyan fazlarla birlikte) ve `SESSION-TEMPLATE` §15.1'in Faz 5 satırına
+      eklendi. 4.0'ın ① bulgusunun sınıfı: okuyucusu olmayan bir belge
+      yazılmamış gibidir; atıf **hedef dosyada** aranır.
+      ⚠️ **İSİMLENDİRME STANDARDI: dil kuralı burada, BİÇİM tablosu değil.**
+      `CLAUDE.md` §1.3 zaten `kebab-case`/`PascalCase`/`snake_case` tablosunu
+      taşıyor; sözlük ona **atıf veriyor**, kopyalamıyor.
+      **Kapılar:** typecheck **10/10 SOĞUK** · build **8/8 SOĞUK** · lint 0 ·
+      format 0 ⚠️ *(`.md` `.prettierignore`da — glossary'ye BAKMADI)* ·
+      arch 9 · **test 1120 / 75** (1100/74 idi, **+20**) · test:db 301/10 ·
+      gaps 20/3/17/0 ✗ · **i18n:check 305 dosya temiz** (yeni Türkçe belgede
+      gömülü görünmez karakter **0**) · kapsam **364/451 = %80,70 değişmedi**
+      (`tools/glossary-check/` `.mjs` ve `src/` altında değil → paydada yok).
+      **Mutasyon 5/5**, her birinin yerine oturduğu ayrıca doğrulandı.
+      → `docs/reports/faz-05/5.7-*.md`
+- [x] **5.8** **G-13 kararı** — 🆕 **5.3'ÜN FİYAT NOTUNU ÖNCE OKU.**
+      5.3, 17 anahtarın Türkçe karşılığını `apps/web/src/locales/tr/common.json`a
+      yazdı ve bu G-13'ü **kapatmıyor** (üç seçenek de **arama** hakkında,
+      gösterim hakkında değil — gösterim her üç dünyada da JSON'dan gelir).
+      ⚠️ **Ama FİYATI değiştiriyor ve bu ölçüldü:** çeviri artık **yalnızca
+      istemci JSON'ında** yaşıyor. Seçenek ② (çevrilmiş adı taşıyan arama
+      tablosu) ve ③ (`displayName` sütunu) aynı dizeyi **veritabanında
+      kopyalamak** demek — yani `Süper Lig` iki yerde durur ve iki kopya bir gün
+      **ayrışır**. Bu, bu projenin en çok tekrarlanan hata sınıfı (BORÇ-008'in
+      dokuz kopyası · `spec/09` §11.5'in *"hiçbir kural iki yerde denetlenmez"*).
+      Seçenek ① (istemci tarafı arama) bu maliyeti **taşımıyor** ama arama
+      yükünü istemciye veriyor. **Karar 5.8'in, girdi 5.3'ün.**
+      — `competitions.name_key` / `rivalries.name_key` için
+      çeviri kaynağının **NEREDE yaşadığı**. Üç seçeneğin (istemci tarafı arama ·
+      çevrilmiş adı taşıyan arama tablosu · `nameKey`i tamamlayan `displayName`
+      sütunu) hangilerinin **mümkün** olduğu yazılır. ⚠️ **Mekanizma Faz 17'nin
+      işi** ve ⚠️ **ŞEMA DEĞİŞMEZ** — `competitions`/`rivalries` master tablolar,
+      bir migration Faz 12'nin zeminini etkiler. Yazılacak yerler:
+      `docs/ROADMAP.md` (Faz 5 + Faz 17) · `docs/SPEC-COVERAGE-GAPS.md` ·
+      `packages/db/src/schema/competitions.ts` (yalnızca yorum). → kriter 6
+      **SONUÇ:**
+      🆕 **FİYAT NOTU YENİDEN DOĞRULANDI — iki alt görev eskimişti ama TUTTU.**
+      Ölçüldü: `Süper Lig`/`Premier League` **yalnızca** `common.json`da
+      (11 anahtar); kalan eşleşmeler test iddiaları ve ek motoru fixture'ları,
+      üretim kaynağı değil. 🆕 **Ve 5.7'nin sözlüğü onları TAŞIMIYOR** (0
+      eşleşme) — çünkü özel ad bir terim değildir, yani `glossary.md`nin
+      *"yukarı akış sözleşmesi"* ilanı bu kararı etkilemiyor.
+      🆕 **KARAR: çeviri kaynağı TEK yerde yaşar** — `locales/tr/*.json`;
+      veritabanı **anahtarı** taşır, görünen **metni taşımaz**. 5.6'nın
+      `common:competition.` beyanı bunun i18n tarafındaki karşılığıydı; bu
+      karar veritabanı tarafını da adıyla bağlıyor.
+      🆕 **ÜÇ SEÇENEK: hepsi mümkün, ikisi ŞARTLI** — ② ve ③'ün metni
+      **türetilmiş** olmak zorunda + koşan bir tutarlılık kontrolü; elle
+      yazılan bir kopya karara aykırı. ③ ayrıca master **migration** ve
+      `spec/01` güncellemesi istiyor. ⚠️ **Mekanizma SEÇİLMEDİ** (K12): 5.8
+      *"veri nerede yaşıyor"* sorusunu kapattı, Faz 17 *"arama nasıl
+      uygulanacak"* sorusunu cevaplayacak.
+      🆕 **`rivalries` ÖLÇÜLDÜ VE ARAMA YARISINA GİRMİYOR.** Faz 17 **beş** tür
+      sayıyor (*oyuncu · kulüp · personel · lig · turnuva*) ve son ikisi de
+      `competitions` satırı. Ayrıca `rivalries.name_key` **nullable**
+      (`null` = adı yok, `spec/12` §17.4 paketin ad taşımadığını doğruluyor) ve
+      tablo **hiç seed edilmiyor** (0 satır) — yani orada sorun *"metin başka
+      yerde"* değil ***"metin hiç yok"***. Bir `display_name` sütunu onu
+      çözmezdi, boşluğu taşırdı. Bu olgu yalnızca `rivalries.ts`te
+      yaşayabileceği için **oraya da yorum yazıldı** (ROADMAP yalnızca
+      `competitions.ts`i listeliyordu — fark bilinçli, gerekçesiyle).
+      🆕 **G-13 SATIRI KAPATILMADI — ve gerekçe betiğin KENDİ sözleşmesi.**
+      `isClosed()` yalnızca `Durum` `KAPANDI`/`ÇÖZÜLDÜ` ile **başlarsa** kapalı
+      sayıyor ve kapalı satırı **tamamen atlıyor**. G-13 **iki** faza atanmış;
+      kapatmak Faz 17'nin yarısını kalıcı olarak denetimsiz bırakırdı — 4.11'in
+      koşan kontrolünün yakaladığı körlüğün aynısı. Emsal betiğin başlığında
+      yazılı: G-11 *"DARALDI — kapanmadı"*. Satır **Faz 17 mekanizmayı
+      seçtiğinde** kapanır. `gaps:check` sayıları **değişmedi: 20 · 3 · 17 · 0 ✗**
+      (ve sayıları sabitleyen bir test yok — arandı, bulunmadı).
+      **Kapılar:** ⚠️ **KOD YOK, ŞEMA YOK** — üretilen şey yorum ve belge.
+      Koşanlar: **gaps 20/3/17/0 ✗** · **i18n:check temiz** · typecheck 10/10 ·
+      lint 0 · format 0 · arch 9 · test 1120/75 · test:db 301/10 · kapsam
+      **364/451 = %80,70 değişmedi**. Mutasyon **koşturulmadı** ve gerekçesi
+      yazıldı (bu alt görev nöbetçi üretmiyor).
+      → `docs/reports/faz-05/5.8-*.md`
+- [x] **5.9** **Faz kapanışı** — süre ölçümü (§0.5) · yedi kriter tek tek ·
+      kapılar (`typecheck` **soğuk**) · faz kaydı (11 başlık) · `gaps:check` ·
+      CHANGELOG · PR → `develop`.
+      **SONUÇ:**
+      🆕 **§0.5 İKİ EŞİKLE ÖLÇÜLDÜ, İKİSİ DE AŞILMADI.** `84a6d5f`
+      (2026-09-02 23:12:53 +0300) → `fb7feff` (2026-09-04 05:27:50 +0300)
+      = **108.897 sn = 1,260 gün**. Eşik A (bölünme kontrol noktası, **2 gün**)
+      aşılmadı — 5.5'te de ölçülmüştü (0,859). Eşik B (**§0.5'in asıl sınırı,
+      3 gün**) aşılmadı, marj **1,740 gün**. Faz **22 commit**
+      (`84a6d5f..fb7feff`). ⚠️ **Bölünme çizgisi (5a/5b) çizilmişti ama
+      KULLANILMADI** — ateşlenmemesi de bir sonuçtur ve kaydedildi.
+      🆕 **BORÇ-009 ve BORÇ-010 FAZ 6'NIN KAPSAMINDA YOKTU — ölçüldü ve
+      düzeltildi.** İkisi de ROADMAP'te yalnızca **Faz 5** bölümünde geçiyordu
+      (5.6'nın SONUÇ bloğu). 4.11'in BORÇ-003/005 için bulduğunun **birebir
+      aynısı, bir faz sonra**. Faz 6'nın kapsamına **ödeyebildiği gösterilerek**
+      yazıldı: BORÇ-009'un ilk gerçek vakaları oradaki **28 bileşende** doğacak,
+      BORÇ-010'un işi 5.5'in kanaryasının kopyası.
+      🆕 **`docs/glossary.md` de Faz 6'nın kapsamına yazıldı.** 5.7 onu
+      `CLAUDE.md` belge haritasına eklemişti ama **fazın kendi kapsamında**
+      geçmiyordu — oysa bir oturum faz başında ROADMAP'in o bölümünü okuyor.
+      🆕 **PROSE TARAMASI — 6 aday ölçüldü, 2'si bayat çıktı ve düzeltildi:**
+      `CLAUDE.md` §2.2 `tools/` ağacı **altı dizinden ikisini** listeliyordu
+      (`arch-check` · `bash-text-guard` · `eslint-local-rules` · `glossary-check`
+      yoktu — üçü Faz 5'ten **önce** de eksikti) · §2.1 yığın tablosu
+      `i18next-browser-languagedetector`ı **hiç anmıyordu** (tablo başka
+      satırlarda eşlik paketlerini sayıyor). Güncel çıkanlar: `README.md` ·
+      `.env.example` · `SESSION-TEMPLATE` §15.1.
+      ⚠️ **ROADMAP'in "Ana dosyalar" bloğu BİLEREK GÜNCELLENMEDİ** — o bir
+      **plan** artefaktı ve sonradan yazmak, planın öngörmediği şeyi öngörmüş
+      gibi gösterirdi. Gerçekte üretilen dosyaların yeri faz kaydının **§9**'u.
+      🆕 **5.9 TALİMATI BAYAT DEĞİLDİ** (4.11'in tuzağı arandı): taşıdığı tek
+      sayı *"faz kaydı (11 başlık)"* ve `docs/spec/11` §12.1 **aynı sayıyı**
+      veriyor.
+      **Kapılar:** typecheck **10/10 SOĞUK** · build **8/8 SOĞUK** · lint 0 ·
+      format 0 · arch 9 · **test 1120/75** · test:db **301/10** ·
+      **gaps 20/3/17/0 ✗** · **i18n:check temiz** · kapsam **364/451 = %80,70**.
+      → `docs/reports/faz-05/5.9-*.md`
+
+> **BÖLÜNME ÇİZGİSİ (§0.5) — şimdiden çizildi, Faz 4'ün dersi.**
+> **5a** = 5.0-ön · 5.0 · 5.1 · 5.2 · 5.3 · 5.4 · 5.5 (altyapı + borçlar + nöbetçi #1)
+> **5b** = 5.6 · 5.7 · 5.8 · 5.9 (nöbetçi #2 + sözlük + G-13 + kapanış)
+> **Kontrol noktası 5.5 sonunda, TAHMİNLE DEĞİL ÖLÇÜMLE** (SAPMA-033: *"bir tahmin
+> listesi bir kontrol değildir"*): ilk commit → o anki commit farkı **2 günü
+> aşmışsa** bölünme ateşlenir, 5b ayrı dal + ayrı PR olur. Faz 4 **4,562 gün**
+> sürdü ve bölünme çizgisi hazır olduğu için ucuz oldu.
+>
+> ✅ **KONTROL NOKTASI KOŞTURULDU (5.5 sonunda) — SONUÇ: BÖLÜNME ATEŞLENMEDİ.**
+> Ölçüm (`git show -s --format=%ct`, tahmin değil):
+> ilk commit **`84a6d5f`** `2026-09-02 23:12:53 +0300` → 5.5'in içerik commit'i
+> **`e7d46ae`** `2026-09-03 19:50:13 +0300` = **74.240 sn = 0,859 gün**.
+> Eşik **2 gün**; **aşılmadı** (marj 1,141 gün). Faz boyunca **15 commit**.
+> **5b ayrı dal AÇILMIYOR** — 5.6…5.9 aynı dalda ve aynı PR'da devam eder.
+> ⚠️ **Bir kuralın ateşlenmemesi de bir sonuçtur ve bu yüzden yazıldı** (Faz 4'ün
+> dersi): kaydedilmezse *"kontrol edildi mi?"* sorusu bir sonraki fazda yeniden
+> doğar ve o gün cevabı kimse bilmez. §0.5 kuralının **kendisi değiştirilmedi**;
+> yalnızca koşturuldu ve sonucu kaydedildi.
 
 **Bağımlılık:** Faz 1
 
@@ -2218,6 +2984,36 @@ docs/glossary.md
   `arch:check` ile birebir aynı boşluk (Faz 1 Ç3). Burada ilk ölçülebilir ekran doğduğu
   için kurulumu buraya düşüyor. Faz 6'da ölçülebilen alt küme: DataTable render, ekran
   geçişi, üretim paketi boyutu. Kalan metrikler ilgili fazlarda eklenir; Faz 49 genişletir.
+
+- **🆕 FAZ 5'TEN DEVREDEN İKİ BORÇ — BORÇ-009 ve BORÇ-010** *(Faz 5.9'da eklendi)*
+  İkisi de 5.6'da açıldı, ödeme fazı olarak **Faz 6** yazıldı ve kütükte öyle
+  duruyor — ama 5.9'a kadar **bu fazın kapsamında hiç görünmüyorlardı**
+  (ölçüldü: `BORÇ-009`/`BORÇ-010` ROADMAP'te yalnızca Faz 5 bölümünde geçiyordu).
+  4.11'in BORÇ-003/005 için bulduğu şeyin **birebir aynısı, bir faz sonra**:
+  *"kapsam taşıması kütüğe kayıtla bitmez, hedef fazın kapsamında görünmeli."*
+  - **BORÇ-009** — K5 kapılarının **ortak kör noktası**: modül düzeyi metin
+    sabitleri (`const TAB_LABELS = { logs: 'Kayıtlar' }`) JSX'e render edilir,
+    kullanıcı görür, ne `local/no-bare-jsx-text` ne `i18n:check` yakalar.
+    ⚠️ **BU FAZ ONU ÖDEYEBİLİR ÇÜNKÜ İLK GERÇEK VAKALARI BURADA DOĞACAK:**
+    kapsamdaki **on alan-özel bileşen** (`AttributeBadge`, `FormIndicator`,
+    `MoraleIcon`, `PositionMap`…) ve **18 temel bileşen** etiket taşıyor.
+    5.6'da ölçülmüştü: bugün heuristik **3 yanlış pozitif, 0 gerçek pozitif**
+    veriyor — ölçülecek vaka yoktu. Bu fazda olacak. **İlk iş yeniden ölçmek**;
+    heuristik hâlâ 0 gerçek pozitif veriyorsa çözüm bir kapı değil bir
+    **bileşen inceleme disiplinidir** ve öyle yazılır (SAPMA-026).
+  - **BORÇ-010** — `local/no-hardcoded-path` kuralının **kablolama kanaryası
+    yok**: kural `eslint.config.js`ten sessizce kalksa `pnpm lint` **0 der**.
+    ⚠️ **BU FAZ ONU ÖDEYEBİLİR:** iş, 5.5'in `no-bare-jsx-text.test.mjs`teki
+    kanaryasının **birebir kopyası** (var olan bir dosyanın kimliği altında
+    `lintText` + `calculateConfigForFile`), ve bu faz `apps/web`e yüzlerce
+    dosya getirdiği için `basePath()` disiplini tam burada sınanacak.
+- **🆕 `docs/glossary.md` BU FAZIN OKUMA LİSTESİNDE** *(Faz 5.9'da eklendi)*
+  Bileşen etiketleri Türkçe yazılacak ve sözlük **bağlayıcı sözleşme**:
+  `AttributeBadge` bir niteliği gösterirken kullanacağı Türkçe karşılık orada
+  (56 nitelik + 77 çekirdek terim). ⚠️ `CLAUDE.md` belge haritası bu fazı zaten
+  okuyucu olarak sayıyordu, ama **fazın kendi kapsamında geçmiyordu** — ve bir
+  oturum faz başında ROADMAP'in bu bölümünü okuyor. Çelişkide **`CLAUDE.md`
+  §14 kazanır**, sözlük düzeltilir.
 
 **Kabul kriterleri:**
 - [ ] Storybook'ta 30+ bileşen, her biri koyu/açık temada çalışıyor
@@ -2868,6 +3664,34 @@ docs/glossary.md
   arama · ② çevrilmiş adı taşıyan bir arama tablosu · ③ `name_key`i tamamlayan bir
   `display_name` sütunu (③ seçilirse bir migration ve `docs/spec/01` güncellemesi gerekir).
   Karar gerekçesi `packages/db/src/schema/competitions.ts` yorumunda.
+  > 🆕 **FAZ 5'İN PAYI YAPILDI (5.8) — BU FAZ ARTIK VARSAYMAK ZORUNDA DEĞİL.**
+  > **Karar: çeviri kaynağı TEK yerde yaşar — `apps/web/src/locales/tr/*.json`;
+  > veritabanı ANAHTARI taşır, görünen METNİ taşımaz.** Ölçüldü (5.8):
+  > `Süper Lig`/`Premier League` yalnızca `common.json`da (11 anahtar), başka
+  > hiçbir üretim kaynağında yok — `docs/glossary.md` bile taşımıyor, çünkü
+  > özel ad bir terim değildir. 5.6 aynı mimariyi `i18n-dynamic-keys.ts`te
+  > `common:competition.` ön ekiyle zaten **beyan etmişti**.
+  >
+  > **Üç seçenek de MÜMKÜN, ama ikisi ŞARTLI — ve bu fark bu fazın girdisidir:**
+  >
+  > | | Durum | Bedel (ölçülmüş) |
+  > |---|---|---|
+  > | ① istemci tarafı arama | **şartsız** | kopya yok · indeks yok · migration yok. 5.3'te ölçüldü: çeviriler **statik paketleniyor**, istemcide zaten hepsi var. Bedel: arama yükü istemcide |
+  > | ② arama tablosu | **şartlı** | metin **türetilmiş** olmalı (locale'den projeksiyon) + ayrışmayı önleyen **koşan kontrol**. Elle yazılan kopya karara aykırı |
+  > | ③ `display_name` sütunu | **şartlı + ek bedelli** | ②'nin şartı **artı** master tabloda migration (Faz 12 zemini) + `docs/spec/01` güncellemesi |
+  >
+  > ⚠️ **5.8 MEKANİZMAYI SEÇMEDİ** (K12) — seçim bu fazın işi ve gerekçesi
+  > aşağıdaki kabul kriterine yazılır. Bugün 11 yarışma var; ölçek büyürse
+  > ①'in istemci yükü yeniden ölçülür.
+  >
+  > 🆕 **VE ARAMANIN KAPSAMI DARALDI: `rivalries` bu boşluğa GİRMİYOR.**
+  > Yukarıdaki beş tür *oyuncu · kulüp · personel · **lig · turnuva*** ve son
+  > ikisi de `competitions` satırıdır. G-13'ün metni `rivalries.name_key`i
+  > *"aynı sorun"* diye anıyor ve bu **sınıf** olarak doğru (görünen ad bir
+  > i18n anahtarı), ama bir **arama gereksinimi** olarak değil. Ölçüldü (5.8):
+  > o sütun **nullable** (`null` = adı yok) ve tablo **hiç seed edilmiyor**
+  > (0 satır) — orada sorun *"metin başka yerde"* değil *"metin hiç yok"*.
+  > Yani bu fazın kapatması gereken şey **tek bir tablo**: `competitions`.
 - **Klavye kısayolları:** `Space` devam et, `1-9` bölüm, `/` arama, `Esc` kapat, `Ctrl+S` manuel kayıt
 - Bildirim sistemi (toast + rozet)
 - Ekran geçiş animasyonları (ölçülü, "hareketi azalt" ayarına saygılı)
@@ -2879,9 +3703,27 @@ docs/glossary.md
   hale geldiği faz burası, kurulum buraya düşüyor. Kapsam: Playwright yapılandırması
   (masaüstü + 375px mobil projeleri), CI adımı, ve **tek** kritik akış (giriş → ana kabuk →
   bölüm gezinme). Tam senaryo paketi Faz 50'de kalır.
+- **🆕 `Intl` ÇIKTILARI GERÇEK BİR TARAYICIDA DOĞRULANIR** *(Faz 5.2'de ölçüldü)*
+  Faz 5.2'nin biçimlendiricileri (`€1,2 mn`, `23 Ağustos 2026`) **Node'un
+  ICU'suna** karşı doğrulandı: **ICU 78.3 · CLDR 48.0 · Unicode 17.0**. Ama
+  çıktı **tarayıcıda** görünecek ve tarayıcı **ayrı bir ICU** taşır — aynı
+  çağrı farklı bir dize üretebilir (özellikle kısaltma son ekleri `B`/`Mn`/
+  `Mr`/`Tn` ve ayırıcı **bölünmez boşluk U+00A0**).
+  ⚠️ **Bu doğrulama 5.2'de YAPILAMADI ve sebebi ölçüldü, varsayılmadı:** depoda
+  gerçek bir tarayıcı koşturan hiçbir kapı yok. `vitest.config.ts`'te yalnızca
+  **bir** proje `jsdom` kullanıyor (`apps/web`) ve **jsdom kendi ICU'sunu
+  getirmiyor** — aynı Node sürecinde koşuyor, `Intl` Node'un ICU'su. Ölçüldü:
+  jsdom ortamında `window` varken bile çıktı Node'unkiyle **birebir aynı**.
+  Yani bir jsdom testi bu riski **göremez**.
+  → Playwright burada kurulduğuna göre doğrulama da buraya düşüyor. **Kapsam
+  dar:** kriterin iki dizesi (`€1,2 mn` ve `23 Ağustos 2026`) gerçek tarayıcıda
+  üretilip **kod noktalarıyla** karşılaştırılır. Ayrışma çıkarsa bu bir hata
+  değil bir **karar** açar: son işlem katmanı mı genişler, yoksa dize mi
+  gevşetilir.
 
 **Kabul kriterleri:**
 - [ ] 12 bölüm arasında gezinme masaüstü ve mobilde sorunsuz
+- [ ] **`Intl` çıktıları gerçek tarayıcıda doğrulandı** — `€1,2 mn` ve `23 Ağustos 2026` kod noktalarıyla karşılaştırıldı; ayrışma varsa kararı yazılı *(Faz 5.2'den taşındı)*
 - [ ] `pnpm test:e2e` çalışıyor; ilk kritik akış hem masaüstü hem 375px projesinde yeşil, CI'da koşuyor *(G-02)*
 - [ ] Inbox 500 mesajda akıcı, filtre < 100 ms
 - [ ] Arama "besiktas" yazınca "Beşiktaş" buluyor, sonuç < 150 ms
@@ -2907,6 +3749,20 @@ docs/glossary.md
 **Kapsam:**
 - **Sekmeler:** İlk 11 / Yedekler / Rotasyon / Tüm Oyuncular / Genç Takım / Kiralıktakiler / Kadro Dışı
 - **DataTable yapılandırması:** 60+ seçilebilir sütun gruplandırılmış (Kimlik, Sözleşme, Nitelikler, İstatistik, Durum, Değer)
+- **🆕 NİTELİK ETİKETLERİ `docs/glossary.md`DEN GELİR — VE AYRIŞMAYI ÖNLEYEN NÖBETÇİ BU FAZDA YAZILIR** *(Faz 5.7'de eklendi)*
+  Sözlük **56 nitelik** için Türkçe karşılığı zaten tanımlıyor (`finishing` →
+  *Bitiricilik* gibi) ve **sözleşme odur**; `locales/tr/squad.json` ise
+  **çalışma zamanı artefaktı**. Bu faz o dizeleri `locales`e ilk yazan faz,
+  yani **iki listenin ilk kez aynı anda var olduğu** an burası.
+  ⚠️ **Nöbetçi 5.7'de YAZILMADI ve sebebi ölçüldü:** o gün `squad.json` boş
+  (`{}`) — bakacak bir şey bulamayan bir kontrol bir onay değildir (SAPMA-024),
+  ve anahtar adlandırma sözleşmesi (`attribute.<camelCase>` gibi) henüz
+  yoktu. Onu 5.7'de uydurmak, bu fazın tasarımını **onun yerine sessizce**
+  vermek olurdu.
+  **Yapılacak:** anahtar sözleşmesi seçildikten sonra koşan bir test —
+  sözlükteki her nitelik karşılığı ile `squad.json`daki değer **birebir aynı**
+  olmalı; ayrışırsa `pnpm test` kırılır. Emsal: `tools/glossary-check`in
+  `CLAUDE.md` §14 eşleşme testi (anahtar **ve** değer).
 - **Hazır görünümler:** Genel, Nitelikler, Sözleşme, İstatistik, Antrenman, Sağlık + kullanıcı tanımlı kayıtlı görünümler
 - Renk kodlama: nitelik ısı haritası, form göstergesi (G/B/M), moral ikonu, kondisyon çubuğu, sakatlık işareti, ceza işareti, uygunluk (kadro kaydı)
 - Sıralama, çoklu filtre, hızlı arama, sütun sürükleme, sütun genişliği kaydı
@@ -3822,6 +4678,23 @@ docs/glossary.md
 - **Sonuç seviyeleri:** Çok Olumlu / Olumlu / Nötr / Olumsuz / Çok Olumsuz → moral, ilişki puanı, `Determination`, soyunma odası etkisi
 - **Risk göstergesi (S140):** ton seçmeden önce ipucu ("Bu oyuncu Kararsız kişilikte — sert eleştiri ters tepebilir"). Sonuç yine de garanti değil.
 - **Toplam varyasyon hedefi:** 80 durum × 6 ton × 25 kişilik × bağlam ≈ **2.000+ benzersiz sonuç metni**
+- **🆕 TÜRKÇE EK MOTORUNA YÖNELME / BULUNMA / AYRILMA HÂLLERİ EKLENİR** *(Faz 5.1'de ölçüldü)*
+  `packages/shared/src/i18n/turkish-suffix.ts` Faz 5.1'de **yalnızca tamlayan
+  (ilgi) hâlini** uyguladı ve bu bilinçliydi: Faz 5 kabul kriteri 3'ün beş
+  örneğinin **beşi de** tamlayan hâliydi, fazlası K12 ihlali olurdu.
+  Diyalog metinleri `Galatasaray'a` (yönelme), `Beşiktaş'ta` (bulunma),
+  `Trabzon'dan` (ayrılma) isteyecek — **tüketici bu faz**.
+  ⚠️ **API buna kapatılmadı ve bu ölçülebilir:** ekler bir `switch` değil bir
+  **veri tablosu** (`CASE_SUFFIXES`, `hâl → bitiş türü → uyum sınıfı`) ve ünlü
+  uyumu çözücüsü (`resolveEnding`) paylaşılıyor. Yeni hâl eklemek bir **satır**.
+  ⚠️ **AMA BULUNMA/AYRILMA BİR ŞEY DAHA İSTİYOR: ünsüz sertleşmesi.**
+  `Beşiktaş'ta` doğru, `Beşiktaş'da` yanlış — yani `afterConsonant` o gün ikiye
+  ayrılır (`afterVoicedConsonant` / `afterVoicelessConsonant`) ve sert ünsüz
+  kümesi (`f ş ç k t s h p`) yazılır. Tablo şekli buna hazır: **yeni bir anahtar
+  eklenir, var olan satırlar değişmez**. Tamlayan hâli sertleşmeden etkilenmiyor
+  çünkü eki ünlüyle ya da `n` ile başlıyor — bu yüzden 5.1'de gerekmedi.
+  ⚠️ `PRONUNCIATION_OVERRIDES` tablosu da büyüyecek (yazım ≠ okunuş); büyümesi
+  bir **veri** işidir, kod değil.
 - **Soyunma odası sistemi (S141):**
   - Takım morali (bireysel morallerin ağırlıklı ortalaması + lider oyuncuların etkisi)
   - Klik oluşumu: uyruk, dil, yaş, kişilik benzerliğine göre gruplar

@@ -6,6 +6,61 @@ sürümleme: [Semantic Versioning](https://semver.org/lang/tr/).
 
 ## [Yayınlanmamış]
 
+### Eklendi — Faz 5: i18n Altyapısı ve Terim Sözlüğü
+
+- **Çeviri katmanı** — `i18next 26.4.1` + `react-i18next 17.0.13` +
+  `i18next-browser-languagedetector 8.2.1`, **on namespace**, kaynaklar
+  **statik paketleniyor** (geç yükleme yok, `Suspense` gerekmiyor). i18n bir
+  **önyükleme ön koşulu**: kurulum başarısızsa React **hiç monte edilmiyor** —
+  gerekçe ölçüldü, i18next bozuk yapılandırmada **fırlatmıyor**, sessizce
+  `undefined` bırakıyor (bir `try/catch` göremezdi)
+- **Tipli anahtarlar** (`CustomTypeOptions`) — yanlış yazılmış bir **literal**
+  anahtar `pnpm typecheck`i kırıyor; **iki yönlü** bir kontrol deneyiyle
+  kanıtlandı (yanlış anahtar → `TS2345`, doğru anahtar → geçti)
+- **Türkçe ek motoru** (`packages/shared/src/i18n/turkish-suffix.ts`) — ünlü
+  uyumu + son harf analizi, **57 vaka** (eşik 50), dağılım **tek tek sabit**.
+  🆕 **Yabancı adlarda yazım ≠ okunuş**: `Premier League` ve `FA Cup` gerçek
+  seed adlarıyla çapraz doğrulamada **ısırdı** → `PRONUNCIATION_OVERRIDES`
+- **`Intl` biçimlendiriciler** — tarih `23 Ağustos 2026`, para `€1,2 mn`.
+  Ayırıcı **bölünmez boşluk** (`U+00A0`) ve testte **kod noktalarıyla** iddia
+  ediliyor; zaman dilimi **varsayılmıyor** (`UTC`, makineden okunmuyor)
+- **`local/no-bare-jsx-text` ESLint kuralı (K5)** — JSX'te çıplak metin
+  `error`. ⚠️ Ad ölçümle düzeltildi (`no-hardcoded-turkish` değil): kural
+  **dile bakamaz** — `Tekrar dene` hiçbir Türkçe karakter taşımıyor,
+  `api prefix` İngilizce ve yine ihlal. **Kanarya gerçek depoda**: gerçek
+  `eslint.config.js` çözülüp var olan bir dosyanın **kimliği** altında lint
+  ediliyor, yani kural sökülürse/`off` olursa bir test kırılıyor
+- **`pnpm i18n:check` + CI adımı** — eksik anahtar · kullanılmayan anahtar ·
+  boş çeviri · **gömülü görünmez karakter** (`.md` dahil; `locales/**` içinde
+  rapor eder, kırmaz). ⚠️ ZWJ **iki emoji arasında meşru** ve bu bir ölçümün
+  sonucu: kural daraltılmasaydı `README.md`nin emoji dizisinde ilk koşuda
+  ateşlenirdi
+- **`pnpm gaps:check` CI'a bağlandı** — 4.11'den beri hiçbir workflow'da
+  yoktu; kapının kendi gerekçesi (*"kontrol koşan bir adımdır, bir temenni
+  değil"*) başına gelmişti
+- **`docs/glossary.md`** — **133 terim** (çekirdek 77 + görünür nitelik 47 +
+  gizli nitelik 9). Sayı **belgede yazmıyor**, dosyayı **ayrıştıran bir
+  testte** yaşıyor; `CLAUDE.md` §14 eşleşmesi **anahtar ve değer** iddia
+  ediyor
+- **G-13 karara bağlandı** — çeviri kaynağı **tek yerde** yaşar
+  (`locales/tr/*.json`); veritabanı **anahtar** taşır, görünen **metni
+  taşımaz**. Üç arama seçeneği de mümkün, **ikisi şartlı** (metin türetilmiş
+  olmalı). Mekanizma **Faz 17'nin**; şema **değişmedi**
+
+### Değiştirildi — Faz 5
+
+- `ErrorBoundary`in `title` propu **`titleKey`e** dönüştü — çağrı yerinin de
+  K5'e uyması artık **tip seviyesinde zorunlu**
+- Hata gövdesinden **`message` alanı çıkarıldı** (`MESSAGE_BY_KIND` silindi);
+  tüketicisi **sıfır**dı ve bu ölçüldü — `api.ts` hata gövdesini hiç parse
+  etmiyor
+
+### Kaldırıldı — Faz 5
+
+- `tools/i18n-inventory/` — 5.4'te yazıldı, **5.5'te emekli edildi**: aynı işi
+  yapan ikinci bir kod yolu bir gün ayrışır. Emeklilikten **önce** iki
+  uygulamanın anlaştığı tarihsel korpusta ölçüldü: **33 = 33**, dosya dosya
+
 ### Eklendi — Faz 4: Veritabanı Şeması II — Oyuncu, Sözleşme, Personel
 
 - **11 master tablo daha** (`people` · `players` · `player_attributes` (47

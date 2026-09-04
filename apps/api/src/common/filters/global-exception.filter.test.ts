@@ -21,11 +21,9 @@ import { describe, expect, it } from 'vitest';
 import {
   describeUnknown,
   GlobalExceptionFilter,
-  MESSAGE_BY_KIND,
   resolveException,
   STATUS_BY_KIND,
   UNEXPECTED_CODE,
-  UNEXPECTED_MESSAGE,
 } from './global-exception.filter.js';
 
 /**
@@ -119,13 +117,11 @@ describe('STATUS_BY_KIND — her ErrorKind eşlenmiş', () => {
     // tip gevşetilirse burada kırılır.
     for (const kind of Object.values(ERROR_KINDS)) {
       expect(typeof STATUS_BY_KIND[kind]).toBe('number');
-      expect(typeof MESSAGE_BY_KIND[kind]).toBe('string');
     }
   });
 
   it('tablo fazladan anahtar TAŞIMIYOR', () => {
     expect(Object.keys(STATUS_BY_KIND).sort()).toEqual(Object.values(ERROR_KINDS).sort());
-    expect(Object.keys(MESSAGE_BY_KIND).sort()).toEqual(Object.values(ERROR_KINDS).sort());
   });
 
   it('her hata sınıfı beklenen durum koduna düşüyor', () => {
@@ -203,7 +199,7 @@ describe('bilinmeyen hata: gövdede İÇ AYRINTI YOK', () => {
     expect(body).not.toContain('TypeError');
     expect(captured.body?.['context']).toBeUndefined();
     expect(captured.body?.['stack']).toBeUndefined();
-    expect(captured.body?.['message']).toBe(UNEXPECTED_MESSAGE);
+    expect(captured.body?.['message']).toBeUndefined();
   });
 
   it('aynı ayrıntı LOGDA var — bilgi kaybolmuyor, yer değiştiriyor', () => {
@@ -232,7 +228,7 @@ describe('gövde sözleşmesi: code + Türkçe mesaj + status', () => {
 
     expect(captured.body?.['code']).toBe('transfer.budgetExceeded');
     expect(captured.body?.['status']).toBe(409);
-    expect(captured.body?.['message']).toBe(MESSAGE_BY_KIND.domain);
+    expect(captured.body?.['message']).toBeUndefined();
   });
 
   it('GELİŞTİRİCİ mesajı gövdeye SIZMIYOR', () => {
@@ -298,20 +294,20 @@ describe('HttpException 500e çevrilmiyor — anlamlı durum korunuyor', () => {
 
     expect(captured.status).toBe(404);
     expect(captured.body?.['code']).toBe('http.404');
-    expect(captured.body?.['message']).toBe(MESSAGE_BY_KIND.notFound);
+    expect(captured.body?.['message']).toBeUndefined();
   });
 
   it('403 → yetki metni', () => {
     const { captured } = runFilter(new HttpException('yok', HttpStatus.FORBIDDEN));
     expect(captured.status).toBe(403);
-    expect(captured.body?.['message']).toBe(MESSAGE_BY_KIND.forbidden);
+    expect(captured.body?.['message']).toBeUndefined();
   });
 
   it('5xx HttpException → genel metin, iç mesaj sızmıyor', () => {
     const { captured } = runFilter(new HttpException('iç detay', HttpStatus.BAD_GATEWAY));
 
     expect(captured.status).toBe(502);
-    expect(captured.body?.['message']).toBe(UNEXPECTED_MESSAGE);
+    expect(captured.body?.['message']).toBeUndefined();
     expect(JSON.stringify(captured.body)).not.toContain('iç detay');
   });
 });

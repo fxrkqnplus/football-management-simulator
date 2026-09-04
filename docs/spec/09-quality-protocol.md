@@ -1274,6 +1274,31 @@ optimizasyonuydu**, yapısal bir sınır değil.
 **Sonuç:** çalışan iki hat var — `arch:check` **önler**, paket taraması
 **doğrular**. Faz kapanışlarında ikisi de koşulur.
 
+### ⚠️ SOĞUK BUILD RİTÜELİ SESSİZCE BOZULABİLİR — ölçüldü (Faz 5.1)
+
+*"`.turbo/cache` silinir, `Cached: 0` doğrulanır"* ritüeli **uygulandığı hâlde**
+soğuk olmayan bir build üretebilir. Ölçüm:
+
+| Sıra | `pnpm build` çıktısı |
+|---|---|
+| cache sil → **`pnpm typecheck`** → `pnpm build` | `Cached: **2** cached, 8 total` |
+| cache sil → `pnpm build` | `Cached: **0** cached, 8 total` (8,16 s) |
+
+**Sebep `turbo.json`da yazılı:** `typecheck` görevi `dependsOn: ["^build"]`
+taşıyor. Araya giren `pnpm typecheck`, upstream paketlerin **`build`
+görevlerini** koşturuyor ve onları önbelleğe yazıyor; sonraki `pnpm build`
+o girdileri hazır buluyor.
+
+**Kural:** soğukluk, **cache'in silinmesiyle** değil **komutun kendi çıktısıyla**
+iddia edilir. Cache, ölçülecek kapıdan **hemen önce** silinir; iki kapı da soğuk
+isteniyorsa **ikisi için ayrı ayrı** silinir ve **ikisinin de** `Cached: 0`
+satırı okunur.
+
+⚠️ Bu D2'nin (*"ölçüm aracı da yanlış cevap üretebilir"*) build tarafındaki
+biçimi ve SAPMA-011'in akrabası: orada turbo **silinmiş çıktıyı geri
+yüklüyordu**, burada **çalıştırılmamış bir görevi çalışmış gibi gösteriyor.**
+İkisinde de yanlış olan şey turbo değil, **çıktının okunma biçimi**.
+
 > ⚠️ **Kontrol deneyi yaparken import'u KULLAN.** Yalnızca `import` yazıp
 > kullanmamak (`void loadEnv;`) ağaç sarsmaya siler ve paket **bayt bayt aynı**
 > kalır — deney "sızıntı yok" der ve yanlış güven üretir. 2.2a'da tam olarak bu

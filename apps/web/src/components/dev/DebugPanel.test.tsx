@@ -1,7 +1,10 @@
 import { ASSERTION_MODES, configureAssertions, resetAssertionsForTests } from '@fms/shared';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createI18n } from '../../app/i18n.js';
 import { LOG_BUFFER_CAPACITY, resetLogBufferForTests } from '../../lib/log-buffer.js';
 import { createBrowserLogger } from '../../lib/logger.js';
 import { DebugPanel, DEV_PANEL_SENTINEL } from './DebugPanel.js';
@@ -40,6 +43,19 @@ afterEach(() => {
   resetLogBufferForTests();
   resetAssertionsForTests();
 });
+
+/**
+ * WARN: SAGLAYICI GERCEK — sahte bir `t` KULLANILMIYOR (5.4).
+ *
+ * Sahte bir ceviri fonksiyonu testi gecirirdi ama gercek anahtarlarin
+ * `locales/tr/**` icinde VAR OLDUGUNU kanitlamazdi: eksik bir anahtar sahte
+ * `t` ile fark edilmez. Gercek ornekle eksik anahtar ekranda ANAHTARIN
+ * KENDISI olarak gorunur ve test kirilir.
+ */
+const i18n = createI18n();
+
+const render = (ui: ReactElement): ReturnType<typeof rtlRender> =>
+  rtlRender(<I18nextProvider i18n={i18n}>{ui}</I18nextProvider>);
 
 describe('görünürlük ve kısayol', () => {
   it('başlangıçta KAPALI — panel gövdesi yok', () => {

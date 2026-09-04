@@ -46,10 +46,22 @@ import { LOGGER } from '../tokens.js';
  * şey istedi), yığın izi orada gürültüdür ve dosya yollarını sızdırır.
  *
  * ── GÖVDEDE NE VAR, NE YOK ───────────────────────────────────────────────
- * Bilinen `AppError` → `{ code, message, context, correlationId, status }`
- * Bilinmeyen her şey → `{ code: 'error.unexpected', message, correlationId,
- *                         status: 500 }` — **context YOK, yığın izi YOK,
- *                         iç mesaj YOK.**
+ * Bilinen `AppError` → `{ status, code, context, correlationId }`
+ * Bilinmeyen her şey → `{ status: 500, code: 'error.unexpected', correlationId }`
+ *                      — **context YOK, yığın izi YOK, iç mesaj YOK.**
+ *
+ * ⚠️ **`message` ALANI 5.4'TE GÖVDEDEN ÇIKARILDI — BORÇ-005 ÖDENDİ.**
+ * Bu bir **API yüzeyi değişikliğidir** ve sessizce yapılmadı: alan Türkçe
+ * kullanıcı metni taşıyordu (`MESSAGE_BY_KIND`) ve K5 onu koda gömülü sabit
+ * metin sayıyordu. Borcun kütükteki çözümü de buydu: *"tablo silinir ve
+ * istemci `t('errors:' + code, context)` ile üretir."*
+ * ⚠️ **TÜKETİCİSİ SIFIRDI — ölçüldü, varsayılmadı.** İlk okumada
+ * `apps/web/src/lib/api.ts`in alanı kullandığı sanıldı; kaynak takip edilince
+ * görüldü ki o dosya hata gövdesini **hiç parse etmiyor**: `response.json()`
+ * yalnızca **başarı** yolunda çalışıyor, hata yolunda ondan önce fırlatılıyor.
+ * İstemcinin geliştirici mesajı zaten `status` + `method` + `url`den kuruluyor.
+ * Yani bu bir API yüzeyi değişikliği ama **kırdığı hiçbir çağrı yeri yok**
+ * (tek depo, tek istemci, sıfır tüketici).
  *
  * `context`in bilinen hatalarda gövdeye girmesi bilinçli: 2.1'in sözleşmesi
  * `code` + `context` ve Faz 5 istemcide `t('errors:' + code, context)`
@@ -112,7 +124,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     response.status(resolved.status).json({
       status: resolved.status,
       code: resolved.code,
-      message: resolved.message,
       ...(correlationId === undefined ? {} : { correlationId }),
       ...(resolved.context === undefined
         ? {}
@@ -155,40 +166,24 @@ export const STATUS_BY_KIND: Record<ErrorKind, number> = {
 };
 
 /**
- * `ErrorKind` → kullanıcıya gösterilecek genel Türkçe metin.
+ * ⚠️ `MESSAGE_BY_KIND` ve `UNEXPECTED_MESSAGE` **5.4'TE SİLİNDİ** — BORÇ-005.
  *
- * ⚠️ K5 BORCU — bu metinler koda gömülü (BORÇ-005). K5 arayüzde sabit Türkçe
- * metni yasaklıyor ama i18n Faz 5'te geliyor; 2.6'nın BORÇ-003'üyle aynı sınıf.
+ * İkisi de kullanıcıya gösterilen Türkçe metni koda gömüyordu. Sözleşmenin
+ * aslı zaten `code` + `context`ti ve tablo bir **yedekti**; artık metni istemci
+ * üretiyor: `t('errors:code.' + code, { defaultValue: t('errors:status.' + status) })`.
  *
- * Neden `AppError.message` KULLANILAMIYOR: o alan **geliştirici içindir**
- * (`errors.ts` başlığı: *"loga ve Sentry'ye gider, çevrilmez, kullanıcıya
- * gösterilmesi hedeflenmez"*). Doğrudan gövdeye konsaydı iç ayrıntı sızardı
- * ve çeviri hiç mümkün olmazdı.
- *
- * Bu tablo bir **YEDEK**. Sözleşmenin aslı `code` + `context`; Faz 5'te
- * istemci `t('errors:' + code, context)` yapacak ve bu metinler kullanılmayacak.
- * Genel tutulmalarının sebebi de bu: hataya özgü cümle `code` üzerinden gelir,
- * buradaki satır yalnızca çeviri gelene kadar ekranın boş kalmamasını sağlar.
+ * ⚠️ **YEDEK `kind` ÜZERİNE DEĞİL `status` ÜZERİNE KURULDU — SAPMA-038.**
+ * Doğal aday `kind`di ama ölçüldü: **`kind` gövdeye hiç girmiyor**, yalnızca
+ * log bağlamında var. İstemci onu göremiyor. `status` gövdede **var** ve
+ * `exceptionMessageFor` zaten tam olarak ona bakıyordu — o eşleme artık
+ * `apps/web/src/locales/tr/errors.json` içindeki `status.*` ailesi.
  */
-export const MESSAGE_BY_KIND: Record<ErrorKind, string> = {
-  validation: 'Gönderilen bilgi geçersiz. Lütfen alanları kontrol edip tekrar deneyin.',
-  domain: 'Bu işlem şu anki durumda yapılamıyor.',
-  notFound: 'İstenen kayıt bulunamadı.',
-  forbidden: 'Bu işlem için yetkiniz yok.',
-  engine: 'Beklenmeyen bir hata oluştu. Ekip bilgilendirildi.',
-  dataProvider: 'Veri kaynağına şu anda ulaşılamıyor. Lütfen daha sonra tekrar deneyin.',
-};
-
 /** Bilinmeyen hata gövdesinin kodu. i18n anahtarı biçiminde (CLAUDE.md §1.3). */
 export const UNEXPECTED_CODE = 'error.unexpected';
-
-/** Bilinmeyen hatanın kullanıcıya gösterilen metni. Ayrıntı YALNIZCA logda. */
-export const UNEXPECTED_MESSAGE = 'Beklenmeyen bir hata oluştu. Ekip bilgilendirildi.';
 
 interface ResolvedException {
   readonly status: number;
   readonly code: string;
-  readonly message: string;
   readonly kind: ErrorKind | 'http' | 'unknown';
   /** Geliştirici ayrıntısı — YALNIZCA loga gider. */
   readonly detail: string;
@@ -214,7 +209,6 @@ export function resolveException(exception: unknown): ResolvedException {
     return {
       status: STATUS_BY_KIND[error.kind],
       code: error.code,
-      message: MESSAGE_BY_KIND[error.kind],
       kind: error.kind,
       detail: error.message,
       context: error.context,
@@ -228,7 +222,6 @@ export function resolveException(exception: unknown): ResolvedException {
       // `http.404` gibi — i18n anahtarı biçimini koruyor, yani Faz 5'te
       // çevrilebilir ve bugün makine tarafından ayırt edilebilir.
       code: `http.${String(status)}`,
-      message: status >= 500 ? UNEXPECTED_MESSAGE : exceptionMessageFor(status),
       kind: 'http',
       detail: exception.message,
     };
@@ -237,21 +230,12 @@ export function resolveException(exception: unknown): ResolvedException {
   return {
     status: 500,
     code: UNEXPECTED_CODE,
-    message: UNEXPECTED_MESSAGE,
     kind: 'unknown',
     // ⚠️ `String(exception)` — `exception.message` DEĞİL. Fırlatılan şey bir
     // `Error` olmayabilir; `null.message` okunması filtrenin kendisini
     // düşürürdü ve o an hiçbir yanıt dönmezdi.
     detail: describeUnknown(exception),
   };
-}
-
-/** Nest'in kendi HTTP hataları için genel Türkçe metin (K5 borcu: BORÇ-005). */
-function exceptionMessageFor(status: number): string {
-  if (status === 404) return MESSAGE_BY_KIND.notFound;
-  if (status === 403) return MESSAGE_BY_KIND.forbidden;
-  if (status === 400) return MESSAGE_BY_KIND.validation;
-  return 'İstek işlenemedi.';
 }
 
 /**

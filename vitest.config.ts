@@ -162,6 +162,40 @@ export default defineConfig({
           include: ['*.test.mjs'],
         },
       },
+      {
+        // TERİM SÖZLÜĞÜ NÖBETÇİSİ (5.7). Kabul kriteri 5 burada yaşıyor —
+        // sayı prose'da değil, `docs/glossary.md`yi AYRIŞTIRAN bir testte.
+        //
+        // ⚠️ Ayrı bir `pnpm glossary:check` komutu ve CI adımı BİLEREK YOK:
+        // kriter *"sayı bir testle iddia edilir"* diyor ve `pnpm test` zaten
+        // CI'da koşuyor. Onuncu bir CI adımı eklemek kapsam genişletmek olurdu
+        // (K12) ve hiçbir şey kazandırmazdı.
+        test: {
+          name: 'glossary-check',
+          root: './tools/glossary-check',
+          environment: 'node',
+          include: ['*.test.mjs'],
+        },
+      },
+      {
+        // ÇEVİRİ KAYNAĞI KAPISI (5.6). Üç katman: saf çözümleme · sahte bir
+        // depoda NEGATİF testler (CLI alt süreç olarak, çıkış kodu okunuyor) ·
+        // `ci.yml`in bu kapıyı gerçekten koşturduğunu iddia eden KANARYA.
+        test: {
+          name: 'i18n-check',
+          root: './tools/i18n-check',
+          environment: 'node',
+          include: ['*.test.mjs'],
+        },
+      },
+      // ⚠️ `i18n-inventory` PROJESİ 5.5'TE KALDIRILDI — araç emekli edildi.
+      // 5.4'ün ihlal envanteri (`tools/i18n-inventory/`) ROADMAP'in kendi
+      // ifadesiyle *"kuralın prototipi"*ydi ve 5.5'te yerini gerçek kapıya
+      // (`local/no-bare-jsx-text`, `pnpm lint` içinde) bıraktı. Aynı işi yapan
+      // iki kod yolu bir gün ayrışır. Emeklilikten ÖNCE anlaşma ölçüldü:
+      // 5.4 öncesi dört dosya üzerinde iki uygulama da **33** ihlal buldu,
+      // dosya dosya aynı. Aracın sabitlediği negatif anlamlar kuralın kendi
+      // `valid[]` listesine taşındı.
     ],
 
     coverage: {
