@@ -2280,7 +2280,22 @@ docs/glossary.md
       hiç ölçülmemişti; kesişim **1** (`injuryProneness` ↔ `Injury Proneness`)
       → **133**. Terim bir kez yaşıyor, dedupe **adıyla** iddia ediliyor.
       → **SAPMA-040**. **Mutasyon 5/5** · `i18n:check` **305 dosya, temiz**
-- [ ] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)*
+- [x] **`competitions.name_key` / `rivalries.name_key` için çeviri kaynağının nerede yaşadığı KARARA BAĞLANDI ve Faz 17'nin üç seçeneğinden hangilerinin mümkün olduğu yazıldı** *(G-13)* — **5.8**; kriterin **İKİ yarısı da** (yarısı sağlanan bir kriter sağlanmamıştır).
+      ① **KARAR:** çeviri kaynağı **tek yerde** yaşar — `apps/web/src/locales/tr/*.json`;
+      veritabanı **anahtarı** taşır, görünen **metni taşımaz**. Bu bir tercih değil
+      bugünkü mimarinin adının konması: ölçüldü, adlar **yalnızca** `common.json`da
+      (11 anahtar) ve `docs/glossary.md` bile taşımıyor (özel ad terim değildir).
+      ② **ÜÇÜ DE MÜMKÜN, İKİSİ ŞARTLI:** ① istemci tarafı arama **şartsız** ·
+      ② arama tablosu **ancak metin TÜRETİLMİŞSE** + koşan tutarlılık kontrolü ·
+      ③ `display_name` ②'nin şartı **artı** master migration + `spec/01`.
+      ⚠️ **Mekanizma SEÇİLMEDİ** — o Faz 17'nin işi (K12); *"mümkün"* ile
+      *"seçildi"* arasındaki sınır bilerek çizildi.
+      🆕 **`rivalries` arama yarısına girmiyor** (beş tür sayıldı; ikisi de
+      `competitions`) ve sütunu **nullable** + tablo **0 satır** — orada sorun
+      *"metin hiç yok"*. Karar `rivalries.ts` yorumuna da yazıldı.
+      ⚠️ **G-13 satırı KAPATILMADI ve bu ölçülmüş bir karar:** `gaps:check`
+      kapalı bir satırı **tamamen atlıyor**, yani kapatmak Faz 17'nin yarısını
+      kalıcı denetimsiz bırakırdı. Sayılar değişmedi: **20 · 3 · 17 · 0 ✗**
 - [x] **BORÇ-003 ve BORÇ-005 ÖDENDİ** — **5.4**; **iki yarısı da** sağlandı (yarısı sağlanan bir kriter sağlanmamıştır). **BORÇ-003:** `ErrorBoundary` metinleri `t()`den geliyor ve `title` propu **`titleKey`e** dönüştü — çağrı yerinin de K5'e uymasını zorunlu kılıyor; `DebugPanel` de çevrildi (gerekçe **genişletildi**, çürütülmedi). **BORÇ-005:** `MESSAGE_BY_KIND` ve `UNEXPECTED_MESSAGE` **silindi**, `message` alanı gövdeden çıkarıldı, yedek `status.*` ailesine taşındı. ⚠️ **Kriter iki borç istedi, kapatılan DÖRT yer:** envanter `App.tsx` (19) ve `main.tsx` (2) ihlallerini de gösterdi ve 5.5'in kuralı `error` açılacağı için onlar da kapatıldı. **Ölçüm: envanter 33 → 0.** Kütükte ikisi de **kapalı** işaretli. **Mutasyon 3/3 · D5 10/10** (derlenmiş paket gerçekten çalıştırıldı, ekranda ham anahtar yok)
 
 **Alt görevler** *(faz açılışında ölçüldü, kullanıcı onayıyla 2026-09-02'de işlendi — K11)*
@@ -2828,7 +2843,7 @@ docs/glossary.md
       (`tools/glossary-check/` `.mjs` ve `src/` altında değil → paydada yok).
       **Mutasyon 5/5**, her birinin yerine oturduğu ayrıca doğrulandı.
       → `docs/reports/faz-05/5.7-*.md`
-- [ ] **5.8** **G-13 kararı** — 🆕 **5.3'ÜN FİYAT NOTUNU ÖNCE OKU.**
+- [x] **5.8** **G-13 kararı** — 🆕 **5.3'ÜN FİYAT NOTUNU ÖNCE OKU.**
       5.3, 17 anahtarın Türkçe karşılığını `apps/web/src/locales/tr/common.json`a
       yazdı ve bu G-13'ü **kapatmıyor** (üç seçenek de **arama** hakkında,
       gösterim hakkında değil — gösterim her üç dünyada da JSON'dan gelir).
@@ -2848,6 +2863,46 @@ docs/glossary.md
       bir migration Faz 12'nin zeminini etkiler. Yazılacak yerler:
       `docs/ROADMAP.md` (Faz 5 + Faz 17) · `docs/SPEC-COVERAGE-GAPS.md` ·
       `packages/db/src/schema/competitions.ts` (yalnızca yorum). → kriter 6
+      **SONUÇ:**
+      🆕 **FİYAT NOTU YENİDEN DOĞRULANDI — iki alt görev eskimişti ama TUTTU.**
+      Ölçüldü: `Süper Lig`/`Premier League` **yalnızca** `common.json`da
+      (11 anahtar); kalan eşleşmeler test iddiaları ve ek motoru fixture'ları,
+      üretim kaynağı değil. 🆕 **Ve 5.7'nin sözlüğü onları TAŞIMIYOR** (0
+      eşleşme) — çünkü özel ad bir terim değildir, yani `glossary.md`nin
+      *"yukarı akış sözleşmesi"* ilanı bu kararı etkilemiyor.
+      🆕 **KARAR: çeviri kaynağı TEK yerde yaşar** — `locales/tr/*.json`;
+      veritabanı **anahtarı** taşır, görünen **metni taşımaz**. 5.6'nın
+      `common:competition.` beyanı bunun i18n tarafındaki karşılığıydı; bu
+      karar veritabanı tarafını da adıyla bağlıyor.
+      🆕 **ÜÇ SEÇENEK: hepsi mümkün, ikisi ŞARTLI** — ② ve ③'ün metni
+      **türetilmiş** olmak zorunda + koşan bir tutarlılık kontrolü; elle
+      yazılan bir kopya karara aykırı. ③ ayrıca master **migration** ve
+      `spec/01` güncellemesi istiyor. ⚠️ **Mekanizma SEÇİLMEDİ** (K12): 5.8
+      *"veri nerede yaşıyor"* sorusunu kapattı, Faz 17 *"arama nasıl
+      uygulanacak"* sorusunu cevaplayacak.
+      🆕 **`rivalries` ÖLÇÜLDÜ VE ARAMA YARISINA GİRMİYOR.** Faz 17 **beş** tür
+      sayıyor (*oyuncu · kulüp · personel · lig · turnuva*) ve son ikisi de
+      `competitions` satırı. Ayrıca `rivalries.name_key` **nullable**
+      (`null` = adı yok, `spec/12` §17.4 paketin ad taşımadığını doğruluyor) ve
+      tablo **hiç seed edilmiyor** (0 satır) — yani orada sorun *"metin başka
+      yerde"* değil ***"metin hiç yok"***. Bir `display_name` sütunu onu
+      çözmezdi, boşluğu taşırdı. Bu olgu yalnızca `rivalries.ts`te
+      yaşayabileceği için **oraya da yorum yazıldı** (ROADMAP yalnızca
+      `competitions.ts`i listeliyordu — fark bilinçli, gerekçesiyle).
+      🆕 **G-13 SATIRI KAPATILMADI — ve gerekçe betiğin KENDİ sözleşmesi.**
+      `isClosed()` yalnızca `Durum` `KAPANDI`/`ÇÖZÜLDÜ` ile **başlarsa** kapalı
+      sayıyor ve kapalı satırı **tamamen atlıyor**. G-13 **iki** faza atanmış;
+      kapatmak Faz 17'nin yarısını kalıcı olarak denetimsiz bırakırdı — 4.11'in
+      koşan kontrolünün yakaladığı körlüğün aynısı. Emsal betiğin başlığında
+      yazılı: G-11 *"DARALDI — kapanmadı"*. Satır **Faz 17 mekanizmayı
+      seçtiğinde** kapanır. `gaps:check` sayıları **değişmedi: 20 · 3 · 17 · 0 ✗**
+      (ve sayıları sabitleyen bir test yok — arandı, bulunmadı).
+      **Kapılar:** ⚠️ **KOD YOK, ŞEMA YOK** — üretilen şey yorum ve belge.
+      Koşanlar: **gaps 20/3/17/0 ✗** · **i18n:check temiz** · typecheck 10/10 ·
+      lint 0 · format 0 · arch 9 · test 1120/75 · test:db 301/10 · kapsam
+      **364/451 = %80,70 değişmedi**. Mutasyon **koşturulmadı** ve gerekçesi
+      yazıldı (bu alt görev nöbetçi üretmiyor).
+      → `docs/reports/faz-05/5.8-*.md`
 - [ ] **5.9** **Faz kapanışı** — süre ölçümü (§0.5) · yedi kriter tek tek ·
       kapılar (`typecheck` **soğuk**) · faz kaydı (11 başlık) · `gaps:check` ·
       CHANGELOG · PR → `develop`.
@@ -3545,6 +3600,34 @@ docs/glossary.md
   arama · ② çevrilmiş adı taşıyan bir arama tablosu · ③ `name_key`i tamamlayan bir
   `display_name` sütunu (③ seçilirse bir migration ve `docs/spec/01` güncellemesi gerekir).
   Karar gerekçesi `packages/db/src/schema/competitions.ts` yorumunda.
+  > 🆕 **FAZ 5'İN PAYI YAPILDI (5.8) — BU FAZ ARTIK VARSAYMAK ZORUNDA DEĞİL.**
+  > **Karar: çeviri kaynağı TEK yerde yaşar — `apps/web/src/locales/tr/*.json`;
+  > veritabanı ANAHTARI taşır, görünen METNİ taşımaz.** Ölçüldü (5.8):
+  > `Süper Lig`/`Premier League` yalnızca `common.json`da (11 anahtar), başka
+  > hiçbir üretim kaynağında yok — `docs/glossary.md` bile taşımıyor, çünkü
+  > özel ad bir terim değildir. 5.6 aynı mimariyi `i18n-dynamic-keys.ts`te
+  > `common:competition.` ön ekiyle zaten **beyan etmişti**.
+  >
+  > **Üç seçenek de MÜMKÜN, ama ikisi ŞARTLI — ve bu fark bu fazın girdisidir:**
+  >
+  > | | Durum | Bedel (ölçülmüş) |
+  > |---|---|---|
+  > | ① istemci tarafı arama | **şartsız** | kopya yok · indeks yok · migration yok. 5.3'te ölçüldü: çeviriler **statik paketleniyor**, istemcide zaten hepsi var. Bedel: arama yükü istemcide |
+  > | ② arama tablosu | **şartlı** | metin **türetilmiş** olmalı (locale'den projeksiyon) + ayrışmayı önleyen **koşan kontrol**. Elle yazılan kopya karara aykırı |
+  > | ③ `display_name` sütunu | **şartlı + ek bedelli** | ②'nin şartı **artı** master tabloda migration (Faz 12 zemini) + `docs/spec/01` güncellemesi |
+  >
+  > ⚠️ **5.8 MEKANİZMAYI SEÇMEDİ** (K12) — seçim bu fazın işi ve gerekçesi
+  > aşağıdaki kabul kriterine yazılır. Bugün 11 yarışma var; ölçek büyürse
+  > ①'in istemci yükü yeniden ölçülür.
+  >
+  > 🆕 **VE ARAMANIN KAPSAMI DARALDI: `rivalries` bu boşluğa GİRMİYOR.**
+  > Yukarıdaki beş tür *oyuncu · kulüp · personel · **lig · turnuva*** ve son
+  > ikisi de `competitions` satırıdır. G-13'ün metni `rivalries.name_key`i
+  > *"aynı sorun"* diye anıyor ve bu **sınıf** olarak doğru (görünen ad bir
+  > i18n anahtarı), ama bir **arama gereksinimi** olarak değil. Ölçüldü (5.8):
+  > o sütun **nullable** (`null` = adı yok) ve tablo **hiç seed edilmiyor**
+  > (0 satır) — orada sorun *"metin başka yerde"* değil *"metin hiç yok"*.
+  > Yani bu fazın kapatması gereken şey **tek bir tablo**: `competitions`.
 - **Klavye kısayolları:** `Space` devam et, `1-9` bölüm, `/` arama, `Esc` kapat, `Ctrl+S` manuel kayıt
 - Bildirim sistemi (toast + rozet)
 - Ekran geçiş animasyonları (ölçülü, "hareketi azalt" ayarına saygılı)
