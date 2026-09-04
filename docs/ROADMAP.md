@@ -3017,7 +3017,7 @@ docs/glossary.md
 
 **Alt görevler** *(faz açılışında ölçüldü, kullanıcı onayıyla 2026-09-04'te işlendi — K11)*
 
-- [ ] **6.0** **Doğrulama alt görevi — KOD YOK, ÖLÇÜM VAR. Paket KURULMAZ.**
+- [x] **6.0** **Doğrulama alt görevi — KOD YOK, ÖLÇÜM VAR. Paket KURULMAZ.**
       ① **Tarayıcı yolu ölçülür.** Faz açılışında ölçüldü: `storybook@10.6.0`
       çekirdeği Playwright/Puppeteer/Chromium **taşımıyor** (0 eşleşme), ama her
       iki test yolu da taşıyor (`@storybook/test-runner@0.24.5` →
@@ -3164,7 +3164,32 @@ docs/glossary.md
       > *"`pnpm perf:budget` genişletmesi — **Faz 6'da kurulan kapıya** bu fazda
       > ölçülebilir hale gelen metrikler eklenir"* diyor, yani Faz 6'nın bir
       > **alt kümeyle** başlaması spec tarafından zaten bekleniyor.
-- [ ] **6.1** **BORÇ-010 ödenir — `local/no-hardcoded-path` kablolama kanaryası.**
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **DÖRT KARARIN SONUCU — kullanıcı onayı 2026-09-04, kayıt 6.1'de**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **① Tarayıcı → ② KORUNUR, dördüncü yol ALINMAZ.** Belirleyici olan
+      > **ölçülmemiş** bedel: Chromium'un `ubuntu-24.04-arm` üzerinde koştuğu
+      > doğrulanmadı ve K14 CI'ı iki mimaride koşturuyor. **Kurulabilirlik ile
+      > koşabilirlik ayrı ölçümlerdir.** ✅ Not **Faz 17'ye, G-02'nin yanına
+      > adıyla taşındı** — raporda kalsaydı sahibi olmazdı.
+      >
+      > **② `28 vs 30+` → KRİTER LİSTEYE ÇEVRİLDİ.** ✅ **SAPMA-041** açıldı.
+      > Eşleşme **çift yönlü**, envanter **tek yerde**; test **6.9**'da.
+      >
+      > **③ §11.6'ya paket boyutu satırı → EKLENDİ.** ✅ **SAPMA-042** açıldı.
+      > Bütçe biçimi **regresyon kapısı** (taban × 1,10), δ bir **kalibrasyon**
+      > olarak etiketlendi, taban **6.1'de yeniden ölçüldü** (`Cached: 0`):
+      > **380.908 bayt**.
+      >
+      > **④ Kriter 3 → FAZ 49**, ve **çıkarılan her yarı** için aynı işlem
+      > yapıldı. Üç metrik hedef fazlara **adıyla eklendi** (Faz 49: DataTable
+      > kaydırma fps'i · bileşen hikayelerinin görsel regresyonu · axe
+      > `color-contrast`), biri **zaten taşınıyordu** ve devri **görünür**
+      > yapıldı (Faz 18: kart modu render'ı), biri **zaten taşınıyordu**
+      > (Faz 49: renk körlüğü). Tablo kabul kriterlerinin altında.
+- [x] **6.1** **BORÇ-010 ödenir — `local/no-hardcoded-path` kablolama kanaryası.**
       Bugün kural `eslint.config.js`ten sessizce kalksa `pnpm lint` **0 der** ve
       hiçbir test bunu söylemez; 23 senaryoluk `RuleTester` testi kuralı **izole**
       koşturuyor (D3). İş 5.5'in `no-bare-jsx-text.test.mjs` kanaryasının
@@ -3172,6 +3197,57 @@ docs/glossary.md
       kimliği altında `lintText` + `calculateConfigForFile`. **Erken ödenir** —
       bu faz `apps/web` ve `packages/ui`ye yüzlerce dosya getiriyor ve
       `basePath()` disiplini tam burada sınanacak.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.1: BORÇ ÖDENDİ, VE BORCUN KENDİSİ MUTASYONLA KANITLANDI**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > `tools/eslint-local-rules/no-hardcoded-path.test.mjs`e **7 vakalık**
+      > kanarya eklendi (dosyanın kendi `RuleTester` süiti duruyor; iki katman
+      > **ayrı iddia**). `pnpm test` **1120 → 1127** (+7), dosya sayısı **75**
+      > değişmedi — kanarya var olan dosyaya eklendi.
+      >
+      > **BORCUN VARLIĞI ÖNCE KANITLANDI, sonra ödendi.** Kural
+      > `eslint.config.js`ten **sessizce** çıkarıldı (mutasyon ②):
+      > `pnpm lint` **exit 0** verdi ve hiçbir çıktı basmadı ·
+      > `eslint --print-config` → `local/no-hardcoded-path: **undefined**`,
+      > `local/no-bare-jsx-text: **[2]**` (**iki yönlü kontrol** — biri gitti,
+      > öbürü yerinde) · ve **yalnızca yeni kanarya kırıldı** (4 vaka),
+      > `no-bare-jsx-text`in kanaryası **etkilenmedi** (58 geçti).
+      > **6.1 öncesi bu mutasyon hiçbir şeyi kırmazdı** — BORÇ-010 tam olarak
+      > buydu.
+      >
+      > **MUTASYON 5/5 — ve her birinin yerine oturduğu AYRICA doğrulandı**
+      > (`grep -c` ile mutasyon sonrası sayım; geri alma **dosya yedeğinden**,
+      > `git checkout` ile **değil**; her geri alma **md5 ile** doğrulandı):
+      >
+      > | # | Mutasyon | Kırılan | Not |
+      > |---|---|---|---|
+      > | ① | kural `index.js`ten sökülür | **7** (4 yeni + 3 eski) | ⚠️ kaba: config **hiç yüklenmiyor**, ESLint kuralı eklentide bulamıyor — bu yüzden `no-bare-jsx-text`in kanaryası da kırılıyor |
+      > | ② | `error` → **kural satırı silinir** | **4** (yalnızca yeni) | **borcun asıl senaryosu**; `pnpm lint` 0 der |
+      > | ③ | `error` → `warn` | **4** | seviye nöbette |
+      > | ④ | yol `ignores`a eklenir | **3** | `lintText` hiç sonuç döndürmüyor |
+      > | ⑤ | muafiyet **genişler** (`**/lib/**`) | **2** | ürün kanaryası ötüyor |
+      > | ⑥ | muafiyet **tamamen kalkar** | **2** | ⚠️ **iki muafiyet vakası birden** — iki eksenin ayrı ayrı nöbette olduğunun kanıtı |
+      >
+      > **KOPYALANMADI, UYARLANDI** (4.8 idiomu) ve fark dosya başlığında yazılı:
+      > bu kuralın muafiyeti **İKİ EKSENLİ** — birim testler **ve yol TANIM
+      > YERLERİ** (`base-path.ts`, `server/env.ts`, `tools/eslint-local-rules/**`,
+      > `tools/arch-check/**`). `no-bare-jsx-text`in ikinci ekseni **yok**.
+      > *"Bir kuralın iki ekseni varsa, birini doğrulamak diğerini doğrulamaz"* →
+      > **iki ayrı muafiyet vakası**, ve mutasyon ⑥ ikisini birden kırdı.
+      > Ayrıca **iki darlık iddiası**: `*.spec.ts` muaf **değil** · muafiyet
+      > **tam yol**, gevşek bir `**/env.ts` deseni **değil** (config'in kendi
+      > uyarısı bunu adıyla istiyor).
+      >
+      > ℹ️ **Bu dosyanın kendisi muaf** (`tools/eslint-local-rules/**`) ama
+      > kanaryayı etkilemiyor: `lintText` yapılandırmayı **verilen `filePath`
+      > kimliğinden** çözüyor, dosyanın gerçek konumundan değil.
+      >
+      > **Kapsam paydası BÜYÜMEDİ — beklenti tuttu:** `364 / 451 = %80,70`,
+      > değişmedi. `tools/eslint-local-rules/` `coverage.include` deseninin
+      > (`tools/*/src/**`) dışında (`.mjs`, `src/` yok) — 5.5 ve 5.6 aynısını
+      > ölçmüştü.
 - [ ] **6.2** **Tasarım token'ları** — `spec/05` §7.1 (renk, koyu+açık),
       §7.2 (nitelik ısı skalası, 8 kademe), §7.3 (tipografi ölçeği),
       §7.4 (boşluk/geometri/z-index/animasyon) tek kaynakta. `ensureContrast()`
@@ -3245,14 +3321,39 @@ docs/glossary.md
       `DEPENDENCY-WATCH` sonuçları · `pnpm gaps:check` **koşturulur** ·
       `CHANGELOG.md` · PR `develop`a.
 
-**Kabul kriterleri:**
-- [ ] Storybook'ta 30+ bileşen, her biri koyu/açık temada çalışıyor
+**Kabul kriterleri** *(6.1'de daraltıldı — gerekçe ve çıkarılan yarıların tablosu aşağıda)*
+- [ ] **Storybook'ta, bileşen envanterindeki HER bileşenin hikayesi var** — ve eşleşme **çift yönlü**: envanterdeki her bileşenin hikayesi var **ve** hikayesi olan her bileşen envanterde. Envanter **tek yerde** yaşar, sayı prose'da değil ayrıştıran bir testte *(SAPMA-041)*
 - [ ] `pnpm perf:budget` çalışıyor ve **bütçe aşımında kırıyor** (negatif testle kanıtlanır) *(G-01)*
-- [ ] DataTable 10.000 satırda 55+ fps kaydırma
-- [ ] DataTable 375px genişlikte kart moduna geçiyor
-- [ ] Renk körlüğü modunda nitelik renkleri ayırt edilebiliyor
-- [ ] Tüm etkileşimli bileşenler sadece klavyeyle kullanılabiliyor
-- [ ] Kontrast denetimi (axe) → 0 ihlal
+- [ ] DataTable 375px'te **kart moduna geçme KARARINI** doğru veriyor — genişlik → mod fonksiyonu, saf birim testi *(render doğrulaması Faz 18'e taşındı)*
+- [ ] Nitelik ısı skalasının **8 kademesi**, renk körlüğünün **üç tipinde** WCAG AA kontrast aritmetiğiyle ayırt edilebiliyor *(ekranda ayırt edilebilirlik Faz 49'a taşındı)*
+- [ ] Tüm etkileşimli bileşenler sadece klavyeyle kullanılabiliyor — ⚠️ jsdom'da `scrollIntoView`/`hasPointerCapture` **yok**; hangi doldurmanın **neyi sahtelediği** yazılır
+- [ ] **axe → 0 ihlal, VE atlanan kurallar adıyla listeleniyor** — ⚠️ `color-contrast` jsdom'da **koşmuyor** (`var()` çözülmüyor, `getBoundingClientRect` 0×0); *"0 ihlal"* neyin denetlenmediğini söylemeden yazılmaz *(SAPMA-024)*
+
+> ### ⚠️ KRİTER DARALTMASI — çıkarılan her yarı ve HEDEFİNİN DOĞRULANMASI (6.1)
+>
+> **Neden:** 6.0 ölçtü — jsdom **30.0.1**'de `matchMedia` **undefined**,
+> `getComputedStyle()` `var()`i **çözmüyor**, `getBoundingClientRect()` **0×0**,
+> `ResizeObserver`/`IntersectionObserver`/`scrollIntoView`/`hasPointerCapture`
+> **yok**. Gerçek tarayıcı koşum takımı **Faz 17**'de (G-02) ve o faz onu
+> kapsamında taşıyor. *"Bir kriteri kısmen sağlamak sağlamamaktır"* — bu yüzden
+> kriterler **ikiye bölündü**, gevşetilmedi.
+>
+> | Eski kriter | Faz 6'da KALAN | ÇIKARILAN yarı | Hedef | Hedef bunu **adıyla** taşıyor mu? |
+> |---|---|---|---|---|
+> | *"30+ bileşen, koyu/açık temada **çalışıyor**"* | envanter ↔ hikaye **çift yönlü** eşleşmesi | **render doğrulaması** (iki temada gerçekten çiziliyor) | **Faz 49** | ✅ **6.1'de eklendi** — G-05 görsel regresyon paketine |
+> | *"DataTable 10.000 satırda **55+ fps**"* | — (**hiçbir yarısı** ölçülemiyor) | **tamamı** | **Faz 49** | ✅ **6.1'de eklendi** — `perf:budget` genişletme listesi **LCP · 2D fps · bellek · Lighthouse** diyordu, DataTable kaydırma fps'i **yoktu** (ölçüldü: 0 eşleşme) |
+> | *"375px'te kart moduna geçiyor"* | **karar fonksiyonu** (genişlik → mod) | **render** (gerçekten kart çiziliyor) | **Faz 18** | ✅ **zaten taşıyordu** — kapsam *"Mobil kart görünümü"*, kriter *"Mobilde kart görünümü kullanılabilir (tek elle)"*; 6.1'de devir **açıkça** işaretlendi |
+> | *"Renk körlüğünde ayırt edilebiliyor"* | **token kontrast aritmetiği** (8 kademe × 3 tip) | **ekranda** ayırt edilebilirlik | **Faz 49** | ✅ **zaten taşıyordu** — kapsam *"Renk körlüğü modu (protanopi/döteranopi/tritanopi)"*, kriter *"Renk körlüğü modunda tüm bilgi ayırt edilebilir"* |
+> | *"axe → 0 ihlal"* | jsdom'da **koşan** kurallar + **atlananların listesi** | **`color-contrast`** ve düzen isteyen kurallar | **Faz 49** | ✅ **6.1'de kural ADIYLA eklendi** — kapsam *"axe-core otomatik tarama"* diyordu ama `color-contrast`ı anmıyordu |
+>
+> ⚠️ **İki satır *"zaten taşıyordu"*, üçü **eklendi** — ve fark ölçüldü, varsayılmadı.**
+> *"Hedef faz yapabilir"* ile *"hedef faz adıyla taşıyor"* aynı şey değildir; bu tuzak
+> 4.11 (BORÇ-003/005) · 5.9 (BORÇ-009/010) · 6.0 (`@tanstack/react-table` watch satırı) ·
+> ve **burada Faz 49'un metrik listesi** ile **dört kez** ısırdı.
+>
+> ⚠️ **Kriter *"sadece klavyeyle"* DARALTILMADI** — RTL + `user-event` odak sırasını,
+> tuş dizisini ve `Esc` davranışını jsdom'da sınayabiliyor. Ama doldurmaların neyi
+> sahtelediği 6.8'de yazılır, yoksa geçen bir test tarayıcıda geçeceğini göstermez (D5).
 
 **Bağımlılık:** Faz 1, 5
 **Risk:** Bu faz 3 günü aşabilir → gerekirse 6a (token + temel bileşen) / 6b (alan bileşenleri + DataTable) olarak bölünür.
@@ -3933,6 +4034,22 @@ docs/glossary.md
   hale geldiği faz burası, kurulum buraya düşüyor. Kapsam: Playwright yapılandırması
   (masaüstü + 375px mobil projeleri), CI adımı, ve **tek** kritik akış (giriş → ana kabuk →
   bölüm gezinme). Tam senaryo paketi Faz 50'de kalır.
+  > ⚠️ **KURULUM ÖNCESİ İLK DOĞRULANACAK ŞEY: CHROMIUM `ubuntu-24.04-arm` ÜZERİNDE
+  > KOŞUYOR MU — ÖLÇÜLMEDİ** *(Faz 6.0'da bulundu, 6.1'de buraya taşındı)*
+  > Faz 6 tarayıcı yolunu değerlendirirken zinciri ölçtü ve **çözülüyor**:
+  > `@vitest/browser-playwright@4.1.11` → peer `vitest: 4.1.11` (tam eşleşme) +
+  > `playwright: '*'`; `playwright@1.62.1` `os`/`cpu` kısıtı taşımıyor.
+  > ⚠️ **Ama bu bir KURULABİLİRLİK ölçümü, bir KOŞABİLİRLİK ölçümü değil.**
+  > Chromium ikilisi npm paketinde **yok** — `playwright install` ile ayrı iniyor ve
+  > registry meta verisi onun `linux/arm64` durumunu **söylemiyor**.
+  > **Bu neden bu fazın sorunu:** `.github/workflows/ci.yml`in `Kalite kapıları` işi
+  > **matrix** ve K14 gereği QEMU **kullanmıyor** — `ubuntu-24.04` **ve** native
+  > `ubuntu-24.04-arm` üzerinde koşuyor. Bir tarayıcı adımı **ikisinde de** koşmalı;
+  > yalnızca amd64'te koşarsa kapı **kısmi** olur ve D3 yanılsaması üretir.
+  > → **G-02 kurulurken ilk iş bunu ölçmek.** Çıkmazsa karar açılır: adım arm64'te
+  > atlanır mı (ve atlandığı **yazılır** mı), yoksa başka bir tarayıcı mı seçilir.
+  > ℹ️ Bu not 6.0'ın raporunda kalsaydı **sahibi olmazdı** (*"raporda kalan bir
+  > gözlemin sahibi yoktur"*); ölçülmemiş bir bedel de bir gözlemdir.
 - **🆕 `Intl` ÇIKTILARI GERÇEK BİR TARAYICIDA DOĞRULANIR** *(Faz 5.2'de ölçüldü)*
   Faz 5.2'nin biçimlendiricileri (`€1,2 mn`, `23 Ağustos 2026`) **Node'un
   ICU'suna** karşı doğrulandı: **ICU 78.3 · CLDR 48.0 · Unicode 17.0**. Ama
@@ -4000,6 +4117,14 @@ docs/glossary.md
 - Toplu işlem: kadro dışı bırak, transfer listesine ekle, kiralık listesine ekle, antrenman ata
 - Sürükle-bırak: sekmeler arası oyuncu taşıma
 - **Mobil kart görünümü:** kritik 4 bilgi (portre, isim, mevki, reyting) + tıklamayla detay
+  > ⚠️ **FAZ 6'NIN KRİTERİNİN RENDER YARISI BURADA KAPANIR** *(6.1'de işaretlendi)*
+  > Faz 6'nın kriteri *"DataTable 375px genişlikte kart moduna geçiyor"* idi; o faz
+  > **karar fonksiyonunu** (genişlik → mod) saf birim testiyle kapattı, çünkü jsdom'da
+  > `window.matchMedia` **undefined** ve `getBoundingClientRect()` **0×0** (6.0'da
+  > ölçüldü) — yani *"gerçekten kart çiziliyor mu"* orada sorulamıyordu.
+  > ℹ️ **Bu faz onu zaten taşıyordu** (yukarıdaki kapsam satırı + kabul kriteri
+  > *"Mobilde kart görünümü kullanılabiliyor (tek elle)"*) — eklenen şey yeni bir iş
+  > değil, devrin **görünür** olması. Faz 17'nin Playwright'ı (G-02) burada hazır.
 - Forma numarası atama ekranı (çakışma kontrolü)
 - Takım kaptanı ve yardımcı kaptan atama
 
@@ -5217,7 +5342,33 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   her ekranı tek tek elden geçirdiği için taban görüntülerin alınacağı doğru yer burası.
   Faz 17'de kurulan Playwright altyapısına (G-02) bağımlı.
 - **`pnpm perf:budget` genişletmesi** — Faz 6'da kurulan kapıya (G-01) bu fazda ölçülebilir
-  hale gelen metrikler eklenir: LCP, 2D oynatıcı fps, bellek, Lighthouse.
+  hale gelen metrikler eklenir: LCP, 2D oynatıcı fps, bellek, Lighthouse,
+  **ve DataTable kaydırma fps'i (10.000 satır, ≥ 55 fps)**.
+  > ⚠️ **DATATABLE KAYDIRMA FPS'İ FAZ 6'DAN TAŞINDI** *(6.1'de eklendi)*
+  > Faz 6'nın kabul kriteri *"DataTable 10.000 satırda 55+ fps kaydırma"* idi ve
+  > **hiçbir yarısı** o fazda ölçülemiyordu: jsdom'da düzen motoru yok
+  > (`getBoundingClientRect` **0×0**), `ResizeObserver` yok, yani sanallaştırmanın
+  > pencere hesabı bile çalışmıyor — bir düğüm sayımı testi **kendi sahtesini**
+  > ölçerdi. Kriter **gevşetilmedi, taşındı.**
+  > ⚠️ **VE BU SATIR 6.1'E KADAR YOKTU:** bu fazın kapsamı *"Liste sanallaştırma
+  > denetimi"* ve *"Tüm performans bütçeleri sağlanıyor"* taşıyor, yani faz bu işi
+  > **yapabilirdi** — ama metrik **adıyla yazılı değildi** (ölçüldü: `DataTable`,
+  > `kaydırma fps`, `10.000` → bu bölümde **0 eşleşme**). *"Yapabilir"* ile *"adıyla
+  > taşıyor"* aynı şey değil; yazılmasaydı bu faz kendi listesini koşturur ve metrik
+  > sessizce düşerdi.
+- **🆕 GÖRSEL REGRESYON, BİLEŞEN KÜTÜPHANESİNİ DE KAPSAR** *(Faz 6.1'de eklendi)*
+  Faz 6'nın kabul kriteri *"Storybook'ta 30+ bileşen, her biri **koyu/açık temada
+  çalışıyor**"* idi. Faz 6 envanter ↔ hikaye eşleşmesini kapattı, ama *"çalışıyor"*
+  bir **render iddiası** ve `storybook build`in hatasız bitmesi onu kanıtlamaz.
+  → Bu fazın G-05 görsel regresyon paketi **bileşen hikayelerini de** taban görüntüye
+  bağlar: her bileşen **koyu ve açık** temada, iki görüntü.
+- **🆕 axe'ın `color-contrast` KURALI ADIYLA DOĞRULANIR** *(Faz 6.1'de eklendi)*
+  Faz 6'nın axe denetimi jsdom üzerinde koştu ve orada `color-contrast` **çalışamaz**:
+  6.0 ölçtü — `getComputedStyle().color` bir `var(--x)` değerini **çözmüyor**
+  (ham dizeyi döndürüyor) ve `getBoundingClientRect()` **0×0**. Yani Faz 6'nın
+  *"0 ihlal"*i o kuralı **içermiyor** ve kriter metninde öyle yazılı.
+  → Burada gerçek tarayıcıda koşar. Kapsamdaki *"axe-core otomatik tarama"* satırı
+  bunu **ima ediyordu**, artık **adıyla** söylüyor.
 
 **Kabul kriterleri:**
 - [ ] Her ekran 360px'de yatay taşma olmadan kullanılabilir
@@ -5227,8 +5378,11 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] axe-core: 0 kritik ihlal
 - [ ] Tüm performans bütçeleri sağlanıyor
 - [ ] 2 saatlik oturumda bellek < 500 MB, sızıntı yok
-- [ ] Renk körlüğü modunda tüm bilgi ayırt edilebilir
+- [ ] Renk körlüğü modunda tüm bilgi ayırt edilebilir *(Faz 6'nın kriterinin **ekran** yarısı — token aritmetiği orada kapandı)*
 - [ ] Ekran okuyucu ile ana akış tamamlanabiliyor
+- [ ] **DataTable 10.000 satırda ≥ 55 fps kaydırma** *(Faz 6'dan taşındı — jsdom'da düzen motoru yok, hiçbir yarısı orada ölçülemiyordu)*
+- [ ] **Bileşen hikayeleri koyu ve açık temada taban görüntüye bağlı** *(Faz 6'nın kriterinin **render** yarısı — envanter ↔ hikaye eşleşmesi orada kapandı)*
+- [ ] **axe `color-contrast` kuralı gerçek tarayıcıda koşuyor ve 0 ihlal veriyor** *(Faz 6'da jsdom bu kuralı çalıştıramıyordu ve bu, kriter metninde adıyla yazılıydı)*
 
 **Bağımlılık:** Faz 48
 

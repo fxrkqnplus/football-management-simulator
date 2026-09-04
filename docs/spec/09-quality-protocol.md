@@ -1380,5 +1380,35 @@ açıklanabiliyorsa dışlama çalışıyordur; açıklanamıyorsa şüphelidir.
 | Bellek (1 sa oyun) | < 500 MB |
 | Lighthouse Performance | ≥ 90 |
 | Lighthouse Accessibility | ≥ 95 |
+| Üretim paketi (`apps/web`, ana JS, harita hariç) | **taban × 1,10** — taban dosyada kayıtlı |
+
+> ⚠️ **SON SATIR FAZ 6.1'DE EKLENDİ — SAPMA-042.** Gerekçe ölçüm: `docs/ROADMAP.md`
+> Faz 6 kapsamı `pnpm perf:budget`in bu fazda ölçeceği alt kümeyi *"DataTable render,
+> ekran geçişi, **üretim paketi boyutu**"* diye sayıyor, ama bu tablo o metriği
+> **taşımıyordu** (`paket|bundle|boyut` → **0 eşleşme**; `ROADMAP` §0.4'ün kısaltılmış
+> tablosunda da **0**). Ve kalan metriklerin **hiçbiri** Faz 6'da ölçülemiyor — hepsi
+> ya gerçek bir tarayıcı, ya gezilebilir bir uygulama (Faz 17), ya bir ekran (Faz 18),
+> ya motor/veritabanı istiyor. Yani bu satır olmadan G-01'in kapısı kurulur, yeşil
+> yanar ve **hiçbir bütçeye bakmaz** — SAPMA-024'ün (*"bakacak bir şey bulamayan
+> kapıya ✅ yazılmaz"*) tam biçimi.
+>
+> **BÜTÇENİN BİÇİMİ BİR KARARDIR VE UYDURULMADI (SAPMA-026).** Mutlak bir bayt
+> eşiği bugün **türetilemez**: Faz 6 Tailwind + Radix + 28 bileşen ekliyor ve paket
+> meşru olarak büyüyecek. Bu yüzden bütçe bir **regresyon kapısı**:
+>
+> - **Taban** ölçülür ve **dosyada kayıtlı durur** (prose'da değil — bir sayı
+>   prose'da yaşarsa bayatlar). Bugünkü taban **380.908 bayt**, `Cached: 0` soğuk
+>   build sonrası ölçüldü (Faz 6.1, 2026-09-04).
+> - **İhlal**, tabana göre **%10'dan fazla** büyümedir.
+> - Tabanın **bilerek** güncellenmesi bir commit'tir, yani **görünür bir karar** —
+>   kapı sessizce gevşemez.
+>
+> ⚠️ **δ = %10 bir KALİBRASYONDUR, bir türetme değil** — ve öyle etiketleniyor
+> (`CLAUDE.md` §16.2'nin denge katsayılarıyla aynı sınıf). Dayanağı depodaki **tek
+> ölçülmüş** vaka: Faz 1'de `.env` içindeki `NODE_ENV` React'in geliştirme sürümünü
+> üretime soktu ve paket **429 kB → 228 kB** düzeldi (`CHANGELOG.md`) — yani kazanın
+> büyüklüğü **+%88**. δ onun bir kat altında kalmalı ki o sınıfı yakalasın, ve
+> sıfırın üstünde olmalı ki her commit tabanı güncellemeye zorlamasın. **Faz 49
+> (`perf:budget` genişletmesi) bunu yeniden kalibre edebilir.**
 
 ---
