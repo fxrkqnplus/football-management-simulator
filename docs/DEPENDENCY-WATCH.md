@@ -25,7 +25,12 @@
 | `resend` | 6.22.0 | **Faz 13** | Majör atlama, notlar okunmadı. İlk kullanım e-posta doğrulama. |
 | `ioredis` | 5.11.1 | **Faz 16** | **BORÇ-001** — 6.0.0 mevcut ama kurulum anında 3 haftalıktı. |
 | `bullmq` | 5.81.3 | **Faz 16** | **BORÇ-002** — 6.2.0 mevcut; v6 `ioredis`'i peer'a taşıdı, `pg`/`redis` peer'ları ekledi (kuyruk yapılandırmasını değiştiren mimari değişiklik). |
-| `@tanstack/react-table` | 9.1.2 | **Faz 18** | Taze majör (9.0 → 4 Ağu 2026). v8 Nis 2025'ten beri güncellenmiyor, bu yüzden v9'da başlandı; notlar tablo motoru yazılırken okunacak. |
+| `@tanstack/react-table` | ~~9.1.2~~ → **9.2.4** | ~~Faz 18~~ → **Faz 6** | Taze majör (9.0 → 4 Ağu 2026). v8 Nis 2025'ten beri güncellenmiyor, bu yüzden v9'da başlandı; notlar tablo motoru yazılırken okunacak. ⚠️ **İKİ DÜZELTME, 6.0'da ölçüldü.** ① **Faz ataması bayattı:** satır *"Faz 18"* diyordu ama **DataTable MOTORUNU Faz 6 kuruyor** (ROADMAP Faz 6 kapsamı: *"DataTable motoru: TanStack Table + sanallaştırma"*); Faz 18 motoru **yapılandırıyor** (60 sütun). Notların okunacağı yer, paketin kurulduğu yerdir. Bu, *"kapsam taşıması kütüğe kayıtla bitmez"*in **üçüncü** vakası (4.11 BORÇ-003/005 · 5.9 BORÇ-009/010 · bugün bu satır). ② **Sürüm bayattı:** registry **9.2.4** (6.0'da okundu), satır 9.1.2 diyordu. |
+| `@tanstack/react-virtual` | **3.14.10** | **Faz 6** | ⚠️ **BU SATIR HİÇ YOKTU** (6.0'da ölçüldü) — `CLAUDE.md` §2.1 `@tanstack/react-virtual 3`ü sayıyor ve ROADMAP Faz 6 kapsamı sanallaştırmayı **adıyla** istiyor, ama takip tablosunda karşılığı yoktu. Majör atlama **yok** (ilk kurulum, v3 hattı). `react-table` ile aynı fazda kurulur. |
+| `storybook` + `@storybook/react-vite` | **10.6.0** | **Faz 6** | ⚠️ **BU SATIR HİÇ YOKTU.** `CLAUDE.md` §2.1 Storybook'u **hiç anmıyor**; yalnızca ROADMAP Faz 6 kapsamı ve `packages/ui/package.json` açıklaması sayıyor. İlk kurulum, majör atlama yok. **Peer'lar 6.0'da registry'den doğrulandı** (`strict-peer-dependencies=true` ⇒ peer bir **kapı**): `vite ^5\|\|^6\|\|^7\|\|^8` → bizde `^8.2.2` ✅ · `react`/`react-dom` `^16.8\|\|^17\|\|^18\|\|^19` → `^19.2.8` ✅ · `storybook ^10.6.0` ✅ · `typescript >= 4.9.x` → `~6.0.3` ✅. ℹ️ Çekirdek **Playwright/Puppeteer/Chromium taşımıyor** (0 eşleşme) ama `@testing-library/jest-dom@6.9.1` ve `@testing-library/user-event@^14.6.3` **geçişli olarak** getiriyor — geçişli bir paket doğrudan import EDİLMEZ (`arch:check` → `undeclared-dependency`), gerekirse açıkça beyan edilir. |
+| `tailwindcss` + `@tailwindcss/vite` | **4.3.3** | **Faz 6** | ⚠️ **BU SATIR HİÇ YOKTU** — `CLAUDE.md` §2.1 *"Tailwind CSS 4.3"* diyor ve registry **4.3.3** (6.0'da okundu), yani §2.1 güncel. İlk kurulum. `tailwindcss` paketinin **peer'ı ve bağımlılığı yok** (ölçüldü); Vite tümleşmesi ayrı paket: `@tailwindcss/vite@4.3.3`, peer `vite ^5.2\|\|^6\|\|^7\|\|^8` → bizde `^8.2.2` ✅. |
+| shadcn/ui çalışma zamanı: `@radix-ui/react-*` · `class-variance-authority` · `tailwind-merge` · `clsx` | **1.1.23** (react-dialog örnek) · **0.7.1** · **3.6.0** · **2.1.1** | **Faz 6** | ⚠️ **BU SATIR HİÇ YOKTU.** shadcn/ui bir **paket değil**, bileşenleri kopyalayan bir CLI — bu yüzden takip edilecek şey onun **çalışma zamanı bağımlılıkları**. Radix **ilkel başına ayrı paket** yayınlıyor (`@radix-ui/react-dialog`, `-popover`, `-tooltip`…), yani kurulacak paket sayısı 6.4/6.5'te hangi ilkellerin kullanıldığına bağlı ve **o gün sayılır**. ⚠️ Radix `jsdom`da doldurma isteyecek — aşağıdaki `jsdom` satırına bak. |
+| `axe-core` | **4.13.0** | **Faz 6** | ⚠️ **BU SATIR HİÇ YOKTU** — `CLAUDE.md` §2.1 axe'ı **hiç anmıyor**, ama ROADMAP Faz 6'nın kabul kriteri 7 *"Kontrast denetimi (axe) → 0 ihlal"* diyor ve Faz 49 *"axe-core otomatik tarama"*yı kapsamında taşıyor. İlk kurulum. ⚠️ **Sarmalayıcı seçimi 6.8'in işi ve bugün yapılmıyor:** `jest-axe@11.0.0` ve `vitest-axe@0.1.0` var; ikisi de `axe-core`u sarıyor. ⚠️ **KAPSAM UYARISI (6.0'da ölçüldü):** jsdom'da `getComputedStyle().color` `var()`i **çözmüyor** ve `getBoundingClientRect()` **0×0** — yani düzen/hesaplanmış renk isteyen kurallar çalışamaz. Hangi kuralın hangi kimlikle atlandığı **BU ORTAMDA ÖLÇÜLMEDİ** (axe-core kurulu değil); 6.8'in **ilk işi** `inapplicable`/`incomplete` listesini adıyla yazmaktır — *"0 ihlal"* neyin denetlenmediğini söylemeden yazılmaz (SAPMA-024). |
 | `i18next` / `react-i18next` | **26.4.1 / 17.0.13** | ~~Faz 5~~ ✅ **5.0'da karar · 5.3'te KURULDU** | Sonuç aşağıda. ⚠️ Satır `26.4.0 / 17.0.12` diyordu ve **bayattı**; sürümler 5.0'da **ve** 5.3'te registry'den yeniden okundu (ikisinde de aynı). |
 | `i18next-browser-languagedetector` | **8.2.1** | ~~Faz 5~~ ✅ **5.0'da EKLENDİ · 5.3'te KURULDU** | ⚠️ **Bu satır HİÇ YOKTU** ve 5.0'ın açılış ölçümünde bulundu: ROADMAP Faz 5 kapsamı *"tarayıcı dil algılama"* istiyor, yani paket **gerekli**, ama takip tablosunda adı geçmiyordu. Majör atlama **yok** (ilk kurulum). `peerDependencies` **boş**. |
 | `recharts` | 3.10.1 | **Faz 29** | 2 → 3 majör atlaması, notlar okunmadı. İlk kullanım maç sonrası analiz. |
@@ -33,8 +38,8 @@
 | `redis` (Docker) | 7 | **Faz 16** | 8 mevcut (8.8.2). `ioredis`/`bullmq` majör kararlarıyla (BORÇ-001, BORÇ-002) aynı fazda birlikte değerlendirilir. |
 | `typescript` | ~6.0.3 | **TS 7.1 çıkınca** | ADR-0003. 7.0'da programatik derleyici API'si yok → `typescript-eslint` ve `nest build` çalışmıyor. 7.1 çıkınca üç maddelik kontrol listesi işletilir. |
 | `@sentry/*` 10.71.0 | — | **sonraki faz** | 2.0'da alınmadı (1 günlük). **2.5a'da yeniden bakıldı: hâlâ 1 günlük** — 10.71.0 2026-08-24, karar günü 2026-08-25, yani takvim aynı gün. Yaş değişmediği için karar da değişmedi. Sonuç aşağıda. |
-| `jsdom` | 30.0.1 | **Faz 6** | 2.0b'de kuruldu. `happy-dom` yerine bilinçli seçildi; **Faz 6'da (Radix/shadcn, odak yönetimi) yeniden değerlendirilir**. Karar ve geri dönüş maliyeti aşağıda. |
-| `@testing-library/react` | 16.3.2 | **Faz 6** | 2.0b'de kuruldu. Faz 6 yüzlerce bileşen testi getiriyor; o fazda `@testing-library/user-event` ihtiyacı da doğacak. |
+| `jsdom` | 30.0.1 | ~~Faz 6~~ ✅ **6.0'da yeniden değerlendirildi — KARAR KORUNDU** | 2.0b'de kuruldu, `happy-dom` yerine bilinçli seçildi. Sonuç aşağıda. |
+| `@testing-library/react` | 16.3.2 | ~~Faz 6~~ ✅ **6.0'da ele alındı — `user-event` KURULACAK (6.4)** | Sonuç aşağıda. |
 
 ---
 
@@ -525,6 +530,44 @@ Faz 6'nın ortasında, bir bileşen çalışmazken yapılmak zorunda kalınır. 
 yok (RTL sorguları bulamayınca zaten fırlatıyor) ve her ek paket `types` dizisine
 bağlanma yükü getiriyor. Faz 6'da etkileşim testleri gelince `user-event` yeniden
 değerlendirilir.
+
+### `jsdom` 30.0.1 ↔ `happy-dom` · `@testing-library/user-event` — Faz 6.0, 2026-09-04 · **KARAR KORUNDU + `user-event` KURULACAK**
+
+**2.0b'nin gerekçesi ölçümle sınandı, hatırlanmadı.** O gün yazılan cümle şuydu:
+*"`jsdom`'un boşlukları **belgeli ve bilinen çözümü olan** boşluklar; `happy-dom`'un
+farkları daha az haritalanmış."* 6.0 bu iddiayı bu ortamda test etti — bir sonda
+(jsdom **30.0.1**, Node **24.19.0**, win32/amd64) yedi yeteneği tek tek ölçtü:
+
+| Yetenek | Sonuç | Radix için anlamı |
+|---|---|---|
+| `window.matchMedia` | **undefined** | medya sorgusu değerlendirilemiyor |
+| `getComputedStyle().color`, değer `var(--x)` | **`"var(--attr-good)"`** — çözülmüyor | hesaplanmış renk yok |
+| `getPropertyValue('--attr-good')` | `#5FA84C` | ham bildirim okunabiliyor |
+| `getBoundingClientRect()` | **0×0** · `offsetWidth` **0** | düzen motoru yok |
+| `ResizeObserver` / `IntersectionObserver` | **undefined** | doldurma gerekli |
+| `scrollIntoView` / `hasPointerCapture` | **undefined** | **2.0b'nin adıyla saydığı iki boşluk — aynen çıktı** |
+| `requestAnimationFrame` | `function` | ✅ |
+
+**Karar: `jsdom` korunur.** Gerekçe 2.0b'nin asimetrisinin **ölçülmüş** hâli:
+boşluklar artık *"bilinen"* değil **sayılmış** — beşi adıyla listede ve her biri
+kendi doldurmasını istiyor. `happy-dom@20.14.0`'ın aynı beş boşlukta ne yaptığı
+**ÖLÇÜLMEDİ** (kurulu değil, ve 6.0 paket kurmuyor). Ölçülmüş beş boşluğu,
+ölçülmemiş bir kümeyle takas etmek — üstelik **fazın ortasında**, bir bileşen
+çalışmazken — 2.0b'nin tam olarak kaçındığı şey. ⚠️ **Ve doldurmalar bir borç
+üretir:** her doldurma bir davranışı **sahteliyor**; 6.8'de hangi doldurmanın
+**neyi** sahtelediği adıyla yazılır, yoksa geçen bir test tarayıcıda geçeceğini
+göstermez (D5).
+
+**`@testing-library/user-event@14.6.7` — KURULACAK (6.4, ilk etkileşimli bileşenle).**
+2.0b onu *"bugün ihtiyaç yok"* diye bilerek kurmamıştı; ihtiyaç **bu fazda doğdu**:
+kabul kriteri 6 *"tüm etkileşimli bileşenler sadece klavyeyle kullanılabiliyor"*
+diyor ve `fireEvent` tab sırasını, tuş dizisini, odak zincirini modelleyemiyor.
+⚠️ **Geçişli olarak gelse bile açıkça beyan edilir:** `storybook@10.6.0` onu
+`^14.6.3` ile getiriyor, ama `arch:check`in `undeclared-dependency` kuralı doğrudan
+import edilen her paketin `package.json`da durmasını istiyor.
+
+ℹ️ `@testing-library/react` **16.3.3** çıkmış (bizde **16.3.2**, yama farkı).
+6.3'ün kurulum turunda birlikte bump edilir; ayrı bir iş değil.
 
 ### `nestjs-pino` 4.6.1 — Faz 2.0, 2026-08-25 · **PEER'LARI DOĞRULANDI** (kurulum 2.2'de)
 

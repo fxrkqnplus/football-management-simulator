@@ -121,7 +121,7 @@ KURALLAR
 | 1–2 | Bölüm 1, 2, 11, 12 |
 | 3–4 | Bölüm 3 |
 | 5 | ⚠️ **i18n'in bir spec bölümü YOK** — kaynak `docs/ROADMAP.md` Faz 5 + `CLAUDE.md` §14 terim sözlüğü **ve 5.7'den itibaren `docs/glossary.md`** (§14'ün süperkümesi; çelişkide §14 kazanır). *(Bu satır 4.11'e kadar **Bölüm 13** diyordu; ölçüldü: Bölüm 13 = **DAĞITIM** (`docs/spec/10-deployment.md`). Yanlış yere gönderen bir tablo, hiç göndermeyenden tehlikelidir — SAPMA-035.)* |
-| 6 | Bölüm 7 |
+| 6 | Bölüm 7 **+ `docs/glossary.md`** *(Faz 6.0'da eklendi)* — bileşen etiketleri sözlükten **türetilir**, yeniden uydurulmaz. Satır bir yeri **yanlış** göstermiyordu (ölçüldü: `docs/spec/05-design-system.md` başlığı `# 7. TASARIM SİSTEMİ` ve `CLAUDE.md` belge haritasıyla aynı yeri gösteriyor), **eksik** gösteriyordu: ROADMAP Faz 6 kapsamı ve Faz 5 faz kaydı §11 sözlüğü adıyla istiyor, **ve Faz 5 satırı onu zaten anıyor**. Mismatch olmadığı için SAPMA açılmadı — bu bir eksiklik düzeltmesi |
 | 7–9 | Bölüm 3, 17 (`docs/spec/12-data-packs.md`) |
 | 10 | Bölüm 4 |
 | 11 | Bölüm 3, 4, 11, 17 (`docs/spec/12-data-packs.md`) |

@@ -3015,6 +3015,236 @@ docs/glossary.md
   oturum faz başında ROADMAP'in bu bölümünü okuyor. Çelişkide **`CLAUDE.md`
   §14 kazanır**, sözlük düzeltilir.
 
+**Alt görevler** *(faz açılışında ölçüldü, kullanıcı onayıyla 2026-09-04'te işlendi — K11)*
+
+- [ ] **6.0** **Doğrulama alt görevi — KOD YOK, ÖLÇÜM VAR. Paket KURULMAZ.**
+      ① **Tarayıcı yolu ölçülür.** Faz açılışında ölçüldü: `storybook@10.6.0`
+      çekirdeği Playwright/Puppeteer/Chromium **taşımıyor** (0 eşleşme), ama her
+      iki test yolu da taşıyor (`@storybook/test-runner@0.24.5` →
+      `playwright ^1.14.0` doğrudan bağımlılık · `@storybook/addon-vitest@10.6.0`
+      → peer `@vitest/browser` + `@vitest/browser-playwright ^4.0.0`). Yani
+      *"Storybook kurulumu Playwright'ı zaten getiriyor"* hipotezi **çürüdü**.
+      ⚠️ **Ama bir ayrım henüz ölçülmedi:** G-02 (**Faz 17**) `pnpm test:e2e` —
+      uçtan uca **akış**; Faz 6'nın ihtiyacı **bileşen düzeyinde render**. İkisi
+      aynı ikiliyi (Chromium) paylaşıyor ama **aynı iş değil**. 6.0 bunu ölçer:
+      `@vitest/browser` + `@vitest/browser-playwright` bu yığında (Vitest 4 ·
+      Node 24 · Windows · `strict-peer-dependencies=true`) **kuruluyor mu**,
+      `packages/ui` için bir tarayıcı projesi açılabiliyor mu, maliyeti ne
+      (ikili boyutu · CI süresi). **Sonuç ne çıkarsa çıksın yazılır.**
+      ② **`28 vs 30+` çelişkisi karara bağlanır.** Kapsam **18 + 10 = 28**
+      bileşen sayıyor, kriter 1 **"30+"** istiyor — kriter kapsamın kendisiyle
+      **kapanamaz**. İki dürüst çıkış: kapsam DataTable ve tema sağlayıcısını da
+      bileşen sayar (**yazılır**), ya da kriter gerçek sayıya çekilir. Emsal
+      SAPMA-034 / SAPMA-039 (`düzeltme` tipi). ⚠️ Sessizce *"30 tane sayarız"*
+      diye geçiştirmek, bir kriteri **kapatmak için kapsamı esnetmek** olur.
+      ③ **`DEPENDENCY-WATCH` — altı eksik satır + bir bayat atama.** Ölçüldü:
+      **Storybook · Tailwind 4 · shadcn/ui · Radix · TanStack Virtual · axe**
+      için **hiçbir satır yok**; ve `@tanstack/react-table@9.1.2` satırı
+      *"Faz 18"* diyor (satır 28) ama **motoru Faz 6 kuruyor** — *"kapsam
+      taşıması kütüğe kayıtla bitmez"*in **üçüncü** vakası (4.11 · 5.9 · bugün).
+      Altı satır eklenir, atama düzeltilir, her sürüm **bugün registry'den**
+      doğrulanır.
+      ④ **§15.1'in Faz 6 satırına `docs/glossary.md` eklenir.** Satır yalnızca
+      *"Bölüm 7"* diyor; ROADMAP Faz 6 kapsamı ve Faz 5 faz kaydı ikisini
+      birlikte istiyor, **ve Faz 5 satırı sözlüğü adıyla anıyor**. Bir mismatch
+      değil bir **eksiklik** — SAPMA sınıfı değil.
+      ⑤ **Namespace ön eki sözleşmesi seçilir ve koşan bir testle sabitlenir.**
+      Karar: on birinci namespace **açılmaz**, etiketler `common`a girer (5.4
+      emsali; ROADMAP Faz 5 on namespace'i tek tek sayıyor, on birincisi K12
+      ihlali). ⚠️ Ama `common.json` bugün **45 anahtar** taşıyor; 28 bileşenin
+      etiketi ön eksiz girerse yapısız bir torbaya döner ve **Faz 17+ ikinci bir
+      şema icat eder**. Emsal: `i18n-dynamic-keys.ts`in nokta ile biten ön ek
+      sözleşmesi ve dört yönlü testi.
+      ⑥ **`i18n:check`e ikinci kaynak kökü.** Ölçüldü: `sourceDir` varsayılanı
+      **`apps/web/src`** (`tools/i18n-check/index.mjs`:368) — bileşenler
+      `packages/ui/src`e gidince ①②③ denetimleri onları **hiç görmez**
+      (`local/no-bare-jsx-text` görür; o kuralın `files:` kısıtı yok). Aracın
+      kendi başlığı ikinci kökü **öngörmüş**. ⚠️ Sayılar **artacak** — testi
+      gevşetme, **iddiayı güncelle** (5.4'ün dersi).
+      ⑦ **§11.6'nın 15 satırından hangileri Faz 6'da ölçülebilir**, hangileri
+      değil — açıkça yazılır (G-01'in girdisi).
+      ⑧ **`DEPENDENCY-WATCH`in Faz 6'ya atanmış iki satırının sonucu yazılır:**
+      `jsdom@30.0.1` ↔ `happy-dom` yeniden değerlendirmesi (Radix odak yönetimi)
+      ve `@testing-library/react@16.3.2` + `user-event` ihtiyacı.
+      ⑨ **Kriterlerin daraltılması — üç şart.** (a) Her daraltılan kriterin
+      çıkarılan yarısı **adıyla** bir faza taşınır ve **o fazın yapabildiği
+      doğrulanır** (G-18/G-20). (b) Kriter 7 daraltılırken **atlanan kural adıyla
+      yazılır**: axe'ın `color-contrast` kuralı hesaplanmış renk ister ve jsdom'da
+      **sessizce atlanır** — *"0 ihlal"* neyin denetlenmediğini söylemeden
+      yazılmaz (SAPMA-024). (c) `storybook build`in hatasız bitmesi bir **render
+      iddiası değildir**; ne iddia edildiği açıkça yazılır.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.0 (2026-09-04)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **① TARAYICI YOLU: ZİNCİR ÇÖZÜLÜYOR — ama üç bedeli var, biri ÖLÇÜLMEDİ.**
+      > ⚠️ **İlk okuma yanlıştı ve yarıda bırakılmadı:** `npm view … versions`
+      > çıktısının **kuyruğuna** bakınca `@vitest/browser-playwright`in yalnızca
+      > `5.x` yayınladığı görünüyordu; sayım yapılınca **43 adet `4.x` sürüm**
+      > olduğu ortaya çıktı. Doğru ölçüm:
+      > `@vitest/browser-playwright@4.1.11` → peer `vitest: 4.1.11` (**tam
+      > eşleşme**, bizde 4.1.11) + `playwright: '*'`; bağımlılığı
+      > `@vitest/browser@4.1.11` (peer `vitest: 4.1.11`). `playwright@1.62.1`
+      > `os`/`cpu` kısıtı **taşımıyor**. Yani zincir bu yığında **çözülüyor** ve
+      > `@storybook/addon-vitest@10.6.0`in `^4.0.0` peer'ı da karşılanıyor.
+      > **Bedeller:** ① *(ölçüldü)* peer **tam sabit** — her `vitest` bump'ı
+      > **dört paketlik** bir kilit adımına dönüşür ② *(ölçüldü)* CI'ın
+      > `Kalite kapıları` işi **hem `ubuntu-24.04` hem native `ubuntu-24.04-arm`**
+      > üzerinde koşuyor (K14); bir tarayıcı adımı **ikisinde de** çalışmalı,
+      > yoksa kapı kısmi olur ve D3 yanılsaması üretir ③ **ÖLÇÜLMEDİ:**
+      > Playwright'ın Chromium ikilisi `ubuntu-24.04-arm` üzerinde iniyor ve
+      > koşuyor mu — ikili npm paketinde **değil**, ayrı indiriliyor ve registry
+      > meta verisi bunu söylemiyor. Boyutlar: `playwright` **5.074.152 B**,
+      > `@vitest/browser` **1.849.305 B**, `@vitest/browser-playwright`
+      > **49.195 B** (tarayıcı ikilisi **hariç**).
+      > ⚠️ **Bu bir kurulum kanıtı DEĞİL** — 6.0 paket kurmuyor; registry meta
+      > verisinden yapılmış bir **çözünürlük ölçümü**.
+      >
+      > **② `28 vs 30+`: ÇELİŞKİ DOĞRULANDI.** Kapsam **18 + 10 = 28** bileşen
+      > sayıyor (programatik sayıldı), kriter 1 **"30+"** istiyor. → **KARAR
+      > BEKLİYOR.**
+      >
+      > **③ `DEPENDENCY-WATCH` — beş satır eklendi, bir atama düzeltildi.**
+      > Eklendi: `@tanstack/react-virtual` **3.14.10** · `storybook` +
+      > `@storybook/react-vite` **10.6.0** · `tailwindcss` + `@tailwindcss/vite`
+      > **4.3.3** · shadcn/ui çalışma zamanı (`@radix-ui/react-*` **1.1.23** ·
+      > `class-variance-authority` **0.7.1** · `tailwind-merge` **3.6.0** ·
+      > `clsx` **2.1.1**) · `axe-core` **4.13.0**. Düzeltildi:
+      > `@tanstack/react-table` **hem fazı** (*"Faz 18"* → **Faz 6**, motoru bu
+      > faz kuruyor) **hem sürümü** (9.1.2 → **9.2.4**) bayattı. Bütün peer'lar
+      > registry'den okundu ve `strict-peer-dependencies=true` altında **dördü
+      > de uyumlu**.
+      >
+      > **④ §15.1'in Faz 6 satırına `docs/glossary.md` eklendi.** Satır bir yeri
+      > **yanlış** göstermiyordu (`docs/spec/05-design-system.md` başlığı
+      > `# 7. TASARIM SİSTEMİ`, `CLAUDE.md` belge haritasıyla aynı yer) —
+      > **eksik** gösteriyordu. SAPMA açılmadı; mismatch yok.
+      >
+      > **⑤ NAMESPACE ÖN EKİ: `common:ui.<bileşenAdı>.<alan>`.** On birinci
+      > namespace **açılmıyor** (5.4 emsali, K12). `common.json` bugün beş üst
+      > seviye anahtar taşıyor (`country` · `competition` · `value` ·
+      > `diagnostics` · `debugPanel`, **45 anahtar**) ve deseni *"üst seviye =
+      > bir yüzey"*; `ui.` o desene oturuyor ve 28 bileşenin 28 üst seviye
+      > anahtar açmasını önlüyor. Ön ek **nokta ile biter** —
+      > `i18n-dynamic-keys.ts`in gerekçesi birebir: `ui.` yanlışlıkla
+      > `uiHelper`ı yakalamasın. **Nöbetçi, ilk anahtarı yazan alt görevde
+      > gelir** (6.3/6.4): bugün `common.ui` **yok**, ve bakacak bir şey
+      > bulamayan bir kontrol bir onay değildir (SAPMA-024, `glossary.md`nin
+      > kendi emsali).
+      >
+      > **⑥ `i18n:check`e ikinci kaynak kökü eklenecek (6.3).** Ölçüldü:
+      > `tools/i18n-check/index.mjs`:368 → `sourceDir` varsayılanı
+      > **`apps/web/src`**; `packages/ui/src` taranmıyor. `local/no-bare-jsx-text`
+      > oraya **bakıyor** (kuralın `files:` kısıtı yok), ama eksik/kullanılmayan/
+      > boş anahtar denetimleri **bakmıyor**. Aracın kendi başlığı bu kökü
+      > öngörmüş. ⚠️ Bugünkü sayılar (**59 tanımlı · 34 kullanılan · 308 dosya**)
+      > **artacak** — testi gevşetme, **iddiayı güncelle**.
+      >
+      > **⑦ §11.6'NIN 15 SATIRINDAN FAZ 6'DA ÖLÇÜLEBİLEN: SIFIR.** Tek tek
+      > bakıldı — 15 satırın tamamı ya gerçek bir tarayıcı (LCP, Lighthouse ×2,
+      > 2D fps ×2, bellek), ya gezilebilir bir uygulama (ekran geçişi → Faz 17),
+      > ya bir ekran (kadro tablosu → Faz 18), ya motor/veritabanı (maç ×3, tur,
+      > sezon, transfer araması, kayıt yazma) istiyor. **VE ROADMAP'in bu fazın
+      > kapsamında saydığı üçüncü metrik — *"üretim paketi boyutu"* — §11.6'da
+      > HİÇ YOK** (`paket|bundle|boyut` → **0 eşleşme**; ROADMAP §0.4'ün
+      > kısaltılmış tablosunda da **0**). Yani G-01'in kapısı bugün ölçecek
+      > **gerçek bir bütçe satırı bulamıyor** — *"bakacak bir şey bulamayan
+      > kapıya ✅ yazılmaz"*ın tam biçimi. Taban ölçüldü: üretim paketi
+      > **380.908 bayt** (`apps/web/dist/assets/index-*.js`, harita hariç).
+      > → **KARAR BEKLİYOR.**
+      >
+      > **⑧ `jsdom` KORUNUR · `user-event` KURULACAK (6.4).** Gerekçe ve yedi
+      > yeteneğin ölçümü `docs/DEPENDENCY-WATCH.md`de. 2.0b'nin adıyla saydığı
+      > iki boşluk (`scrollIntoView`, `hasPointerCapture`) **aynen çıktı**.
+      >
+      > **⑨ Kriter daraltması ①/② kararlarına bağlı — bekliyor.** Faz 49'un
+      > kapsamı doğrulandı ve devredilecek yarıları **adıyla taşıyor**
+      > (axe taraması · renk körlüğü üç tipi · tam klavye navigasyonu), ayrıca
+      > *"`pnpm perf:budget` genişletmesi — **Faz 6'da kurulan kapıya** bu fazda
+      > ölçülebilir hale gelen metrikler eklenir"* diyor, yani Faz 6'nın bir
+      > **alt kümeyle** başlaması spec tarafından zaten bekleniyor.
+- [ ] **6.1** **BORÇ-010 ödenir — `local/no-hardcoded-path` kablolama kanaryası.**
+      Bugün kural `eslint.config.js`ten sessizce kalksa `pnpm lint` **0 der** ve
+      hiçbir test bunu söylemez; 23 senaryoluk `RuleTester` testi kuralı **izole**
+      koşturuyor (D3). İş 5.5'in `no-bare-jsx-text.test.mjs` kanaryasının
+      **birebir kopyası**: gerçek `eslint.config.js`, var olan bir dosyanın
+      kimliği altında `lintText` + `calculateConfigForFile`. **Erken ödenir** —
+      bu faz `apps/web` ve `packages/ui`ye yüzlerce dosya getiriyor ve
+      `basePath()` disiplini tam burada sınanacak.
+- [ ] **6.2** **Tasarım token'ları** — `spec/05` §7.1 (renk, koyu+açık),
+      §7.2 (nitelik ısı skalası, 8 kademe), §7.3 (tipografi ölçeği),
+      §7.4 (boşluk/geometri/z-index/animasyon) tek kaynakta. `ensureContrast()`
+      (kulüp rengi 4.5:1'in altına düşerse açıklaştırır) + renk körlüğü 3 tipi.
+      ⚠️ **Kontrast oranları saf aritmetikle iddia edilir** (WCAG AA) — kriter 5
+      ve 7'nin bugünkü araçla **ölçülebilen** yarısı burada kapanır.
+- [ ] **6.3** **Tema + Tailwind 4 + fontlar.** Koyu (varsayılan) / Açık / Sistem
+      + kulüp rengine göre dinamik vurgu · Inter + JetBrains Mono (`latin-ext`
+      dahil, Türkçe alt küme) · font boyutu %90/100/115/130 · `prefers-reduced-motion`
+      → tüm süreler `0ms`. **Önkoşul (kapsamın parçası, genişletme değil):**
+      `packages/ui/tsconfig.json`e `jsx: "react-jsx"` + React tipleri (bugün
+      **yok**, `types: []`), `package.json`a bağımlılıkların **beyanı**
+      (`arch:check` → `undeclared-dependency`). **İlk paket kurulumu burada.**
+- [ ] **6.4** **shadcn/ui uyarlaması + temel bileşenler I** — Button (6 varyant),
+      Input, Select, Combobox, Checkbox, RadioGroup, Slider, Switch, Tabs.
+      ⚠️ **`main.test.tsx` jsdom yıkım yarışı bu alt görevden itibaren HER alt
+      görevde izlenir**: RTL kendi `cleanup()`ünü koşturuyor ama **RTL'in
+      kurmadığı** kökler onun kapsamında değil.
+- [ ] **6.5** **Temel bileşenler II** — Dialog, Sheet, Popover, Tooltip, Toast,
+      Badge, Avatar, Progress, Skeleton.
+      ⚠️ **§0.5 KONTROL NOKTASI BU ALT GÖREVİN SONUNDA KOŞAR** (eşik A bölünme
+      **2 gün**, eşik B asıl sınır **3 gün**). Bölünme çizgisi:
+      **6a = 6.0–6.5** (token + tema + temel bileşenler) ·
+      **6b = 6.6–6.12** (alan bileşenleri + DataTable + kapılar).
+      Faz 6 §0.5'in *"bölünme riski yüksek"* listesinde **var**. Ateşlenmezse de
+      kaydedilir.
+- [ ] **6.6** **On alan-özel bileşen** — `AttributeBadge`, `StarRating`,
+      `FormIndicator`, `MoraleIcon`, `ClubCrest`, `PlayerPortrait`, `KitSwatch`,
+      `PositionMap`, `CurrencyValue`, `DateChip`.
+      ⚠️ **Etiketler `docs/glossary.md`den TÜRETİLİR, yeniden uydurulmaz**
+      (SAPMA-026). Sözlük **bağlayıcı sözleşme** (56 nitelik + 77 çekirdek
+      terim); çelişkide **`CLAUDE.md` §14 kazanır**.
+- [ ] **6.7** **DataTable motoru** — TanStack Table + TanStack Virtual,
+      sütun seçimi, sıralama, filtre, kaydedilebilir görünüm, mobilde kart modu.
+      ⚠️ Kriter 3 (55+ fps) ve kriter 4 (375px kart modu) **bugünkü araçla
+      ölçülemez** (ölçüldü: jsdom'da `matchMedia` **undefined**,
+      `getBoundingClientRect` **0×0**, `ResizeObserver` **yok**). 6.0'ın ①'i
+      dördüncü yolu ölçmezse bu iki kriter 6.0 ⑨ (a) şartıyla taşınır. Kart
+      modunun **karar fonksiyonu** (genişlik → mod) her hâlde test edilir.
+- [ ] **6.8** **Erişilebilirlik** — tam klavye navigasyonu, axe denetimi,
+      renk körlüğü modu (3 tip), font boyutu ayarı, dokunma hedefi 44×44px.
+      ⚠️ jsdom'da `scrollIntoView` ve `hasPointerCapture` **undefined** (ölçüldü)
+      — Radix için doldurma gerekecek; hangi doldurmanın **neyi sahtelediği**
+      yazılır. ⚠️ axe'ın `color-contrast` kuralı jsdom'da **koşmuyor**.
+- [ ] **6.9** **Storybook kurulumu + hikayeler.** Hikaye sayısı **dosyadan
+      ayrıştırılır** (prose'da yaşayan bir sayı bayatlar). ⚠️ `storybook build`in
+      hatasız bitmesi *"koyu/açık temada çalışıyor"* iddiasını **kanıtlamaz** —
+      ne iddia edildiği 6.0 ⑨ (c) uyarınca açıkça yazılır.
+- [ ] **6.10** **`pnpm perf:budget` — performans bütçesi kapısı** *(G-01)*
+      §11.6'nın 15 satırından 6.0 ⑦'de **ölçülebilir** bulunanları ölçer.
+      ⚠️ **Üç parçalı kanıt zorunlu** (5.6'nın dersi: *"bir kapının VAR olması
+      onun KOŞTUĞUNU göstermez"*): ① bozuk girdide **çıkış kodu ≠ 0**, karşı
+      kontrol **= 0** (iki yönlü) ② adımın **nerede koştuğu** — CI'ın
+      `Kalite kapıları` işi bugün 8 adım taşıyor (`typecheck · lint ·
+      format:check · test:coverage · build · arch:check · i18n:check ·
+      gaps:check`), bu dokuzuncusu; `SESSION-TEMPLATE` adım 17 de faza özel
+      komutları çağırıyor ③ adım **maskelenmemiş** (`continue-on-error` yok).
+      ⚠️ `spec/09` §11.5 onu *"Faz 6+"* diye listeliyor ve §0.4 *"ihlal = faz
+      kapanmaz"* diyor. ⚠️ **Bakacak bir şey bulamayan kapıya ✅ yazılmaz.**
+- [ ] **6.11** **BORÇ-009 yeniden ÖLÇÜLÜR** — K5 kapılarının ortak kör noktası
+      (modül düzeyi metin sabitleri). **Geç ödenir ve gerekçesi yapısal:** 5.6'da
+      heuristik **3 yanlış pozitif / 0 gerçek pozitif** verdi çünkü ölçülecek
+      vaka yoktu; ilk gerçek vakalar 6.4–6.7'nin bileşenleriyle doğar
+      (bir `FormIndicator`ın `const LABELS = { W: 'G', D: 'B', L: 'M' }` yazması
+      en doğal şey). ⚠️ Erken ödenirse yine **0 vaka** üzerinde ölçülür ve
+      hiçbir şey öğrenilmez. **Hâlâ 0 gerçek pozitif çıkarsa çözüm bir kapı
+      DEĞİL, yazılı bir bileşen inceleme disiplinidir** (SAPMA-026).
+- [ ] **6.12** **Faz kapanışı** — süre **§0.5'in iki eşiğiyle** ölçülür ·
+      yedi kabul kriteri tek tek (**kısmen sağlanan kriter [ ] kalır**) ·
+      faz kaydı (11 başlık) · çalışma günlüğü boşaltılır · kütükler ·
+      `DEPENDENCY-WATCH` sonuçları · `pnpm gaps:check` **koşturulur** ·
+      `CHANGELOG.md` · PR `develop`a.
+
 **Kabul kriterleri:**
 - [ ] Storybook'ta 30+ bileşen, her biri koyu/açık temada çalışıyor
 - [ ] `pnpm perf:budget` çalışıyor ve **bütçe aşımında kırıyor** (negatif testle kanıtlanır) *(G-01)*
