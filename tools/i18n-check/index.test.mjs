@@ -232,6 +232,39 @@ describe('NEGATİF: bozulmuş bir depoda araç ötüyor mu', () => {
     expect(runI18nCheck(root).errors).toEqual([]);
   });
 
+  /**
+   * ⚠️ **İKİNCİ KAYNAK KÖKÜ — 6.4'te eklendi (6.0 ⑥'nın kararı).**
+   *
+   * Kök `packages/ui/src`. Boşluk 6.4'te ısırdı: tasarım sisteminin ilk `t()`
+   * çağrıları oradan geliyor ve kök taranmasaydı kapı **iki yönde birden**
+   * yalan söylerdi — oradaki bir anahtar hatası *"eksik"* olarak **bulunmaz**,
+   * ve `common.json`daki karşılıkları *"kullanılmayan"* diye **yanlışlıkla**
+   * bildirilirdi. İkinci vaka bu testin konusu, çünkü sessiz olan o.
+   */
+  it('İKİNCİ KÖK: `packages/ui/src` taranıyor — anahtar "kullanılmayan" DEĞİL', () => {
+    write('apps/web/src/locales/tr/common.json', JSON.stringify({ ui: { x: { y: 'z' } } }));
+    // `apps/web` bu anahtarı HİÇ kullanmıyor…
+    write('apps/web/src/App.tsx', 'export const A = () => <p>sabit</p>;\n');
+    // …ama `packages/ui` kullanıyor. Kök taranmazsa "kullanılmayan" ötürdü.
+    write(
+      'packages/ui/src/x.tsx',
+      "const KEYS = { y: 'common:ui.x.y' } as const;\n" +
+        'export const X = () => <p>{t(KEYS.y)}</p>;\n',
+    );
+
+    const { errors, counts } = runI18nCheck(root);
+    expect(errors.filter((e) => e.check === 'unused')).toEqual([]);
+    expect(counts.sourceRoots).toBe(2);
+  });
+
+  it('İKİNCİ KÖK YOKSA sessizce atlanmıyor — not düşülüyor', () => {
+    // Sahte depo `packages/ui/src` taşımıyor. Sessiz bir muafiyet kapsamı
+    // yutar (D3); atlanan kök `notes`ta görünür ve sayaç 2 değil 1 diyor.
+    const { notes, counts } = runI18nCheck(root);
+    expect(counts.sourceRoots).toBe(1);
+    expect(notes.some((n) => n.includes('packages/ui/src'))).toBe(true);
+  });
+
   it('EKSİK ANAHTAR: kaynaktan bir anahtar silinince ötüyor', () => {
     write('apps/web/src/locales/tr/common.json', JSON.stringify({ value: { no: 'hayir' } }));
     const { errors } = runI18nCheck(root);

@@ -4,13 +4,29 @@
   // Sunucu API'si sızarsa derleme kırılır — K1 (sunucu otoritesi) için
   // ilk savunma hattı.
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
+    // ⚠️ `rootDir`/`outDir` BURADA YOK, `tsconfig.build.json`'da — 6.4'te
+    // taşındı ve gerekçe **ölçüldü**, kopyalanmadı. `vitest.setup.ts` `src/`
+    // dışında (test altyapısı, ürün kodu değil) ve tip denetimine dahil olmalı;
+    // ama `rootDir` tanımlıyken `tsc` onu **TS6059** ile reddediyor
+    // (*"is not under rootDir"*). Emsal `packages/db` (Faz 3.2a): oradaki ders
+    // birebir aynıydı — *"`rootDir`i EMİT EDEN yapılandırmaya taşı"*.
+    // Tip denetimi geniş, emit dar.
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    // 6.4: ilk JSX bileşenleri. ROADMAP 6.3'ün SONUÇ bloğu bunu adıyla
+    // öngörmüştü (*"React sağlayıcısı 6.4'ün ilk bileşeniyle gelir; o gün
+    // tsconfig'e jsx eklenir"*), yani kapsam kayması değil.
+    "jsx": "react-jsx",
+    // ⚠️ `types: []` KORUNDU — Faz 1'de K1 için kilitlenmiş savunma hattı.
+    // Ölçüldü: `jsx: "react-jsx"` bunu genişletmeyi GEREKTİRMİYOR. `types`
+    // yalnızca `@types/*` paketlerinin GLOBAL olarak otomatik yüklenmesini
+    // yönetiyor; `react/jsx-runtime` tipleri modül çözümlemesiyle geliyor.
+    // Yani Node tipleri hâlâ görünmez ve sunucu API'si sızarsa derleme kırılır.
     "types": []
   },
-  "include": ["src/**/*"],
+  // `vitest.setup.ts` src/ DIŞINDA (test altyapısı, ürün kodu değil) ama tip
+  // denetiminden kaçmamalı — `apps/web` ile birebir aynı desen ve gerekçe.
+  "include": ["src/**/*", "vitest.setup.ts"],
   "exclude": ["dist", "node_modules"]
 }

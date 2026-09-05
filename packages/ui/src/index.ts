@@ -6,17 +6,19 @@
  * - **6.3:** tema katmanı — mod çözümlemesi, DOM'a uygulama, kulüp vurgusu, ve
  *   token'ların CSS'e **türetilmiş** yansıması.
  *
- * ⚠️ **Paket hâlâ JSX TAŞIMIYOR ve bu ölçülmüş bir karar.** 6.3'ün ihtiyacı
- * olan her şey (mod çözümlemesi saf bir fonksiyon, tema uygulaması bir DOM
- * mutasyonu, CSS bir dize) React **olmadan** yazılabiliyordu — ve React'siz
- * yazılan bir tema katmanı jsdom'da **tam** test edilebiliyor. Bir React
- * sağlayıcısı 6.4'ün ilk bileşeniyle birlikte gelir; o gün `tsconfig`e `jsx`
- * eklenir. *"Yol haritasında olmayan bir özellik aklına gelirse yapma"* (K12)
- * kadar, **bugün gerekmeyen bir soyutlamayı da** yazmamak geçerli.
+ * - **6.4:** ilk React bileşenleri — dokuz temel bileşen, Radix uyarlaması,
+ *   `common:ui.` çeviri sözleşmesi.
  *
- * ⚠️ `types: []` **korundu** — Faz 1'de K1 için kilitlenmiş savunma hattı.
- * Üretilmiş CSS'i okuyan test `node:fs` yerine Vite'ın `?raw` yolunu kullanıyor
- * (`src/theme/raw-css.d.ts`).
+ * ⚠️ **6.3'ÜN ÖNGÖRÜSÜ GERÇEKLEŞTİ:** o alt görev *"React sağlayıcısı 6.4'ün
+ * ilk bileşeniyle gelir; o gün `tsconfig`e `jsx` eklenir"* diye yazmıştı.
+ * 6.4'te `jsx: "react-jsx"` eklendi — kapsam kayması değil, planlanan adım.
+ *
+ * ⚠️ `types: []` **KORUNDU** — Faz 1'de K1 için kilitlenmiş savunma hattı,
+ * ve 6.4'te ölçüldü: `jsx: "react-jsx"` onu genişletmeyi **gerektirmiyor**
+ * (`react/jsx-runtime` tipleri modül çözümlemesiyle geliyor, global
+ * `@types/*` yüklemesiyle değil). Node tipleri hâlâ görünmez.
  */
+export * from './components/index.js';
+export { cn } from './lib/cn.js';
 export * from './theme/index.js';
 export * from './tokens/index.js';

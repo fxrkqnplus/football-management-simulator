@@ -80,10 +80,19 @@ describe('namespace envanteri — SAYI değil LİSTE', () => {
       'news',
       'tutorial',
     ]);
+    // ⚠️ **6.4'TE `ui` EKLENDİ ve bu iddia yine KIRILDI — beklendiği gibi.**
+    // Tasarım sisteminin ilk kullanıcıya görünen metinleri `common:ui.` ön eki
+    // altına girdi (6.0 ⑤'in kararı: **on birinci namespace açılmıyor**).
+    // Liste yine **gevşetilmedi, GÜNCELLENDİ** — 5.4'ün dersinin birebir
+    // tekrarı: bir üst seviye anahtarın sessizce doğması ancak envanter tam
+    // kalırsa görünür. `ui`nin ALTINDAKİ anahtarlar burada sayılmıyor; onların
+    // biçimini `packages/ui/src/components/i18n-keys.test.ts`, varlığını
+    // `pnpm i18n:check` denetliyor (6.4'te eklenen ikinci kaynak kökü).
     expect(Object.keys(trResources.common)).toEqual([
       'country',
       'competition',
       'value',
+      'ui',
       'diagnostics',
       'debugPanel',
     ]);

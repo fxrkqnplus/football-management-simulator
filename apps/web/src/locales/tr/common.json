@@ -40,6 +40,16 @@
     "yes": "evet",
     "no": "HAYIR"
   },
+  "ui": {
+    "select": {
+      "placeholder": "Seçiniz"
+    },
+    "combobox": {
+      "placeholder": "Seçiniz",
+      "searchLabel": "Listede ara",
+      "empty": "Eşleşen sonuç yok"
+    }
+  },
   "diagnostics": {
     "title": "Alt yol kanıtı",
     "base": "base",

@@ -48,7 +48,7 @@
  * görebiliyor mu). *"0 bulundu"* ile *"hiçbir şey aramadı"* aksi hâlde ayırt
  * edilemez.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 import ts from 'typescript';
@@ -365,7 +365,27 @@ const toPosix = (root, file) => relative(root, file).split(sep).join('/');
  */
 export function runI18nCheck(root, options = {}) {
   const localeDir = options.localeDir ?? join(root, 'apps/web/src/locales/tr');
-  const sourceDir = options.sourceDir ?? join(root, 'apps/web/src');
+
+  /**
+   * KAYNAK KÖKLERİ — 6.4'te **tek**ten **iki**ye çıktı.
+   *
+   * ⚠️ Bu genişletme 6.0 ⑥'da ölçülerek kararlaştırıldı ve **6.3'e atanmıştı**;
+   * o alt görev kullanıcıya görünen metin üretmediği için sıra gelmedi. 6.4
+   * tasarım sisteminin **ilk** `t()` çağrılarını getiriyor, yani boşluk tam
+   * bugün ısırırdı: `packages/ui/src` taranmasaydı kapı **iki yönde birden**
+   * yalan söylerdi — oradaki bir anahtar hatası *"eksik"* olarak
+   * **bulunmaz**, ve `common.json`daki karşılıkları *"kullanılmayan"* diye
+   * **yanlışlıkla bildirilirdi**.
+   *
+   * ⚠️ **VAR OLMAYAN KÖK SESSİZCE ATLANMIYOR.** Sahte depolarda kurulan
+   * testler `packages/ui/src` taşımıyor; onu `readdirSync` ile taramak
+   * kırılırdı. Atlanan her kök `notes`a yazılıyor ve sayısı `counts`ta —
+   * sessiz bir muafiyet kapsamı yutar (D3).
+   */
+  const sourceDirs = options.sourceDirs ?? [
+    options.sourceDir ?? join(root, 'apps/web/src'),
+    join(root, 'packages/ui/src'),
+  ];
   const declarationFile =
     options.declarationFile ?? join(root, 'apps/web/src/app/i18n-dynamic-keys.ts');
   const defaultNamespace = options.defaultNamespace ?? 'common';
@@ -390,9 +410,22 @@ export function runI18nCheck(root, options = {}) {
   }
 
   // ── Kullanımlar ──────────────────────────────────────────────────────────
-  const sourceFiles = collectFiles(sourceDir, SOURCE_EXTENSIONS).filter(
-    (file) => !/\.test\.tsx?$/.test(file) && !file.endsWith('.d.ts'),
-  );
+  const presentRoots = [];
+  for (const dir of sourceDirs) {
+    if (existsSync(dir)) presentRoots.push(dir);
+    else notes.push(`Kaynak kökü yok, atlandı: ${toPosix(root, dir)}`);
+  }
+
+  if (presentRoots.length === 0) {
+    errors.push({
+      check: 'source-root',
+      message: 'Hiçbir kaynak kökü bulunamadı — tarayıcı kör, "0 eksik anahtar" bir onay değil.',
+    });
+  }
+
+  const sourceFiles = presentRoots
+    .flatMap((dir) => collectFiles(dir, SOURCE_EXTENSIONS))
+    .filter((file) => !/\.test\.tsx?$/.test(file) && !file.endsWith('.d.ts'));
 
   const used = new Set();
   /** Kaynak ağacındaki her dize literali — "kullanılmayan" denetimi için. */
@@ -468,6 +501,7 @@ export function runI18nCheck(root, options = {}) {
       usedKeys: used.size,
       dynamicPrefixes: prefixes.length,
       sourceFiles: sourceFiles.length,
+      sourceRoots: presentRoots.length,
       scannedForInvisible,
     },
   };
@@ -482,7 +516,9 @@ if (process.argv[1]?.endsWith(join('i18n-check', 'index.mjs')) === true) {
   process.stdout.write(`  tanımlı anahtar    : ${String(counts.definedKeys)}\n`);
   process.stdout.write(`  kullanılan anahtar : ${String(counts.usedKeys)}\n`);
   process.stdout.write(`  dinamik ön ek      : ${String(counts.dynamicPrefixes)}\n`);
-  process.stdout.write(`  taranan kaynak     : ${String(counts.sourceFiles)}\n`);
+  process.stdout.write(
+    `  taranan kaynak     : ${String(counts.sourceFiles)} dosya · ${String(counts.sourceRoots)} kök\n`,
+  );
   process.stdout.write(`  görünmez tarama    : ${String(counts.scannedForInvisible)} dosya\n\n`);
 
   for (const note of notes) process.stdout.write(`  ℹ ${note}\n`);

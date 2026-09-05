@@ -133,6 +133,13 @@ export default defineConfig({
           // hiçbir şeye bakmayan bir kapıya dönüşüyordu (D2 + "falsy bir değer
           // «özellik yok» anlamına da gelebilir"). `true` ile içerik geliyor.
           css: true,
+          // 6.4: ilk React bileşenleri geldi. Kurulum dosyası İKİ iş yapıyor
+          // ve ikisi de zorunlu: ① jsdom doldurmaları (Radix'in çağırdığı ve
+          // jsdom'da OLMAYAN API'ler — her birinin neyi taklit ETMEDİĞİ orada
+          // yazılı) ② RTL `cleanup()` — `globals` kapalı olduğu için RTL'in
+          // otomatik kaydı hiç oluşmuyor ve bunu SESSİZCE geçiyor
+          // (`apps/web/vitest.setup.ts` ile birebir aynı gerekçe).
+          setupFiles: ['./vitest.setup.ts'],
         },
       },
       {

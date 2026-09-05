@@ -18,9 +18,23 @@
   // repoda iki glob lehçesi var, karıştırma.
   // Tip denetimi (tsconfig.json) testleri KAPSAR — yalnızca emit dışında tutulur.
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // rootDir/outDir burada, tsconfig.json'da değil (gerekçe orada yazılı).
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  // Emit YALNIZCA `src/` — `vitest.setup.ts` tip denetlenir ama derlenmez.
+  "include": ["src/**/*"],
   "exclude": [
     "dist",
     "node_modules",
+    // ⚠️ 6.4'te EKLENDİ ve gerekliliği ölçüldü. `tsconfig.json`un `include`ı
+    // artık `vitest.setup.ts`yi de sayıyor (tip denetimi kaçmasın diye), ama
+    // bu dosya `rootDir: "src"`in DIŞINDA — emit eden yapılandırma onu
+    // görürse `tsc` TS6059 ile kırılır. `apps/web`de bu sorun yok çünkü o
+    // paket emit ETMİYOR (`noEmit`). Aynı ayrımın üçüncü vakası (3.2a'nın
+    // `rootDir` dersi): tip denetimi geniş, emit dar.
+    "vitest.setup.ts",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.test.mts",

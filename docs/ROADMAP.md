@@ -3601,11 +3601,75 @@ docs/glossary.md
       > **Yeni kayıt:** **BORÇ-012** (`arch:check` çıktısı kapsamını söylemiyor →
       > **6.10**) · **SAPMA-044** (`spec/09` §11.5 kapı listesi eksikti).
 
-- [ ] **6.4** **shadcn/ui uyarlaması + temel bileşenler I** — Button (6 varyant),
+- [x] **6.4** **shadcn/ui uyarlaması + temel bileşenler I** — Button (6 varyant),
       Input, Select, Combobox, Checkbox, RadioGroup, Slider, Switch, Tabs.
       ⚠️ **`main.test.tsx` jsdom yıkım yarışı bu alt görevden itibaren HER alt
       görevde izlenir**: RTL kendi `cleanup()`ünü koşturuyor ama **RTL'in
       kurmadığı** kökler onun kapsamında değil.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.4 (2026-09-05)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **DOKUZ BİLEŞEN, LİSTEDEKİLERİN TAMAMI, FAZLASI YOK.** `packages/ui`
+      > ilk kez JSX taşıyor; `tsconfig`e `jsx: "react-jsx"` eklendi (6.3'ün
+      > öngörüsü) ve **`types: []` KORUNDU** — ölçüldü: `react-jsx` onu
+      > genişletmeyi gerektirmiyor, `react/jsx-runtime` modül çözümlemesiyle
+      > geliyor. K1'in ilk savunma hattı delinmedi.
+      >
+      > **① VARYANT ADLARI BU TURDA YAZILDI — sayı LİSTEDEN türetiliyor.**
+      > Ölçüldü: `spec/05`te bileşen tanımı **yok** (`varyant` kelimesinin tek
+      > geçtiği yer §7.6'nın **gol kutlamaları**), ROADMAP *"6 varyant"* diyor
+      > ama **altısını saymıyor**. Yani **sayı kaynaktan, adlar buradan**.
+      > Adlar uydurulmadı, bir **kuralla** türetildi ve kural yazılı: kapsam
+      > maddesi *"**shadcn/ui** bileşenlerinin uyarlanması"* diyor ve shadcn'in
+      > Button'ı tam altı varyant yayınlıyor →
+      > `default · destructive · outline · secondary · ghost · link`.
+      > ⚠️ **"6" hiçbir yerde ELLE yazılmıyor:** tek kaynak `BUTTON_VARIANTS`,
+      > sayı ondan türüyor, kapsayıcılık hem `Record<ButtonVariant, string>` ile
+      > **tip seviyesinde** hem testte iddia ediliyor.
+      >
+      > **② `i18n:check`E İKİNCİ KAYNAK KÖKÜ EKLENDİ** *(6.0 ⑥'nın kararı,
+      > **6.3'e atanmıştı ve sıra gelmemişti**)*. Sayılar: taranan kaynak
+      > **12 → 38 dosya, 1 → 2 kök** · tanımlı anahtar **59 → 63** · kullanılan
+      > **34 → 38**. İddia gevşetilmedi, **güncellendi**. Var olmayan bir kök
+      > **sessizce atlanmıyor**: `notes`a yazılıyor ve `sourceRoots` sayacı
+      > çıktıda. İki yeni test (kök taranıyor mu · atlanan kök bildiriliyor mu).
+      >
+      > **③ ÖN EK SÖZLEŞMESİ KURULDU — ve YERİ ÖLÇÜMLE DEĞİŞTİ.** Anahtarlar
+      > önce merkezî bir `i18n-keys.ts`te toplanmıştı; `i18n:check` üçünü birden
+      > *"kullanılmayan"* diye bildirdi. Sebep aracın kendi başlığında yazılıydı:
+      > `t(X.y)` çağrısında `X` **aynı dosyadaysa** çözülüyor, **import
+      > edilmişse** çözülmüyor. Aileyi beyan etmek `i18n-dynamic-keys.ts` kural
+      > ①'e göre **yasaktı** (*"kod içinde bir tabloda duran anahtarlar
+      > girmez"*), yani doğru çıkış anahtarı **çözülebilir yere** koymaktı.
+      > Bugün her bileşen kendi `*_KEYS`ini tanımlıyor, `i18n-keys.ts` onları
+      > **topluyor** — iki liste yok, biri diğerinin türevi.
+      >
+      > **④ jsdom DOLDURMALARI: 4 YAZILDI, ÖLÇÜM 3'ÜNÜ DOĞRULADI, 1'İ ÖLÜ
+      > ÇIKTI.** Her doldurma tek tek sökülüp `ui` projesi koşturuldu:
+      > `scrollIntoView` → **3 test** · işaretçi yakalama üçlüsü → **2 test** ·
+      > `ResizeObserver` → **4 test** kırıldı. **`matchMedia` → 0 test kırıldı**
+      > ve **silindi** (*"kullanılmayan bir stub, olmayan bir yeteneği var
+      > gösterir"*). `getBoundingClientRect` **0×0 bırakıldı** — sahte geometri,
+      > Slider'ın sürükleme hesabını uydurma sayılar üzerinden geçirirdi.
+      > Her doldurmanın **neyi taklit ETMEDİĞİ** `vitest.setup.ts`te yazılı.
+      >
+      > **⑤ İKİ KIRMIZI, İKİ AYRI SINIF — D6 tam olarak bunun için var.**
+      > (a) `filterOptions(…, 'iSPA')` boş döndü → **KOD yanlıştı**:
+      > `'İspanya'.toLowerCase()` `i` **+ U+0307 birleşen nokta** üretiyor
+      > (kod noktası kod noktası ölçüldü) ve `.includes('ispa')` false diyor.
+      > ⚠️ **Bu dosyanın kendi ilk yorumu bunun tersini iddia ediyordu** —
+      > gerekçe ölçümle çürütüldü ve düzeltmesiyle birlikte görünür bırakıldı.
+      > (b) RadioGroup ok tuşunda seçim değişmedi → **ORTAM yanlıştı**: Radix
+      > `document` keydown'da bayrak kuruyor, odak gelince `click()` ediyor,
+      > **keyup bayrağı sıfırlıyor**; `user-event` keyup'ı gecikmesiz gönderiyor
+      > ve ertelenmiş odak ondan **sonra** geliyor. Üç ölçümle ayrıştırıldı ve
+      > test *"tuş basılıyken"* biçimine çevrildi; tam basım döngüsü **Faz 17**.
+      >
+      > **⑥ KRİTER 1 ve 6 `[ ]` KALIYOR** — kriter 1 Storybook envanteri istiyor
+      > (**6.9**), kriter 6 axe taraması istiyor (**6.8**). Bir kriteri kısmen
+      > sağlamak sağlamamaktır.
 - [ ] **6.5** **Temel bileşenler II** — Dialog, Sheet, Popover, Tooltip, Toast,
       Badge, Avatar, Progress, Skeleton.
       ⚠️ **§0.5 KONTROL NOKTASI BU ALT GÖREVİN SONUNDA KOŞAR** (eşik A bölünme
@@ -3673,6 +3737,25 @@ docs/glossary.md
       genişletir; **sessizce üçüncü bir yol seçilirse kapı kablolamasız kalır.**
       ⚠️ `spec/09` §11.5 onu *"Faz 6+"* diye listeliyor ve §0.4 *"ihlal = faz
       kapanmaz"* diyor. ⚠️ **Bakacak bir şey bulamayan kapıya ✅ yazılmaz.**
+      ⚠️ **CSS'İN BÜTÇE SATIRI YOK — 6.4'te ölçüldü, burada karara bağlanır.**
+      §11.6'nın paket satırı *"`apps/web`, **ana JS**, harita hariç → taban ×
+      1,10"* diyor; **CSS'i hiç saymıyor**. 6.4'te bedeli görünür oldu: dokuz
+      bileşen eklenince JS **383.976 → 384.346 bayt (+%0,10)** kaldı ama CSS
+      **17.064 → 26.406 bayt (+%54,8)** sıçradı — çünkü Tailwind
+      `packages/ui/src`i tarıyor ve sınıflar **tüketici olmasa da** üretiliyor.
+      Yani bugünkü bütçe, tasarım sisteminin **asıl büyüyen yüzeyini**
+      ölçmüyor. ⚠️ Bir CSS eşiği **uydurulmadı** (SAPMA-026): karar bu alt
+      görevin, ve §11.6'ya satır eklemek **normatif** bir değişikliktir —
+      SAPMA-042 emsali, yani **sorulur** (SAPMA-044'ün envanter/norm ayrımı).
+      ⚠️ **`spec/09` §11.5 NÖBETÇİSİ BURADA YAZILIR** *(6.4'te karara bağlandı)*.
+      Ölçüldü: `scripts/inventory-guards.test.mjs` bugün **iki yüzey** tarıyor
+      (① `*:check` kapıları `ci.yml`de mi ② `CLAUDE.md` envanteri diskle
+      örtüşüyor mu). **§11.5'in komut listesi ÜÇÜNCÜ bir yüzey ve korumasız** —
+      ve tam bu yüzden bayatladı: `gaps:check` 4.11'den beri CI'da koşuyordu ve
+      listede **hiç geçmiyordu** (SAPMA-044). ⚠️ **Ev buraya düşüyor** çünkü
+      `perf:budget` §11.5'e **yeni bir satır olarak girecek** ve nöbetçi tam o
+      gün lazım. Kural: kök `package.json`daki her `*:check` betiği ve
+      `perf:budget` §11.5'in komut bloğunda **adıyla** geçmeli.
       ⚠️ **BORÇ-012 BURADA ÖDENİR** *(6.4-ön'de açıldı)* — `arch:check`in başarı
       çıktısı (`✓ arch:check temiz (N ms)`) **kaç kural ve kaç dosya taradığını
       söylemiyor**, oysa `gaps:check` · `debt:check` · `i18n:check` üçü de
