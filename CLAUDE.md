@@ -38,6 +38,8 @@
 | `docs/spec/10-deployment.md` | Oracle, Cloudflare, yedekleme | Faz 13,50 |
 | `docs/spec/11-project-memory.md` | Hafıza sisteminin kuralları | Faz 1 + gerektiğinde |
 | `docs/spec/12-data-packs.md` | Veri paketi formatı, gerçek varlık hattı, portre tutarlılığı | Faz 7-9, 11 |
+| `docs/HOSTING-FALLBACK.md` | Oracle limitleri düşerse taşınacak sağlayıcılar (iskelet) | Faz 50 · barındırma kararı değişirse |
+| `docs/schema/world.md` | ER diyagramı — **gerçek şemadan üretilir**, nöbetçisi `packages/db/integration/er-diagram.itest.ts` | Faz 3,4,12,46 |
 | `docs/MASTER-SPEC.md` | Hepsinin tek dosyalık arşivi | Referans |
 
 ---
@@ -320,12 +322,31 @@ football-management-simulator/
 │   ├── glossary-check/          # docs/glossary.md ayrıştırıcısı — kriter sayısı burada
 │   └── i18n-check/              # eksik/kullanılmayan anahtar · boş çeviri · görünmez karakter
 │
+├── scripts/                     # ⚠️ ÖNYÜKLEME BETİKLERİ — 6.4-ön'e kadar AĞAÇTA HİÇ YOKTU
+│   ├── check-debt-coverage.mjs  # `debt:check` — BORÇ kütüğü ↔ ROADMAP (CI kapısı)
+│   ├── check-env-file.mjs       # `.env`/`.env.example` içinde NODE_ENV yasağı
+│   ├── check-gap-coverage.mjs   # `gaps:check` — SPEC-COVERAGE-GAPS ↔ ROADMAP (CI kapısı)
+│   ├── check-node-version.mjs   # `preinstall` + CI'ın install ÖNCESİ adımı
+│   ├── check-tsconfig-types.mjs # her paket `types` dizisini açıkça yazmalı (TS 6)
+│   ├── clean-dist.mjs           # her paketin `build` betiğine bağlı (SAPMA-011)
+│   ├── generate-theme-css.mjs   # token'ların üretilmiş CSS yansıması (6.3)
+│   └── lib/                     # kapıların ortak çekirdeği (ledger-coverage.mjs)
+│
 ├── docs/
 │   ├── ROADMAP.md               # 50 faz
+│   ├── SESSION-TEMPLATE.md      # oturum akışı + faz→spec eşlemesi (§15.1)
+│   ├── OUTPUT-FORMAT.md         # alt görev rapor formatı + rapor arşivi kuralı
+│   ├── DEPENDENCY-WATCH.md      # sürüm takip listesi
+│   ├── SPEC-COVERAGE-GAPS.md    # G-01… boşluk kütüğü (`gaps:check` bunu okur)
 │   ├── V2-BACKLOG.md            # kapsam dışı fikirler buraya
+│   ├── glossary.md              # TR/EN terim sözlüğü — §14'ün süperkümesi
+│   ├── HOSTING-FALLBACK.md      # yedek barındırma planı (iskelet, Faz 50)
+│   ├── MASTER-SPEC.md           # hepsinin tek dosyalık arşivi
 │   ├── ADR/                     # mimari karar kayıtları
+│   ├── reports/                 # alt görev raporlarının HAM arşivi (append-only)
+│   ├── schema/                  # ER diyagramı — gerçek şemadan ÜRETİLİR, nöbetçisi var
 │   ├── spec/                    # bu belgenin bölümleri
-│   └── LEGAL/                   # KVKK metinleri (yalnızca public modda gösterilir)
+│   └── LEGAL/                   # KVKK metinleri — ⚠️ HENÜZ YOK, Faz 13'te açılacak
 │
 └── data/                        # .gitignore'da
     ├── packs/                   # kullanıcı veri paketleri
@@ -337,9 +358,19 @@ football-management-simulator/
 
 `.env.example` (Zod ile doğrulanır, eksikse uygulama açılmaz):
 
+> ⚠️ **`NODE_ENV` BU DOSYADA TUTULMAZ — ve bu satır 6.4-ön'e kadar tam tersini
+> söylüyordu.** Blok `NODE_ENV=development` ile başlıyordu; oysa Faz 2 hata #9'da
+> ölçüldü: Vite `.env`'deki `NODE_ENV`'i kendi üretim kararına uyguluyor ve React'in
+> **geliştirme sürümü** üretim paketine giriyor (228 kB → **429 kB**). O günden beri
+> `scripts/check-env-file.mjs` hem `.env`i hem `.env.example`ı tarıyor ve bu değişkeni
+> görürse **exit 1** veriyor; kapı `apps/web`in `build` betiğine bağlı. Yani anayasa,
+> koşan bir kapının **yasakladığı** şeyi tarif ediyordu — bu blok olduğu gibi
+> uygulansaydı `pnpm build` kırılırdı. Ortamı çalışma zamanı belirler (konteyner,
+> süreç yöneticisi, CI); `packages/shared/src/env.ts` zaten `development` varsayılanı
+> veriyor.
+
 ```bash
-# Uygulama
-NODE_ENV=development
+# Uygulama  (NODE_ENV YOK — yukarıdaki kutuya bak)
 PUBLIC_BASE_PATH=/fms
 PUBLIC_URL=https://fxrkqn.org/fms
 API_PORT=3001

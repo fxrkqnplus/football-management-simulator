@@ -1,6 +1,15 @@
 /**
  * `SPEC-COVERAGE-GAPS` ↔ ROADMAP TUTARLILIK KONTROLÜ — Faz 4.11.
  *
+ * ⚠️ **ÇEKİRDEK 6.4-ön'DE `scripts/lib/ledger-coverage.mjs`e TAŞINDI.**
+ * Sebep: aynı kontrol **teknik borç kütüğü** için de gerekti ve iki uygulama
+ * bir gün ayrışır. Ayrışacak yarı ortak olan yarıdır (ROADMAP dilimleme,
+ * kaçışlı boru işaretine dayanan hücre bölme, rapor biçimi); kütüğe özgü olan
+ * (dosya, sütun sırası, kapanış kelimesi, faz yazımı) burada kalır.
+ * Taşıma sırasında çıktı **bayt bayt aynı** tutuldu (md5 ile doğrulandı) ve
+ * satır şekli kontrolü `< 4`ten `!== 4`e **sıkılaştırıldı**: fazladan bir
+ * hücre de sütunları kaydırır, eksik olan kadar tehlikelidir.
+ *
  * ────────────────────────────────────────────────────────────────────────────
  * NEDEN BİR BETİK, YALNIZCA BİR TALİMAT DEĞİL
  * ────────────────────────────────────────────────────────────────────────────
@@ -39,8 +48,9 @@
  * Bir satırdan hiçbir faz çıkarılamazsa betik **kırılıyor** — sessizce
  * atlamıyor. Bakacak bir şey bulamayan bir kontrol bir onay değildir.
  */
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
+import { parseLedgerRows, runCoverageCheck, stripStruckThrough } from './lib/ledger-coverage.mjs';
 
 const REPO_ROOT = new URL('../', import.meta.url);
 const GAPS_FILE = fileURLToPath(new URL('docs/SPEC-COVERAGE-GAPS.md', REPO_ROOT));
@@ -65,130 +75,38 @@ const GAP_ROW = /^\|\s*(?:\*\*)?(G-\d+)(?:\*\*)?\s*\|(.*)\|\s*$/;
 /** Kalın ve üstü çizili OLMAYAN faz ataması: `**Faz 12**`, `**Faz 4.5**`. */
 const BOLD_PHASE = /\*\*Faz\s+(\d+)(?:\.\d+)?\*\*/g;
 
-/**
- * Satırı hücrelere böler.
- *
- * ⚠️ **KAÇIŞLI BORU İŞARETİ VAR ve ilk yazımda satırı kaydırdı.** G-06'nın
- * *"Ne istiyor"* hücresi bir spec alıntısı taşıyor: `` `Sentry \| 5.000
- * olay/ay \| 4.000` ``. Düz bir `split('|')` o satırı altı hücreye bölüyor ve
- * *"Hangi faza ait olmalı"* sütunu **bir başkasının içeriğini** gösteriyordu.
- * Betik bunu sessizce geçmedi — atama çıkaramayınca kırıldı (tasarım gereği).
- */
-function splitRow(rest) {
-  return rest.split(/(?<!\\)\|/).map((cell) => cell.trim());
-}
+// Sütunlar: 1 Spec referansı · 2 Ne istiyor · 3 Hangi faza ait olmalı · 4 Durum
+const TARGET_COLUMN = 2;
+const STATUS_COLUMN = 3;
 
-function stripStruckThrough(text) {
-  return text.replaceAll(/~~.*?~~/g, '');
-}
+const rows = parseLedgerRows({ file: GAPS_FILE, rowPattern: GAP_ROW, expectedCells: 4 });
 
-function parseGapRows() {
-  const lines = readFileSync(GAPS_FILE, 'utf8').replaceAll('\r\n', '\n').split('\n');
-  const rows = [];
-
-  for (const line of lines) {
-    const match = GAP_ROW.exec(line);
-    if (match === null) continue;
-
-    const cells = splitRow(match[2]);
-    if (cells.length < 4) {
-      throw new Error(`${match[1]}: satır beklenen sütun sayısını taşımıyor (${cells.length})`);
-    }
-
-    // Sütunlar: 1 Spec referansı · 2 Ne istiyor · 3 Hangi faza ait olmalı · 4 Durum
-    rows.push({ id: match[1], target: cells[2], status: cells[3] });
-  }
-
-  return rows;
-}
-
-function isClosed(status) {
-  const plain = status.replaceAll('*', '').replaceAll('✅', '').trim();
+function isClosed(row) {
+  const plain = row.cells[STATUS_COLUMN].replaceAll('*', '').replaceAll('✅', '').trim();
   return CLOSED_MARKERS.some((marker) => plain.startsWith(marker));
 }
 
 function targetPhases(row) {
+  const target = row.cells[TARGET_COLUMN];
   const phases = [
-    ...new Set([...stripStruckThrough(row.target).matchAll(BOLD_PHASE)].map((m) => Number(m[1]))),
+    ...new Set([...stripStruckThrough(target).matchAll(BOLD_PHASE)].map((m) => Number(m[1]))),
   ];
 
   if (phases.length === 0) {
     throw new Error(
       `${row.id}: "Hangi faza ait olmalı" sütunundan hiçbir **Faz N** ataması çıkarılamadı. ` +
-        `Sütun: ${row.target.slice(0, 120)}`,
+        `Sütun: ${target.slice(0, 120)}`,
     );
   }
 
   return phases.sort((a, b) => a - b);
 }
 
-/** ROADMAP'i `## FAZ N — …` başlıklarından dilimler. */
-function roadmapSections() {
-  const lines = readFileSync(ROADMAP_FILE, 'utf8').replaceAll('\r\n', '\n').split('\n');
-  const sections = new Map();
-  let current = null;
-
-  for (const line of lines) {
-    const heading = /^##\s+FAZ\s+(\d+)\b/.exec(line);
-    if (heading !== null) {
-      current = Number(heading[1]);
-      sections.set(current, []);
-      continue;
-    }
-    if (current !== null) sections.get(current).push(line);
-  }
-
-  return new Map([...sections].map(([phase, body]) => [phase, body.join('\n')]));
-}
-
-const rows = parseGapRows();
-if (rows.length === 0) {
-  throw new Error('`docs/SPEC-COVERAGE-GAPS.md` içinde hiç G satırı bulunamadı — tarayıcı kör.');
-}
-
-const sections = roadmapSections();
-const skipped = [];
-const checked = [];
-const mismatches = [];
-
-for (const row of rows) {
-  if (isClosed(row.status)) {
-    skipped.push(row.id);
-    continue;
-  }
-
-  const phases = targetPhases(row);
-  const missing = phases.filter((phase) => {
-    const body = sections.get(phase);
-    if (body === undefined) {
-      throw new Error(`${row.id}: ROADMAP'te "## FAZ ${String(phase)}" bölümü yok.`);
-    }
-    return !body.includes(row.id);
-  });
-
-  checked.push({ id: row.id, phases });
-  if (missing.length > 0) mismatches.push({ id: row.id, missing });
-}
-
-const out = process.stdout;
-out.write(`SPEC-COVERAGE-GAPS ↔ ROADMAP tutarlılık kontrolü\n`);
-out.write(`  kütükteki G satırı : ${String(rows.length)}\n`);
-out.write(`  atlanan (kapalı)   : ${String(skipped.length)} — ${skipped.join(', ') || '—'}\n`);
-out.write(`  taranan (açık)     : ${String(checked.length)}\n`);
-
-for (const { id, phases } of checked) {
-  const where = phases.map((p) => `Faz ${String(p)}`).join(' + ');
-  const verdict = mismatches.some((m) => m.id === id) ? '✗' : '✓';
-  out.write(`    ${verdict} ${id} → ${where}\n`);
-}
-
-if (mismatches.length > 0) {
-  out.write(`\n✗ ${String(mismatches.length)} satır hedef fazının kapsamında GEÇMİYOR:\n`);
-  for (const { id, missing } of mismatches) {
-    out.write(`    ${id} → Faz ${missing.map(String).join(', ')}\n`);
-  }
-  out.write(`\nSatır o fazın ROADMAP kapsamına ADIYLA yazılmalı (kütüğe kayıt yetmez).\n`);
-  process.exitCode = 1;
-} else {
-  out.write(`\n✓ Açık satırların hepsi hedef fazının ROADMAP kapsamında adıyla geçiyor.\n`);
-}
+process.exitCode = runCoverageCheck({
+  label: 'SPEC-COVERAGE-GAPS ↔ ROADMAP tutarlılık kontrolü',
+  rowNoun: 'G satırı',
+  roadmapFile: ROADMAP_FILE,
+  rows,
+  isClosed,
+  targetPhases,
+});

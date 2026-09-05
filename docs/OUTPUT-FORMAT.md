@@ -66,6 +66,23 @@ Yukarıdaki özet bu bölüm olmadan da anlaşılır olmalı.]
   `format ✅` değil, **`format — Markdown kapsam dışı, bu commit'te denetlenen
   dosya yok`** yazar. Aynı soru her kapı için sorulur: *"bu kapı benim
   DEĞİŞTİRDİĞİM dosyalara baktı mı?"*
+- **`D5` ("test yeşil ≠ üretim çalışıyor") İDDİASI HANGİ YÜZEY(LER)DE
+  KOŞULDUĞUNU ADIYLA SÖYLEMEDEN YAZILAMAZ** *(Faz 6.4-ön, H②)*. Bu depoda
+  **üç ayrı üretim yüzeyi** var ve biri yeşilken diğeri kırmızı olabilir:
+  1. **paket `dist`i** — `pnpm build`, `packages/*/dist` üretilir
+  2. **web paketi** — `apps/web` üretim paketi, `PUBLIC_BASE_PATH` uygulanmış
+  3. **imaj** — `docker buildx build` + konteyneri **çalıştırıp** HTTP cevabı almak
+  **Ödenmiş bedel (6.3 → 6.3b):** 6.3 birinci yüzeyi koşturup *"D5 tam"* yazdı;
+  **imaj hiç çalıştırılmamıştı** ve CI o commit'te kırmızıydı (`33937132528`) —
+  `apps/web/Dockerfile` derlenecek paketleri elle sayıyordu ve `@fms/ui`yi hiç
+  derlemiyordu. Yerelde `pnpm build` geçiyordu; yani birinci yüzey üçüncüsü
+  hakkında **hiçbir şey söylemiyordu**.
+  Rapor bu yüzden *"D5 ✅"* değil, **hangi yüzeyin koştuğunu** yazar:
+  `D5: paket dist ✅ · web paketi ✅ · imaj — koşturulmadı`. Koşturulmayan yüzey
+  **"koşturulmadı"** diye yazılır; sessizce atlanmaz (SAPMA-024 ile aynı sınıf).
+  ℹ️ Üçüncü yüzeyin tek güvenilir ölçüm yeri CI'ın `İmaj` işi (yerelde ARM64
+  native koşulamıyor, ADR-0004 §5) — yani *"imaj ✅"* demek için o işin
+  **adım listesi** okunur, koşunun `success` olması yetmez (5.7'nin dersi).
 - Bir alt görev 🟢 ise ve kullanıcı "devam" derse sıradakine geçilir — tekrar
   plan sunulmaz, plan zaten `docs/ROADMAP.md`'de onaylıdır.
 - **Şemaya dokunan bir alt görevde KAYIT adımı şunu da sorar: *"mutasyon serisi

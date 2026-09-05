@@ -506,7 +506,23 @@ pnpm sim:seasons 20         # Faz 46+  (20 sezon regresyon)
 pnpm i18n:check             # Faz 5+   (0 eksik anahtar)
 pnpm perf:budget            # Faz 6+
 pnpm arch:check             # katman bağımlılık ihlali
+pnpm gaps:check             # Faz 4.11+ SPEC-COVERAGE-GAPS ↔ ROADMAP tutarlılığı
+pnpm debt:check             # Faz 6.4-ön+ teknik borç kütüğü ↔ ROADMAP tutarlılığı
 ```
+
+> ⚠️ **SON İKİ SATIR 6.4-ön'DE EKLENDİ — ve eksiklikleri ölçülerek bulundu**
+> (SAPMA-044). Bu liste *"faz kapanış komutları"* diye duruyor, yani okuyanın
+> **tam** sandığı bir envanter; oysa `gaps:check` 4.11'den beri CI'da koşan bir
+> kapıydı ve burada **hiç geçmiyordu**. Kısmi bir liste D3 yanılsaması üretir:
+> bir faz kapanışında bu blok satır satır uygulanır ve iki kapı sessizce
+> atlanır. `debt:check` aynı commit'te doğdu ve aynı anda buraya yazıldı — bir
+> kapının **var** olması **koşturulduğunu** göstermez, koşturulacağı yer de
+> yazılmalı (G-01'in ve `arch:check`in birebir aynı hatası).
+>
+> ℹ️ Listenin **kablolama** tarafı ayrıca koşan bir nöbetçide:
+> `scripts/inventory-guards.test.mjs` ① kök `package.json`daki adı `:check` ile
+> biten her betiği `ci.yml`de arar. `perf:budget` o desene **girmiyor** ve bu
+> ROADMAP 6.10'da adıyla yazılı.
 
 ### ⚠️ POZİTİF TESTLER KÖR BİR KONTROLLE DE GEÇER — ölçülmüş oran (Faz 3.2b)
 

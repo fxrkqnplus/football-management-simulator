@@ -112,6 +112,21 @@ jobs:
       - name: Spec boşluğu ↔ ROADMAP tutarlılığı
         run: pnpm gaps:check
 
+      # Kardeş kapı — Faz 6.4-ön. `gaps:check` yalnızca
+      # `docs/SPEC-COVERAGE-GAPS.md`'ye bakıyordu; teknik borç kütüğü kapısızdı
+      # ve ölçüm bedelini gösterdi: altı AÇIK BORÇ satırının BEŞİ (001·002·004·
+      # 006·007) vade fazının ROADMAP bölümünde hiç geçmiyordu. Aynı sınıf beş
+      # kez ısırdı (4.11 · 5.9 · 6.0 · 6.1 · 6.3) ve beşincisinde tuzağa düşen
+      # kuralı yazan alt görevin kendisiydi — yani disiplin yetmiyor.
+      #
+      # ⚠️ ADIM AYNI COMMIT'TE BAĞLANDI ve bu bilinçli: `gaps:check` 4.11'de
+      # yazılıp CI'a BAĞLANMADI, beş alt görev boyunca yalnızca biri hatırlarsa
+      # koştu (5.0'da ölçüldü). Bir kapının VAR olması KOŞTUĞUNU göstermez.
+      # Kablolamanın kendisi ayrıca `scripts/inventory-guards.test.mjs`
+      # tarafından iddia ediliyor — bu adım silinirse bir test kırılır.
+      - name: Teknik borç ↔ ROADMAP tutarlılığı
+        run: pnpm debt:check
+
   # Entegrasyon testleri AYRI iş — Faz 3.2a.
   #
   # `pnpm test`e katılmıyorlar çünkü `testcontainers` ile tek konteyner açılışı

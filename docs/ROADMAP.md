@@ -3530,6 +3530,77 @@ docs/glossary.md
       > **⑥ Kapsam `401/488 = %82,17` → `409/495 = %82,62`; marj boşluğu
       > 84 → 89. Üretim paketi 383.654 → 383.976 bayt (+322, %0,08); CSS
       > 16.821 → 17.064.**
+- [x] **6.4-ön** **Geriye dönük denetim ve kapı genişletmesi — KOD VAR, ÖZELLİK YOK.**
+      Sekiz ölçülmüş hata sınıfı geriye dönük tarandı ve **her bulgu bir eve
+      taşındı**: koşan bir kontrole, bir kütüğe ya da hedef fazın kapsamına.
+      *"Bir denetimin çıktısı da rapor olursa altıncı vaka olur."*
+      **A** kütük↔kapsam sahipliği · **B** raporda kalan devir iddiaları ·
+      **C** koşan bir testin korumadığı prose · **D** yazılmış ama etkisi
+      ölçülmemiş ayar · **E** kapıların CI bağı · **F** talimatlardaki bayat
+      sayı · **G** kriter↔kapsam/spec çelişkisi · **H** D5'in üç yüzeyi.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.4-ön (2026-09-05)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **A — `debt:check` KURULDU ve ilk koşusunda BEŞ SAHİPSİZ SATIR buldu.**
+      > `gaps:check` yalnızca `docs/SPEC-COVERAGE-GAPS.md`'ye bakıyordu; BORÇ ve
+      > SAPMA kütükleri **kapısızdı**. Ölçüm: altı **açık** BORÇ satırının
+      > **beşi** (**001 · 002 · 004 · 006 · 007**) vade fazının ROADMAP
+      > bölümünde hiç geçmiyordu — kural beş kez yazılmasına rağmen. Beşi de
+      > **Faz 16 · Faz 50 · Faz 12** kapsamına **adıyla** yazıldı ve o fazların
+      > işi yapabildiği tek tek doğrulandı (kuyruk Faz 16'da doğuyor · Sentry
+      > dağıtım hattı Faz 50'de · `apps/api` bağlantısı Faz 12'de).
+      > **Uygulama kararı: ORTAK ÇEKİRDEK, iki uygulama değil.**
+      > `scripts/lib/ledger-coverage.mjs` — ayrışacak yarı ortak olan yarıdır
+      > (ROADMAP dilimleme · kaçışlı boru · rapor biçimi). `check-gap-coverage.mjs`
+      > çekirdeğe taşındı ve çıktısı **bayt bayt aynı** kaldı (md5 doğrulandı);
+      > satır şekli kontrolü `< 4`ten `!== 4`e **sıkılaştırıldı**.
+      > 🆕 **Kapı, insanın beş alt görevdir göremediği bir bozukluğu ilk koşuda
+      > buldu:** `BORÇ-010`un satırı 5.6'dan beri **dört** hücreyle yazılıydı
+      > (başlık **beş** diyor) ve Markdown eksik hücreyi sessizce boş gösteriyordu.
+      > ⚠️ **SAPMA kütüğü bu kapının DIŞINDA ve sebebi ölçüldü:** SAPMA
+      > satırlarının sütunları `ID | Tür | Faz | Sapma | Gerekçe | Spec/ROADMAP
+      > güncellendi mi` — bir **vade fazı sütunu YOK**. Denetlenebilir bir hedefi
+      > olmadığı için girmiyor; uydurma bir hedef sütunu eklemek SAPMA-026 olurdu.
+      >
+      > **E — kapı kablolaması artık bir NÖBETÇİ.** Ölçüm: bugün kök
+      > `package.json`daki her kapı `ci.yml`de **var** ve **hiçbiri maskeli
+      > değil** (`continue-on-error` yalnızca bir yorumda geçiyor, `|| true` ve
+      > adım `if:` **sıfır**). Ama bu bir gözlemdi, bir kontrol değil —
+      > `gaps:check` 4.11'de yazılıp beş alt görev boyunca bağlanmamıştı.
+      > `scripts/inventory-guards.test.mjs` ① bunu iddia ediyor.
+      >
+      > **C — `CLAUDE.md` §2.2 ağacı ÜÇÜNCÜ KEZ bayat çıktı** (4.11 · 5.9 ·
+      > bugün): **`scripts/` dizininin tamamı yoktu** (altı betik, biri CI kapısı)
+      > ve `docs/reports/` + `docs/schema/` eksikti — üstelik §2.4 katman kuralları
+      > `scripts/`i adıyla sayıyor. İki kez bayatlayan bir envanter üçüncüsünü de
+      > yapar: `inventory-guards.test.mjs` ② **diskten belgeye** tarıyor.
+      > 🆕 **Ve anayasa koşan bir kapının YASAKLADIĞI şeyi tarif ediyordu:**
+      > §2.3'ün `.env.example` bloğu `NODE_ENV=development` ile başlıyordu;
+      > `scripts/check-env-file.mjs` tam o değişkeni görürse **exit 1** veriyor
+      > (Faz 2 hata #9). Blok olduğu gibi uygulansaydı `pnpm build` kırılırdı.
+      >
+      > **F — iki bayat sayı bulundu, ikisi de sayısızlaştırıldı:** 6.12
+      > *"yedi kabul kriteri"* diyordu (gerçek **altı**), 6.10 CI'ın *"8 adımı"*nı
+      > sayıyordu (bu alt görev dokuzuncuyu ekleyince **anında** bayatlardı).
+      > `SESSION-TEMPLATE` adım 6 ve 17'nin kapı listeleri de **kısmiydi**.
+      >
+      > **G — 0 yeni çelişki.** Faz 6'nın altı kriterinin hepsi kapsamda karşılık
+      > buluyor ve 6.1'in devrettiği **dokuz yarının dokuzu** hedef fazında
+      > **adıyla** duruyor (Faz 17 · 18 · 49 · 12 · 50 tek tek ölçüldü).
+      >
+      > **H — üç yüzeyin üçü de bugün çalışıyor.** CI koşusu `33949199057`
+      > (`b3a259e`) **altı işin altısı yeşil** ve adım listesi tek tek okundu:
+      > paket `dist`i (`Derleme`) · web paketi (`Web imajı çalışıyor mu`) ·
+      > **imaj** (`API/Web imajını derle` + iki duman testi + `Mimari doğrulaması`),
+      > **amd64 ve arm64 ayrı ayrı**. İleriye dönük kural `docs/OUTPUT-FORMAT.md`e
+      > yazıldı: *"D5 tam"* iddiası hangi yüzeyde koşulduğunu adıyla söylemeden
+      > yazılamaz.
+      >
+      > **Yeni kayıt:** **BORÇ-012** (`arch:check` çıktısı kapsamını söylemiyor →
+      > **6.10**) · **SAPMA-044** (`spec/09` §11.5 kapı listesi eksikti).
+
 - [ ] **6.4** **shadcn/ui uyarlaması + temel bileşenler I** — Button (6 varyant),
       Input, Select, Combobox, Checkbox, RadioGroup, Slider, Switch, Tabs.
       ⚠️ **`main.test.tsx` jsdom yıkım yarışı bu alt görevden itibaren HER alt
@@ -3588,13 +3659,27 @@ docs/glossary.md
       §11.6'nın 15 satırından 6.0 ⑦'de **ölçülebilir** bulunanları ölçer.
       ⚠️ **Üç parçalı kanıt zorunlu** (5.6'nın dersi: *"bir kapının VAR olması
       onun KOŞTUĞUNU göstermez"*): ① bozuk girdide **çıkış kodu ≠ 0**, karşı
-      kontrol **= 0** (iki yönlü) ② adımın **nerede koştuğu** — CI'ın
-      `Kalite kapıları` işi bugün 8 adım taşıyor (`typecheck · lint ·
-      format:check · test:coverage · build · arch:check · i18n:check ·
-      gaps:check`), bu dokuzuncusu; `SESSION-TEMPLATE` adım 17 de faza özel
-      komutları çağırıyor ③ adım **maskelenmemiş** (`continue-on-error` yok).
+      kontrol **= 0** (iki yönlü) ② adım CI'ın `Kalite kapıları` işine bağlanır
+      **ve bağlılığı bir testle iddia edilir** ③ adım **maskelenmemiş**
+      (`continue-on-error` yok).
+      ⚠️ **②'NİN SAYISI 6.4-ön'DE KALDIRILDI ve yerine koşan bir nöbetçi kondu.**
+      Madde *"CI'ın işi bugün **8 adım** taşıyor … bu dokuzuncusu"* diyordu; sayı
+      o gün doğruydu ama 6.4-ön dokuzuncu adımı (`debt:check`) ekleyince **anında
+      bayatladı** — sayı taşıyan bir talimatın kaderi bu. Yerine
+      `scripts/inventory-guards.test.mjs` ①: kök `package.json`daki adı
+      **`:check` ile biten** her betik `ci.yml`de bir adım olarak aranır.
+      ⚠️ **`perf:budget` BU DESENE GİRMİYOR** — desen ada bakıyor, işe değil.
+      Bu alt görev ya kapıyı `perf:check` adıyla kurar ya nöbetçinin desenini
+      genişletir; **sessizce üçüncü bir yol seçilirse kapı kablolamasız kalır.**
       ⚠️ `spec/09` §11.5 onu *"Faz 6+"* diye listeliyor ve §0.4 *"ihlal = faz
       kapanmaz"* diyor. ⚠️ **Bakacak bir şey bulamayan kapıya ✅ yazılmaz.**
+      ⚠️ **BORÇ-012 BURADA ÖDENİR** *(6.4-ön'de açıldı)* — `arch:check`in başarı
+      çıktısı (`✓ arch:check temiz (N ms)`) **kaç kural ve kaç dosya taradığını
+      söylemiyor**, oysa `gaps:check` · `debt:check` · `i18n:check` üçü de
+      söylüyor. *"0 bulundu"* ile *"hiçbir şeye bakmadı"* ayırt edilebilir
+      olmalı; aracın kendi başlığı bu tehlikeyi adıyla yazıyor ama çare bir
+      **teste** kondu, çıktıya değil. Bu alt görev zaten kapı çıktısı biçimiyle
+      uğraşıyor — düzeltme oraya düşüyor.
 - [ ] **6.11** **BORÇ-009 yeniden ÖLÇÜLÜR** — K5 kapılarının ortak kör noktası
       (modül düzeyi metin sabitleri). **Geç ödenir ve gerekçesi yapısal:** 5.6'da
       heuristik **3 yanlış pozitif / 0 gerçek pozitif** verdi çünkü ölçülecek
@@ -3604,10 +3689,18 @@ docs/glossary.md
       hiçbir şey öğrenilmez. **Hâlâ 0 gerçek pozitif çıkarsa çözüm bir kapı
       DEĞİL, yazılı bir bileşen inceleme disiplinidir** (SAPMA-026).
 - [ ] **6.12** **Faz kapanışı** — süre **§0.5'in iki eşiğiyle** ölçülür ·
-      yedi kabul kriteri tek tek (**kısmen sağlanan kriter [ ] kalır**) ·
-      faz kaydı (11 başlık) · çalışma günlüğü boşaltılır · kütükler ·
-      `DEPENDENCY-WATCH` sonuçları · `pnpm gaps:check` **koşturulur** ·
+      **aşağıdaki kabul kriteri listesinin tamamı** tek tek (**kısmen sağlanan
+      kriter [ ] kalır**) · faz kaydı (11 başlık) · çalışma günlüğü boşaltılır ·
+      kütükler · `DEPENDENCY-WATCH` sonuçları · **kök `package.json`daki her
+      `*:check` kapısı koşturulur** (`gaps:check` ve `debt:check` dahil) ·
       `CHANGELOG.md` · PR `develop`a.
+      ⚠️ **METİN 6.4-ön'DE SAYISIZLAŞTIRILDI.** Madde *"**yedi** kabul kriteri"*
+      diyordu; ölçüldü — bu fazın kriter listesi **altı** satır taşıyor (6.1'in
+      daraltması sonrası). Sayı taşıyan bir talimat bayatlar ve olduğu gibi
+      uygulanırsa olmayan bir kriter aranır ya da *"yedisi de bakıldı"* yazılır.
+      4.11'in `gaps:check` için verdiği kararın aynısı: **çare bir sayı
+      güncellemesi değil, sayıyı kaldırmak**. Aynı gerekçeyle kapı listesi de
+      sayılmıyor — desen `package.json`dan okunur (`inventory-guards.test.mjs`).
 
 **Kabul kriterleri** *(6.1'de daraltıldı — gerekçe ve çıkarılan yarıların tablosu aşağıda)*
 - [ ] **Storybook'ta, bileşen envanterindeki HER bileşenin hikayesi var** — ve eşleşme **çift yönlü**: envanterdeki her bileşenin hikayesi var **ve** hikayesi olan her bileşen envanterde. Envanter **tek yerde** yaşar, sayı prose'da değil ayrıştıran bir testte *(SAPMA-041)*
@@ -3993,6 +4086,15 @@ docs/glossary.md
   ⚠️ **Maruziyet Faz 4'te katlandı:** 4.5–4.7 yedi tablo getiriyor ve hepsi
   `playerId` ya da `personId` ile anahtarlı. Karar burada verilir; uygulama da
   burada (`WorldView` yazılırken bedava, sonradan pahalı).
+- **🆕 MASTER WORLD'ÜN VERİTABANI-ROLÜ İKİNCİ HATTI — `BORÇ-007`** *(6.4-ön'de eklendi)*
+  Kütükteki vade sütunu **12** diyor ve Faz 3'ten beri öyle duruyor, ama bu fazın
+  kapsamında **hiç geçmiyordu** (`pnpm debt:check` 6.4-ön'de ölçtü). K4'ün tip seviyesi
+  zorlaması 3.3'te kuruldu ve kontrol deneyiyle kanıtlandı, ama `as unknown as`, **ham SQL**
+  ve tip sistemini hiç görmeyen istemciler onu atlıyor. İkinci hat: uygulama rolüne master
+  tablolar üzerinde yalnızca **`GRANT SELECT`**.
+  ⚠️ **Neden tam burası ve neden daha önce değil:** kısıtlanacak bir uygulama bağlantısı
+  **yoktu** — `apps/api` veritabanına bu fazda bağlanıyor. Rol ayrımı `WorldView`/
+  `WorldMutation` yazılırken bedava, sonradan pahalı (aynı gerekçe G-17'de de geçerli).
 - **Snapshot sıkıştırma:** delta sayısı 50.000'i aşınca mevcut durum tek JSONB blob'a yazılır, delta temizlenir
 - **Otomatik kayıt:** her ayın 1'i + her 5 turda bir + manuel (S48)
 - **Snapshot noktaları:** sezon başı otomatik + kullanıcının 1 manuel noktası
@@ -4249,6 +4351,23 @@ docs/glossary.md
   10. Kayıt bütünlüğü doğrulaması
   11. Otomatik kayıt (koşul sağlanıyorsa)
 - BullMQ kuyruğu + SSE ile ilerleme yayını
+- **🆕 FAZ 1 VE 2'DEN DEVREDEN ÜÇ BORÇ — BORÇ-001, BORÇ-002, BORÇ-004** *(6.4-ön'de eklendi)*
+  Üçünün de kütükteki *"ödenmesi gereken faz"* sütunu **16** diyor ve öyle duruyor — ama
+  6.4-ön'e kadar **bu fazın kapsamında hiç görünmüyorlardı** (`pnpm debt:check` ölçtü:
+  açık altı satırın beşi sahipsizdi). 4.11'in BORÇ-003/005 için, 5.9'un BORÇ-009/010 için
+  bulduğu şeyin aynısı: *"kapsam taşıması kütüğe kayıtla bitmez."*
+  **Bu faz üçünü de ödeyebilir çünkü kuyruğu kuran faz burası.**
+  - **BORÇ-001 — `ioredis` 5.11.1'de tutuldu, 6.0.0 alınmadı.** Faz açılışında changelog
+    okunup karar verilir. ⚠️ **Gerekçe ZAMANA BAĞLI — yeniden türetilir, kopyalanmaz**
+    (Faz 4.0'da eklenen kural): *"kurulum anında 3 haftalıktı"* bugün geçerli değil.
+  - **BORÇ-002 — `bullmq` 5.81.3'te tutuldu, 6.2.0 alınmadı.** Aynı gerekçe; ek olarak
+    bullmq 6 `ioredis`'i peer'a taşıdı ve `pg`/`redis` peer'ları ekledi — kuyruk
+    yapılandırmasını değiştiren bir **mimari** değişiklik, burada bilinçli ele alınır.
+  - **BORÇ-004 — BullMQ'ya özgü `correlationId` kablolaması yok.** Taşınabilir zarf
+    (`serializeLogContext`/`deserializeLogContext`) 2.3b'de kuruldu ve gerçek bir süreç
+    sınırında test edildi, ama `job.data.correlationId` alanına yazan/okuyan kuyruk tarafı
+    yok. `spec/09` §11.1 zinciri *"kuyruğa iş atılırsa `job.data.correlationId` taşınır"*
+    diyor; üretici ve tüketici tarafı burada **birlikte** bağlanır.
 - **Eşzamanlı kullanıcı yönetimi (özel çok-kullanıcılı dağıtım gereği):**
   - Worker eşzamanlılığı `WORKER_CONCURRENCY` ile ayarlanır (2 OCPU'da **1** önerilir — diğer çekirdek API+DB'ye kalır)
   - **Simülasyon katmanı** kayıt bazlı: "Dengeli" (varsayılan, ~400 ms/maç günü) veya "Tam Detay" (~12 sn/maç günü). Bkz. Bölüm 0.1c.
@@ -5710,8 +5829,13 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   eşzamanlı" kabul kriterinin ölçüm aracı yoktu. Araç burada kurulur; senaryo spec'teki
   **20 eşzamanlı kullanıcı** hedefini de kapsar.
 - **Hata denetimi:** Sentry'de biriken tüm hataların temizlenmesi
-- **Sentry kaynak haritası yükleme** — Faz 2'den devreden borç (Karar 7): Faz 2 yalnızca
-  `sourcemap: true` + `release` adlandırması yaptı; CI yükleme adımı buraya bırakıldı.
+- **Sentry kaynak haritası yükleme** *(BORÇ-006)* — Faz 2'den devreden borç (Karar 7): Faz 2
+  yalnızca `sourcemap: true` + `release` adlandırması yaptı; CI yükleme adımı buraya bırakıldı.
+  ⚠️ **Kimlik 6.4-ön'de EKLENDİ.** Madde vardı ve işi doğru tarif ediyordu, ama `BORÇ-006`
+  **adıyla** geçmiyordu — *"bir sahibin adını kendi kütüğünde yazmak onu devretmek değildir"*.
+  `pnpm debt:check` bunu ölçtü (5 açık satırın biri). Yükleme adımı CI'a Sentry auth token'ı
+  ve organizasyon/proje adı ister; yüklenmiş kaynak haritası olmadan Sentry'deki yığın izleri
+  **küçültülmüş** kalır.
 - **Ücretsiz kademe uyarı zinciri — admin e-postası** *(G-06)*: `docs/spec/10` §13.5'teki
   altı sınırın **tamamı** (Sentry dahil) eşiğe gelince admin e-postası gider. Panel uyarısı
   Faz 47'de kurulur; e-posta kanalı burada bağlanır.

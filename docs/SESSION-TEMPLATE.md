@@ -38,8 +38,15 @@ BAĞLAM (bu sırayla)
 5. CLAUDE.md zaten yüklü (anayasa).
 
 ÖN KONTROL (koda dokunmadan önce)
-6. `pnpm typecheck && pnpm lint && pnpm test` → hepsi temiz mi?
+6. KAPILARIN TAMAMI temiz mi? Liste burada SAYILMAZ — kaynağı kök
+   package.json'ın "scripts" bloğu; oradaki her `*:check` kapısı + typecheck +
+   lint + test:coverage + build + test:db koşturulur.
    Temiz değilse DUR ve bildir.
+   ⚠️ Bu satır 6.4-ön'de sayısızlaştırıldı. Eskiden "pnpm typecheck && pnpm lint
+      && pnpm test" yazıyordu ve ölçüldü: format:check, arch:check, i18n:check,
+      gaps:check kapıları listede HİÇ YOKTU — yani ÖN KONTROL, CI'ın koşturduğu
+      kapıların yarısına bakmadan "temiz" diyebiliyordu. Elle yazılmış her kapı
+      listesi, bir sonraki kapı eklendiğinde bayatlar (4.11'in dersi).
 7. docs/DEPENDENCY-WATCH.md → "Ele alınacak faz" sütunu Faz [XX] olan satırlar.
    ⚠️ Bu adım da Faz 4.0'da eklendi ve aynı sınıf: o dosyanın KENDİ başlığı
       "Her faz açılışında bu tablo kontrol edilir (docs/SESSION-TEMPLATE.md
@@ -74,14 +81,26 @@ FAZ KAPANIŞI
        DEĞİLDİ ve 4 gün sürdü — bölünme olmadı, istisna kaydedilmedi, çünkü süreyi
        ÖLÇEN bir adım yoktu. Tahmin listesi bir kontrol değildir.
 16. Kabul kriterlerini tek tek doğrula, sonuçları göster.
-17. `pnpm typecheck lint test build arch:check` + faza özel doğrulama komutları.
+17. Adım 6'nın kapı zinciri yeniden koşturulur (aynı kaynak: package.json
+    "scripts") + faza özel doğrulama komutları.
+    ⚠️ 6.4-ön'de düzeltildi. Eski metin "pnpm typecheck lint test build
+       arch:check" idi ve İKİ ayrı kusuru vardı: (a) kapı listesi kısmiydi —
+       format:check, i18n:check, gaps:check yoktu; (b) komut olduğu gibi
+       çalıştırılamıyordu, çünkü "pnpm typecheck lint test build arch:check"
+       pnpm için TEK bir betik ("typecheck") ve dört argümandır — turbo o
+       argümanları görev adı sanıp kırılır. Koşulacak bir talimatın kendisi
+       koşmuyordu.
 18. **PROJECT_MEMORY.md'ye faz kaydını yaz** (Bölüm 12.5 şablonu, 11 başlığın hepsi).
 19. **ANLIK DURUM bloğunu tamamen yeniden yaz.**
 20. Yeni sorun/borç/sapma varsa ilgili kütüğe ekle (SORUN-XXX, BORÇ-XXX, SAPMA-XXX).
 21. **docs/SPEC-COVERAGE-GAPS.md** — bu fazda kapanan satırların `Durum`u güncellendi mi?
     Yeni boşluk bulunduysa yeni bir "Tarama N" bölümü açıldı mı? (Satır SİLİNMEZ.)
-    **`pnpm gaps:check` KOŞULUR** — her açık G-satırı, atandığı fazın ROADMAP
-    kapsamında adıyla geçiyor mu? Kırmızıysa satır o fazın kapsamına yazılır.
+    **`pnpm gaps:check` VE `pnpm debt:check` KOŞULUR** — her açık G-satırı ve
+    her açık BORÇ satırı, atandığı fazın ROADMAP kapsamında adıyla geçiyor mu?
+    Kırmızıysa satır o fazın kapsamına yazılır.
+    ⚠️ `debt:check` 6.4-ön'de eklendi ve ilk koşusunda AÇIK ALTI BORÇ satırının
+       BEŞİNİ sahipsiz buldu (001·002·004·006·007) — kural 4.11'den beri yazılı
+       olduğu hâlde. İki kütük için tek çekirdek: scripts/lib/ledger-coverage.mjs.
     ⚠️ Bu adım Faz 4.11'de eklendi ve adım 4'ün kardeşi: kütük 4.0'da bir OKUYUCU
        kazandı, ama tutarlılığını DENETLEYEN bir adım yoktu — kural yalnızca
        Faz 4'ün 4.11 maddesinde, sayı taşıyan (ve bayatlamış) bir cümle olarak

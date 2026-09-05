@@ -70,7 +70,7 @@ pnpm --filter @fms/web exec vite preview        # Web  → http://localhost:3000
 ## 📁 Belge Yapısı
 
 ```
-CLAUDE.md                     Anayasa (14 değişmez kural), teknoloji yığını, terim sözlüğü
+CLAUDE.md                     Anayasa (K1–K15), teknoloji yığını, terim sözlüğü
 PROJECT_MEMORY.md             Oturumlar arası devir teslim — her faz sonunda yazılır
 CHANGELOG.md                  Sürüm geçmişi
 
@@ -80,6 +80,8 @@ docs/
 ├── V2-BACKLOG.md             Kapsam dışı fikirler (v1'de YAPILMAZ)
 ├── OUTPUT-FORMAT.md          Alt görev rapor formatı (zorunlu)
 ├── DEPENDENCY-WATCH.md       Sürüm takip listesi — her faz başında okunur
+├── SPEC-COVERAGE-GAPS.md     Spec istiyor ama hiçbir faza atanmamış maddeler (`gaps:check`)
+├── glossary.md               TR/EN terim sözlüğü — CLAUDE.md §14'ün süperkümesi
 ├── HOSTING-FALLBACK.md       Yedek barındırma planı (İSKELET)
 ├── ADR/                      Mimari karar kayıtları (0001-0004)
 ├── MASTER-SPEC.md            Tüm spesifikasyonun tek dosyalık arşivi

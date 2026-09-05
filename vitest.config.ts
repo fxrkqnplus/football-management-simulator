@@ -260,6 +260,26 @@ export default defineConfig({
           include: ['*.test.mjs'],
         },
       },
+      {
+        // KÜTÜK KAPILARI VE ENVANTER NÖBETÇİLERİ (6.4-ön).
+        //
+        // ⚠️ `scripts/` 6.4-ön'e kadar **hiç test projesi değildi** ve bunun
+        // ölçülmüş bedeli vardı: 4.11'in yazdığı `check-gap-coverage.mjs` —
+        // deponun bayrak kapısı — **sıfır teste** sahipti. Ortak çekirdek
+        // (`lib/ledger-coverage.mjs`) buraya çıkarılınca ikisi birden kapsandı.
+        //
+        // ⚠️ `coverage.include` `scripts/`i saymıyor (desen `*/src/**`), yani
+        // bu proje kapsam paydasını DEĞİŞTİRMİYOR — ölçüldü, 6.4-ön'de pay ve
+        // payda sabit kaldı. Bu bir kaçamak değil, var olan desenin sonucu;
+        // yazılı olmasının sebebi bir sonraki okuyucunun bunu bir dışlama
+        // sanmaması.
+        test: {
+          name: 'scripts',
+          root: './scripts',
+          environment: 'node',
+          include: ['**/*.test.mjs'],
+        },
+      },
       // ⚠️ `i18n-inventory` PROJESİ 5.5'TE KALDIRILDI — araç emekli edildi.
       // 5.4'ün ihlal envanteri (`tools/i18n-inventory/`) ROADMAP'in kendi
       // ifadesiyle *"kuralın prototipi"*ydi ve 5.5'te yerini gerçek kapıya

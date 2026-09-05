@@ -22,6 +22,7 @@
     "lint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/",
     "arch:check": "node tools/arch-check/index.mjs",
     "gaps:check": "node ./scripts/check-gap-coverage.mjs",
+    "debt:check": "node ./scripts/check-debt-coverage.mjs",
     "i18n:check": "node tools/i18n-check/index.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
