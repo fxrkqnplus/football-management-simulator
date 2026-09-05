@@ -1,0 +1,125 @@
+/*
+ * ÜRETİLMİŞ DOSYA — ELLE DÜZENLEME.
+ *
+ * Kaynak: packages/ui/src/tokens/ (TypeScript, tek kaynak)
+ * Üreten: scripts/generate-theme-css.mjs
+ * Tazelik: packages/ui/src/theme/css-projection.test.ts yeniden üretip
+ *          bu dosyayla BİREBİR karşılaştırıyor — bayat bir dosya
+ *          `pnpm test`i kırar.
+ */
+
+:root {
+  --bg-base: #0B0E14;
+  --bg-surface: #12161F;
+  --bg-elevated: #1A1F2B;
+  --bg-hover: #222835;
+  --bg-active: #2A3140;
+  --bg-input: #0F131B;
+  --border-subtle: #1E2430;
+  --border-default: #2A3140;
+  --border-strong: #3A4354;
+  --text-primary: #E8ECF3;
+  --text-secondary: #9BA6B8;
+  --text-muted: #64707F;
+  --text-inverse: #0B0E14;
+  --accent: #00C46A;
+  --accent-hover: #00D975;
+  --accent-muted: #00C46A26;
+  --danger: #E5484D;
+  --warning: #F5A524;
+  --success: #30A46C;
+  --info: #4A9EFF;
+  
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+  --text-3xl: 34px;
+  --text-2xs-line: 14px;
+  --text-xs-line: 16px;
+  --text-sm-line: 18px;
+  --text-base-line: 20px;
+  --text-lg-line: 24px;
+  --text-xl-line: 28px;
+  --text-2xl-line: 34px;
+  --text-3xl-line: 42px;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.32);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.38);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.44);
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 320ms;
+  --ease-out: cubic-bezier(.16,1,.3,1);
+}
+
+/*
+ * ⚠️ AÇIK TEMA TAMAMLANMAMIŞ — spec/05 §7.1 yalnızca sekiz token veriyor.
+ *
+ * Aşağıda geçersiz kılınmayan token'lar :root'tan DEVRALINIR, yani koyu
+ * tema değerlerini alırlar. Bu DOĞRU DAVRANIŞ DEĞİL, bilinen bir eksiklik:
+ *
+   *   --bg-active
+   *   --bg-input
+   *   --border-subtle
+   *   --border-strong
+   *   --text-inverse
+   *   --accent
+   *   --accent-hover
+   *   --accent-muted
+   *   --danger
+   *   --warning
+   *   --success
+   *   --info
+ *
+ * Kaynak: packages/ui/src/tokens/color.ts -> LIGHT_UNDEFINED_IN_SPEC
+ * Karar bekliyor (Faz 6.3). Doldurulunca bu blok kendiliğinden büyür.
+ */
+[data-theme='light'] {
+  --bg-base: #F5F7FA;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-hover: #EDF0F5;
+  --border-default: #D8DEE8;
+  --text-primary: #151A22;
+  --text-secondary: #5A6675;
+  --text-muted: #8A94A3;
+}
+
+/* §7.4: "Hareketi azalt" açıksa tüm süreler 0ms. */
+[data-reduced-motion='reduce'] {
+  --duration-fast: 0ms;
+  --duration-normal: 0ms;
+  --duration-slow: 0ms;
+}

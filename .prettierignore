@@ -22,3 +22,13 @@ LICENSE
 # için de geçerli. `down/` altındaki dosyalar ELLE yazılıyor ama `.sql`i Prettier
 # zaten biçimlendirmiyor.
 packages/db/drizzle/
+
+# Tema token'larının ÜRETİLMİŞ CSS yansıması — Faz 6.3.
+# `scripts/generate-theme-css.mjs` bu dosyayı `packages/ui/src/tokens/`ten
+# üretiyor ve tazeliğini `css-projection.test.ts` **birebir** karşılaştırmayla
+# tutuyor. Prettier araya girerse üretilen metinle diskteki metin ayrışır ve
+# nöbetçi her koşuda kırılır — ölçüldü, 6.3'te bir kez gerçekten oldu ve
+# nöbetçi onu yakaladı. Gerekçe `packages/db/drizzle/` ile aynı sınıf:
+# üretilmiş bir artefaktı biçimlendirmek, üreticiyle biçimlendirici arasında
+# sonu gelmeyen bir sürtünme yaratır.
+packages/ui/src/theme/tokens.generated.css

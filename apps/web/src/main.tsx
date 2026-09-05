@@ -1,9 +1,20 @@
+// Stil giriş noktası: fontlar -> üretilmiş token'lar -> Tailwind (6.3).
+import './app/theme.css';
+
 import {
   ASSERTION_MODES,
   basePathConfig,
   configureAssertions,
   configureBasePath,
 } from '@fms/shared';
+import {
+  applyTheme,
+  DEFAULT_ROOT_FONT_SCALE,
+  DEFAULT_THEME_PREFERENCE,
+  readSystemPrefersDark,
+  readSystemPrefersReducedMotion,
+  resolveThemeMode,
+} from '@fms/ui';
 import type { i18n as I18nInstance } from 'i18next';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -74,6 +85,26 @@ configureAssertions(
 // sırasında çıkan bir hata da yakalansın. DSN boşsa hiç kurulmaz — geliştirme
 // ortamı ağa çıkmaz ve kota yanmaz (2.5b).
 setupBrowserSentryFromBuild();
+
+/**
+ * Üçüncü iş: tema (6.3). React ağacından ÖNCE, çünkü `data-theme` niteliği
+ * ilk boyamadan önce yerinde olmalı — sonra yazılırsa kullanıcı bir kare
+ * boyunca yanlış temayı görür ("flash of wrong theme").
+ *
+ * ⚠️ **Tercih henüz KALICI DEĞİL.** Kullanıcının seçimini saklayan bir ayar
+ * yüzeyi yok; `DEFAULT_THEME_PREFERENCE` (`dark`, §7.1'in varsayılanı)
+ * kullanılıyor. Kalıcılık bir ayarlar ekranı ister ve o **Faz 17**'nin işi —
+ * `isThemePreference()` okunan değeri doğrulamak için şimdiden hazır.
+ *
+ * ⚠️ Ortam sinyalleri burada okunuyor, `applyTheme` içinde değil: o fonksiyon
+ * saf kalsın ve jsdom'da tam test edilebilsin diye (6.0 ölçtü: `matchMedia`
+ * jsdom'da tanımsız).
+ */
+applyTheme(document.documentElement, {
+  mode: resolveThemeMode(DEFAULT_THEME_PREFERENCE, readSystemPrefersDark()),
+  reducedMotion: readSystemPrefersReducedMotion(),
+  fontScale: DEFAULT_ROOT_FONT_SCALE,
+});
 
 const container = document.getElementById('root');
 if (container === null) {

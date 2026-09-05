@@ -65,6 +65,19 @@ export default defineConfig({
           // sorulmasın. Testsiz bir proje ortamı bedava.
           environment: 'jsdom',
           include: ['src/**/*.test.{ts,tsx}'],
+          // ⚠️ `css: true` — 6.3'te ÖLÇÜMLE eklendi, tercihle değil.
+          //
+          // Üretilmiş `tokens.generated.css`in tazeliğini sınayan test dosyayı
+          // Vite'ın `?raw` içe aktarımıyla okuyor (`node:fs` kullanmıyor, çünkü
+          // bu paketin `types: []` kararı K1'in ilk savunma hattı ve bir test
+          // rahatlığı için açılmaz).
+          //
+          // Vitest'in varsayılanı `css: false` ve o kip CSS kimliklerini `?raw`
+          // dahil kesiyor: içe aktarım hata vermiyor, **BOŞ DİZE** dönüyor.
+          // Ölçüldü — `typeof` `string`, `length` **0**. Yani nöbetçi sessizce
+          // hiçbir şeye bakmayan bir kapıya dönüşüyordu (D2 + "falsy bir değer
+          // «özellik yok» anlamına da gelebilir"). `true` ile içerik geliyor.
+          css: true,
         },
       },
       {

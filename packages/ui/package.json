@@ -10,10 +10,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./tokens.css": "./src/theme/tokens.generated.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/theme/tokens.generated.css"
   ],
   "scripts": {
     "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",

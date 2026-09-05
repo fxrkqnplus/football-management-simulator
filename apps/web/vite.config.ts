@@ -1,4 +1,5 @@
 import { deriveBasePathConfig } from '@fms/shared';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 
@@ -55,7 +56,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: config.viteBase,
-    plugins: [react()],
+    // Tailwind 4 eklentisi `react()`ten SONRA: CSS dönüşümü JSX dönüşümünden
+    // bağımsız, ama sıra deterministik olsun diye açıkça yazılıyor (6.3).
+    plugins: [react(), tailwindcss()],
     // Alt yol değeri istemciye derleme zamanında gömülür; main.tsx bunu
     // configureBasePath()'e verir.
     //

@@ -3334,13 +3334,113 @@ docs/glossary.md
       > `attribute-scale.ts`teki **erişilemez** savunma dalı — `.find()` `T |
       > undefined` döndürdüğü için tip sistemi onu istiyor, ve kapsayıcılık
       > testi erişilemezliği zaten iddia ediyor.
-- [ ] **6.3** **Tema + Tailwind 4 + fontlar.** Koyu (varsayılan) / Açık / Sistem
+- [x] **6.3** **Tema + Tailwind 4 + fontlar.** Koyu (varsayılan) / Açık / Sistem
       + kulüp rengine göre dinamik vurgu · Inter + JetBrains Mono (`latin-ext`
       dahil, Türkçe alt küme) · font boyutu %90/100/115/130 · `prefers-reduced-motion`
-      → tüm süreler `0ms`. **Önkoşul (kapsamın parçası, genişletme değil):**
-      `packages/ui/tsconfig.json`e `jsx: "react-jsx"` + React tipleri (bugün
-      **yok**, `types: []`), `package.json`a bağımlılıkların **beyanı**
-      (`arch:check` → `undeclared-dependency`). **İlk paket kurulumu burada.**
+      → tüm süreler `0ms`. **İlk paket kurulumu burada.**
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.3 (2026-09-05)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **⚠️ ÖNKOŞUL SATIRI GERÇEKLEŞMEDİ — `jsx` ve React EKLENMEDİ.**
+      > Bu satır *"`packages/ui/tsconfig.json`e `jsx` + React tipleri"*i kapsamın
+      > parçası sayıyordu. React `packages/ui`ye **kuruldu, sonra kaldırıldı**:
+      > 6.3'ün ihtiyacı olan her şey React **olmadan** yazılabiliyordu — mod
+      > çözümlemesi saf bir fonksiyon, tema uygulaması bir DOM mutasyonu, CSS bir
+      > dize. Ve React'siz yazılan katman jsdom'da **tam** test edilebiliyor.
+      > *"Tüketicisi olmayan bir sonda silinir."* `types: []` de **korundu** —
+      > K1'in Faz 1'de kilitlenmiş savunma hattı. Bir React sağlayıcısı **6.4**'ün
+      > ilk bileşeniyle gelir; `jsx` o gün eklenir.
+      >
+      > **① KURULUM — lockfile 647 → 682 (+35), üç turda ölçüldü.**
+      > React → `packages/ui`: **+0** (ağaçta zaten vardı, sonra kaldırıldı) ·
+      > `tailwindcss` + `@tailwindcss/vite` **4.3.3**: **+33** ·
+      > `@fontsource-variable/inter` + `.../jetbrains-mono` **5.3.0**: **+2**.
+      > `strict-peer-dependencies=true` altında kurulum **kırılmadı**.
+      >
+      > **② TAILWIND YANSITMASI: CSS TÜRETİLİYOR, elle yazılmıyor.**
+      > Üç seçenekten (①türet ②CSS kaynak ③iki elle + çift yönlü test) **①**
+      > seçildi: ③ iki temsili **korur** ve yalnızca ayrışmayı bildirir, ① ikinci
+      > temsili bir **artefakta** indirger — ayrışma yapısal olarak mümkün değil.
+      > `scripts/generate-theme-css.mjs` üretiyor, `css-projection.test.ts`
+      > **yeniden üretip birebir** karşılaştırıyor. Emsal:
+      > `docs/schema/world.md`nin ER bloğu + `er-diagram.itest.ts`.
+      > ⚠️ **Nöbetçi ilk gününde GERÇEK bir sapma yakaladı:** `pnpm format`
+      > üretilmiş dosyayı yeniden yazdı ve test kırıldı (günlük #6). Dosya
+      > `.prettierignore`a eklendi, `packages/db/drizzle/` emsaliyle.
+      >
+      > **③ FONTLAR: KENDİ KENDİNE BARINDIRMA, CDN DEĞİL** —
+      > `@fontsource-variable/*` **5.3.0**, npm üzerinden. Gerekçe ölçüldü: bir
+      > CDN bir **CSP** kararı gerektirir ve bu depoda öyle bir politika **hiç
+      > yok** (`CSP` → ROADMAP ve `spec/10`da **0 eşleşme**). Gözlem **Faz 50'nin
+      > kapsamına adıyla taşındı** — raporda kalsaydı sahibi olmazdı.
+      > 🆕 **VE §7.3'ÜN CÜMLESİ YARI YANLIŞ ÇIKTI.** Spec *"`latin-ext` dahil
+      > edilmeli"* diyor; doğru ama **yeterli değil**. Ölçüldü (`unicode.json`):
+      > `ı` (**U+0131**) `latin-ext`te **DEĞİL** — Google Fonts onu `latin` alt
+      > kümesine **açıkça** eklemiş; kardeşi `İ` (U+0130) ise yalnızca
+      > `latin-ext`te. **İki alt küme de gerekli.** On iki Türkçe kod noktası
+      > `apps/web/src/app/fonts.test.ts`te tek tek iddia ediliyor, artı bir
+      > **karşı kontrol** (`latin` tek başına **Ğ ğ İ Ş ş**i kaçırıyor) ve bir
+      > **ayrıştırıcı kontrolü** (kapsam dışı bir kod noktası `false`).
+      >
+      > **④ "SİSTEM" MODUNUN ÖLÇÜLEMEYEN YARISI AYRILDI VE BİR EVE TAŞINDI.**
+      > `resolveThemeMode()` saf ve **altı kombinasyonun altısı** da test edildi;
+      > `readSystemPrefersDark()` / `readSystemPrefersReducedMotion()` ortamı
+      > okuyor ve jsdom'da `matchMedia` **tanımsız**. Ölçülen tek şey **yedek
+      > davranış** ve o bir **seçim**: `matchMedia` yoksa koyu tema (§7.1'in
+      > varsayılanı), ama hareket **azaltılmaz** — iki ters yön, iki ayrı
+      > gerekçe. Sahte bir `matchMedia` ile **iki yönlü** kontrol de yazıldı.
+      > → Tarayıcı yarısı **Faz 49**'da (o fazın kapsamı *"Hareketi azalt ayarı
+      > tüm animasyonları etkiler"*i **adıyla** taşıyor — doğrulandı; Faz 17'de
+      > tema için **0 eşleşme** var, yani oraya taşımak yanlış olurdu).
+      >
+      > **⑤ MUTASYON 4/4** (yerine oturması ayrıca ölçüldü, geri almalar dosya
+      > yedeğinden + md5): ① `system` yönü ters → **1** · ② bir açık tema token'ı
+      > (**envanter 8 kaldı**) → **2**, hem spec envanteri hem **tazelik
+      > nöbetçisi** · ③ projeksiyon açık bloğa koyu değerleri yazıyor → **3** ·
+      > ④ bir Türkçe kod noktası → **başta 0**, `dist` yeniden derlenince **4**.
+      > ⚠️ ④ bir bulgu doğurdu → **BORÇ-011**.
+      >
+      > **⑥ D5 — BUILD EDİLDİ VE ÇALIŞTIRILDI.** Soğuk build (`Cached: 0`)
+      > sonrası `packages/ui/dist/index.js` doğrudan import edilip koşturuldu:
+      > altı mod kombinasyonu · yedek davranışlar · üretilmiş CSS **taze**
+      > (3147 bayt) · on iki Türkçe harf · `applyTheme` sahte bir kökte
+      > `#1B2A4A`i **%41 açıklaştırıp 4,625**e çıkardı. Test dosyası `dist`e
+      > **sızmadı** (0).
+      >
+      > **⑦ ÜRETİM PAKETİ 380.908 → 383.654 bayt (+2.746, %0,72)** — §11.6'nın
+      > yeni satırının bütçesi **taban × 1,10**, yani bol marjla içeride. Ayrıca
+      > ilk kez bir **CSS varlığı** doğdu: **16.821 bayt**.
+      >
+      > **⚠️ AÇIK KALAN: ON İKİ TANIMSIZ AÇIK TEMA TOKEN'I — KARAR BEKLİYOR.**
+      >
+      > 6.3'ün planı bunları **yazacaktı**. Yazılmadı, ve sebebi bir tercih
+      > değil **iki ölçüm**:
+      >
+      > **(a) BİR TÜRETME KURALI DENENDİ VE KONTROL DENEYİ ONU ÇÜRÜTTÜ.**
+      > Önerilen kural: *"koyu temadaki token'ın `--bg-base`e karşı oranını açık
+      > temada koru."* Kural, spec'in **kendi verdiği sekiz değere** karşı
+      > sınandı ve tutmadı — sapmalar: `--bg-hover` **−0,244** ·
+      > `--border-default` **−0,223** · `--text-muted` **−0,974** ·
+      > `--text-secondary` **−2,409**. Yalnızca `--bg-base`, `--bg-surface` ve
+      > `--text-primary` yakın çıktı. Yani **spec'in yazarı böyle bir kural
+      > kullanmamış**; o kuralla eksikleri üretmek, spec'in izlemediği bir
+      > kuralı ona atfetmek olurdu.
+      >
+      > **(b) "TEMA-BAĞIMSIZ" OKUMASI DA ÖLÇÜMLE ÇÖKTÜ.** Eksiklerin yedisi
+      > anlamsal/vurgu rengi ve *"spec onları bir kez veriyor, demek ki tema
+      > bağımsız"* diye okunabilirdi. Ölçüldü — koyu değerlerin **açık zeminde**
+      > (`#FFFFFF`) oranları: `--warning` **2,04** · `--accent` **2,31** ·
+      > `--info` **2,75** · `--success` **3,16** · `--danger` **3,91**.
+      > **Beşinin beşi de AA'nın altında** (koyu zeminde 4,62–8,87 idi). Yani bu
+      > renkler **koyu tema için seçilmiş** ve açık temaya devralınamazlar.
+      >
+      > → **Sonuç: on iki değer de bir TASARIM KARARI, bir türetme değil.**
+      > Uydurmak SAPMA-026'nın tam tanımı olurdu. 6.2'nin kurduğu liste ve
+      > kapsayıcılık testi eksikliği **görünür** tutuyor; üretilmiş CSS de
+      > eksikliği **kendi içinde** yazıyor. Karar verilene kadar açık tema
+      > **tamamlanmamış** ve bu her iki yerde de okunabiliyor.
 - [ ] **6.4** **shadcn/ui uyarlaması + temel bileşenler I** — Button (6 varyant),
       Input, Select, Combobox, Checkbox, RadioGroup, Slider, Switch, Tabs.
       ⚠️ **`main.test.tsx` jsdom yıkım yarışı bu alt görevden itibaren HER alt
@@ -3372,6 +3472,25 @@ docs/glossary.md
       ⚠️ jsdom'da `scrollIntoView` ve `hasPointerCapture` **undefined** (ölçüldü)
       — Radix için doldurma gerekecek; hangi doldurmanın **neyi sahtelediği**
       yazılır. ⚠️ axe'ın `color-contrast` kuralı jsdom'da **koşmuyor**.
+      ⚠️ **6.2'NİN ÖLÇTÜĞÜ İKİ KUSUR BU ALT GÖREVE DEVREDİLDİ** *(6.3'te
+      yazıldı — 6.2 onları yalnızca kendi SONUÇ bloğunda bırakmıştı, yani
+      **sahipsizdiler**; bu, *"kapsam taşıması kütüğe/rapora kayıtla bitmez"*
+      tuzağının **beşinci** vakası — 4.11 · 5.9 · `react-table` · Faz 49'un
+      metrik listesi · **bu**):
+      ① **`--text-muted` HER İKİ TEMADA DA WCAG AA'nın ALTINDA** — koyu
+      **3,27–3,83**, açık **2,86–3,07** (ikisi de 3:1'in üstünde, yani büyük
+      metin ve arayüz bileşeni sınırını geçiyor). Bu bir **karar** açıyor:
+      token mu değişecek (`spec/05` §7.1'e dokunmak, otorite #1 → SAPMA), yoksa
+      `--text-muted` **yalnızca AA gerektirmeyen yüzeylerde** mi kullanılacak
+      (ve bu kural nasıl **zorlanacak**)? `packages/ui/src/tokens/contrast-audit.test.ts`
+      bugün bu kusuru **beklenen sonuç** olarak iddia ediyor — çözülünce
+      **iddia güncellenir, gevşetilmez**.
+      ② **Koyu temanın `--accent`i beyaz zeminde 2,31** — açık temada `--accent`
+      6.3'te yazıldı, ama `ensureContrast()`in açık zeminde **hedefe
+      ulaşamadığı** (`reachedTarget: false`) sınırı duruyor: spec'in fiili
+      *"açıklaştırmak"* ve açık zeminde bu oranı **düşürüyor**. Koyulaştırma
+      spec'te **yazmıyor** — bu alt görev ya spec'e bir satır ekletir (SAPMA) ya
+      kullanım yerini daraltır.
 - [ ] **6.9** **Storybook kurulumu + hikayeler.** Hikaye sayısı **dosyadan
       ayrıştırılır** (prose'da yaşayan bir sayı bayatlar). ⚠️ `storybook build`in
       hatasız bitmesi *"koyu/açık temada çalışıyor"* iddiasını **kanıtlamaz** —
@@ -5421,6 +5540,7 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   - Lighthouse skoru ≥ 90 (Performance, Accessibility, Best Practices)
 - **Erişilebilirlik denetimi (S190):**
   - axe-core otomatik tarama → 0 kritik ihlal
+  - **`--text-muted`in AA altındaki oranı gerçek tarayıcıda doğrulanır** *(Faz 6.3'te eklendi)* — 6.2 aritmetikle ölçtü: koyu **3,27–3,83**, açık **2,86–3,07**; 6.8 kararı verecek, bu faz **sonucu ekranda** sınar (axe `color-contrast` burada gerçekten koşuyor)
   - Renk körlüğü modu (protanopi/döteranopi/tritanopi) — nitelik renkleri desen ile de ayırt edilir
   - Font boyutu ayarı %90–130
   - Tam klavye navigasyonu, odak halkaları, atlama bağlantıları
@@ -5507,6 +5627,21 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
   altı sınırın **tamamı** (Sentry dahil) eşiğe gelince admin e-postası gider. Panel uyarısı
   Faz 47'de kurulur; e-posta kanalı burada bağlanır.
 - **Güvenlik denetimi:** bağımlılık taraması (`pnpm audit`), OWASP kontrol listesi, SQL enjeksiyon testi, XSS testi, auth bypass testi
+- **🆕 CONTENT-SECURITY-POLICY — BU DEPODA HİÇ YAZILMAMIŞ** *(Faz 6.3'te ölçüldü, buraya taşındı)*
+  Ölçüldü: `CSP` / `Content-Security-Policy` için `docs/ROADMAP.md`de **0 eşleşme**,
+  `docs/spec/10-deployment.md`de **0 eşleşme**. Yani proje bugüne kadar bir içerik
+  güvenlik politikası **hiç kararlaştırmadı**.
+  ⚠️ **6.3 bu kararı GEREKTİRMEDEN geçti ve bu bilinçliydi:** fontlar bir CDN'den
+  değil `@fontsource-variable/*` npm paketlerinden geliyor ve varlıklar üretim
+  paketine gömülüyor — dış kaynak yok, dolayısıyla `font-src` kararı da yok. Bir
+  CDN seçilseydi CSP'yi **o gün** kararlaştırmak gerekirdi ve o karar bu fazın
+  kapsamında değildi (K12).
+  → Bu faz üretim başlıklarını (Caddy/Cloudflare) yapılandırdığı için politikanın
+  **doğal evi burası**. Karar verilirken bakılacak dış kaynaklar: Sentry
+  (`connect-src`), Cloudflare Turnstile (`script-src`, `frame-src`), R2 varlıkları
+  (`img-src`).
+  ℹ️ Gözlem 6.3'ün raporunda kalsaydı **sahibi olmazdı** — *"raporda kalan bir
+  gözlemin sahibi yoktur"*.
 - **Veri denetimi:** tüm görsel varlıkların bütünlüğü, eksik varlık raporu
 - **i18n denetimi:** 0 eksik anahtar, 0 sabit kodlanmış metin
 - **Dokümantasyon:**

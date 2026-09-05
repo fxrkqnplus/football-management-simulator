@@ -1,0 +1,76 @@
+/*
+ * Uygulamanın tek stil giriş noktası — Faz 6.3.
+ *
+ * SIRA ÖNEMLİ:
+ *   ① fontlar   — @font-face bildirimleri, token'lardan ÖNCE
+ *   ② token'lar — ÜRETİLMİŞ, packages/ui/src/tokens/ tek kaynak
+ *   ③ tailwind  — yardımcı sınıflar, token'ları okuyabilsin diye SONRA
+ */
+
+/* ── ① Fontlar — KENDİ KENDİNE BARINDIRILIYOR, CDN YOK ───────────────────
+ *
+ * Karar (6.3): `@fontsource-variable/*` npm üzerinden geliyor ve varlıklar
+ * pakete gömülüyor. Bir CDN'den font çekmek bir Content-Security-Policy
+ * kararıdır ve bu depoda öyle bir politika HİÇ YOK (ölçüldü: `CSP` için
+ * docs/ROADMAP.md ve docs/spec/10-deployment.md'de 0 eşleşme). Kendi kendine
+ * barındırmak o kararı gerektirmiyor ve $0 kısıtıyla da uyumlu.
+ *
+ * ⚠️ Her paket BÜTÜN alt kümeleri bildiriyor (cyrillic, greek, vietnamese,
+ * latin-ext, latin). Tarayıcı `unicode-range` sayesinde yalnızca GEREKEN
+ * woff2'leri indiriyor — Türkçe metin için `latin` + `latin-ext`.
+ * Kapsam `apps/web/src/app/fonts.test.ts`te kod noktalarıyla iddia ediliyor.
+ */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* ── ② Tasarım token'ları — ÜRETİLMİŞ, ELLE DÜZENLENMEZ ───────────────── */
+@import '@fms/ui/tokens.css';
+
+/* ── ③ Tailwind 4 ─────────────────────────────────────────────────────── */
+@import 'tailwindcss';
+
+/*
+ * Tailwind'in tarayacağı kaynaklar. `packages/ui` ADIYLA ekleniyor: 6.4'ten
+ * itibaren bileşenler orada yaşayacak ve sınıf adları burada taranmazsa
+ * üretim paketinde o sınıflar HİÇ ÜRETİLMEZ — sessizce stilsiz bir arayüz.
+ */
+@source '../../../../packages/ui/src';
+
+/*
+ * §7.3: kök font-size %90 / %100 / %115 / %130 ölçekleniyor; `rem` tabanlı
+ * her değer uyar. Nitelik `applyTheme()` tarafından yazılıyor.
+ */
+:root {
+  font-family: var(--font-ui);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+[data-font-scale='90'] {
+  font-size: 90%;
+}
+[data-font-scale='100'] {
+  font-size: 100%;
+}
+[data-font-scale='115'] {
+  font-size: 115%;
+}
+[data-font-scale='130'] {
+  font-size: 130%;
+}
+
+/*
+ * §7.4: `prefers-reduced-motion` VEYA "Hareketi azalt" ayarı açıksa tüm
+ * süreler 0ms. İkinci yolu `[data-reduced-motion='reduce']` taşıyor
+ * (üretilmiş dosyada); bu blok işletim sistemi sinyalini ekliyor.
+ *
+ * ⚠️ Bu medya sorgusu jsdom'da DEĞERLENDİRİLMİYOR (6.0'da ölçüldü:
+ * `matchMedia` tanımsız). Gerçek tarayıcıda doğrulaması Faz 49.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+  }
+}
