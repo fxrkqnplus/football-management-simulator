@@ -195,6 +195,97 @@ export const ensureContrast = (
 };
 
 /**
+ * CIE L\* — **algısal** açıklık, `0`…`100`.
+ *
+ * ⚠️ **Kontrast oranı ile aynı soru DEĞİL ve bu yüzden ayrı bir fonksiyon.**
+ * Kontrast oranı *"okunabilir mi"*yi sorar; L\* *"gözle ayırt edilebilir mi"*yi.
+ * İki rengin kontrast oranı 1,2 gibi düşük bir değerdeyken bile L\* farkları
+ * anlamlı olabilir — bir vurgu rengiyle onun `hover` hâlinin farkı tam olarak
+ * bu ikinci soru.
+ *
+ * 6.3b'de açık temanın `--accent-hover`ını üretmek için gerekti: *"en az 5 L\*
+ * daha koyu"* ölçütü, iki rengin **birbirinden** ayırt edilebilirliğini
+ * kontrast kapısına sormadan iddia ediyor.
+ */
+export const perceptualLightness = (hex: string): number => {
+  const y = relativeLuminance(hex);
+  const epsilon = (6 / 29) ** 3;
+  const f = y > epsilon ? Math.cbrt(y) : y / (3 * (6 / 29) ** 2) + 4 / 29;
+  return 116 * f - 16;
+};
+
+/** Siyaha doğru tam sayı yüzdeyle karıştırır — `blendTowardWhite`ın aynası. */
+export const blendTowardBlack = (hex: string, percent: number): string => {
+  const mix = (channel: number): number => Math.round(channel * (1 - percent / 100));
+  const r = mix(Number.parseInt(hex.slice(1, 3), 16));
+  const g = mix(Number.parseInt(hex.slice(3, 5), 16));
+  const b = mix(Number.parseInt(hex.slice(5, 7), 16));
+  const hh = (v: number): string => v.toString(16).padStart(2, '0').toUpperCase();
+  return `#${hh(r)}${hh(g)}${hh(b)}`;
+};
+
+/**
+ * Bir rengi, hedef orana ulaşana kadar **en az** koyulaştırır.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * ⚠️ BU, 6.2'NİN BİLİNÇLİ EKSİĞİNİ KAPATIYOR — VE SESSİZCE DEĞİL
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * 6.2 `ensureContrast()`e koyulaştırma **eklememişti** ve gerekçesi yazılıydı:
+ * `spec/05` §7.1'in fiili *"açıklaştırılır"* ve yazılmamış bir yön eklemek
+ * SAPMA-026 olurdu. O karar **hâlâ geçerli** — `ensureContrast` bu turda
+ * **değiştirilmedi** ve açık zemindeki sınırı hâlâ `reachedTarget: false` ile
+ * beyan ediyor; sahibi **6.8**.
+ *
+ * Bu **ayrı** bir fonksiyon ve **ayrı** bir iş için: açık temanın kromatik
+ * token'larını üretmek. Kullanıcının 6.3b kararı bunu adıyla yetkilendirdi —
+ * *"spec'in kendi kuralını öbür yöne uygulamak"*: bir renk kapıyı geçmiyorsa,
+ * **tonu korunarak** geçene kadar taşınır; açık temada yön koyuya doğru.
+ *
+ * ⚠️ **Ton korunuyor çünkü karışım ÇARPANSAL:** her kanal aynı oranla
+ * ölçekleniyor, yani kanallar arası oranlar — dolayısıyla ton — sabit kalıyor.
+ * (`blendTowardWhite` toplamsal olduğu için tonu **kaydırır**; iki fonksiyon
+ * simetrik değil ve bu fark bilerek yazılıyor.)
+ *
+ * `ensureContrast` ile aynı sonuç şeklini döndürür — `reachedTarget: false`
+ * yine mümkün ve yine **sessiz değil**.
+ */
+export const darkenUntilContrast = (
+  color: string,
+  background: string,
+  target: number = CONTRAST_TARGET_AA,
+): EnsureContrastResult => {
+  const initial = contrastRatio(color, background);
+  if (initial >= target) {
+    return { color, ratio: initial, adjusted: false, reachedTarget: true, lightenPercent: 0 };
+  }
+
+  let best = { color, ratio: initial, percent: 0 };
+  for (let percent = 1; percent <= 100; percent += 1) {
+    const candidate = blendTowardBlack(color, percent);
+    const ratio = contrastRatio(candidate, background);
+    if (ratio >= target) {
+      return {
+        color: candidate,
+        ratio,
+        adjusted: true,
+        reachedTarget: true,
+        lightenPercent: percent,
+      };
+    }
+    if (ratio > best.ratio) best = { color: candidate, ratio, percent };
+  }
+
+  return {
+    color: best.color,
+    ratio: best.ratio,
+    adjusted: best.percent > 0,
+    reachedTarget: false,
+    lightenPercent: best.percent,
+  };
+};
+
+/**
  * Verilen zemin için adaylar arasından **en yüksek oranı** vereni seçer.
  *
  * Nitelik rozetinin sayısı için gerekiyor: ölçüldü ki sekiz bandın **hiçbir

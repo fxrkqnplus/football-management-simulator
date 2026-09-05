@@ -85,11 +85,15 @@
 }
 
 /*
- * ⚠️ AÇIK TEMA TAMAMLANMAMIŞ — spec/05 §7.1 yalnızca sekiz token veriyor.
+ * AÇIK TEMA — yirmi token, ve ikisi AYRI KAYNAKTAN.
  *
- * Aşağıda geçersiz kılınmayan token'lar :root'tan DEVRALINIR, yani koyu
- * tema değerlerini alırlar. Bu DOĞRU DAVRANIŞ DEĞİL, bilinen bir eksiklik:
+ * spec/05 §7.1 yalnızca SEKİZ token veriyor. Kalan ON İKİSİ Faz 6.3b`de
+ * YAZILDI (türetilmedi — iki türetme kuralı da kontrol deneyiyle çürütüldü).
+ * Hangisinin otoriteden geldiği kodda ayrı duruyor:
+ *   LIGHT_SPEC_OVERRIDES   (8) -> spec/05 §7.1
+ *   LIGHT_WRITTEN_TOKENS  (12) -> Faz 6.3b, gerekçeleri color.ts`te
  *
+ * Spec`in açık temada değer VERMEDİĞİ on iki token:
    *   --bg-active
    *   --bg-input
    *   --border-subtle
@@ -102,9 +106,6 @@
    *   --warning
    *   --success
    *   --info
- *
- * Kaynak: packages/ui/src/tokens/color.ts -> LIGHT_UNDEFINED_IN_SPEC
- * Karar bekliyor (Faz 6.3). Doldurulunca bu blok kendiliğinden büyür.
  */
 [data-theme='light'] {
   --bg-base: #F5F7FA;
@@ -115,6 +116,18 @@
   --text-primary: #151A22;
   --text-secondary: #5A6675;
   --text-muted: #8A94A3;
+  --bg-active: #D8DEE8;
+  --text-inverse: #F5F7FA;
+  --bg-input: #FAFBFD;
+  --border-subtle: #E9EDF3;
+  --border-strong: #BFC8D6;
+  --accent: #008347;
+  --accent-hover: #00733E;
+  --accent-muted: #00834726;
+  --danger: #CA3F44;
+  --warning: #986616;
+  --success: #258054;
+  --info: #3673BA;
 }
 
 /* §7.4: "Hareketi azalt" açıksa tüm süreler 0ms. */

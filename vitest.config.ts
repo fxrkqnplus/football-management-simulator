@@ -1,4 +1,55 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vitest/config';
+
+const fromRoot = (relative: string): string => fileURLToPath(new URL(relative, import.meta.url));
+
+/**
+ * ⚠️ BORÇ-011'İN ÇÖZÜMÜ — birim testler KAYNAĞI ölçer, `dist`i değil.
+ *
+ * **Borç neydi (6.3'te mutasyonla bulundu):** `apps/web/src/app/fonts.test.ts`
+ * `@fms/ui`yi paketin `exports` haritasından, yani `packages/ui/dist/index.js`
+ * üzerinden çözüyordu. Kaynakta bir kod noktası bozuldu → `pnpm test`
+ * **138/138 geçti**; `pnpm build` koşturulunca **aynı mutasyon 4 testi kırdı**.
+ * Yani paketler arası her test **bayat** kod ölçebiliyordu. Kök `test` betiği
+ * düz `vitest run` ve `turbo.json`da bir `test` görevi **yok** — hiçbir yerde
+ * `^build` bağımlılığı yoktu.
+ *
+ * **İki aday vardı ve seçim gerekçeli:**
+ *   ② `pnpm test` önce `pnpm build` koşsun — kök nedeni **çözmez**, her koşuya
+ *      bir derleme ekleyerek üstünü örter ve testleri hâlâ bir artefakta bağlar.
+ *   ③ `resolve.alias` ← **SEÇİLEN**. Sınıfı **ortadan kaldırır**: birim testler
+ *      kaynağı okur, bayatlayacak bir ara ürün kalmaz.
+ *
+ * **Neden ③ doğru olan:** bir birim testinin ölçmesi gereken şey **kaynak**.
+ * `dist`in ve `exports` haritasının doğruluğu **ayrı bir sorudur** ve onu ölçen
+ * kapılar zaten var — `pnpm build` ve imaj duman testi. 6.3b bunu kanıtladı:
+ * `@fms/ui` `apps/web/Dockerfile`da hiç derlenmiyordu ve hatayı **imaj
+ * derlemesi** yakaladı, birim testler değil.
+ *
+ * ⚠️ **ALIAS PROJE BAŞINA VERİLİYOR, KÖKTE DEĞİL — ÖLÇÜLDÜ.** İlk yazımda
+ * `defineConfig({ resolve: { alias } })` kökte duruyordu ve mutasyon **hâlâ
+ * hiçbir şeyi kırmadı**: Vitest 4'ün `projects` girdileri ayrı Vite
+ * yapılandırmaları ve kök `resolve`u **devralmıyorlar**. Yani yazılmış ama
+ * hiçbir şey yapmayan bir ayardı — bu projenin en pahalı hata sınıfı
+ * (`pnpm-workspace.yaml`'ın `ignoredBuiltDependencies` tuzağıyla aynı).
+ *
+ * ⚠️ **`vitest.integration.config.ts` BU ALIASI ALMIYOR ve bu bilinçli:**
+ * entegrasyon testleri `dist` üzerinden çözmeyi **bilerek** yapıyor (CI'da
+ * *"testler dist üzerinden çözüyor"* adımı). İki sorunun iki ayrı cevabı.
+ */
+const workspaceSourceAlias = [
+  // Alt yol ÖNCE gelmeli: `@fms/shared` deseni `@fms/shared/server`i de yakalar
+  // ve sıra ters olsaydı alt yol `src/index.ts`e düşerdi.
+  { find: '@fms/shared/server', replacement: fromRoot('./packages/shared/src/server/index.ts') },
+  { find: '@fms/shared', replacement: fromRoot('./packages/shared/src/index.ts') },
+  { find: '@fms/ui', replacement: fromRoot('./packages/ui/src/index.ts') },
+  { find: '@fms/db', replacement: fromRoot('./packages/db/src/index.ts') },
+  { find: '@fms/engine', replacement: fromRoot('./packages/engine/src/index.ts') },
+];
+
+/** Her TypeScript projesine verilen ortak çözümleme. */
+const sourceResolve = { alias: workspaceSourceAlias };
 
 /**
  * Vitest 4 kök yapılandırması.
@@ -32,6 +83,7 @@ export default defineConfig({
 
     projects: [
       {
+        resolve: sourceResolve,
         test: {
           name: 'shared',
           root: './packages/shared',
@@ -40,6 +92,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: sourceResolve,
         test: {
           name: 'engine',
           root: './packages/engine',
@@ -48,6 +101,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: sourceResolve,
         test: {
           name: 'db',
           root: './packages/db',
@@ -56,6 +110,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: sourceResolve,
         test: {
           name: 'ui',
           root: './packages/ui',
@@ -81,6 +136,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: sourceResolve,
         test: {
           name: 'api',
           root: './apps/api',
@@ -89,6 +145,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: sourceResolve,
         test: {
           name: 'worker',
           root: './apps/worker',
@@ -120,6 +177,7 @@ export default defineConfig({
         define: {
           __FMS_DEV__: 'true',
         },
+        resolve: sourceResolve,
         test: {
           name: 'web',
           root: './apps/web',
@@ -136,6 +194,7 @@ export default defineConfig({
         },
       },
       {
+        resolve: sourceResolve,
         test: {
           name: 'data-cli',
           root: './tools/data-cli',

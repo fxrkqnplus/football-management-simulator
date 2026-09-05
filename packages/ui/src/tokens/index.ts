@@ -14,23 +14,31 @@ export {
   bandForAttributeRange,
 } from './attribute-scale.js';
 export {
+  ACCENT_HOVER_MIN_LIGHTNESS_DELTA,
   ALPHA_COLOR_TOKENS,
   type ColorTokenKey,
   type ColorTokenName,
   type ColorTokenValue,
   DARK_COLOR_TOKENS,
+  deriveLightChromatic,
+  LIGHT_CHROMATIC_SURFACE,
   LIGHT_COLOR_OVERRIDES,
+  LIGHT_SPEC_OVERRIDES,
   LIGHT_UNDEFINED_IN_SPEC,
+  LIGHT_WRITTEN_TOKENS,
   resolveTheme,
 } from './color.js';
 export {
+  blendTowardBlack,
   blendTowardWhite,
   CONTRAST_TARGET_AA,
   contrastRatio,
+  darkenUntilContrast,
   ensureContrast,
   type EnsureContrastResult,
   LINEARIZATION_THRESHOLD,
   linearizeChannel,
+  perceptualLightness,
   pickAccessibleForeground,
   relativeLuminance,
 } from './contrast.js';

@@ -45,19 +45,23 @@ describe('üretilmiş CSS içeriği', () => {
     }
   });
 
-  it('açık tema bloğu tanımsız ON İKİ token’ın HİÇBİRİNİ tanımlamıyor', () => {
+  it('açık tema bloğu YİRMİ token’ın HEPSİNİ tanımlıyor — devralma YOK', () => {
     const lightBlockStart = css.indexOf("[data-theme='light'] {");
     const lightBlock = css.slice(lightBlockStart, css.indexOf('}', lightBlockStart));
+    // 6.3'te bu iddia tersiydi (12 token yoktu); 6.3b onları yazdı.
+    // Bir beklenen kırılma gevşetilmez, İDDİA GÜNCELLENİR.
     for (const name of LIGHT_UNDEFINED_IN_SPEC) {
-      expect(lightBlock.includes(`${name}:`), name).toBe(false);
+      expect(lightBlock.includes(`${name}:`), name).toBe(true);
     }
+    expect(Object.keys(LIGHT_COLOR_OVERRIDES)).toHaveLength(20);
   });
 
-  it('⚠️ EKSİKLİK ÇIKTIDA GÖRÜNÜR — on iki token yorumda ADIYLA listeleniyor', () => {
-    // CSS'te "tanımsız" diye bir değer yok: geçersiz kılınmayan token :root'tan
-    // DEVRALINIR. 6.2 o davranışı reddetmişti; burada saklanmıyor, YAZILIYOR.
-    // "0 bulundu" ile "hiçbir şeye bakmadı" ayırt edilebilir olmalı.
-    expect(css).toContain('AÇIK TEMA TAMAMLANMAMIŞ');
+  it('⚠️ KAYNAK AYRIMI ÇIKTIDA GÖRÜNÜR — on iki token yorumda ADIYLA listeleniyor', () => {
+    // Değerler artık var, ama "hangisi spec'ten geldi" sorusu ÇIKTIDA da
+    // cevaplanabilir olmalı: üretilmiş dosyayı okuyan biri kaynağa bakmadan
+    // ayrımı görebilsin.
+    expect(css).toContain('LIGHT_SPEC_OVERRIDES');
+    expect(css).toContain('LIGHT_WRITTEN_TOKENS');
     for (const name of LIGHT_UNDEFINED_IN_SPEC) {
       expect(css, name).toContain(`   *   ${name}`);
     }

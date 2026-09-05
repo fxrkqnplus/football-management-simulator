@@ -153,6 +153,83 @@ describe('DENETİM ④ — varsayılan vurgu rengi', () => {
   });
 });
 
+describe('DENETİM ⑥ — 6.3b’DE YAZILAN ON İKİ AÇIK TEMA TOKEN’I', () => {
+  /** En katı yüzey: `--bg-base`. `--bg-surface` (#FFFFFF) daha açık. */
+  const STRICT = LIGHT_COLOR_OVERRIDES['--bg-base'];
+  const SURFACE = LIGHT_COLOR_OVERRIDES['--bg-surface'];
+
+  const CHROMATIC = [
+    '--accent',
+    '--accent-hover',
+    '--danger',
+    '--warning',
+    '--success',
+    '--info',
+  ] as const;
+
+  it('ALTI kromatik token, EN KATI yüzeyde (--bg-base) AA sağlıyor', () => {
+    for (const name of CHROMATIC) {
+      const ratio = contrastRatio(LIGHT_COLOR_OVERRIDES[name], STRICT);
+      expect(ratio, `${name} / --bg-base`).toBeGreaterThanOrEqual(CONTRAST_TARGET_AA);
+    }
+  });
+
+  it('aynı altısı --bg-surface’te de sağlıyor — katı yüzey seçimi DOĞRULANIYOR', () => {
+    // Karşı kontrol: en katı yüzeyi geçen bir renk daha açık olanı da geçmeli.
+    // Bu vaka olmasa "yanlış yüzeye göre ölçtük" ihtimali ayrılamazdı.
+    for (const name of CHROMATIC) {
+      const strict = contrastRatio(LIGHT_COLOR_OVERRIDES[name], STRICT);
+      const surface = contrastRatio(LIGHT_COLOR_OVERRIDES[name], SURFACE);
+      expect(surface, name).toBeGreaterThanOrEqual(strict);
+      expect(surface, `${name} / --bg-surface`).toBeGreaterThanOrEqual(CONTRAST_TARGET_AA);
+    }
+  });
+
+  it('⚠️ KOYU temanın kromatikleri açık zeminde GEÇMİYORDU — yazılmalarının sebebi', () => {
+    // Ölçüm 6.3'te yapıldı ve karar buradan çıktı: "tema-bağımsız" okuması
+    // çöktü. Beşinin BEŞİ de AA'nın altında.
+    for (const name of ['--accent', '--danger', '--warning', '--success', '--info'] as const) {
+      expect(contrastRatio(DARK_COLOR_TOKENS[name], STRICT), name).toBeLessThan(CONTRAST_TARGET_AA);
+    }
+  });
+
+  it('--text-inverse, açık temanın vurgusu ÜZERİNDE okunur', () => {
+    for (const name of ['--accent', '--accent-hover'] as const) {
+      const ratio = contrastRatio(
+        LIGHT_COLOR_OVERRIDES['--text-inverse'],
+        LIGHT_COLOR_OVERRIDES[name],
+      );
+      expect(ratio, `--text-inverse / ${name}`).toBeGreaterThanOrEqual(CONTRAST_TARGET_AA);
+    }
+  });
+
+  it('--text-primary, BEŞ yapısal nötrün hepsinde AA sağlıyor', () => {
+    for (const name of [
+      '--bg-active',
+      '--bg-input',
+      '--border-subtle',
+      '--border-strong',
+      '--text-inverse',
+    ] as const) {
+      const ratio = contrastRatio(
+        LIGHT_COLOR_OVERRIDES['--text-primary'],
+        LIGHT_COLOR_OVERRIDES[name],
+      );
+      expect(ratio, `--text-primary / ${name}`).toBeGreaterThanOrEqual(CONTRAST_TARGET_AA);
+    }
+  });
+
+  it('⚠️ KENARLIKLAR 3:1’İN ALTINDA — spec’in kendi seçimi, gevşetilmedi', () => {
+    // `--border-default` SPEC'TEN geliyor ve zemine karşı 1,26. Yazdığımız
+    // subtle/strong da aynı ailede. Bu bir kusur raporu: WCAG'ın arayüz
+    // bileşeni sınırı 3:1 ve bu palet onu kenarlıklarda karşılamıyor.
+    // Sahibi 6.8 — orada `--text-muted` kararıyla birlikte ele alınacak.
+    for (const name of ['--border-subtle', '--border-default', '--border-strong'] as const) {
+      expect(contrastRatio(LIGHT_COLOR_OVERRIDES[name], STRICT), name).toBeLessThan(3);
+    }
+  });
+});
+
 describe('DENETİM ⑤ — BU DENETİMİN GÖRMEDİKLERİ', () => {
   it('alfa taşıyan token denetlenmiyor ve bu ADIYLA yazılı', () => {
     // #00C46A26 yarı saydam; gerçek oranı altındaki yüzeye bağlı ve §7.1 o

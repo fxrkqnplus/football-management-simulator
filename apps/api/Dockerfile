@@ -26,8 +26,12 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages ./packages
 COPY apps/api ./apps/api
-RUN pnpm --filter @fms/shared build
-RUN pnpm --filter @fms/api build
+# ⚠️ BAĞIMLILIKLAR ELLE SAYILMIYOR — gerekçe `apps/web/Dockerfile`de yazılı
+# (Faz 6.3b): orada elle liste `@fms/ui` eklenince bayatladı ve CI kırıldı.
+# Bu imaj bugün YALNIZCA `@fms/shared`e bağlı (ölçüldü: `apps/api/src` içinde
+# başka bir `@fms/*` importu yok), yani satır şu an DOĞRU — ama aynı tuzağı
+# taşıyor. `...` soneki bağımlılığı bildiriyor, saymıyor.
+RUN pnpm --filter @fms/api... build
 
 # Yalnızca üretim bağımlılıklarıyla kendi kendine yeten bir ağaç üret.
 # --legacy: pnpm 10+ varsayılan olarak yalnızca inject-workspace-packages=true

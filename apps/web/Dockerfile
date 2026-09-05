@@ -29,8 +29,18 @@ COPY apps/web ./apps/web
 # Alt yol tek kaynak: derleme argümanı olarak verilir, vite.config.ts okur.
 ARG PUBLIC_BASE_PATH=/fms
 ENV PUBLIC_BASE_PATH=$PUBLIC_BASE_PATH
-RUN pnpm --filter @fms/shared build
-RUN pnpm --filter @fms/web build
+# ⚠️ BAĞIMLILIKLAR ELLE SAYILMIYOR — `...` soneki "paket VE bağımlılıkları"
+# demek ve pnpm onları topolojik sırayla derliyor.
+#
+# Faz 6.3'te bu satır `@fms/shared` + `@fms/web` diye ELLE sayıyordu ve
+# `@fms/ui` eklendiğinde CI kırmızıya döndü (`33937132528`):
+#   Rolldown failed to resolve import "@fms/ui" from "/app/apps/web/src/main.tsx"
+# Paketin `exports`u `./dist/index.js`i gösteriyor ve o dosya hiç üretilmemişti.
+# Yerelde `pnpm build` (turbo, `dependsOn: ["^build"]`) doğru sırayı kendisi
+# kuruyordu; imaj o grafiği taşımıyordu. **Test yeşil ≠ üretim çalışıyor** (D5).
+#
+# Elle liste bir sonraki pakette yine bayatlardı; `...` bağımlılığı BİLDİRİYOR.
+RUN pnpm --filter @fms/web... build
 
 FROM caddy:2-alpine AS runtime
 ARG PUBLIC_BASE_PATH=/fms

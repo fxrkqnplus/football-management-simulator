@@ -3441,6 +3441,95 @@ docs/glossary.md
       > kapsayıcılık testi eksikliği **görünür** tutuyor; üretilmiş CSS de
       > eksikliği **kendi içinde** yazıyor. Karar verilene kadar açık tema
       > **tamamlanmamış** ve bu her iki yerde de okunabiliyor.
+- [x] **6.3b** **BORÇ-011 + açık temanın 12 token'ı.** *(6.3'ün iki açık ucu;
+      ikisi de bileşenlerden ÖNCE kapanmak zorundaydı — 6.4 hem taze `dist`e
+      hem tamamlanmış bir açık temaya ihtiyaç duyuyor. Ara numara bu deponun
+      idiomu: 4.0b, 5.0-ön.)*
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.3b (2026-09-05)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **⓪ SIRA DIŞI BİR İŞ ÖNE ALINDI: CI KIRMIZIYDI.** 6.3'ün koşusu
+      > (`33937132528`) **başarısız** — `İmaj (amd64)` ve `İmaj (arm64)` işleri
+      > *"Rolldown failed to resolve import `@fms/ui`"* ile düştü.
+      > Sebep: `apps/web/Dockerfile` derlenecek paketleri **elle sayıyordu**
+      > (`@fms/shared` + `@fms/web`) ve `@fms/ui`yi hiç derlemiyordu; paketin
+      > `exports`u var olmayan bir `dist/index.js`i gösteriyordu. Yerelde
+      > `pnpm build` (turbo, `dependsOn: ["^build"]`) doğru sırayı **kendisi**
+      > kuruyordu; imaj o grafiği taşımıyordu. **Test yeşil ≠ üretim çalışıyor**
+      > (D5) — ve 6.3 D5'i `packages/ui/dist` için yapmış, **imaj yüzeyi için
+      > yapmamıştı**.
+      > **Düzeltme elle listeyi kaldırıyor:** `pnpm --filter @fms/web... build`
+      > (`...` = paket **ve bağımlılıkları**, topolojik sırayla). Aynı satır
+      > `apps/api/Dockerfile`da da vardı ve bugün **doğruydu** (ölçüldü: o imaj
+      > yalnızca `@fms/shared`e bağlı) ama aynı tuzağı taşıyordu — o da
+      > bildirimsel hâle getirildi. ⚠️ Bu **bilinçli bir genişletme**, sessiz
+      > değil: bir sonraki pakette aynı kesinti tekrarlardı.
+      >
+      > **① BORÇ-011 ÖDENDİ — çözüm `resolve.alias`, ve iki yönlü kanıtlandı.**
+      > Aday ② (`pnpm test` önce build etsin) **reddedildi**: kök nedeni çözmez,
+      > her koşuya bir derleme ekleyerek üstünü örter. Seçilen ③ sınıfı
+      > **ortadan kaldırıyor** — birim testler kaynağı okuyor.
+      > ⚠️ **İlk deneme hiçbir şey yapmadı:** alias `defineConfig` kökünde
+      > duruyordu ve mutasyon **hâlâ** kırmadı; Vitest 4'ün `projects` girdileri
+      > kök `resolve`u **devralmıyor**. Alias **sekiz TS projesine tek tek**
+      > verildi. *"Yazılmış ama hiçbir şey yapmayan bir ayar"* —
+      > `pnpm-workspace.yaml`ın `ignoredBuiltDependencies` tuzağının aynısı.
+      > **Kanıt ①:** 6.3'ün mutasyon ④'ü (Türkçe kod noktası) **build etmeden**
+      > koşturuldu → **4 test kırıldı** (6.3'te **0** kırmıştı).
+      > **Kanıt ②:** `packages/ui/dist` **tamamen silindi** → **1275/1275
+      > geçti**, yani testler gerçekten `dist` okumuyor.
+      > `vitest.integration.config.ts` aliası **almıyor** — entegrasyon testleri
+      > `dist` üzerinden çözmeyi bilerek yapıyor.
+      >
+      > **② ON İKİ TOKEN YAZILDI — 0 türetildi, 12 yazıldı.**
+      > Kullanıcının kararı türetmeyi **sınamayı** şart koşuyordu; **iki kural
+      > önerildi ve ikisi de spec'in kendi sekiz değerine karşı ÇÜRÜDÜ**:
+      > *"`--bg-base`e karşı oranı koru"* → `--text-secondary` **−2,409**;
+      > *"ΔL\* işaretini aileden, büyüklüğünü koyudan al"* → `--bg-hover`
+      > **−9,68**. Sebep ölçüldü: koyuda yükselti ve etkileşim **aynı yönde**,
+      > açıkta **ters yönlerde** — açık tema bir dönüşüm değil, farklı yapıda
+      > bir palet. Sonuç dürüstçe raporlandı.
+      > **İkisi bir SPEC EŞİTLİĞİNİ koruyor** (`--bg-active` = `--border-default`,
+      > `--text-inverse` = `--bg-base` — ikisi de koyu temada spec'in kendi
+      > seçimi ve 6.2'den beri testte). **Üçü** açık gri rampayı sürdürüyor.
+      > **Yedisi `deriveLightChromatic()`in ÇIKTISI** — kural kodda yaşıyor,
+      > hexler onun **artefaktı** ve bir test onları yeniden üretip birebir
+      > karşılaştırıyor (CSS tazelik nöbetçisiyle aynı yapı).
+      > ⚠️ **Kural spec'in, çıktı bizim:** §7.1 mekanizmayı tarif ediyor
+      > (*"kapıyı geçmiyorsa tonu korunarak taşınır"*), ama açık tema için
+      > **hiçbir kromatik değer vermiyor** — yani çıktı bir kontrol deneyinden
+      > geçemez.
+      >
+      > **③ KAPI EN KATI YÜZEYE GÖRE KOŞTU.** İlk hesap `--bg-surface`
+      > (`#FFFFFF`) kullanıyordu ve anlamsal renkler orada **4,53** verirken
+      > sayfa zemininde (`--bg-base`) **4,22**de kalıyordu. Yüzey `--bg-base`e
+      > çevrildi: **değer değişti, eşik değil.** Altı kromatiğin altısı da her
+      > iki yüzeyde AA (**4,51 – 5,96**).
+      >
+      > **④ MUTASYON 3/3 — ve biri DEAD CODE buldu.**
+      > ① türetme kuralının ikinci kısıtı kaldırıldı → **0 kırıldı**. Üç
+      > ihtimalden **üçüncüsü**: *"kod gereksiz."* Ölçüldü ve sebebi bu dosyanın
+      > **kendi kararından** geliyordu — `--text-inverse` = `--bg-base` = kapı
+      > yüzeyi olduğu için iki kısıt **birebir aynı hesap**. Kısıt kaldırıldı,
+      > garanti `contrast-audit.test.ts`te **ayrı bir vaka** olarak duruyor.
+      > ② yazılan bir değer bozuldu (`--bg-active`) → **2** (eşitlik + tazelik).
+      > ③ koyulaştırma kuralı bozuldu → **1** (kural ↔ artefakt eşleşmesi).
+      >
+      > **⑤ D5 — İMAJ DERLENDİ VE ÇALIŞTIRILDI.** Soğuk build (`Cached: 0`)
+      > sonrası web imajı derlendi, konteyner koşturuldu, HTTP doğrulandı:
+      > JS **200** · CSS **200** · kök **404** · üretilen CSS'te
+      > `[data-theme=light]` bloğu **yirmi token'ın hepsini** taşıyor ·
+      > **13 `@font-face`**, `latin-ext` aralığı **2 kez**, `U+131` **2 kez**.
+      > ⚠️ İki kez **ölçüm aracı** yanılttı: Git Bash `/fms`i
+      > `C:/Program Files/Git/fms`e çevirdi (`MSYS_NO_PATHCONV=1` ile aşıldı),
+      > ve küçültülmüş CSS **tek satır** olduğu için `grep -c` eşleşme değil
+      > **satır** saydı (`@font-face` "1" göründü, gerçek **13**).
+      >
+      > **⑥ Kapsam `401/488 = %82,17` → `409/495 = %82,62`; marj boşluğu
+      > 84 → 89. Üretim paketi 383.654 → 383.976 bayt (+322, %0,08); CSS
+      > 16.821 → 17.064.**
 - [ ] **6.4** **shadcn/ui uyarlaması + temel bileşenler I** — Button (6 varyant),
       Input, Select, Combobox, Checkbox, RadioGroup, Slider, Switch, Tabs.
       ⚠️ **`main.test.tsx` jsdom yıkım yarışı bu alt görevden itibaren HER alt
