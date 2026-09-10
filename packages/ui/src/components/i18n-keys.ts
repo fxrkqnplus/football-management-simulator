@@ -31,10 +31,26 @@
  *
  * Kalan doğru çıkış: anahtarı **çözülebilir yere** koymak. Her bileşen kendi
  * anahtarlarını kendi dosyasında tanımlıyor; bu modül onları **yayıyor**.
- * İki liste yok — biri diğerinin türevi, ayrışmaları mümkün değil.
+ *
+ * ⚠️ **6.4'ÜN BURADAKİ CÜMLESİ YANLIŞTI ve 6.5'te düzeltildi.** Metin
+ * *"İki liste yok — biri diğerinin türevi, **ayrışmaları mümkün değil**"*
+ * diyordu. **`ALL_UI_KEYS` gerçekten bir türev; ama aşağıdaki `UI_KEYS`
+ * ELLE TUTULAN BİR KAYIT DEFTERİ** — bir bileşen `*_KEYS`ini tanımlayıp
+ * buraya eklemeyi unutabilir ve o gün ne `i18n:check` ne ön ek testleri öter.
+ * *"Bir türev gibi görünen şey elle tutulan bir liste olabilir; türetmenin
+ * nerede başladığı ölçülür."*
+ *
+ * **Çare bir cümle düzeltmesi değil, koşan bir nöbetçi:**
+ * `i18n-keys.test.ts` ② diski `import.meta.glob` ile okuyor ve **iki yönlü**
+ * denetliyor (diskteki her `*_KEYS` kayıtlı mı · her kayıt gerçek bir modülden
+ * mi geliyor). Nöbetçi 6.5'te **bileşenlerden ÖNCE** yazıldı ve ilk gerçek
+ * unutma vakasında (`DIALOG_KEYS`) **gerçek depoda öttü**.
  */
 import { COMBOBOX_KEYS } from './combobox.js';
+import { DIALOG_KEYS } from './dialog.js';
 import { SELECT_KEYS } from './select.js';
+import { SHEET_KEYS } from './sheet.js';
+import { TOAST_KEYS } from './toast.js';
 
 /** Ön ek — **nokta ile biter**, ve bu bir kaza değil (yukarı bak). */
 export const UI_KEY_PREFIX = 'common:ui.';
@@ -46,8 +62,11 @@ export const UI_KEY_PREFIX = 'common:ui.';
  * `*_KEYS` nesnesini yaymak; anahtar dizeleri **kopyalanmıyor**.
  */
 export const UI_KEYS = {
-  select: SELECT_KEYS,
   combobox: COMBOBOX_KEYS,
+  dialog: DIALOG_KEYS,
+  select: SELECT_KEYS,
+  sheet: SHEET_KEYS,
+  toast: TOAST_KEYS,
 } as const;
 
 /** Bütün anahtar dizeleri, düz bir liste — nöbetçinin taradığı küme. */

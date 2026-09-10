@@ -3670,7 +3670,7 @@ docs/glossary.md
       > **⑥ KRİTER 1 ve 6 `[ ]` KALIYOR** — kriter 1 Storybook envanteri istiyor
       > (**6.9**), kriter 6 axe taraması istiyor (**6.8**). Bir kriteri kısmen
       > sağlamak sağlamamaktır.
-- [ ] **6.5** **Temel bileşenler II** — Dialog, Sheet, Popover, Tooltip, Toast,
+- [x] **6.5** **Temel bileşenler II** — Dialog, Sheet, Popover, Tooltip, Toast,
       Badge, Avatar, Progress, Skeleton.
       ⚠️ **§0.5 KONTROL NOKTASI BU ALT GÖREVİN SONUNDA KOŞAR** (eşik A bölünme
       **2 gün**, eşik B asıl sınır **3 gün**). Bölünme çizgisi:
@@ -3678,6 +3678,102 @@ docs/glossary.md
       **6b = 6.6–6.12** (alan bileşenleri + DataTable + kapılar).
       Faz 6 §0.5'in *"bölünme riski yüksek"* listesinde **var**. Ateşlenmezse de
       kaydedilir.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.5 (2026-09-10)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **DOKUZ BİLEŞEN, LİSTEDEKİLERİN TAMAMI, FAZLASI YOK.** `Popover` 6.4'te
+      > kurulmuş ama dışa aktarılmamıştı; bu tur onu **yayınlıyor** ve
+      > Combobox'ı **değiştirmiyor** — kanıt bayt bayt: `dist` silinip
+      > `--force` ile (0 cached) yeniden derlendi, `combobox.js` md5
+      > **`e98697f7…` → `e98697f7…`**, testleri **12/12** aynı.
+      >
+      > **① `UI_KEYS` BÜTÜNLÜK NÖBETÇİSİ — bir İDDİANIN çürütülmesiyle doğdu.**
+      > 6.4 `i18n-keys.ts`in başlığına *"iki liste yok, ayrışmaları mümkün
+      > değil"* yazmıştı. **Ölçüldü, yanlış çıktı:** `ALL_UI_KEYS` bir türev
+      > ama `UI_KEYS`in kendisi **elle tutulan bir kayıt defteri**, ve 6.4'ün
+      > yedi vakasının **yedisi de** yalnızca *zaten kayıtlı olanı* dolaşıyordu
+      > — **hiçbiri diske bakmıyordu**. Nöbetçi **bileşenlerden ÖNCE** yazıldı
+      > (`import.meta.glob`, `node:fs` **değil** — `types: []` delinmedi) ve
+      > ilk gerçek unutma vakasında **gerçek depoda öttü**: `DIALOG_KEYS` diskte
+      > vardı, kayıt defterinde yoktu → *"expected ['dialog'] to deeply equal
+      > []"*. İki yönlü (kayıtsız modül · hayalet kayıt) + referans eşitliği.
+      > 🆕 **Ve nöbetçinin KENDİSİ ölçüm aracını bozdu:** `'./*.tsx'` deseni
+      > `*.test.tsx`i de içe aktardı, `eager: true` onların `describe`
+      > bloklarını nöbetçiye kaydetti ve paketin **bütün testleri iki kez**
+      > koştu. Belirti sessizdi (kırmızı yok, sayı 11→67); yanlışı gösteren şey
+      > **kapsam satırı** oldu (*"18 modül"* = 9 bileşen + 9 test).
+      >
+      > **② `process.stdout.write` İDİOMU BU PAKETE TAŞINAMIYOR — K8 ısırdı.**
+      > `inventory-guards.test.mjs` kapsamını basıyor; `scripts/` ve `tools/`
+      > K8'den **muaf**, `packages/ui` **değil** (ayrıca `types: []` yüzünden
+      > `process` tipi de yok). Üç testte de basma **kaldırıldı**, yerine
+      > **iddia** kondu: beklenen modüller **adıyla** aranıyor, denetlenen çift
+      > **sayısı** iddia ediliyor. *"0 bulundu"* ile *"bakılmadı"* ayrımı
+      > testte bir **assertion**la sağlanır, bir çıktıyla değil.
+      >
+      > **③ ANLAMSAL RENKLERİN ÇİFTİ KARARA BAĞLANDI — 6.2'nin sahipsiz
+      > maddesi.** 6.2 dört token'ı denetlemeden bırakmış ve sahibini
+      > *"**6.4** (Badge, Toast)"* yazmıştı; **Badge ve Toast 6.5'te** — sahip
+      > doğru, **numara bayat**, ve 6.4 kararı adıyla kapatmadı. Karar
+      > `tokens/semantic-tone.ts`te: zemin **dolgu** (**GEREKÇE**, depo içi
+      > emsal — 6.4'ün `Button.destructive`i), ön plan **hesaplanmış**
+      > (**ÖLÇÜM**, `pickAccessibleForeground`). `contrast-audit.test.ts`in
+      > *"HENÜZ denetlenmiyor"* vakası **gerçek bir denetime** çevrildi:
+      > dördü de AA geçiyor (**info 7,01 · success 6,12 · warning 9,47 ·
+      > danger 4,94**).
+      >
+      > **④ SHEET AYRI BİR BİLEŞEN — GEREKÇE, ölçüm değil.** Kaynak yok
+      > (`spec/05` bileşen tanımı taşımıyor). Kural: ROADMAP kapsam listesi bir
+      > **envanterdir** ve Dialog ile Sheet orada **iki ayrı madde**; Sheet'i
+      > bir prop yapmak envanteri dokuzdan sekize indirirdi. Paylaşılan yarı
+      > gizlenmiyor — ikisi de aynı Radix ilkelini kullanıyor, fark tek eksende
+      > (`side`). Anahtarı **kendi**, çünkü paylaşmak `i18n:check`in aynı-dosya
+      > sınırına takılırdı.
+      >
+      > **⑤ YENİ jsdom DOLDURMASI GEREKMEDİ — ölçüldü.** Dokuz bileşenin
+      > hiçbiri JS'ten `matchMedia` okumuyor (hareket azaltma **CSS** meselesi,
+      > §7.4) ve zamanlayıcılar **prop** üzerinden sıfırlandı
+      > (`delayDuration={0}`, `duration={Infinity}`) — **sahte zamanlayıcı
+      > kullanılmadı**, çünkü `user-event` ile kilitleniyor ve kaçışı teste bir
+      > zamanlama varsayımı eklerdi. ⚠️ Bu, `theme-mode.test.ts`:83'teki
+      > **kontrol testini** (`matchMedia` tanımsız) korudu: ortak setup'a konan
+      > bir stub o iddiayı **sessizce tersine çevirirdi**.
+      >
+      > **⑥ KRİTER 1 ve 6 `[ ]` KALIYOR** — Storybook envanteri **6.9**,
+      > axe **6.8**. Bir kriteri kısmen sağlamak sağlamamaktır.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **⚠️ §0.5 KONTROL NOKTASI — ÖLÇÜLDÜ, VE İKİ TANIM AYRIŞIYOR**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > Kaynak `git log` ile ölçüldü. Faz 6'nın ilk commit'i **`3073deb`**
+      > (2026-09-04 18:11:12 +0300); ölçüm anı 2026-09-10 19:37 +03.
+      >
+      > | Tanım | Süre | Eşik A (2) | Eşik B (3) |
+      > |---|---|---|---|
+      > | **İlk commit → SON commit** (çalışma açıklığı) | **1,099 gün** | aşılmadı | aşılmadı |
+      > | **İlk commit → ŞİMDİ** (takvim) | **6,060 gün** | ✅ aşıldı | ✅ **aşıldı** |
+      >
+      > ⚠️ **FARK BİR ÖLÇÜM HATASI DEĞİL, TANIM FARKI:** 6.4'ün son commit'i
+      > **2026-09-05**, bugün **2026-09-10** — arada **beş gün hiç commit
+      > yok**. Yani takvim tanımı, **hiçbir iş yapılmayan** günleri faz süresine
+      > sayıyor.
+      >
+      > **Emsal ikiye bölünüyor ve ikisi de kayıtlı:**
+      > · Faz 3'ün kaydı *"2026-08-26 → 2026-08-29 · **4 gün**"* diyor — yani
+      >   **ilk→son commit**.
+      > · Faz 4'ün 4.7 kontrol noktası **ilk commit → ölçüm anı** kullandı
+      >   (**2,633 gün**) — ama orada iş **kesintisizdi**, iki tanım aynı
+      >   sonucu veriyordu. **Bugün ilk kez ayrışıyorlar.**
+      >
+      > ⚠️ **BÖLÜNME KARARI VERİLMEDİ — KULLANICININDIR (K13).** §0.5'in amacı
+      > *"faz büyükse ikiye bölünür"*; boşta geçen günleri saymak kuralı
+      > **kapsamla ilgisiz** bir sebeple ateşler. Ama tanımı kendi başıma
+      > seçmek, bir kuralı sessizce esnetmek olurdu. **İki ölçüm de yazıldı;
+      > karar sorulacak.** Çizgi hazır: **6a = 6.0–6.5** (bugün itibarıyla
+      > **tamamlandı**) · **6b = 6.6–6.12**.
 - [ ] **6.6** **On alan-özel bileşen** — `AttributeBadge`, `StarRating`,
       `FormIndicator`, `MoraleIcon`, `ClubCrest`, `PlayerPortrait`, `KitSwatch`,
       `PositionMap`, `CurrencyValue`, `DateChip`.
@@ -3737,16 +3833,33 @@ docs/glossary.md
       genişletir; **sessizce üçüncü bir yol seçilirse kapı kablolamasız kalır.**
       ⚠️ `spec/09` §11.5 onu *"Faz 6+"* diye listeliyor ve §0.4 *"ihlal = faz
       kapanmaz"* diyor. ⚠️ **Bakacak bir şey bulamayan kapıya ✅ yazılmaz.**
-      ⚠️ **CSS'İN BÜTÇE SATIRI YOK — 6.4'te ölçüldü, burada karara bağlanır.**
+      ⚠️ **CSS'İN BÜTÇE SATIRI YOK — 6.4'te ölçüldü, 6.5'te AYRIŞTIRILDI,
+      burada karara bağlanır.**
       §11.6'nın paket satırı *"`apps/web`, **ana JS**, harita hariç → taban ×
-      1,10"* diyor; **CSS'i hiç saymıyor**. 6.4'te bedeli görünür oldu: dokuz
-      bileşen eklenince JS **383.976 → 384.346 bayt (+%0,10)** kaldı ama CSS
-      **17.064 → 26.406 bayt (+%54,8)** sıçradı — çünkü Tailwind
-      `packages/ui/src`i tarıyor ve sınıflar **tüketici olmasa da** üretiliyor.
-      Yani bugünkü bütçe, tasarım sisteminin **asıl büyüyen yüzeyini**
-      ölçmüyor. ⚠️ Bir CSS eşiği **uydurulmadı** (SAPMA-026): karar bu alt
-      görevin, ve §11.6'ya satır eklemek **normatif** bir değişikliktir —
-      SAPMA-042 emsali, yani **sorulur** (SAPMA-044'ün envanter/norm ayrımı).
+      1,10"* diyor; **CSS'i hiç saymıyor**. İki turun ölçümü:
+
+      | | JS | CSS |
+      |---|---|---|
+      | 6.3b (bileşen yok) | 383.976 | 17.064 |
+      | 6.4 (+9 bileşen) | 384.346 (**+%0,10**) | 26.406 (**+%54,8**) |
+      | 6.5 (+9 bileşen) | 384.962 (**+%0,16**) | 30.442 (**+%15,3**) |
+
+      ⚠️ **VE 6.5 CSS'İN NEYİ ÖLÇTÜĞÜNÜ AYRIŞTIRDI — ölçüm, çıkarım değil.**
+      `theme.css`in `@source '…/packages/ui/src'` satırı geçici olarak
+      sökülüp yeniden derlendi: CSS **30.442 → 14.952** bayta düştü. Yani
+      üretim CSS'inin **15.490 baytı (%50,9)** tasarım sisteminin sınıflarından
+      geliyor. Aynı turda ölçüldü: `apps/web` bu bileşenlerin **hiçbirini
+      tüketmiyor** (`Button`…`Skeleton` için kaynakta **0 eşleşme**).
+      **→ Yani o 15.490 baytın tamamı, uygulamanın HİÇ RENDER ETMEDİĞİ
+      bileşenler için üretilmiş durumda.** Tailwind sınıfı **kaynakta gördüğü**
+      için yazıyor, **kullanıldığı** için değil; JS tarafı bunun kontrol deneyi
+      (**+%0,16**, çünkü orada ağaç sarsma çalışıyor). **CSS bir bileşen
+      YAZILDIĞINDA büyüyor, KULLANILDIĞINDA değil.**
+      ⚠️ Bir CSS eşiği **uydurulmadı** (SAPMA-026): karar bu alt görevin, ve
+      §11.6'ya satır eklemek **normatif** bir değişikliktir — SAPMA-042 emsali,
+      yani **sorulur** (SAPMA-044'ün envanter/norm ayrımı). Eşik konulacaksa
+      **neyi ölçtüğü** bilinerek konur: 6.6/6.7 de CSS'i **sıfır render ile**
+      büyütmeye devam edecek.
       ⚠️ **`spec/09` §11.5 NÖBETÇİSİ BURADA YAZILIR** *(6.4'te karara bağlandı)*.
       Ölçüldü: `scripts/inventory-guards.test.mjs` bugün **iki yüzey** tarıyor
       (① `*:check` kapıları `ci.yml`de mi ② `CLAUDE.md` envanteri diskle

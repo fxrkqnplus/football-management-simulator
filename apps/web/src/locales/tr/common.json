@@ -48,6 +48,15 @@
       "placeholder": "Seçiniz",
       "searchLabel": "Listede ara",
       "empty": "Eşleşen sonuç yok"
+    },
+    "dialog": {
+      "close": "Pencereyi kapat"
+    },
+    "sheet": {
+      "close": "Paneli kapat"
+    },
+    "toast": {
+      "close": "Bildirimi kapat"
     }
   },
   "diagnostics": {

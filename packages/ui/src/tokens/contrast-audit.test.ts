@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { ATTRIBUTE_BANDS } from './attribute-scale.js';
 import { DARK_COLOR_TOKENS, LIGHT_COLOR_OVERRIDES } from './color.js';
 import { CONTRAST_TARGET_AA, contrastRatio, pickAccessibleForeground } from './contrast.js';
+import { foregroundForTone, SEMANTIC_TONE_TOKENS, SEMANTIC_TONES } from './semantic-tone.js';
 
 /** Rozetin sayısı için iki aday: koyu temanın ana metni ve ters metni. */
 const BADGE_FOREGROUNDS = [
@@ -238,13 +239,41 @@ describe('DENETİM ⑤ — BU DENETİMİN GÖRMEDİKLERİ', () => {
     expect(() => contrastRatio(DARK_COLOR_TOKENS['--accent-muted'], '#000000')).toThrow(TypeError);
   });
 
-  it('anlamsal renkler (danger/warning/success/info) HENÜZ denetlenmiyor', () => {
-    // Gerekçe: §7.1 bunların hangi zemin üzerinde, metin mi dolgu mu olarak
-    // kullanılacağını SÖYLEMİYOR. Denetlenecek çifti spec vermeden seçmek,
-    // kimsenin belirlemediği alana değer uydurmak olurdu (SAPMA-026).
-    // Sahibi: 6.4 (Badge, Toast) — o gün kullanım yeri belli olacak.
-    for (const name of ['--danger', '--warning', '--success', '--info'] as const) {
-      expect(DARK_COLOR_TOKENS[name]).toMatch(/^#[0-9A-F]{6}$/);
+  /**
+   * ⚠️ **BU VAKA 6.5'TE GERÇEK BİR DENETİME ÇEVRİLDİ.**
+   *
+   * 6.2'nin metni şuydu: *"anlamsal renkler HENÜZ denetlenmiyor … §7.1
+   * bunların hangi zemin üzerinde, metin mi dolgu mu olarak kullanılacağını
+   * SÖYLEMİYOR … **Sahibi: 6.4 (Badge, Toast)** — o gün kullanım yeri belli
+   * olacak."*
+   *
+   * ⚠️ **Sahip doğruydu, NUMARA BAYATTI:** Badge ve Toast ROADMAP'te **6.5**'te
+   * (6.4'ün listesi Button · Input · Select · Combobox · Checkbox · RadioGroup ·
+   * Slider · Switch · Tabs). Gerçek sahip bir **numara** değil bir **bileşen**;
+   * kullanım yeri 6.5'te doğdu ve karar `tokens/semantic-tone.ts`te yazıldı:
+   * zemin **dolgu** (gerekçe, depo içi emsal), ön plan **hesaplanmış** (ölçüm).
+   *
+   * Artık denetlenecek bir çift **var**, yani bu test bir yer tutucu olmaktan
+   * çıkıp gerçek bir kapı oldu: her anlamsal ton, üzerine yazılan metinle
+   * **WCAG AA (4,5:1)** eşiğini geçiyor mu?
+   */
+  it('anlamsal renkler DOLGU olarak AA geçiyor — çift 6.5’te karara bağlandı', () => {
+    // ⚠️ Kapsam BASILMIYOR, İDDİA EDİLİYOR: `process.stdout.write` bu pakette
+    // K8 tarafından yasak ve `types: []` yüzünden tipi de yok. "0 ihlal" ile
+    // "hiçbir şeye bakmadı" ayrımı, denetlenen çift SAYISININ iddia edilmesiyle
+    // sağlanıyor — bu dosyanın kendi başlığındaki kuralın aynısı.
+    let audited = 0;
+    for (const tone of SEMANTIC_TONES) {
+      const background = DARK_COLOR_TOKENS[SEMANTIC_TONE_TOKENS[tone]];
+      const { color, ratio } = foregroundForTone(tone);
+      expect(background).toMatch(/^#[0-9A-F]{6}$/);
+      expect(ratio, `${tone} (${color} / ${background})`).toBeGreaterThanOrEqual(
+        CONTRAST_TARGET_AA,
+      );
+      expect(contrastRatio(color, background)).toBeCloseTo(ratio, 10);
+      audited += 1;
     }
+    expect(audited).toBe(SEMANTIC_TONES.length);
+    expect(audited).toBe(4);
   });
 });
