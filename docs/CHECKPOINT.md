@@ -33,11 +33,11 @@ alt_gorev: 6.6-ön
 durum: tamamlandi
 asama: kapandi
 dal: feature/faz-06-design-system
-taban_commit: c1a6b26
-son_commit_baslik: chore(process): süreç göçü — altı ajan, faz-yurut skill'i, CHECKPOINT nöbetçisi (6.6-ön)
+taban_commit: 76ed141
+son_commit_baslik: docs(memory): 6.6-ön CI koşusu #117 ölçüldü — fetch-depth 0 ve §③ iki mimaride yeşil
 kapi_tabani: typecheck 11/11 · lint 0 · format 0 (json·yaml·mjs baktı, *.md bakmadı) · arch temiz (9 kural, çıktı saymıyor — BORÇ-012) · test 1451/107 (+1 skipped: §③ son_commit_baslik, kirli ağaç) · test:db 301/10 · fonksiyon %84,09 (460/547) · build 8/8 SOĞUK · gaps 20·3·17·0✗ · debt 12·5·7·0✗ · i18n 48 dosya·2 kök · görünmez 398 dosya
 biten: altı ajan + faz-yurut skill'i (kurtarma oturumunda YÜKLENDİĞİ ölçüldü) · CLAUDE.md §18 (D1–D7, F1–F5, DZ-01…DZ-22) + §1.1/§16.3 sunucu modu + §2.2 ağacı + belge haritası · CHECKPOINT + nöbetçi §③ (+ §② .claude/) · DANISMAN-PROTOKOLU · ROADMAP §0.5 iş birimi ölçüsü + SAPMA-045 devri (Faz 7·8·9·50) · .gitignore *.yedek · ci.yml quality fetch-depth 0 · Faz 4 kırmızı koşu kapanışı · mutasyon 5/5 · rapor
-yarim_kalan: yok — ci.yml fetch-depth 0 ve §③'ün CI'da yeşil olduğu bu commit'in koşusunda ÖLÇÜLECEK (yerelde doğrulanamaz)
-siradaki_komut: gh run list --limit 3 --json number,headSha,conclusion (bu commit'in koşusu: altı iş + §③ testleri) · sonra kullanıcı onayıyla /faz-yurut 6.6
+yarim_kalan: yok — ci.yml fetch-depth 0 ve §③ CI'da ÖLÇÜLDÜ (koşu #117 34609806699, 6/6, iki Kalite işinde "inventory-guards ③ atlanan: yok")
+siradaki_komut: kullanıcı onayıyla /faz-yurut 6.6 (on alan-özel bileşen; etiketler docs/glossary.md'den)
 acik_karar: yok — 6.6'ya geçiş onayı bekleniyor (K11)
 ```
