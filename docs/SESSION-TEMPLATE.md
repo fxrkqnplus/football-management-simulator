@@ -72,14 +72,22 @@ BAĞLAM (bu sırayla)
 14. Karşılaştığın her hatayı, kök nedenini ve çözümünü NOT AL — faz kaydına gireceksin.
 
 FAZ KAPANIŞI
-15. **SÜRE ÖLÇÜLDÜ MÜ?** Fazın gerçek gün sayısını hesapla (ilk commit → son commit).
-    docs/ROADMAP.md §0.5: "hiçbir faz 3 günü aşmaz; aşacaksa ikiye bölünür ve bu
-    belgeye kaydedilir." 3 günü AŞTIYSA: ya faz bölünür, ya istisna ROADMAP'e
-    GEREKÇESİYLE yazılır. Sessizce geçilmez.
-    ⚠️ Bu adım Faz 4.1'de eklendi (SAPMA-033). §0.5'in ROADMAP:3730'da bir
-       "bölünme riski yüksek fazlar" listesi vardı ama o bir TAHMİN: Faz 3 listede
-       DEĞİLDİ ve 4 gün sürdü — bölünme olmadı, istisna kaydedilmedi, çünkü süreyi
-       ÖLÇEN bir adım yoktu. Tahmin listesi bir kontrol değildir.
+15. **FAZ BOYUTU ÖLÇÜLDÜ MÜ?** Fazın BAĞIMSIZ İŞ BİRİMİ sayısını say ve ROADMAP'e
+    yaz ("N iş birimi — sığıyor / bölünüyor"). docs/ROADMAP.md §0.5: bir faz tek
+    bir workflow koşusuna sığmalı (workflowSizeGuideline: medium = 15 ajandan az).
+    15'i AŞTIYSA: ya faz bölünür, ya istisna ROADMAP'e GEREKÇESİYLE yazılır.
+    Sessizce geçilmez. GÜN SAYILMAZ.
+    ⚠️ 6.6-ön'de değişti (kullanıcı kararı). Bu adım Faz 4.1'de "SÜRE ÖLÇÜLDÜ MÜ?"
+       diye eklenmişti (SAPMA-033) ve gün sayıyordu; 6.5'in kontrol noktası iki
+       süre tanımının (ilk→son commit 1,099 gün · ilk→şimdi 6,060 gün) aynı fazda
+       ayrıştığını ölçtü — fark kapsamla değil beş gün commit atılmamasıyla
+       ilgiliydi. Kural takvimi değil kapsamı ölçer. Adım numarası KORUNDU
+       (aşağıdaki envanter uyarısı); içeriği değişti.
+    ⚠️ Adımın ilk gerekçesi geçerli kalıyor: §0.5'in "bölünme riski yüksek fazlar"
+       listesi bir TAHMİN; kontrol eden adım budur. Tahmin listesi bir kontrol
+       değildir.
+    ⚠️ Faz kapanışında ayrıca `git tag -a faz-XX-son` atılır ve push edilir
+       (.claude/skills/faz-yurut/SKILL.md → FAZ KAPANIŞ ADIMI, 6.6-ön).
 16. Kabul kriterlerini tek tek doğrula, sonuçları göster.
 17. Adım 6'nın kapı zinciri yeniden koşturulur (aynı kaynak: package.json
     "scripts") + faza özel doğrulama komutları.

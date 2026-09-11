@@ -11,5 +11,17 @@
         ]
       }
     ]
-  }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm *)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(node *)",
+      "Workflow"
+    ],
+    "deny": ["Bash(git push --force*)", "Read(./.env)"]
+  },
+  "workflowSizeGuideline": "medium"
 }

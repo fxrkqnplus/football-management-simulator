@@ -32,6 +32,11 @@ out/
 *.dump.gz
 *.sql.gz
 *.bak
+# `*.bak` vardı, `*.yedek` yoktu — ve 6.6-ön'de ölçüldü: public bir repoda bir
+# ayar dosyasının Türkçe adlı yedeği takipsiz (untracked) kaldı. Bir yedek
+# uzantısının İngilizcesini yasaklayıp Türkçesini serbest bırakmak, aynı sınıfı
+# ikiye bölmektir.
+*.yedek
 
 # Test ve kapsam çıktıları
 coverage/

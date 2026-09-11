@@ -176,11 +176,45 @@ Tam ve **otorite** liste: `docs/spec/09-quality-protocol.md` §11.6.*
 | Kayıt yazma (delta) | < 300 ms |
 | Bellek (tarayıcı, 1 sa oyun) | < 500 MB |
 
-## 0.5 Süre Planı
+## 0.5 Faz Boyutu — tek workflow koşusu
+
+> ✅ **KURAL 6.6-ön'DE DEĞİŞTİ (kullanıcı kararı, 2026-09-11): GÜN SAYILMAZ.**
+> Bölümün adı *"Süre Planı"* idi ve kural *"hiçbir faz 3 günü aşmaz"* diyordu.
+> 6.5'in kontrol noktası kuralın kendi içinde çürüdüğünü ölçtü: *"ilk→son
+> commit"* **1,099 gün**, *"ilk→şimdi"* **6,060 gün** — aynı faz, aynı gün, iki
+> tanım; ve fark kapsamla değil **beş gün commit atılmamasıyla** ilgiliydi.
+> Fazın kaç gün sürdüğü **önemli değil**; kural takvimi değil **kapsamı**
+> ölçmeli. Aşağıdaki eski metin ve SAPMA-033'ün hikâyesi **silinmedi** — kuralın
+> neden bir kez işlemediği ve neden değiştiği orada.
+
+**Ölçü:** bir faz **tek bir workflow koşusuna sığıyor mu?** Sınır
+`.claude/settings.json` → `workflowSizeGuideline: medium` = **15 ajandan az**.
+Bir fazın kapsamı **15'ten fazla bağımsız iş birimine** ayrılıyorsa faz
+**bölünür** ve bölünme bu belgeye yazılır. **Gün değil, iş birimi.**
+
+**Bağımsız iş birimi:** tek bir ajanın, diğer birimlerin çıktısını beklemeden
+üretebileceği bir parça — bir bileşen ailesi, bir migration + `down` +
+round-trip'i, bir kapı + kanaryası, bir belge. Alt görev sayısı değildir
+(6.6-ön tek alt görevdir ve ~10 birim taşır); bir alt görev birkaç birim
+olabilir, birkaç alt görev tek birim olabilir.
+
+**Ne zaman ölçülür:** faz açılışında (`planci`, ADIM ②) ve fazın ortasında
+kapsam büyüdüyse. Ölçüm ROADMAP'e yazılır: *"N bağımsız iş birimi — sığıyor /
+bölünüyor"*. **Faz 6 bölünmez** — kapsamı 6.0'dan beri değişmedi; 6a/6b
+çizgisi bir **kayıt ayrımı** olarak duruyor, bir bölünme değil.
+
+**Geçmiş fazların kayıtları geriye dönük değiştirilmez:** Faz 3–5'in *"gün"*
+ölçümleri ve 6.5'in kontrol noktası yazıldıkları günün doğrusu. `SESSION-TEMPLATE`
+adım 15 artık **iş birimi** sayar, gün değil.
+
+<details>
+<summary>Eski kural (6.6-ön'e kadar) — arşiv, otorite değil</summary>
 
 Faz başına **1–3 gün** (S234 → A). Kural: hiçbir faz 3 günü aşmaz; aşacaksa ikiye bölünür ve bu belgeye kaydedilir.
 
 Toplam tahmin: **50 faz × ~2 gün ≈ 100 gün.**
+
+</details>
 
 > ⚠️ **BU KURAL BİR KEZ ATEŞLENDİ VE İŞLEMEDİ — Faz 3, 4 gün** (SAPMA-033, Faz 4.1'de
 > kaydedildi). `PROJECT_MEMORY.md` Faz 3 kaydı *"2026-08-26 → 2026-08-29 · **Süre:
@@ -3774,6 +3808,149 @@ docs/glossary.md
       > seçmek, bir kuralı sessizce esnetmek olurdu. **İki ölçüm de yazıldı;
       > karar sorulacak.** Çizgi hazır: **6a = 6.0–6.5** (bugün itibarıyla
       > **tamamlandı**) · **6b = 6.6–6.12**.
+      >
+      > ✅ **KARAR VERİLDİ (kullanıcı, 2026-09-11, 6.6-ön):** gün sayma
+      > **kaldırıldı** — §0.5'in yeni ölçüsü *"faz tek bir workflow koşusuna
+      > sığıyor mu"* (≤ 15 bağımsız iş birimi). **Faz 6 BÖLÜNMÜYOR:** kapsamı
+      > 6.0'dan beri değişmedi. Yukarıdaki iki ölçüm **silinmedi** — o gün
+      > ölçülen buydu; yalnızca kural değişti.
+- [x] **6.6-ön** **Süreç göçü — ÜRÜN KODU YOK.** Bugüne kadar her turda prompt
+      olarak yeniden gönderilen çalışma kuralları depoya taşınır; bir faz
+      *"tek workflow koşusuna sığma"* ölçüsüyle boyutlandırılır.
+      **Neden (ölçüldü):** faz başına **12,7 alt görev** (71 / 5,6) · yürütülen
+      6 fazın ROADMAP bölümü **3.745 satır**, kalan 44 fazın toplamı **2.298**
+      (bir faz yürütülünce ~19× büyüyor) · `.claude/` altında **tek dosya**
+      (`settings.json`), `agents/` ve `skills/` **yok**.
+      **Kapsam — bunlar ve yalnızca bunlar (K12):**
+      ① `.claude/agents/` — altı ajan: `olcumcu` (ölçer, yazmaz) · `planci`
+      (spec+ROADMAP+kütük okur, kapsam üretir, yazmaz) · `gelistirici` (**tek
+      yazma yetkisi**) · `kapici` (**düşman rolü** — kapı zinciri + her kapının
+      negatif kanıtı + mutasyon) · `denetci` (iddiaları denetler: *"hangi
+      yüzey?"*, *"türev mi ikinci liste mi?"*) · `kayitci` (ROADMAP ·
+      PROJECT_MEMORY · kütükler · rapor · **devir kuralı**). `denetci` ve
+      `kapici` geliştiricinin **çıktısını** görür, **gerekçesini** görmez.
+      ② `.claude/skills/faz-yurut/SKILL.md` — beş aşamalı protokol + rapor
+      formatı + kapı zinciri + ADIM 0 okuma listesi + **faz kapanışında
+      `git tag -a faz-XX-son` + push** (`main` ilk sürüme kadar Faz 0'da;
+      tag'ler tek *"bilinen iyi nokta"* mekanizması).
+      ③ `CLAUDE.md` — hata kataloğu (**D1–D7, F1–F5**) ve **DEĞİŞMEZLER**
+      listesi. ⚠️ **§14 TAŞINMAZ, KISALTILMAZ, BİRLEŞTİRİLMEZ** —
+      `tools/glossary-check/index.test.mjs` §14'ü ayrıştırıp (**77** kayıt)
+      sözlükle karşılaştırıyor; birleştirmek koşan bir nöbetçiyi siler.
+      ④ `docs/CHECKPOINT.md` — sabit şekilli **makine** durumu (faz · aşama ·
+      son commit · kapı tabanı · biten · yarım kalan · sıradaki komut · açık
+      karar). ANLIK DURUM ile **çakışmaz**: o insan için bir **anlatı**.
+      ⑤ **Checkpoint nöbetçisi** — `scripts/inventory-guards.test.mjs`e
+      **üçüncü yüzey**: dosyadaki faz ve commit, git ve ROADMAP ile örtüşmeli.
+      **Nöbetçi ÖNCE, dosya SONRA** (6.5'in dersi) — kanarya gerçek depoda öter.
+      ⑥ `docs/DANISMAN-PROTOKOLU.md` — Cowork danışman rolü: her turda (a) her
+      sayıyı **depodan** ölç (b) raporu değerlendir (c) tek parça prompt üret
+      (d) mimari kararları ver (e) kendi hatalarını sahiplen. **Yasak:** bir
+      sayıyı rapordan, ROADMAP'ten ya da kendi eski ölçümünden kopyalamak.
+      ⑦ `.gitignore` — `*.yedek` (`*.bak` vardı, `*.yedek` yoktu; public
+      repoda bir ayar dosyası yedeği takipsiz kaldı).
+      ⑧ **SUNUCU MODU KARARI** (kullanıcı, 2026-09-11) — `SERVER_MODE=private`;
+      §1.1'in *"herkese açık kayıt"* ifadesi düzeltilir; §16.3'ün *"10+ gerçek
+      kullanıcı 1 hafta"* kriteri **işlevi yerine konarak** değişir (*"en az
+      bir tam sezon uçtan uca oynanmış ve oynanabilir bulunmuş"*). **SAPMA**
+      (`karar`) açılır; **Faz 7–9 ve Faz 50'nin KAPSAMINDA** görünür.
+      ⚠️ Yalnızca ifade — uygulama kararı ve kod **yok**.
+      ⑨ **ROADMAP §0.5 — gün sayma kaldırılır.** Yeni ölçü: faz **tek bir
+      workflow koşusuna sığıyor mu** (`workflowSizeGuideline: medium` = 15
+      ajandan az). 15'ten fazla **bağımsız iş birimi** → faz bölünür. Gün
+      değil, iş birimi. **Faz 6 bölünmez.**
+      ⑩ Kütük — Faz 4'ün kırmızı CI koşusu **kapatılır** (yeniden koşturuldu;
+      ifade: *"altı iş de yeşil; ancak bu, o commit'in ağacının BUGÜNKÜ koşuda
+      geçtiğini gösterir — özgün kırmızının sebebi kayıtlarda kalmadı"*).
+      ⚠️ `.claude/settings.json`ın kirli hâli (`permissions` + `workflowSizeGuideline`,
+      kullanıcı ekledi) **bu commit'e girer** — anomali değil, kapsam.
+      **YAPILMAYACAK:** workflow kurma/koşturma (6.6'nın işi) · ROADMAP SONUÇ
+      bloklarını taşıma · Faz 7–50'yi boyutlandırma · §14'e dokunma ·
+      `SERVER_MODE` için ifade dışı bir şey · `.env`i okuma.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.6-ön (2026-09-11, iki oturum: ilki kullanım limitinde kesildi)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **① ALTI AJAN + SKILL YAZILDI ve YÜKLENDİĞİ ÖLÇÜLDÜ — ama yaratan
+      > oturumda DEĞİL.** İlk oturum üç yol denedi, üçü de kapalıydı:
+      > `Agent(subagent_type:'olcumcu')` → *"not found"* · `Skill('faz-yurut')`
+      > → *"Unknown skill"* · alt süreçte taze `claude -p` → kuruluş politikası
+      > (*"subscription access for Claude Code disabled"*). Sebep ölçüldü:
+      > harness `.claude/agents/` ve `.claude/skills/`i **oturum başında**
+      > okuyor — dosyayı yaratan oturum onu yükleyemez. O gün **"yüklendi"
+      > yazılmadı**; YAML şekli doğrulandı (7/7, `yaml@2.9.0` ile) ve ölçüm
+      > **ilk ölçülebilecek yere** — bir sonraki oturuma — adıyla devredildi
+      > (DZ-10). **Kurtarma oturumu ölçtü:** altı ajan sistem listesinde
+      > (açıklamalar frontmatter'dan **birebir**), `olcumcu` haiku ile çağrıldı
+      > ve **döndü** (gövdesinin ilk başlığı + `Bash, Glob, Grep, Read` =
+      > `tools:` alanı + gövde iddiası; 0 araç, 5,0 s, 26.937 token),
+      > `Skill('faz-yurut')` dosyanın **tamamını** yükledi (taban dizini
+      > `.claude/skills/faz-yurut`).
+      >
+      > **② KIRILMASI BEKLENEN KAPI KIRILMADI ve sebebi bulundu.** `.claude/`
+      > altına yedi dosya eklendi, `inventory-guards` §② **yeşil kaldı**:
+      > nöbetçi yalnızca `apps/` · `packages/` · `tools/` · `scripts/` ·
+      > `docs/` tarıyordu; kök altındaki `.claude/` **hiçbir yüzeyde yoktu**.
+      > Yüzey eklendi (`agents`/`skills` **adıyla** beklenir — boş liste yeşil
+      > demek olmasın), §2.2 ağacı güncellendi; mutasyon M3 (`agents/` satırı
+      > silindi) → **1 test kırıldı**. `docs/CHECKPOINT.md` içinse §② **gerçekten
+      > kırıldı** (*"expected ['CHECKPOINT.md'] to deeply equal []"*) ve belge
+      > haritasıyla kapandı; M4 onu yeniden ısırdı.
+      >
+      > **③ CHECKPOINT NÖBETÇİSİ DOSYADAN ÖNCE YAZILDI ve kanarya gerçek
+      > depoda öttü.** Sıra: nöbetçi → dosya yok (7 kırmızı) → dosya `devam`
+      > (yeşil) → kapanışta `durum: tamamlandi` yazıldı, ROADMAP kutusu hâlâ
+      > `[ ]` → **kırmızı** (*"kutusu durum ile aynı şeyi söylüyor — expected
+      > false to be true"*) → `[x]` → yeşil. Mutasyonlar M1 (`faz: 7` → 2 test)
+      > ve M2 (`taban_commit: deadbee` → 1 test) ısırdı; beşinin beşi md5 ile
+      > yerine oturdu ve yedekten geri alındı. ⚠️ **İlk gerçek sınavı bir
+      > oturum kesintisi oldu:** kurtarma oturumu dosyayı bayat buldu
+      > (`asama: 3-yaz`, `yarim_kalan` eski) ama nöbetçi **yeşildi** — ve
+      > devir notunun *"kırmızı olmalı"* beklentisi **yanlıştı**: nöbetçi
+      > yalnızca kaynağı olan dört alana bakar (faz · alt_gorev/durum ·
+      > taban_commit · dal), `son_commit_baslik`i **temiz ağaçta** karşılaştırır
+      > (dosya kendi commit'ini taşıyamaz, `spec/11` §12.3); anlatı alanlarının
+      > (`asama`, `biten`, `yarim_kalan`) bakılacak kaynağı **yok**. Kapsam
+      > çıktıya basılıyor — devir notu nöbetçiden, nöbetçinin bastığından
+      > fazlasını bekledi (D7: devir notu kaynak değildir).
+      > ⚠️ `ci.yml` `quality` işine **`fetch-depth: 0`** eklendi (§③ `git
+      > merge-base --is-ancestor` çağırıyor; depth 1'de HEAD'in ebeveyni bile
+      > yok). **Yerelde doğrulanamaz — bu commit'in CI koşusunda ölçülecek.**
+      >
+      > **④ `CLAUDE.md` §18 EKLENDİ, §14'E DOKUNULMADI.** D1–D7 + F1–F5 (12 sınıf,
+      > belirti + reçete) ve DZ-01…DZ-22. §14 bloğunun md5'i `c1a6b26` ile
+      > **aynı** (`471911085a…`), `glossary-check` **yeşil** (77 kayıt). §18
+      > numarası MASTER-SPEC'in 1–17'siyle çakışmasın diye; dosyanın **sonuna**
+      > kondu (1 · 2 · 14 · 16 · 18 sırası korunuyor).
+      >
+      > **⑤ SUNUCU MODU — SAPMA-045 (`karar`, kullanıcı, 2026-09-11).** §1.1
+      > *"herkese açık kayıt"* → **davetli kurulum**; §16.3 *"10+ gerçek
+      > kullanıcı"* → *"en az bir tam sezon uçtan uca oynanmış"* (kriter
+      > **yerine kondu**, silinmedi — DZ-15). Devir **Faz 7 · 8 · 9 · 50
+      > kapsamında adıyla** (`grep`: 4077 · 4158 · 4212 · 6203/6213). Faz 13 ve
+      > 47'nin *"açık kayıt"* satırlarına **bilerek** dokunulmadı: yeteneği
+      > tarif ediyorlar, işletme modunu değil. Anayasa `.env.example` ve
+      > `spec/08` §10.1 ile zaten çelişiyordu — sapma spec'ten değil, hedef
+      > cümlesinden.
+      >
+      > **⑥ §0.5 — GÜN SAYMA KALDIRILDI.** Yeni ölçü *"tek workflow koşusuna
+      > sığıyor mu"* (≤ 15 bağımsız iş birimi, `workflowSizeGuideline: medium`);
+      > `SESSION-TEMPLATE` adım 15 içeriği değişti, numarası **korundu**; Faz 6
+      > **bölünmez**, 6.12 ve Faz 47'nin gün ifadeleri hizalandı; eski ölçümler
+      > **silinmedi**. **⑦ Faz 4'ün kırmızı koşusu** `33419337117` kapandı
+      > (attempt 2, 6/6 yeşil, 868/63 · 241/8 — *"o ağaç bugünkü koşuda geçti;
+      > özgün kırmızının sebebi kayıtlarda kalmadı"*). **⑧** `.gitignore`
+      > `*.yedek`; `docs/DANISMAN-PROTOKOLU.md`; `.claude/settings.json`ın
+      > kullanıcı değişikliği (izinler + `workflowSizeGuideline`) bu commit'te.
+      >
+      > **Kapılar (son ağaç, ölçüm çıktısından):** typecheck 11/11 · lint 0 ·
+      > format 0 (json·yaml·mjs baktı, `*.md` bakmadı) · arch temiz · **test
+      > 1451/107 + 1 skipped** (§③ `son_commit_baslik`, kirli ağaç; 6.5'e göre
+      > **+9** = §③'ün sekizi + `.claude/`) · test:db 301/10 · fonksiyon %84,09
+      > (460/547, `scripts/` payda dışı) · build 8/8 **SOĞUK** · gaps 20·3·17·0✗
+      > · debt 12·5·7·0✗ · i18n 48 dosya·2 kök · görünmez tarama **398** (389 +
+      > 9 yeni `.md`). **Yeni kayıt:** SAPMA-045 · günlük #25–#28.
 - [ ] **6.6** **On alan-özel bileşen** — `AttributeBadge`, `StarRating`,
       `FormIndicator`, `MoraleIcon`, `ClubCrest`, `PlayerPortrait`, `KitSwatch`,
       `PositionMap`, `CurrencyValue`, `DateChip`.
@@ -3884,12 +4061,15 @@ docs/glossary.md
       en doğal şey). ⚠️ Erken ödenirse yine **0 vaka** üzerinde ölçülür ve
       hiçbir şey öğrenilmez. **Hâlâ 0 gerçek pozitif çıkarsa çözüm bir kapı
       DEĞİL, yazılı bir bileşen inceleme disiplinidir** (SAPMA-026).
-- [ ] **6.12** **Faz kapanışı** — süre **§0.5'in iki eşiğiyle** ölçülür ·
+- [ ] **6.12** **Faz kapanışı** — faz boyutu **§0.5'in iş birimi ölçüsüyle**
+      kaydedilir (*6.6-ön'e kadar "süre §0.5'in iki eşiğiyle ölçülür" yazıyordu;
+      gün sayma kaldırıldı*) ·
       **aşağıdaki kabul kriteri listesinin tamamı** tek tek (**kısmen sağlanan
       kriter [ ] kalır**) · faz kaydı (11 başlık) · çalışma günlüğü boşaltılır ·
       kütükler · `DEPENDENCY-WATCH` sonuçları · **kök `package.json`daki her
       `*:check` kapısı koşturulur** (`gaps:check` ve `debt:check` dahil) ·
-      `CHANGELOG.md` · PR `develop`a.
+      `CHANGELOG.md` · PR `develop`a · **`git tag -a faz-06-son` + push**
+      (`.claude/skills/faz-yurut/SKILL.md` → FAZ KAPANIŞ ADIMI; 6.6-ön'de eklendi).
       ⚠️ **METİN 6.4-ön'DE SAYISIZLAŞTIRILDI.** Madde *"**yedi** kabul kriteri"*
       diyordu; ölçüldü — bu fazın kriter listesi **altı** satır taşıyor (6.1'in
       daraltması sonrası). Sayı taşıyan bir talimat bayatlar ve olduğu gibi
@@ -3945,7 +4125,7 @@ docs/glossary.md
 > sahtelediği 6.8'de yazılır, yoksa geçen bir test tarayıcıda geçeceğini göstermez (D5).
 
 **Bağımlılık:** Faz 1, 5
-**Risk:** Bu faz 3 günü aşabilir → gerekirse 6a (token + temel bileşen) / 6b (alan bileşenleri + DataTable) olarak bölünür.
+**Risk:** ~~Bu faz 3 günü aşabilir~~ → **6.6-ön'de karara bağlandı: Faz 6 BÖLÜNMEZ.** Kapsam 6.0'dan beri değişmedi; §0.5'in ölçüsü artık gün değil **bağımsız iş birimi** (≤ 15). 6a (token + temel bileşen) / 6b (alan bileşenleri + DataTable) çizgisi bir **kayıt ayrımı** olarak duruyor, bölünme değil.
 
 ---
 ---
@@ -3978,6 +4158,12 @@ docs/glossary.md
 - Hız sınırlama + üstel geri çekilme (exponential backoff) + devre kesici (circuit breaker)
 - **Görsel işleme hattı:** indir → doğrula → yeniden boyutlandır (arma 256/128/64, portre 256/128/64, bayrak 64/32) → WebP + AVIF → `/data/assets/`
 - `tools/data-cli` komutları: `fetch`, `verify`, `stats`, `clear-cache`
+- **🆕 SAPMA-045 — SUNUCU MODU KARARI BU FAZA DEVREDİLDİ** *(6.6-ön, kullanıcı
+  kararı 2026-09-11)*: oyun `SERVER_MODE=private` ile çalışır — yalnızca izin
+  listesindeki hesaplar oynar. Bu fazın gerçek varlık (arma · portre · logo)
+  kararları alınırken bilinir: **maruziyet davetli kurulumla sınırlı**, public
+  dağıtım ayrı ve bilinçli bir karar. ⚠️ Yalnızca ifade — 6.6-ön uygulama kararı
+  vermedi; sağlayıcı zinciri ve `DataProvider` sözleşmesi bu kararla **değişmez**.
 - **`asset_index` tablosu — varlık hattının çıktı kaydı** *(G-09, `docs/SPEC-COVERAGE-GAPS.md`)*
   `docs/spec/12` §17.5 adım 7 *"İndeksle → `asset_index` tablosuna kaydet (id, tip, kaynak,
   hash)"* diyor; tablo `docs/spec/01`'de **yok** ve ROADMAP'in hiçbir fazında geçmiyordu.
@@ -4053,6 +4239,11 @@ docs/glossary.md
 - Transfer pencereleri: ülkeye göre gerçek tarihler
 - **Gerçek varlıklar birincil (`DATA_MODE=full`):** kulüp armaları, lig logoları, kupa görselleri, ülke bayrakları veri paketinden yüklenir — bkz. `docs/spec/12-data-packs.md`
 - **Prosedürel yedek:** arma bulunamazsa 3 renkten SVG arma üret (12 kalkan şekli × 8 desen × 6 sembol)
+- **🆕 SAPMA-045 — SUNUCU MODU KARARI BU FAZA DEVREDİLDİ** *(6.6-ön, kullanıcı
+  kararı 2026-09-11)*: oyun `SERVER_MODE=private` ile çalışır. Gerçek arma, lig
+  logosu ve kupa görsellerinin **maruziyeti davetli kurulumla sınırlı**; KVKK
+  metinleri public'e geçilmedikçe gerekmiyor. ⚠️ Yalnızca ifade — ingest hattı
+  ve `DATA_MODE=full` davranışı bu kararla **değişmez**.
 - ℹ️ **G-18 BLOĞU 4.5'TE BURADAN KALDIRILDI — atama yanlıştı ve dayanağı D7'ydi.**
   4.4 hakemin `person_type`ı boşluğunu bu faza atamış ve gerekçesini *"hakem verisi
   bu fazda geliyor (**3.8'in kendi notu**)"* diye yazmıştı. O not `PROJECT_MEMORY` /
@@ -4102,6 +4293,11 @@ docs/glossary.md
 - **Gerçek portreler birincil:** veri paketinden yüklenir, yüz hizalı kırpılır (göz hizası üstten %38)
 - **`PORTRAIT_STYLE=stylized`:** gerçek ve prosedürel portrelere ortak görsel işlem — 20. sezonda bile tutarlı görünüm (bkz. spec 12, Bölüm 17.6)
 - **Prosedürel portre yedeği:** fotoğraf yoksa uyruk/yaş bazlı vektör avatar üret (6 katman: yüz şekli, ten tonu, saç stili, saç rengi, sakal, göz/kaş)
+- **🆕 SAPMA-045 — SUNUCU MODU KARARI BU FAZA DEVREDİLDİ** *(6.6-ön, kullanıcı
+  kararı 2026-09-11)*: oyun `SERVER_MODE=private` ile çalışır. Gerçek oyuncu
+  portrelerinin **maruziyeti davetli kurulumla sınırlı**; public dağıtım ayrı ve
+  bilinçli bir karar. ⚠️ Yalnızca ifade — portre hattı, `PORTRAIT_STYLE` ve
+  prosedürel yedek bu kararla **değişmez**.
 - Serbest oyuncu havuzu (~300 kişi)
 - ⚠️ **FAZ 4.9'UN 5.000 PROSEDÜREL OYUNCUSUNUN ÖMRÜ — G-20, bu fazda karara bağlanır**
   Faz 4.9 kabul kriteri 1 için `people` + `players` tablolarına **5.000 sahte
@@ -5875,7 +6071,7 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - [ ] Admin eylemleri audit log'da görünüyor
 - [ ] Panel mobilde kullanılabilir
 
-**Not:** Bu faz iki iş yükü barındırıyor. 3 günü aşarsa **47a (liderlik tablosu + menajer profili)** / **47b (yönetim paneli)** olarak bölünür.
+**Not:** Bu faz iki iş yükü barındırıyor. §0.5'in ölçüsünü (**15 bağımsız iş birimi**; 6.6-ön'e kadar *"3 gün"* yazıyordu) aşarsa **47a (liderlik tablosu + menajer profili)** / **47b (yönetim paneli)** olarak bölünür.
 - [ ] Tablo güncelleme < 500 ms
 - [ ] Şema genel moda geçmeye hazır (config testi)
 
@@ -6088,10 +6284,21 @@ Ayrı bir bölüm (`/fms/admin`), yalnızca `admin` rolüne açık. Faz 13'teki 
 - **Lisans dosyası:** `LICENSE` (AGPL-3.0 önerilir) + `NOTICE` (üçüncü taraf veri kaynakları ve lisansları: Wikidata CC0, openfootball, Commons atıfları)
 - **Varsayılan mod:** Sunucu **Özel modda** açılır ve kişisel kullanımda öyle kalır.
   Public'e geçmek bilinçli bir karardır ve KVKK metinlerini otomatik aktive eder.
+  **🆕 SAPMA-045 — SUNUCU MODU KARARI BU FAZA DEVREDİLDİ** *(6.6-ön, kullanıcı
+  kararı 2026-09-11)*: yayın **`SERVER_MODE=private`** ile yapılır; yalnızca izin
+  listesindeki hesaplar oynar. İki sonucu bu fazın işi: (a) KVKK metinleri
+  (`docs/LEGAL/`) **yazılır ama public'e geçilmedikçe gerekmiyor** — yayın kriteri
+  değil (b) gerçek arma/portre maruziyeti davetli kurulumda **çok daha dar**.
+  `CLAUDE.md` §1.1 ve §16.3 bu kararla düzeltildi.
 - **Veri paketi kurulumu:** `/data/packs/` altına paket yerleştirilir, `ACTIVE_PACK` ayarlanır,
   Veri Editörü'nden içe aktarılır ve doğrulanır
-- **Kabul testi:** 10+ gerçek kullanıcı 1 hafta oynar, geri bildirim toplanır
-- **v1.0.0 etiketi**
+- **Kabul testi:** **en az bir tam sezon uçtan uca oynanmış ve oynanabilir
+  bulunmuş** — kayıt → menajer → kulüp → transfer → maçlar → sezon geçişi, gerçek
+  bir oyuncu tarafından; geri bildirim toplanır. *(SAPMA-045: bu satır "10+ gerçek
+  kullanıcı 1 hafta oynar" idi; davetli kurulumda 10+ dış kullanıcı hedefi
+  anlamsızlaştı, kriter işlevi yerine konarak değişti — `CLAUDE.md` §16.3 ile aynı.)*
+- **v1.0.0 etiketi** — ve `git tag -a faz-50-son` (her faz kapanışının tag'i,
+  `.claude/skills/faz-yurut/SKILL.md`)
 
 **Kabul kriterleri:**
 - [ ] 20 sezon regresyon simülasyonu hatasız
@@ -6192,7 +6399,8 @@ BLOK I (46-50): Sezon & Yayın
 
 **Kritik yol:** 1 → 7 → 12 → 16 → 22 → 30 → 36 → 42 → 46 → 50
 
-**Bölünme riski yüksek fazlar** (3 günü aşabilir, ikiye ayrılabilir): **6, 10, 13, 16, 23, 27, 28, 33, 40, 41, 44, 47**
+**Bölünme riski yüksek fazlar** (§0.5'in ölçüsünü — **15 bağımsız iş birimi**, 6.6-ön'e kadar *"3 gün"* — aşabilir, ikiye ayrılabilir): **6, 10, 13, 16, 23, 27, 28, 33, 40, 41, 44, 47**
+ℹ️ **Faz 6 için karar verildi (6.6-ön): bölünmez.**
 
 > ⚠️ **BU LİSTE BİR TAHMİNDİR, BİR KONTROL DEĞİL** (SAPMA-033, Faz 4.1). Ölçüldü:
 > **Faz 3 bu listede yoktu ve 4 gün sürdü** — §0.5'in sınırı 3. Liste bir fazı

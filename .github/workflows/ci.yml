@@ -37,8 +37,17 @@ jobs:
             runner: ubuntu-24.04-arm
 
     steps:
+      # ⚠️ TAM GEÇMİŞ — Faz 6.6-ön. `scripts/inventory-guards.test.mjs` §③
+      # `docs/CHECKPOINT.md`in `taban_commit`inin HEAD'in atası olduğunu
+      # `git merge-base --is-ancestor` ile iddia ediyor. actions/checkout'un
+      # varsayılanı depth 1: HEAD'in EBEVEYNİ bile yok, `git cat-file -e`
+      # bulamaz ve nöbetçi CI'da her koşuda kırılırdı. Sığ klonda atlamak
+      # (D3 — kapı yeşil ama bakmıyor) yerine geçmiş alınıyor; depo küçük.
+      # Yalnızca bu iş: `integration` ve `image` o testi koşturmuyor.
       - name: Depoyu al
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Node kur (.nvmrc tek kaynak)
         uses: actions/setup-node@v7
