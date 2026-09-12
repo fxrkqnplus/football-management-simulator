@@ -123,11 +123,18 @@ export default tseslint.config(
   //
   // ⚠️ Kuralın adı ROADMAP'te `no-hardcoded-turkish` diye ayrılmıştı; 5.5'te
   // ölçüm gerekçesiyle değişti (kural dile bakamaz) → SAPMA-039.
+  //
+  // `no-untyped-arbitrary-value` Faz 6.6c'de eklendi (SORUN-002). Seviye
+  // `error`, aynı gerekçeyle: kural gerçek depoda 34 ihlali (12 dosya) önce
+  // ÖTTÜ, sonra ihlaller etiketlendi — `warn` ile hiçbir şeyi zorlamazdı.
+  // Token türlerini `packages/ui/src/theme/tokens.generated.css`ten türetir;
+  // dosya yoksa kural yüklenirken FIRLATIR (kapalı-güvenli, DZ-10).
   {
     plugins: { local: localRules },
     rules: {
       'local/no-bare-jsx-text': 'error',
       'local/no-hardcoded-path': 'error',
+      'local/no-untyped-arbitrary-value': 'error',
     },
   },
 
@@ -188,10 +195,18 @@ export default tseslint.config(
   // DİKKAT: yalnızca `*.test.*` muaf. Uçtan uca testler (`*.spec.tsx`,
   // Faz 17+) gerçek arayüzü sürer ve muaf DEĞİLDİR — bu, kuralın kendi
   // testindeki kanaryayla ayrıca iddia ediliyor.
+  //
+  // `no-untyped-arbitrary-value` (6.6c) aynı blokta ve aynı gerekçeyle muaf:
+  // bir bileşen testi `'text-[var(--text-sm)]'` dizgisini ya beklenen değer ya
+  // mutasyon fixture'ı olarak taşır — VERİ, sınıf değil; kuralın kendi
+  // `RuleTester` dosyası da (`*.test.mjs`) ihlal fixture'larıyla dolu.
+  // `*.stories.tsx` / `*.spec.tsx` muaf DEĞİL (gerçek sınıf render eder) —
+  // kuralın kanaryası bunu adıyla iddia ediyor.
   {
     files: ['**/*.test.ts', '**/*.test.tsx', '**/*.test.mts', '**/*.test.cts', '**/*.test.mjs'],
     rules: {
       'local/no-bare-jsx-text': 'off',
+      'local/no-untyped-arbitrary-value': 'off',
     },
   },
 

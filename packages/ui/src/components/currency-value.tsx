@@ -32,14 +32,14 @@
  * ⚠️ SINIF ADI `font-[family-name:var(--font-mono)]` — ETİKETLİ, ve bu ÖLÇÜLDÜ
  * ────────────────────────────────────────────────────────────────────────────
  *
- * Deponun 6.4/6.5 idiyomu etiketsiz `font-[var(--font-ui)]`. Bu alt görevde
+ * Deponun 6.4/6.5 idiyomu etiketsiz `font-[…var(--font-ui)]`. Bu alt görevde
  * iki araç ölçüldü ve ikisi de aynı şeyi söyledi:
  *   · **Tailwind 4.3.3** (`@tailwindcss/node` `compile`, `apps/web`in Vite
- *     eklentisinin altındaki motor): `font-[var(--font-mono)]` →
+ *     eklentisinin altındaki motor): `font-[…var(--font-mono)]` →
  *     `font-weight: var(--font-mono)` (yanlış özellik, geçersiz değer);
  *     `font-[family-name:var(--font-mono)]` → `font-family: var(--font-mono)`.
  *   · **tailwind-merge 3.6.0**: etiketsiz biçim `font-medium` ile aynı gruba
- *     düşüyor ve **sonuncusu kazanıyor** (`font-[var(--font-mono)] font-medium`
+ *     düşüyor ve **sonuncusu kazanıyor** (`font-[…var(--font-mono)] font-medium`
  *     → `font-medium`); etiketli biçim ayrı grupta kalıyor.
  * Yani etiketsiz sınıf **çift yönlü ölü**: derlenmiş CSS'te yanlış özellik,
  * `cn()`de çağıranın ağırlığı tarafından silinme. Tailwind'in kendi belgesi

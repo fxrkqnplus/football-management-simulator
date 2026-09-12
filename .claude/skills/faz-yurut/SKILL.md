@@ -107,6 +107,12 @@ kapsamına adıyla**, `gaps:check`/`debt:check` yeşil) → günlük → ANLIK D
 dosyası → commit mesajı dosyası → `git commit -F` → push → rapor terminale.
 Commit **alt görev başına**, PR **faz başına** (§1.4).
 
+**CI sayıları kendi commit'ini yalnızca CI koşusu alt görevin TESLİMATIYSA alır**
+(6.6-ön'ün #117 ölçümü gibi); aksi hâlde push sonrası okunan koşu **bir sonraki
+alt görevin kaydına** girer (*"Bilinen kayıt düzeltmeleri"* / ANLIK DURUM). Aksi
+hâlde her CI okuması yeni bir commit, her commit yeni bir CI okuması ister —
+sonsuz geriye gidiş (danışman kararı, 6.6c; ilk uygulaması 6.6b'nin #121'i).
+
 ## FAZ KAPANIŞ ADIMI — tag
 
 Faz kaydı (11 başlık) + ANLIK DURUM son commit'te + `CHANGELOG.md` + PR

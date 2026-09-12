@@ -44,8 +44,8 @@ export function AvatarFallback({ className, ...rest }: AvatarFallbackProps): Rea
   return (
     <RadixAvatar.Fallback
       className={cn(
-        'flex h-full w-full items-center justify-center font-[var(--font-ui)] ' +
-          'text-[var(--text-sm)] font-medium text-[var(--text-secondary)]',
+        'flex h-full w-full items-center justify-center font-[family-name:var(--font-ui)] ' +
+          'text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)]',
         className,
       )}
       {...rest}

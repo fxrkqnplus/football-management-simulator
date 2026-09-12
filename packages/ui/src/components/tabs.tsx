@@ -19,7 +19,7 @@ import { cn } from '../lib/cn.js';
 const TRIGGER_BASE =
   'inline-flex items-center justify-center whitespace-nowrap rounded-none ' +
   'border-b-2 border-transparent px-[var(--space-3)] py-[var(--space-2)] ' +
-  'font-[var(--font-ui)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] ' +
+  'font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] ' +
   'transition-colors duration-[var(--duration-fast)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ' +
   'focus-visible:ring-inset ' +

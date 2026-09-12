@@ -5,8 +5,11 @@
  * `{ rules: { ... } }` biçiminde düz bir nesne verilebilir. Bu dosya o nesnedir.
  *
  * Kurallar geldikleri fazda eklenir:
- *   - `no-hardcoded-path`  → Faz 1.4 ✓ (K6)
- *   - `no-bare-jsx-text`   → Faz 5.5 ✓ (K5: arayüz metni t() üzerinden gelir)
+ *   - `no-hardcoded-path`            → Faz 1.4 ✓ (K6)
+ *   - `no-bare-jsx-text`             → Faz 5.5 ✓ (K5: arayüz metni t() üzerinden gelir)
+ *   - `no-untyped-arbitrary-value`   → Faz 6.6c ✓ (SORUN-002: Tailwind 4'te
+ *     `text-`/`font-` + etiketsiz `var()` yanlış CSS özelliğine derleniyor;
+ *     token türü `tokens.generated.css`ten türetilir, ikinci liste yok)
  *
  * ⚠️ İKİNCİ KURAL BU SATIRDA `no-hardcoded-turkish` DİYE AYRILMIŞTI ve adı
  * 5.5'te **ölçüm gerekçesiyle** değişti: 5.4 ölçtü ki yakalanacak ihlallerin
@@ -17,6 +20,7 @@
  */
 import noBareJsxText from './no-bare-jsx-text.js';
 import noHardcodedPath from './no-hardcoded-path.js';
+import noUntypedArbitraryValue from './no-untyped-arbitrary-value.js';
 
 export default {
   meta: {
@@ -26,5 +30,6 @@ export default {
   rules: {
     'no-bare-jsx-text': noBareJsxText,
     'no-hardcoded-path': noHardcodedPath,
+    'no-untyped-arbitrary-value': noUntypedArbitraryValue,
   },
 };

@@ -218,7 +218,7 @@ export function Combobox({
           className={cn(
             'flex h-9 w-full items-center justify-between gap-[var(--space-2)] ' +
               'rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] ' +
-              'px-[var(--space-3)] font-[var(--font-ui)] text-[var(--text-sm)] ' +
+              'px-[var(--space-3)] font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] ' +
               'transition-colors duration-[var(--duration-fast)] ' +
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ' +
               'focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] ' +
@@ -258,7 +258,7 @@ export function Combobox({
                 role="option"
                 aria-selected={false}
                 aria-disabled
-                className="px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--text-muted)]"
+                className="px-[var(--space-3)] py-[var(--space-2)] text-[length:var(--text-sm)] text-[var(--text-muted)]"
               >
                 {emptyLabel ?? t(COMBOBOX_KEYS.empty)}
               </li>
@@ -275,7 +275,7 @@ export function Combobox({
                   }}
                   className={cn(
                     'cursor-default rounded-[var(--radius-sm)] px-[var(--space-3)] py-[var(--space-1)] ' +
-                      'font-[var(--font-ui)] text-[var(--text-sm)] text-[var(--text-primary)]',
+                      'font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] text-[var(--text-primary)]',
                     index === activeIndex && 'bg-[var(--bg-hover)]',
                     option.disabled === true && 'pointer-events-none opacity-50',
                   )}

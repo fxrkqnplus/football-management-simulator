@@ -135,17 +135,18 @@ export const FORM_RESULT_CLASSES: Record<FormResult, string> = {
 };
 
 export const FORM_INDICATOR_SIZE_CLASSES: Record<FormIndicatorSize, string> = {
-  sm: 'h-4 w-4 text-[var(--text-2xs)]',
-  md: 'h-5 w-5 text-[var(--text-xs)]',
+  sm: 'h-4 w-4 text-[length:var(--text-2xs)]',
+  md: 'h-5 w-5 text-[length:var(--text-xs)]',
 };
 
 const LIST_BASE = 'm-0 inline-flex list-none items-center gap-[var(--space-1)] p-0';
 
 const ITEM_BASE =
   'inline-flex items-center justify-center rounded-[var(--radius-sm)] border ' +
-  'font-[var(--font-ui)] leading-none font-semibold select-none';
+  'font-[family-name:var(--font-ui)] leading-none font-semibold select-none';
 
-const EMPTY_BASE = 'font-[var(--font-ui)] text-[var(--text-xs)] text-[var(--text-muted)]';
+const EMPTY_BASE =
+  'font-[family-name:var(--font-ui)] text-[length:var(--text-xs)] text-[var(--text-muted)]';
 
 /** Çalışma zamanı kümesi denetimi — API'den gelen dize tip taşımaz. */
 export const isFormResult = (value: string): value is FormResult =>

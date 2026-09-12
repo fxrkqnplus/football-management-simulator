@@ -43,9 +43,9 @@
  *
  * ⚠️ **BOYUT VE AİLE SINIFLARI ETİKETLİ** (`text-[length:…]`,
  * `font-[family-name:…]`) — ölçüm CurrencyValue'nun başlığında: etiketsiz
- * `text-[var(--text-2xs)]` Tailwind 4.3.3'te `color:` olarak derleniyor ve
+ * `text-[…var(--text-2xs)]` Tailwind 4.3.3'te `color:` olarak derleniyor ve
  * tailwind-merge'de nötr yüzeyin `text-[var(--text-secondary)]`i tarafından
- * **siliniyor** (`text-[var(--text-2xs)] text-[var(--text-secondary)]` →
+ * **siliniyor** (`text-[…var(--text-2xs)] text-[var(--text-secondary)]` →
  * yalnızca ikincisi). Yani Badge idiyomu bu dosyaya olduğu gibi taşınsaydı çip
  * boyutunu daha yazılırken kaybederdi. Etiketli biçimde iki sınıf ayrı grupta
  * kalıyor ve test bunu **birleşik `className` üzerinde** iddia ediyor.

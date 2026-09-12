@@ -103,7 +103,7 @@ export function DialogTitle({
   return (
     <RadixDialog.Title
       className={cn(
-        'font-[var(--font-ui)] text-[var(--text-lg)] font-semibold text-[var(--text-primary)]',
+        'font-[family-name:var(--font-ui)] text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)]',
         className,
       )}
       {...rest}
@@ -118,7 +118,7 @@ export function DialogDescription({
   return (
     <RadixDialog.Description
       className={cn(
-        'mt-[var(--space-2)] font-[var(--font-ui)] text-[var(--text-sm)] text-[var(--text-secondary)]',
+        'mt-[var(--space-2)] font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] text-[var(--text-secondary)]',
         className,
       )}
       {...rest}

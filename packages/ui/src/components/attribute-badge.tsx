@@ -83,9 +83,9 @@
  * SINIF ADLARI ETİKETLİ — `family-name:` ve `length:` — ÖLÇÜLDÜ
  * ────────────────────────────────────────────────────────────────────────────
  *
- * `currency-value.tsx`in ölçümü: `font-[var(--font-mono)]` Tailwind 4.3.3'te
+ * `currency-value.tsx`in ölçümü: `font-[…var(--font-mono)]` Tailwind 4.3.3'te
  * `font-weight` üretiyor. Bu dosyada aynı motorla bir adım daha ölçüldü:
- * `text-[var(--text-sm)]` → **`color: var(--text-sm)`** (yanlış özellik);
+ * `text-[…var(--text-sm)]` → **`color: var(--text-sm)`** (yanlış özellik);
  * `text-[length:var(--text-sm)]` → `font-size`. Yani deponun yazı boyutu
  * idiyomu da etiketsiz hâliyle ölü; burada boyut `length:`, yazı tipi
  * `family-name:` etiketiyle yazılı ve test etiketleri iddia ediyor. Mevcut

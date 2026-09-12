@@ -33,7 +33,7 @@ import {
  */
 const BUTTON_BASE =
   'inline-flex items-center justify-center gap-[var(--space-2)] rounded-[var(--radius-md)] ' +
-  'font-[var(--font-ui)] font-medium whitespace-nowrap select-none ' +
+  'font-[family-name:var(--font-ui)] font-medium whitespace-nowrap select-none ' +
   'transition-colors duration-[var(--duration-fast)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 ' +
   'focus-visible:ring-offset-[var(--bg-base)] ' +

@@ -66,14 +66,14 @@
  *
  * `currency-value.tsx`in ölçümü bu dosyanın sınıfları için **yeniden**
  * koşturuldu (`@tailwindcss/node` 4.3.3 `compile`, `apps/web` tabanı):
- *   · `font-[var(--font-ui)]` → `font-weight: var(--font-ui)` (yanlış özellik)
+ *   · `font-[…var(--font-ui)]` → `font-weight: var(--font-ui)` (yanlış özellik)
  *   · `font-[family-name:var(--font-ui)]` → `font-family: var(--font-ui)`
  *   · `fill-[var(--bg-active)]` → `fill:` · `stroke-[var(--border-strong)]` →
  *     `stroke:` · `rounded-[var(--radius-sm)]` → `border-radius:` — bu üçü
  *     tek tipli yardımcılar, etiket gerekmiyor.
  * İlk taslak etiketsiz biçimi taşıyordu (6.4/6.5 idiyomu); düzeltildi ve test
  * `family-name:` etiketini iddia ediyor. `avatar.tsx`in kendi `font-[var(…)]`
- * ve `text-[var(--text-sm)]` (→ `color:`) sınıfları bu yazarın dosyası değil —
+ * ve `text-[…var(--text-sm)]` (→ `color:`) sınıfları bu yazarın dosyası değil —
  * ÇIKTI'da İSTEK.
  *
  * ────────────────────────────────────────────────────────────────────────────

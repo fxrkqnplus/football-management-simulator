@@ -16,7 +16,7 @@ import { cn } from '../lib/cn.js';
 
 const INPUT_BASE =
   'flex h-9 w-full rounded-[var(--radius-md)] border bg-[var(--bg-input)] ' +
-  'px-[var(--space-3)] py-[var(--space-1)] font-[var(--font-ui)] text-[var(--text-sm)] ' +
+  'px-[var(--space-3)] py-[var(--space-1)] font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] ' +
   'text-[var(--text-primary)] placeholder:text-[var(--text-muted)] ' +
   'transition-colors duration-[var(--duration-fast)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ' +

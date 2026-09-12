@@ -57,7 +57,7 @@ export const SELECT_KEYS = {
 const TRIGGER_BASE =
   'flex h-9 w-full items-center justify-between gap-[var(--space-2)] ' +
   'rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-input)] ' +
-  'px-[var(--space-3)] font-[var(--font-ui)] text-[var(--text-sm)] text-[var(--text-primary)] ' +
+  'px-[var(--space-3)] font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] text-[var(--text-primary)] ' +
   'transition-colors duration-[var(--duration-fast)] ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ' +
   'focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] ' +
@@ -72,7 +72,7 @@ const CONTENT_BASE =
 const ITEM_BASE =
   'relative flex w-full cursor-default items-center rounded-[var(--radius-sm)] ' +
   'py-[var(--space-1)] pr-[var(--space-2)] pl-[var(--space-6)] ' +
-  'font-[var(--font-ui)] text-[var(--text-sm)] outline-none select-none ' +
+  'font-[family-name:var(--font-ui)] text-[length:var(--text-sm)] outline-none select-none ' +
   'data-[highlighted]:bg-[var(--bg-hover)] data-[highlighted]:text-[var(--text-primary)] ' +
   'data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
 

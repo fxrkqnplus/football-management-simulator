@@ -96,7 +96,7 @@ export const BUTTON_VARIANT_CLASSES: Record<ButtonVariant, string> = {
 
 /** Boyut → Tailwind sınıfları. `lg` §7.5'in 44px dokunma hedefini karşılıyor. */
 export const BUTTON_SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-[var(--space-3)] text-[var(--text-xs)]',
-  md: 'h-9 px-[var(--space-4)] text-[var(--text-sm)]',
-  lg: 'h-11 px-[var(--space-5)] text-[var(--text-base)]',
+  sm: 'h-8 px-[var(--space-3)] text-[length:var(--text-xs)]',
+  md: 'h-9 px-[var(--space-4)] text-[length:var(--text-sm)]',
+  lg: 'h-11 px-[var(--space-5)] text-[length:var(--text-base)]',
 };

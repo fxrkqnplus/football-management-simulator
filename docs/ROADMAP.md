@@ -4206,43 +4206,194 @@ docs/glossary.md
       > **İmaj** yeşil. `test:coverage`ın asıl ölçümü **bu commit'in CI koşusu**
       > — push sonrası okunur, sonucu bir sonraki kaydın *"Bilinen kayıt
       > düzeltmeleri"*ne ya da ANLIK DURUM'a girer.
-- [ ] **6.6c** **SORUN-002 + DZ-21 + §0.5 + §16.2 + 6.8 notu — ürün özelliği
-      yok, workflow yok, ajan yok.** *(6.6b'den bölündü, kullanıcı kararı
-      2026-09-12: denetim okuma-ağır, düzeltme yazma-ağır; ikisi tek alt
-      görevde bağlamı doldurdu. Girdi: 6.6b SONUÇ ⑥/⑦.)*
+- [x] **6.6c** **SORUN-002 + DZ-21 + SKILL satırı + §0.5 + §16.2 + 6.8 notu +
+      iki kütük satırı — ürün özelliği yok, workflow yok, ajan yok.** *(6.6b'den
+      bölündü, kullanıcı kararı 2026-09-12; kapsam 2026-09-13'te sekiz madde
+      olarak onaylandı. Girdi: 6.6b SONUÇ ⑥/⑦.)* Beş aşama ana oturumda
+      (ajan yok); devir notunun her sayısı **yeniden sayıldı** (DZ-01).
+      **UYGULAMA PLANI** *(② — ilk koddan önce yazıldı)*
+      · **Ölçüldü (①):** 34 geçiş / 12 dosya (kod satırları, yorum hariç) ·
+      kısa sözdizimi `text-(--x)` depoda 0 · eski literali iddia eden test 0 ·
+      twMerge 3.6.0: eski `text-[var(--text-sm)]`+renk → **boyut düşüyor**,
+      `font-[var(--font-ui)] font-medium` → **aile düşüyor**; etiketli biçim
+      ikisini de tutuyor (üçüncü belirti: `cn()` geçen her yerde) · Tailwind
+      4.3.3 kaynağı (F4): `Q()` `var(` ile başlayan değere **null** döner →
+      `font-` → `font-weight`, `text-` → renk; ipuçları font `number` ·
+      `generic-name` · `family-name`, text `color` · `length` · `percentage` ·
+      `absolute-size` · `relative-size`.
+      · **Nöbetçi = ESLint yerel kuralı `local/no-untyped-arbitrary-value`**
+      (kullanıcı kararı): K5/K6 emsali (RuleTester + kablolama kanaryası),
+      dosya:satır, `lint` zaten CI kapısı; ham metin taraması yorumu koddan
+      ayıramazdı (`currency-value.tsx`in üç geçişi yorumda — 6.6b ölçtü).
+      · **İkinci liste KARARI — kaynaktan türetme:** renk/boyut/aile ayrımı
+      kurala elle yazılmaz; kural `packages/ui/src/theme/tokens.generated.css`i
+      yükleyip her `--token: değer;` satırını **değerin şekliyle** sınıflar
+      (`#hex`/`rgb(`/`oklch(` → renk · `px|rem|em` → uzunluk · `'…', …` → aile ·
+      çıplak sayı → ağırlık). O dosyanın tazeliğini `css-projection.test.ts`
+      zaten iddia ediyor (bayat dosya `pnpm test`i kırar) — yani türetme
+      zinciri: token TS kaynağı → üretilmiş CSS → kural. **Ayrışma nöbetçisi
+      ayrıca var:** kuralın testi üretilmiş CSS'teki her `--text-*`/`--font-*`
+      token'ının bilinen bir sınıfa düştüğünü iddia eder (yeni bir token şekli
+      *"bilinmiyor"* kalamaz) ve dosya yoksa yükleyicinin **fırlattığını**
+      (sessizce hepsini geçirmek yok — kapalı-güvenli).
+      · **Kural sözleşmesi:** `text-[var(--V)]` / `text-(--V)` yalnızca V renk
+      token'ıysa serbest; uzunluksa `length:` ister; bilinmeyen token → hata
+      (kapalı-güvenli). `font-[var(--V)]` yalnızca V çıplak sayıysa (ağırlık)
+      serbest; aileyse `family-name:` ister. Yanlış ipucu (`text-[color:…]`
+      uzunluk token'ına, `font-[family-name:…]` sayıya) → hata. Kapsam yalnızca
+      ölçülmüş iki belirsiz önek; diğer önekler (`bg-` `border-` `ring-` …)
+      derlenmiş CSS'te doğru çözülüyor — genişletme fikri `V2-BACKLOG`a.
+      · **Muafiyet:** `*.test.*` (sınıf dizesi VERİ — K6 emsalinin gerekçesi);
+      kanaryası yazılır. `*.spec.*`/`*.stories.*` muaf **değil**.
+      · **Sıra (DZ-12):** (a) yeniden say → (b) kural + test + kablolama →
+      `pnpm lint` **gerçek depoda 34 hata / 12 dosya** vermeli (kanarya) →
+      (c) etiketle → `lint` 0 → (d) `pnpm build --force` (soğuk) → derlenmiş
+      CSS'te `font-family:var(--font-*)` / `font-size:var(--text-*)` **var**,
+      `font-weight:var(--font-*)` / `color:var(--text-<boyut>)` **0** →
+      (e) twMerge yeniden → (f) mutasyon ≥ 3 (biri kural, biri ayrışma
+      nöbetçisi, biri kablolama).
+      · **Kırılması beklenen:** `lint` (34 → 0) · hiçbir bileşen testi (eski
+      literal iddia eden test yok — ölçüldü) · `css-projection` **kırılmaz**
+      (token dosyasına dokunulmuyor) · `inventory-guards` ① **kırılmaz** (yeni
+      `*:check` betiği yok — kural `lint` içinde).
       **Kapsam (K12, bunlar ve yalnızca bunlar):**
-      ① **SORUN-002** — ölçek 6.6b'de ölçüldü, **yeniden sayılır, kopyalanmaz**
-      (DZ-01): kod satırlarında 12 dosya · `font-[var(--font-*)]` →
-      `font-weight:` · `text-[var(--text-<boyut>)]` → `color:`;
-      `form-indicator.tsx` dâhil (6.6'nın dosyası). **NÖBETÇİ ÖNCE** (etiketsiz
-      keyfi `var()` değeri bu iki önekle yeniden girerse kapı kırılsın; kanarya
-      gerçek depoda öter — DZ-12; **biçimi** — lint kuralı mı, derlenmiş CSS
-      iddiası mı — 6.6c'nin ölçümüyle seçilir, adı burada iddia edilmez) ·
-      etiketle (`font-[family-name:…]`, `text-[length:…]`; 6.6'nın dokuz
-      etiketli dosyası emsal) · derlenmiş CSS'te DOĞRULA (`font-family:` /
-      `font-size:` gerçekten üretiliyor; yanlış `font-weight:var(--font-*)` /
-      `color:var(--text-<boyut>)` çiftleri **0**) · tailwind-merge tarafı
-      (etiketsiz `font-[var(…)]` `font-medium` ile aynı gruba düşüyordu)
-      yeniden ölçülür · kapanışta SORUN-002 kütük satırı *"çözüldü"*.
+      ① **SORUN-002** — yukarıdaki sıra; kapanışta kütük satırı *"çözüldü"*,
+      tailwind-merge belirtisi dâhil.
       ② **DZ-21 metni** (CLAUDE.md §18.2) → *"Denetim `## ÇIKTI` üzerinden
       yapılır; orkestratör denetçiye yalnızca o alanı iletir."* Sebep ölçüldü
       (6.6, günlük #33 / SONUÇ ⑧): eski ifade + şemada gerekçe alanı
-      `reasoning_extraction` korumasını tetikledi, üç koşu reddedildi, iki
-      bisect ~157 k, teşhis toplamı 214.977 token. `.claude/agents/denetci.md`
-      ve `kapici.md` aynı ifade için **kontrol edilir**.
-      ③ **§0.5 ölçümü:** 6.7 ve 6.8'in kapsamı kaç **bağımsız iş birimi**; 15'i
+      `reasoning_extraction` korumasını tetikledi, üç koşu reddedildi.
+      `.claude/agents/denetci.md` ve `kapici.md` aynı ifade için **kontrol
+      edilir** ve hizalanır (`gelistirici.md` 6.6'da düzeltildi).
+      ③ **`faz-yurut` SKILL.md'ye bir satır** (danışman kararı): *"CI sayıları
+      kendi commit'ini yalnızca CI koşusu alt görevin TESLİMATIYSA alır; aksi
+      hâlde bir sonraki alt görevin kaydına girer — yoksa sonsuz geriye gidiş."*
+      ④ **§0.5 ölçümü:** 6.7 ve 6.8'in kapsamı kaç **bağımsız iş birimi**; 15'i
       aşan varsa ROADMAP'te **bölünme önerisi** (bölme, öner — karar kullanıcının).
-      ④ **CLAUDE.md §16.2'ye bir satır:** moral eşikleri (0–19 · 20–39 · 40–60 ·
+      ⑤ **CLAUDE.md §16.2'ye bir satır:** moral eşikleri (0–19 · 20–39 · 40–60 ·
       61–80 · 81–100) bir **kalibrasyon**; gerçek veriyle ilk karşılaşması Faz 38
       ve Faz 44.
-      ⑤ **6.8 kapsamına:** nitelik bandı 1'in AA payı **0,055** (düz zeminde
-      4,555); 6.8 `--text-muted` ve kenarlık token'larına dokunacak — o
-      değişiklik bandı sessizce AA'nın altına itebilir; `contrast-audit`in bunu
-      tuttuğu 6.8 açılışında **ölçülür**.
+      ⑥ **6.8 kapsamına:** nitelik bandı 1'in AA payı **0,055** (düz 4,555 —
+      dist'ten yeniden hesaplandı). ⚠️ Ölçüldü: hesabın girdileri
+      `ATTRIBUTE_BADGE_FOREGROUNDS` sabitleri + bant renkleri + siyah mürekkep
+      alfa 0,10 — `--text-muted`/kenarlık token'ları **girmiyor**; payı yiyecek
+      şey 6.8'in CVD kanalını güçlendirmesi (alfa 0,15'te bant 2 = 4,447, 6.6
+      ölçümü). Not 6.8'e **bu hâliyle** yazılır; `contrast-audit` ⑦'nin tuttuğu
+      6.8 açılışında ölçülür.
+      ⑦ **"Bilinen kayıt düzeltmeleri"ne:** CI #121 (`ea970b5`) 6/6 yeşil,
+      1702/1702, atlanan 0, fonksiyon %85,71 (6.6b raporu bunları *"yazım
+      anında bilinmiyor"* bırakmıştı).
+      ⑧ **Kütüğe bir satır (SORUN-003):** 6.6b'nin yerel kırmızısı — hangi beş
+      test, bütçesi ne, yüksüz süresi ne (ölçüldü: web önyükleme 2,4 s / 5 s
+      **×2**; ESLint kanaryaları 3,1–3,3 s / 30 s ×9; i18n kanaryası 0,48 s /
+      5 s ×10), zamana duyarlı mı. Sahibi **6.12** (faz kapanışında kapılar
+      koşturulurken *"bütçe mi, yapı mı"* kararı) — 6.12 kapsamına adıyla.
       **YAPILMAYACAK:** 6.7 · yeni bileşen · workflow/ajan · 6.3b'nin üç
       kenarlığı ve `--text-muted` (6.8'in) · 6.6 denetiminin tekrarı (6.6b'de
       kapandı) · `border-`/`gap-`/`shadow-`/`duration-`/`z-` öneklerine dokunmak
-      (derlenmiş CSS'te doğru çözülüyorlar — 6.6b ⑦).
+      (derlenmiş CSS'te doğru çözülüyorlar — 6.6b ⑦) · renk sınıflarına
+      `color:` ipucu eklemek (çalışıyorlar; kural onları serbest bırakıyor) ·
+      beş zaman aşımı testinin bütçesine dokunmak (SORUN-003, 6.12).
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.6c (2026-09-13; tek oturum, ajan yok — beş aşama ana
+      > oturumda; taban `ea970b5`)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **① SORUN-002 KAPANDI — NÖBETÇİ ÖNCE, KANARYA GERÇEK DEPODA ÖTTÜ.**
+      > `local/no-untyped-arbitrary-value` (`tools/eslint-local-rules/`, **45
+      > test** — dosyadan sayıldı: RuleTester 19 geçerli + 14 geçersiz · türetme
+      > nöbetçisi 7 · kablolama kanaryası 5) yazıldı ve kablolandı; düzeltmeden
+      > **önce** `eslint .` →
+      > **34 `untypedValue` / 12 dosya** — 6.6b'nin grep sayımıyla dosya dosya
+      > birebir (avatar 2 · badge 2 · button-variants 3 · button 1 · combobox 5
+      > · dialog 4 · form-indicator 5 · input 2 · select 4 · tabs 2 · toast 2 ·
+      > tooltip 2). Sonra 34 geçiş etiketlendi (`family-name:` 15 · `length:`
+      > 19; 22 satır) → `lint` **0 / 303 dosya**. Yeniden sayım ①: 34/12 ✓,
+      > kısa sözdizimi depoda 0, eski literali iddia eden test 0.
+      >
+      > **② İKİNCİ LİSTE YOK — TÜRETME + AYRIŞMA NÖBETÇİSİ.** Renk/uzunluk/aile
+      > ayrımı kurala yazılmadı; kural `tokens.generated.css`i yükleyip değeri
+      > şekliyle sınıflıyor (`#hex`/`rgb(`/`oklch(` → renk · `px|rem|em` →
+      > uzunluk · tırnaklı/`sans-serif` → aile · çıplak sayı → ağırlık). Zincir:
+      > token TS → üretilmiş CSS (tazeliği `css-projection.test.ts` iddia eder)
+      > → kural. Nöbetçi: her `--text-*`/`--font-*` bilinen sınıfa düşer
+      > (histogram `color · family-name · length`), üç ad beklenen sınıfta,
+      > dosya yoksa yükleyici **fırlatır** (kapalı-güvenli; M4 EXIT 2). Bilinmeyen
+      > token da hata (`unknownToken`), yanlış ipucu da (`hintMismatch`).
+      > Gerekçe (DZ-07): ikinci liste bir gün ayrışır; türetme kaynağı zaten
+      > başka bir nöbetçinin tuttuğu dosya. Kabul edilen ipuçları Tailwind 4.3.3
+      > **kaynağından** (F4): `Q()` `var(` için null → `font-`
+      > `font-weight`, `text-` renk; font `number|generic-name|family-name`,
+      > text `color|length|percentage|absolute-size|relative-size` — testte
+      > adıyla iddia ediliyor.
+      >
+      > **③ DERLENMİŞ CSS'TE DOĞRULANDI — VE İKİNCİ BULGU: TAILWIND YORUMLARI DA
+      > TARIYOR.** Soğuk build (`turbo --force`, `Cached: 0`) sonrası ilk
+      > ölçümde yanlış çiftler **hâlâ vardı** (`font-weight:var(--font-ui|mono)`
+      > · `color:var(--text-2xs|sm)`) — kod satırlarında 0 etiketsiz sınıf
+      > kalmasına rağmen. Sebep ölçüldü: `@source '…/packages/ui/src'` dizini
+      > **düz metin** tarar; 5 bileşen + 3 test dosyasının **JSDoc'undaki** örnek
+      > sınıflar (6.6'nın hatayı anlatan notları) yardımcı üretiyordu — üretim
+      > CSS'inde ölü kurallar. 15 yorum geçişi `[…var(` biçimine çevrildi
+      > (ASCII dışı aday reddedilir; depoda `font-[var(…)]` emsali vardı).
+      > İkinci soğuk build: yanlış çift **0**, doğru çiftler
+      > `font-family:var(--font-ui)` 2 · `font-family:var(--font-mono)` 2 ·
+      > `font-size:var(--text-2xs|xs|sm|base|lg)` 5; CSS **33.844 → 33.778 B**,
+      > JS 390.629 (değişmedi). Ders kütükte: **yorumdaki örnek sınıf da
+      > derlenir** — `no-bare-jsx-text`in *"yorumlar görülmez"* güvencesi
+      > Tailwind için geçerli değil.
+      >
+      > **④ twMERGE ÖLÇÜLDÜ (3.6.0):** eski `text-[var(--text-sm)]` + renk →
+      > boyut **düşüyordu**, `font-[var(--font-ui)] font-medium` → aile
+      > **düşüyordu** (`cn()` geçen her yerde üçüncü belirti); etiketli biçimde
+      > `text-[length:…]` + renk **farklı grup, ikisi de kalıyor**;
+      > `font-[family-name:…] font-medium` ikisi de kalıyor; iki etiketli boyut
+      > doğru birleşiyor; `text-(length:--x)` kısa biçim de kalıyor.
+      >
+      > **⑤ BELGE MADDELERİ:** DZ-21 metni CLAUDE.md §18.2'de yeni ifadeyle
+      > (bedel sütununa günlük #33) · `denetci.md` ve `kapici.md`de aynı
+      > *"verilmez ve verilirse okumazsın"* kalıbı **vardı**, ikisi de
+      > *"iletilir; denetim o alan üzerinden yapılır"* oldu (frontmatter
+      > dokunulmadı) · SKILL.md kapanış listesine CI-sayıları kuralı (ilk
+      > uygulaması bu kayıt: #121 sayıları buraya girdi) · CLAUDE.md §16.2'ye 6.
+      > madde (moral eşikleri kalibrasyon; Faz 38 · 44) · 6.8 kapsamına bant 1
+      > notu — ⚠️ **devir notundan farklı:** payı `--text-muted`/kenarlık değil
+      > **CVD alfası** yer (girdiler ölçüldü) · §0.5: **6.7 = 8 birim**, **6.8 =
+      > 13 birim** (liste ROADMAP'te; sığıyor, sınırda; 6.8a/6.8b çizgisi hazır,
+      > bölünme **önerilmiyor**) · *"Bilinen kayıt düzeltmeleri"*: CI #121 6/6,
+      > 1702/1702, atlanan 0, %85,71 · **SORUN-003** (beş testin kimliği + yüksüz
+      > pay: web ×2 · ESLint ×9 · i18n ×10) sahibi 6.12, 6.12 kapsamında adıyla
+      > · SORUN-002 kütükte ✅ · V2-BACKLOG'a diğer belirsiz önekler.
+      >
+      > **⑥ KAPILAR (bu ağaç):** gaps 20·3·17·0✗ · debt 16·5·11·0✗ · format 0
+      > (bu commit'te bakılan: `eslint.config.js` + iki `.js/.mjs`; `*.md`
+      > bakılmadı) · i18n 117/92/3 · 58 dosya · görünmez **425** (zincirde 424,
+      > rapor sonra eklendi; son ağaçta yeniden koştu) · arch temiz ·
+      > typecheck 11/11 · lint **0 (303)** · **test 1746/118 + 1 skipped**
+      > (taban 1702/117; +45 kural, skipped = §③ kirli ağaç) · test:db 301/10 ·
+      > fonksiyon **%85,71 (522/609)** (kural `coverage.include` dışında —
+      > `tools/*/src` deseni) · build **8/8 SOĞUK** ×2 (`--force`). **D5:** paket
+      > `dist` ✅ (`import()` + `contrastRatio` çağrıldı; `badge.js` etiketli
+      > sınıfı taşıyor) · web paketi ✅ (yukarıdaki CSS ölçümü) · **imaj
+      > koşturulmadı** (CI'da okunur; SKILL kuralı gereği sayıları bir sonraki
+      > kayda girer).
+      >
+      > **⑦ MUTASYON 4/4 ISIRDI (md5 ile yerine oturdu, yedekten geri):** M1
+      > `badge.tsx` bir `length:` silindi → `lint` **1 hata, :39:3** · M2
+      > sınıflayıcıda `px` uzunluk olmaktan çıktı → **20 test** (RuleTester +
+      > türetme nöbetçisinin üçü + kanarya "ötüyor") · M3 kural `off` → **3
+      > kanarya** kırıldı, `eslint` ürün dosyasında **EXIT 0 kaldı** — kanaryanın
+      > var olma sebebi · M4 token yolu yanlış → `eslint` **EXIT 2**
+      > (*"token dosyası okunamadı"*), 37/45 test.
+      >
+      > **⑧ KIRILAN VE SEBEBİ (günlük #41–#43):** RuleTester `data` kısmi
+      > verilince mesajı yarım hidratladı (test yazımı, D6) · `preserve-caught-error`
+      > kuralın kendi `catch`inde ısırdı (`cause` eklendi) · yorumdan üretilen
+      > ölü CSS (③). **Kırılması beklenen ve kırılan:** `lint` 34 → 0. **Kırılmayan
+      > ve sebebi:** bileşen testleri (eski literal iddia eden yoktu — ölçüldü),
+      > `css-projection` (token dosyasına dokunulmadı), `inventory-guards` ①
+      > (yeni `*:check` yok — kural `lint` içinde).
 - [ ] **6.7** **DataTable motoru** — TanStack Table + TanStack Virtual,
       sütun seçimi, sıralama, filtre, kaydedilebilir görünüm, mobilde kart modu.
       ℹ️ **SORUN-002 6.7'NİN İŞİ DEĞİL — 6.6c'de çözülür** *(kullanıcı kararı
@@ -4257,6 +4408,13 @@ docs/glossary.md
       `getBoundingClientRect` **0×0**, `ResizeObserver` **yok**). 6.0'ın ①'i
       dördüncü yolu ölçmezse bu iki kriter 6.0 ⑨ (a) şartıyla taşınır. Kart
       modunun **karar fonksiyonu** (genişlik → mod) her hâlde test edilir.
+      **§0.5 (6.6c'de sayıldı, liste — sayı buradan türetilir):** ① tablo
+      çekirdeği (TanStack Table: sütun tanımı + sıralama) ② filtre ③ sütun
+      seçimi/görünürlük ④ kaydedilebilir görünüm (kalıcılığın yeri bir karar:
+      istemci-yerel tercih K1'i ihlal etmez, oyun kararı değil) ⑤ sanallaştırma
+      (TanStack Virtual) ⑥ kart modu — karar fonksiyonu (saf) + kart render
+      ⑦ i18n anahtarları + sözlük (tablo terimleri) ⑧ kriter 3/4 devri (6.0 ⑨
+      (a) şartı) — **8 birim, sınır 15 → sığıyor.** Bölünme önerilmiyor.
 - [ ] **6.8** **Erişilebilirlik** — tam klavye navigasyonu, axe denetimi,
       renk körlüğü modu (3 tip), font boyutu ayarı, dokunma hedefi 44×44px.
       ⚠️ **6.6'DAN DEVİR (DZ-14) — RENK KÖRLÜĞÜ MODUNUN MEKANİZMASI:** 6.6
@@ -4299,6 +4457,34 @@ docs/glossary.md
       *"açıklaştırmak"* ve açık zeminde bu oranı **düşürüyor**. Koyulaştırma
       spec'te **yazmıyor** — bu alt görev ya spec'e bir satır ekletir (SAPMA) ya
       kullanım yerini daraltır.
+      ⚠️ **6.6c'DEN DEVİR — NİTELİK BANDI 1'İN AA PAYI 0,055.** `#B04A3C`
+      üzerinde ön plan `#E8ECF3` düz zeminde **4,555** (dist'ten yeniden
+      hesaplandı, 6.6c ①); sınır 4,5. Hesabın girdileri ölçüldü:
+      `ATTRIBUTE_BADGE_FOREGROUNDS` (tema-bağımsız hex sabitleri) + bant renkleri
+      + siyah desen mürekkebi alfa **0,10** — `--text-muted` ve kenarlık
+      token'ları **bu hesaba girmiyor**, onları değiştirmek payı oynatmaz. Payı
+      yiyecek şey **CVD kanalını güçlendirmek**: alfa 0,15'te bant 2'nin
+      bileşkesi 4,447 (< 4,5, 6.6 ölçümü). Bu alt görev CVD tiplerine göre
+      deseni/alfayı değiştirirse `contrast-audit` ⑦ (8 bant × düz + bileşke
+      ≥ 4,5) **kırılır ve gevşetilmez** — açılışta önce ⑦'nin bunu tuttuğu
+      ölçülür (M9 emsali: ön plan hesabı bozulunca ⑦ 5 testle kırıldı).
+      **§0.5 (6.6c'de sayıldı, liste — sayı buradan türetilir):** ① klavye
+      navigasyonu (Radix'in verdiği + alan bileşenlerindeki boşluklar) ② axe
+      denetimi + kapısı (`color-contrast` jsdom'da koşmuyor — sınır yazılır)
+      ③ `CVD_ATTRIBUTE` setter, 3 tip, `applyTheme` (tip başına fark kararı
+      dâhil) ④ CVD ayar arayüzü + anahtarları ⑤ AttributeBadge kanallarının
+      **gerçekten etkinleştiği** iddiası ⑥ font boyutu ayarı
+      (`FONT_SCALE_ATTRIBUTE`) + arayüzü ⑦ dokunma hedefi 44×44 taraması + iddia
+      ⑧ jsdom doldurmaları (`scrollIntoView` · `hasPointerCapture`; neyi
+      sahtelediği yazılır) ⑨ `--text-muted` AA kararı + `contrast-audit`
+      iddiasının güncellenmesi ⑩ `--accent` açık zemin kararı ⑪ 6.3b'nin üç
+      kenarlığı + `--text-muted` ⑫ bant 1 payı / CVD alfa ölçümü (yukarıdaki
+      devir) ⑬ i18n anahtarları + sözlük (ayar arayüzleri) — **13 birim,
+      sınır 15 → sığıyor, ama sınırda ve üçü karar taşıyor (③ ⑨ ⑩; SAPMA
+      olası).** Bölünme **önerilmiyor**; 6.8 açılışında `planci` yeniden sayar
+      ve kapsam iki birim büyürse hazır çizgi: **6.8a** = ① ② ⑦ ⑧ (mekanik
+      erişilebilirlik) · **6.8b** = ③ ④ ⑤ ⑥ ⑨ ⑩ ⑪ ⑫ ⑬ (modlar + kontrast
+      kararları). Karar kullanıcının.
 - [ ] **6.9** **Storybook kurulumu + hikayeler.** Hikaye sayısı **dosyadan
       ayrıştırılır** (prose'da yaşayan bir sayı bayatlar). ⚠️ `storybook build`in
       hatasız bitmesi *"koyu/açık temada çalışıyor"* iddiasını **kanıtlamaz** —
@@ -4420,6 +4606,15 @@ docs/glossary.md
       `*:check` kapısı koşturulur** (`gaps:check` ve `debt:check` dahil) ·
       `CHANGELOG.md` · PR `develop`a · **`git tag -a faz-06-son` + push**
       (`.claude/skills/faz-yurut/SKILL.md` → FAZ KAPANIŞ ADIMI; 6.6-ön'de eklendi).
+      ⚠️ **SORUN-003 BURADA KARARA BAĞLANIR** *(6.6c'de yazıldı)*: beş ağır
+      test yük altında zaman aşımına düşüyor (6.6b, yerel: 2 → 5 kırmızı; CI
+      #117–#121 yeşil). Yüksüz ölçüm: `apps/web/src/main.test.tsx` ve
+      `main.boot-failure.test.tsx` **2,4 s / 5 s (×2 pay)**; iki ESLint uçtan
+      uca kanaryası 3,1–3,3 s / 30 s (×9); `i18n-check` kanaryası 0,48 s / 5 s
+      (×10). Karar: *"bütçe mi (iki web testine açık `testTimeout`), yapı mı
+      (React monte + i18next init'i daha küçük parçaya ayırmak), yoksa kabul
+      edilen yerel gürültü mü"* — fazın bütün koşu verisiyle burada verilir;
+      kütük satırı ona göre kapanır ya da sahiplenir.
       ⚠️ **METİN 6.4-ön'DE SAYISIZLAŞTIRILDI.** Madde *"**yedi** kabul kriteri"*
       diyordu; ölçüldü — bu fazın kriter listesi **altı** satır taşıyor (6.1'in
       daraltması sonrası). Sayı taşıyan bir talimat bayatlar ve olduğu gibi

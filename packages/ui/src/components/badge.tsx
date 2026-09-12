@@ -36,7 +36,7 @@ export type BadgeVariant = (typeof BADGE_VARIANTS)[number];
 
 const BADGE_BASE =
   'inline-flex items-center gap-[var(--space-1)] rounded-[var(--radius-full)] border ' +
-  'px-[var(--space-2)] py-[2px] font-[var(--font-ui)] text-[var(--text-2xs)] ' +
+  'px-[var(--space-2)] py-[2px] font-[family-name:var(--font-ui)] text-[length:var(--text-2xs)] ' +
   'font-medium whitespace-nowrap';
 
 /**

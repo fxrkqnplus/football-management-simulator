@@ -68,6 +68,20 @@ Bir fikir çıktığında alttaki "Sonradan Eklenenler" bölümüne şu formatta
     tarihsel sezon dizisi + kulüp detay ekranı
   - Tahmini büyüklük: orta (veri toplama tarafı asıl maliyet)
 
+- **`no-untyped-arbitrary-value` kuralını diğer belirsiz Tailwind öneklerine
+  genişletmek** — bugün kural yalnızca `text-` ve `font-`e bakıyor (SORUN-002'nin
+  ölçülmüş iki bozuk öneği). Tailwind 4'te `bg-` · `border-` · `ring-` · `outline-`
+  · `stroke-` · `shadow-` de birden çok özelliğe açılıyor ve `var()` taşıyan keyfi
+  değerde tür çıkarımı **null** (kaynak: `tailwindcss@4.3.3/dist/lib.js`, `Q()`).
+  - Nereden çıktı: Faz 6.6c (kural yazılırken)
+  - Neden v1'de değil: 6.6b derlenmiş CSS'te ölçtü — bugünkü token'larla bu
+    öneklerin varsayılanı niyetle örtüşüyor (`border-` → `border-color:` 3 · `bg-` →
+    `background-color:` 9 · `shadow-` → `--tw-shadow:` 3). Yakalayacağı hata bugün
+    oluşamıyor; kapıyı hata oluşabilecek hâle gelmeden yazmak DZ-12'nin tersi
+    (kanaryası ötemez). İlk `--border-width-*` ya da `--bg-image-*` token'ı
+    doğduğu gün genişletilir; kuralın `AMBIGUOUS_UTILITIES` tablosu buna açık.
+  - Tahmini büyüklük: küçük (tablo satırı + RuleTester vakaları)
+
 ---
 
 ## Not: Veri Paketleri v1'dedir

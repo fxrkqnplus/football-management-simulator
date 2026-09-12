@@ -29,15 +29,15 @@
 
 ```yaml
 faz: 6
-alt_gorev: 6.6b
+alt_gorev: 6.6c
 durum: tamamlandi
 asama: kapandi
 dal: feature/faz-06-design-system
-taban_commit: 74c5179
-son_commit_baslik: docs(memory): 6.6b denetim kaydı — yazar iddiaları 10/10, K5 temiz, form-indicator etiketsiz (SORUN-002 6.6'ya uzandı), 6.6c açıldı
-kapi_tabani: 74c5179 ağacı + md-only diff · gaps 20·3·17·0✗ · debt 16·5·11·0✗ · format 0 (değişen *.md ignored:true — denetlenen dosya yok) · i18n 117/92/3 · 58 dosya·2 kök · görünmez 422 (rapor dâhil) · arch temiz (BORÇ-012) · typecheck 11/11 (3 cached) · lint 0 (301 dosya) · test:coverage YERELDE KIRMIZI ortam/D6 (iki koşu, 2→5 zaman aşımı; FC26 20,1 CPU-s/3 s; beşi izole yeşil 4/4·66/66·36/36; §③ iki koşuda yeşil, son_commit_baslik kirli ağaçta atlandı) · fonksiyon ölçülemedi · test:db/build koşturulmadı (kod değişmedi) · D5 aynı kod CI #120 İmaj dâhil yeşil · asıl test ölçümü bu commit'in CI koşusu
-biten: 6.6 DENETİMİ (kod yok) · yazar iddiaları exports 10/10 + testCount 10/10 (238; ui 39 dosya 517/517) · K5 temiz (29 Türkçe kod satırı, 29/29 RangeError bağlamı; JSX'e akan sabit 0) · t() 19 çağrı hepsi *_KEYS · ad listesi↔*_KEYS nöbetçileri var (attribute-badge:127/135 · form-indicator:69/84 · morale-icon:134/147) · D5 imaj CI #120 6/6 yeşil · SAPMA form-indicator.tsx 6 etiketsiz/5 bozuk → SORUN-002 kusur 6.4/6.5 VE 6.6, sahibi 6.6c · ölçek 34 geçiş/12 dosya (15 font-weight · 19 color) derlenmiş CSS'te doğrulandı · kayıt: ROADMAP 6.6b SONUÇ + 6.6c bloğu + 6.7 notu, günlük #37–#40, düzeltme bloğu, rapor
-yarim_kalan: yok — 6.6b'nin altı maddesinden beşi 6.6c'ye adıyla taşındı (SORUN-002 · DZ-21 · §0.5 · §16.2 · 6.8 notu), 6.6b yalnızca denetimdi
-siradaki_komut: gh run list --limit 2 (bu commit: §③ yeşil mi) · kullanıcı onayıyla /faz-yurut 6.6c (ilk iş SORUN-002 — sayı yeniden sayılır, NÖBETÇİ ÖNCE, biçimi ölçümle seçilir)
-acik_karar: ① 6.6c'ye geçiş onayı (K11) ② 6.6c'nin nöbetçi biçimi (lint kuralı mı derlenmiş CSS iddiası mı) — 6.6c'nin ölçümünden sonra sorulur, şimdi değil
+taban_commit: ea970b5
+son_commit_baslik: feat(lint): no-untyped-arbitrary-value kuralı + SORUN-002 çözüldü; DZ-21 metni, SKILL CI kuralı, §0.5 sayımı, §16.2, SORUN-003 (6.6c)
+kapi_tabani: ea970b5 + bu diff (yüksüz) · gaps 20·3·17·0✗ · debt 16·5·11·0✗ · format 0 (eslint.config.js + kural .js + test .mjs + 21 .tsx/.ts bakıldı; *.md bakılmadı) · i18n 117/92/3 · 58 dosya·2 kök · görünmez 425 (rapor dâhil) · arch temiz (BORÇ-012) · typecheck 11/11 · lint 0 (303 dosya; düzeltme öncesi 34/12 + 1) · test 1746/118 + 1 skipped (§③ kirli ağaç; taban 1702/117) · test:db 301/10 · fonksiyon %85,71 (522/609) · build 8/8 SOĞUK ×2 (--force) · web JS 390.629 · CSS 33.778 (33.844'ten) · derlenmiş CSS yanlış çift 0, font-family 2+2, font-size 5 · twMerge etiketli biçim ikisini tutuyor · mutasyon 4/4 (M1 lint 1 hata :39 · M2 20 test · M3 3 kanarya, eslint sessiz · M4 EXIT 2) · D5 dist ✅ web ✅ imaj koşturulmadı (CI)
+biten: no-untyped-arbitrary-value (45 test, türetme tokens.generated.css'ten, kapalı-güvenli, kablolu) · 34 geçiş etiketli (12 dosya) · 15 yorum geçişi aday olmaktan çıkarıldı (8 dosya) · DZ-21 metni (CLAUDE.md + denetci.md + kapici.md) · SKILL.md CI-sayıları kuralı · §16.2 madde 6 · 6.8 bant 1 notu (girdiler ölçüldü: CVD alfası) · §0.5 listeleri 6.7=8 · 6.8=13 · düzeltme bloğu CI #121 · SORUN-003 (6.12'ye adıyla) · SORUN-002 ✅ · V2-BACKLOG · ROADMAP SONUÇ · günlük #41–#43 · rapor
+yarim_kalan: yok — imaj yüzeyi CI'da okunur, sayıları SKILL kuralı gereği bir sonraki kayda girer
+siradaki_komut: gh run list --limit 2 (bu commit: 6/6 mi, §③ temiz ağaçta yeşil mi) · kullanıcı onayıyla /faz-yurut 6.7 (planci §0.5'i yeniden sayar; ilk kod etiketli idiyomla)
+acik_karar: ① 6.7'ye geçiş onayı (K11) ② 6.8 açılışında planci 13 birimi yeniden sayar — 15'i aşarsa 6.8a/6.8b çizgisi ROADMAP'te hazır, karar kullanıcının
 ```

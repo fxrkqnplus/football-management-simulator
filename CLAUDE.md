@@ -569,6 +569,7 @@ Bunlar ilgili faza gelindiğinde kullanıcıyla netleştirilecek:
 3. **Süper Lig play-off formatı** — gerçek format sezona göre değişiyor. `CompetitionRules.playoffSpots` ile yapılandırılabilir bırakıldı, varsayılan 0.
 4. **Veri sağlayıcı kapsamı (Faz 8–9)** — hangi API'ye abone olunacağı veya yalnızca açık kaynakla mı devam edileceği Faz 7'de netleşecek. Prosedürel yedek her durumda çalışır.
 5. **Diyalog metin hacmi (Faz 44)** — 2.880 menajer repliği + 200 taban oyuncu cevabı yazımı tek fazı aşabilir; 44a/44b bölünmesi muhtemel.
+6. **Moral eşikleri (Faz 38 · Faz 44)** — `MoraleIcon`un beş dilimi (0–19 · 20–39 · 40–60 · 61–80 · 81–100) bir **kalibrasyondur**, spec'ten değil (`spec/01` moral 0–100 der, dilim yazmaz; 6.6'da `Math.floor` emsaliyle seçildi). Gerçek veriyle ilk karşılaşması moral hesabının (Faz 38) ve diyalogların (Faz 44) yazıldığı gün; eşikler o gün ölçülür, önceden doğru sayılmaz. *(6.6c'de eklendi.)*
 
 ## 16.3 Başarı Tanımı
 
@@ -655,5 +656,5 @@ düşmez; düşüren **eylem** (bir kanca, bir nöbetçi, bir kapı) adıyla yaz
 | **DZ-18** | **Rapor önce dosyaya, sonra terminale — aynısı.** Onay bekleyen içerik raporun `DETAY`ında yaşar; arşiv append-only, düzeltme *"Bilinen kayıt düzeltmeleri"*ne | 3.10 · 4.0b |
 | **DZ-19** | **Tek seferde tek alt görev; plan ROADMAP'te yaşar; commit alt görev başına; onay gelmeden geçilmez.** Faz kapanışında `git tag -a faz-XX-son` atılır ve push edilir — `main` ilk sürüme kadar Faz 0'da, tag tek *"bilinen iyi nokta"* | K11 · §1.4 · 6.6-ön |
 | **DZ-20** | **Bir faz tek bir workflow koşusuna sığar.** Ölçü `workflowSizeGuideline: medium` = 15 ajandan az; 15'ten fazla **bağımsız iş birimi** → faz bölünür. Gün sayılmaz | ROADMAP §0.5 (6.6-ön) |
-| **DZ-21** | **Denetleyen, gerekçeyi değil çıktıyı görür.** `kapici` ve `denetci`ye `gelistirici`nin `## ÇIKTI`sı verilir, `## GEREKÇE`si verilmez | 6.6-ön ajan sözleşmesi |
+| **DZ-21** | **Denetim `## ÇIKTI` üzerinden yapılır; orkestratör denetçiye yalnızca o alanı iletir.** `kapici` ve `denetci`nin girdisi `gelistirici`nin `## ÇIKTI` bölümüdür (değişen dosyalar · komutlar · ham satırlar); tasarım notları ayrı bölümde kalır ve iletilmez. *(Metin 6.6c'de değişti: eski ifade — "gerekçeyi görmez" — şemadaki gerekçe alanıyla birlikte API'nin `reasoning_extraction` korumasını tetikledi, üç workflow koşusu başlamadan reddedildi; günlük #33.)* | 6.6-ön ajan sözleşmesi · 6.6 günlük #33 |
 | **DZ-22** | **`CLAUDE.md` §14 taşınmaz, kısaltılmaz, birleştirilmez.** `tools/glossary-check/index.test.mjs` onu ayrıştırır (77 kayıt) ve sözlükle **aynı karşılıkla** eşleşmesini iddia eder; birleştirmek koşan bir nöbetçiyi siler | 5.7 · 6.6-ön |

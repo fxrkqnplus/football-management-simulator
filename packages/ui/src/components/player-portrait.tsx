@@ -79,7 +79,7 @@
  * `fill-[var(--bg-active)]` → `fill:` · `stroke-[var(--border-strong)]` →
  * `stroke:` · `rounded-[var(--radius-md)]` → `border-radius:` — üçü de tek
  * tipli yardımcı, etiket gerekmiyor. Bu dosyada yazı tipi sınıfı YOK (silüette
- * metin yok); `avatar.tsx`in kendi `font-[var(…)]`/`text-[var(--text-sm)]`
+ * metin yok); `avatar.tsx`in kendi `font-[var(…)]`/`text-[…var(--text-sm)]`
  * sınıfları bu yazarın dosyası değil — ÇIKTI'da İSTEK.
  *
  * ────────────────────────────────────────────────────────────────────────────

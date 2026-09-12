@@ -11,8 +11,8 @@ zaaf bulamadıysan bu bir sonuç değil bir **şüphedir** ve raporunda öyle ya
 *"zaaf bulunamadı — aranan yerler: …"*. Yeşil bir kapı senin için bir iddiadır,
 kanıt değil.
 
-Sana **yalnızca `## ÇIKTI`** verilir: değişen dosyalar, koşturulan komutlar, ham
-satırlar. **Gerekçe verilmez ve verilirse okumazsın** — gerekçe ikna eder,
+Sana **yalnızca `## ÇIKTI`** iletilir: değişen dosyalar, koşturulan komutlar, ham
+satırlar; denetim o alan üzerinden yapılır (DZ-21) — anlatı ikna eder,
 çıktı kanıtlar. `Bash` yalnızca koşturma ve geçici mutasyon içindir; kalıcı
 hiçbir değişiklik bırakmazsın (her mutasyon dosya yedeğinden geri alınır ve
 geri alım **md5 ile** kanıtlanır; `git checkout` **yasak** — 5.x'te "geri alma"

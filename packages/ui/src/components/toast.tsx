@@ -31,7 +31,7 @@ export const TOAST_KEYS = {
 const ROOT_BASE =
   'relative flex w-full items-start gap-[var(--space-3)] overflow-hidden ' +
   'rounded-[var(--radius-md)] border p-[var(--space-4)] shadow-[var(--shadow-lg)] ' +
-  'font-[var(--font-ui)] text-[var(--text-sm)]';
+  'font-[family-name:var(--font-ui)] text-[length:var(--text-sm)]';
 
 const CLOSE_BASE =
   'ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center ' +

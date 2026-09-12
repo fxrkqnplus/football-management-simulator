@@ -91,7 +91,7 @@ describe('CurrencyValue — render', () => {
     const el = screen.getByTestId('para');
     expect(el.tagName).toBe('SPAN');
     // ⚠️ `family-name:` ETİKETİ İDDİA EDİLİYOR — ölçüldü: etiketsiz
-    // `font-[var(--font-mono)]` Tailwind 4.3.3'te `font-weight` olarak
+    // `font-[…var(--font-mono)]` Tailwind 4.3.3'te `font-weight` olarak
     // derleniyor ve tailwind-merge'de `font-medium` tarafından siliniyor.
     expect(el.className).toContain('font-[family-name:var(--font-mono)]');
     expect(el.className).toContain('tabular-nums');

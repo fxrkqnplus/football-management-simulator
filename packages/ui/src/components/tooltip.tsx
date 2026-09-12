@@ -34,7 +34,7 @@ import { cn } from '../lib/cn.js';
 const CONTENT_BASE =
   'z-[var(--z-tooltip)] max-w-xs rounded-[var(--radius-sm)] ' +
   'bg-[var(--bg-active)] px-[var(--space-2)] py-[var(--space-1)] ' +
-  'font-[var(--font-ui)] text-[var(--text-xs)] text-[var(--text-primary)] ' +
+  'font-[family-name:var(--font-ui)] text-[length:var(--text-xs)] text-[var(--text-primary)] ' +
   'shadow-[var(--shadow-md)]';
 
 export const TooltipProvider = RadixTooltip.Provider;

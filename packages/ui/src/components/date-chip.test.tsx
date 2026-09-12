@@ -14,7 +14,7 @@
  * §1.10'un *"anahtar YOK"* cümlesinin çalışma zamanındaki karşılığı.
  *
  * ⚠️ **tailwind-merge İDDİALARI ÖLÇÜLDÜ (3.6.0), TAHMİN DEĞİL:**
- *   · `text-[var(--text-2xs)] text-[var(--text-secondary)]` → yalnızca
+ *   · `text-[…var(--text-2xs)] text-[var(--text-secondary)]` → yalnızca
  *     ikincisi (etiketsiz boyut, renk tarafından siliniyor);
  *   · `text-[length:var(--text-2xs)] text-[var(--text-secondary)]` → ikisi de
  *     kalıyor;
@@ -143,7 +143,7 @@ describe('DateChip — render', () => {
   });
 
   it('boyut ve aile sınıfları ETİKETLİ ve nötr rengin YANINDA duruyor — birleşik `className`de', () => {
-    // Ölçüldü (dosya başı): etiketsiz `text-[var(--text-2xs)]` nötr yüzeyin
+    // Ölçüldü (dosya başı): etiketsiz `text-[…var(--text-2xs)]` nötr yüzeyin
     // `text-[var(--text-secondary)]`i tarafından silinirdi.
     render(<DateChip date={AUG_23} data-testid="tarih" />);
     const className = screen.getByTestId('tarih').className;

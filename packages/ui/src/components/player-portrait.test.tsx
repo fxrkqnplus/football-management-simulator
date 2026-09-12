@@ -174,7 +174,7 @@ describe('PlayerPortrait — render', () => {
     // (ölçüm: dosya başı). Kapsam bilerek SVG ile sınırlı: `AvatarFallback`ın
     // kendi sınıfları `avatar.tsx`in — ilk yazımda `container.innerHTML`
     // taranınca oradan `text-[var(--text-secondary)]` geldi ve aynı ölçüm
-    // `text-[var(--text-sm)]` ile `font-[var(--font-ui)]`nin tailwind-merge'de
+    // `text-[…var(--text-sm)]` ile `font-[…var(--font-ui)]`nin tailwind-merge'de
     // SİLİNDİĞİNİ gösterdi (ÇIKTI'da İSTEK).
     for (const el of container.querySelectorAll('svg, svg *')) {
       expect(classOf(el), el.tagName).not.toMatch(/font-\[var\(|text-\[var\(/);
