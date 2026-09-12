@@ -3951,7 +3951,7 @@ docs/glossary.md
       > (460/547, `scripts/` payda dışı) · build 8/8 **SOĞUK** · gaps 20·3·17·0✗
       > · debt 12·5·7·0✗ · i18n 48 dosya·2 kök · görünmez tarama **398** (389 +
       > 9 yeni `.md`). **Yeni kayıt:** SAPMA-045 · günlük #25–#28.
-- [ ] **6.6** **On alan-özel bileşen** — `AttributeBadge`, `StarRating`,
+- [x] **6.6** **On alan-özel bileşen** — `AttributeBadge`, `StarRating`,
       `FormIndicator`, `MoraleIcon`, `ClubCrest`, `PlayerPortrait`, `KitSwatch`,
       `PositionMap`, `CurrencyValue`, `DateChip`.
       ⚠️ **Etiketler `docs/glossary.md`den TÜRETİLİR, yeniden uydurulmaz**
@@ -3967,15 +3967,120 @@ docs/glossary.md
       · **Kırılması beklenen:** `i18n-keys.test.ts` ② (kebab→camel; modül başına tek `_KEYS`) · `glossary-check` dağılım/133 · `i18n:check` (iskele–yazar arası) · `typecheck` (`@fms/shared` bağımlılığı gelene dek). **Kırılmayacak ve sebebi:** `inventory-guards` ② (yeni dizin yok) · `arch:check` (ui→shared izinli).
       · **§0.5:** planci 12 bağımsız iş birimi saydı — sığıyor. Ajan: olcumcu · planci · 5 gelistirici · kapici · denetci · kayitci = 10 < 15.
       · **Sayı prose'da yaşamaz:** anahtar sayısı `i18n:check` kapsam satırından, terim sayısı `glossary-check` dağılımından okunur.
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.6 (2026-09-11 → 12; kod commit'i `bbf3e5e`, kayıt commit'i ayrı)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **① ON BİLEŞEN YAZILDI, 238 TEST — beş yazar ajan, ikişer bileşen,
+      > paralel.** AttributeBadge 40 · StarRating 30 · FormIndicator 22 ·
+      > MoraleIcon 22 · ClubCrest 24 · PlayerPortrait 18 · KitSwatch 22 ·
+      > PositionMap 30 · CurrencyValue 13 · DateChip 17 (`vitest --project ui`
+      > toplam **517**, taban 274). Etiketler sözlükten: `common.json ui.*` +51
+      > anahtar, `i18n:check` kullanılan **41 → 92** (51'i de `t()` ile çözülüyor),
+      > sözlük §7 (mevki 12 · yetkinlik 5) + §8 (20) → **170** terim.
+      > **Kararlar:** K-1 `STAR_MAX = 5`, `max` prop yok · K-2 `redundant` yok ·
+      > K-3 Tailwind variant + `CVD_ATTRIBUTE` · K-6 `shape` yok · K-8 mevki
+      > işareti İngilizce kod · K-9 küme kopyası + `inventory-guards` ④ ·
+      > **K-4 Türkçe terim tablosu ve kalibrasyonlar (moral eşikleri 0–19 ·
+      > 20–39 · 40–60 · 61–80 · 81–100; arma 24/40/64; portre 32/48/96; yıldız
+      > yarım-potansiyel yok) KULLANICI ONAYINA SUNULDU** — raporun KARAR bölümü.
+      >
+      > **② KRİTER 4 KAPANDI — ŞARTIYLA.** Sözleşme desen mürekkebini beyaz
+      > yazmıştı; yazar ÖLÇTÜ (0,05 adımlarla): beyazla en büyük geçen alfa
+      > **0,00** (bant 1 `#B04A3C` düz zeminde 4,555, payı 0,055) — yani beyaz
+      > mürekkeple üçüncü kanal **ölü**. Siyah mürekkeple **0,10** (sınır bant 2,
+      > 4,901; 0,15'te 4,447). `contrast-audit.test.ts` DENETİM ⑦: sekiz bant ×
+      > (düz + bileşke) ≥ 4,5 — mutasyon M9 onu **5 testle** kırdı. Ön plan
+      > tema-bağımsız hex (`ATTRIBUTE_BADGE_FOREGROUNDS`). Sapma **onay bekliyor**
+      > (rapor KARAR ①); onaylanmazsa geri alma tek sabit ve kriter `[ ]`e döner.
+      >
+      > **③ KIRILMASI BEKLENEN KAPILAR KIRILDI, kanaryalar gerçek depoda:**
+      > `i18n-keys.test.ts` ② ilk çok kelimeli modülde **üç vakada** kırıldı
+      > (YÖN ① sekiz "kayıtsız", YÖN ② sekiz "hayalet", referans `undefined`) →
+      > kebab→camelCase köprüsü + *"modül başına ≤ 1 `_KEYS`"* iddiası ·
+      > `glossary-check` dağılım 133 → 170 (güncellendi, gevşetilmedi) ·
+      > `inventory-guards` ④ (ui ↔ db kapalı kümeler, dört çift) **iskelede
+      > kırmızıydı** (*"ui tarafında sabit yok"*), yazar sonrası yeşil; negatif
+      > kanıt c1 (`ST` düşürüldü) → ④ + `tsc` + `build` üçü de kırmızı.
+      > **Kırılmayan ve sebebi:** `inventory-guards` ② (yeni dizin/belge yok) ·
+      > `arch:check` (ui → shared izinli; negatif kanıt `@fms/db` importuyla alındı).
+      >
+      > **④ KAPILAR (kapıcı, kod commit'i öncesi ağaç):** typecheck 11/11 · lint
+      > 0 (301 dosya) · format 0 (346 dosya baktı, `*.md` bakmadı) · arch temiz ·
+      > gaps 20·3·17·0✗ · debt **13**·5·8·0✗ (BORÇ-013) · i18n **117/92** · 58
+      > dosya · 2 kök · **test 1701/117 + 1 skipped** (taban 1452/107; +250) ·
+      > test:db 301/10 · build 8/8 **SOĞUK** · fonksiyon **%85,71 (522/609)**
+      > (taban %84,09, 460/547 — paydaya 62 fonksiyon girdi, oran yükseldi).
+      > **Negatif kanıt:** dokunulan her kapı bilerek bozuldu ve ısırdı (i18n
+      > eksik/boş anahtar · glossary dağılım + K-5 · ④ · i18n-keys YÖN ① ·
+      > ikinci `_KEYS` · format · arch · debt · typecheck/build). **Mutasyon
+      > 13/13 ısırdı** (M1–M13: desen eşitliği · moral deliği · koordinat
+      > çakışması · yıldız adımı · `lastResults` ters · DateChip NaN kapısı ·
+      > `KIT_TYPES` sırası · CVD literali · ön plan hesabı · arma köşesi · yıldız
+      > token'ı · viewBox yönelimi · moral renkleri) — md5 ile yerine oturdu,
+      > yedekten geri alındı; **M15 KÖR** (barrel'dan blok silinince 577 test
+      > yeşil → ZAAF-2). **D5:** paket `dist` ✅ (`import()` ile 240 dışa aktarım,
+      > saf fonksiyonlar çağrıldı) · web paketi ✅ (JS **390.629** = +5.667, CSS
+      > **33.844** = +3.402; `[data-cvd]` 4 · `--band-pattern` 4 hit — Tailwind
+      > seçicileri **derlendi**) · **imaj ÖLÇÜLMEDİ** (kod commit'i tek başına
+      > push edildi, `quality` kırmızı → `İmaj` işi koşmadı; bu commit'in
+      > koşusunda okunur).
+      >
+      > **⑤ DENETİM AŞAMASI YAPILMADI — `denetci` HİÇ KOŞMADI** (oturum limiti,
+      > dördüncü kesinti). Yazarların ÇIKTI'sı ve kapıcının ölçümü var, ama
+      > *"hangi yüzey / türev mi ikinci liste mi / sayı ölçümden mi"* denetimi
+      > **ölçülemedi**. İlk ölçülebilecek yer: **6.7 açılışı** (`denetci`, 6.6'nın
+      > ÇIKTI dosyası hâlâ scratchpad'de) — rapor bunu 🟡 ile taşıyor.
+      >
+      > **⑥ KAPICININ BEŞ ZAAFI, SAHİPLİ:** ZAAF-1 `packages/ui` `sideEffects`
+      > beyanı yok → web paketine 5,1 kB ölü kod (M14 ile ayrıştırıldı) →
+      > **BORÇ-015 → 6.10** · ZAAF-2 `components/index.ts` barrel'ı korumasız
+      > (M15) → **BORÇ-014 → 6.9** (envanter ↔ hikaye nöbetçisi barrel'ı da tutar)
+      > · ZAAF-3 K-5 nöbetçisi anahtar-bağımsız (değer takası geçer) + ZAAF-4 yer
+      > tutucu adları kör (`{{level}}` → `{{lvl}}` geçer) + ZAAF-5 *"Yıldız
+      > Derecesi"* cümle içinde, sözlükte satırı yok → **BORÇ-016 → 6.11** (K5
+      > kapılarının kör noktaları). BİLGİ-6 (CVD literalini tutan tek test) →
+      > 6.8'in devir notuna eklendi.
+      >
+      > **⑦ SORUN-002 (6.4/6.5 mirası):** etiketsiz `font-[var(--font-ui)]` →
+      > `font-weight:`, `text-[var(--text-sm)]` → `color:` — derlenmiş CSS'te
+      > ölçüldü, 20 dosya. **Sahibi 6.7 (ilk iş)**, kullanıcı *"6.6b"* derse ayrı
+      > alt görev.
+      >
+      > **⑧ WORKFLOW ÖLÇÜMÜ — deponun ilk koşuları.** 10 koşu, 37 ajan
+      > başlatıldı, 12 döndü (olcumcu · planci · 3 teşhis · A · B · D · E ·
+      > kapici + 2 doğrudan `Agent`); efor dökümlerde **`"effort":"max"`**
+      > (her assistant kaydı), model `claude-opus-5`, `CLAUDE_CODE_EFFORT_LEVEL=max`
+      > ajan kabuğunda; fan-out **gerçekten paralel** (beş yazar aynı saniyede
+      > başlıyor, duvar saati ≈ en yavaş ajan); token: ölç+planla 360.882 · yaz
+      > 2.345.270 (dört koşu; ~1,33 M'si kesilen koşularda) · teşhis 214.977 ·
+      > sına 340.877 (kapıcı; denetçi 0). **Uymayan aşamalar:** ③ YAZ üç kez API
+      > safeguard `reasoning_extraction` (gelistirici sistem promptundaki
+      > *"denetleyen gerekçeyi görmez"* + şemada gerekçe alanı; iki bisect, alan
+      > kaldırıldı, ajan tanımı *GEREKÇE → TASARIM NOTLARI*) · oturum limiti
+      > **dört kez** (3am · 8am · 1pm · 6pm) fan-out'u sıfırladı — ajanlar
+      > StructuredOutput teslim edemeden ölüyor, dosyalar diskte kalıyor; C
+      > çiftinin ÇIKTI'sını ana oturum ölçtü · `index.ts` dışa aktarımları
+      > yazar listelerinden değil **kaynaktan** türetildi.
+      >
+      > **⑨ NÖBETÇİNİN SINIRI, KUSURU DEĞİL:** kod commit'i tek başına push
+      > edilince CI'da §③ `son_commit_baslik` **kırmızı** oldu — §1.4 bir alt
+      > görevin birden fazla commit taşımasına izin veriyor ve §③ *"temiz ağaçta
+      > HEAD'in başlığı"* der. **Kabul edilen davranış:** ara push = §③ kırmızı,
+      > kayıt commit'i kapatır; gevşetilmez. **Yeni kayıt:** BORÇ-013 (§③
+      > `asama`↔`durum`, 6.10) · BORÇ-014/015/016 · SORUN-002.
 - [ ] **6.7** **DataTable motoru** — TanStack Table + TanStack Virtual,
       sütun seçimi, sıralama, filtre, kaydedilebilir görünüm, mobilde kart modu.
-      ⚠️ **SORUN-002 (6.6'da bulundu) — SAHİBİ KARAR BEKLİYOR:** 6.4/6.5'in
-      etiketsiz `font-[var(--font-ui)]` / `text-[var(--text-sm)]` sınıfları
-      üretim CSS'inde `font-weight:` / `color:`a derleniyor (20 dosya; derlenmiş
-      CSS'te ölçüldü). 6.6'nın önerisi **6.6b** adlı küçük, ayrı bir alt görev
-      (mekanik etiketleme + derlenmiş CSS'te `font-size:`/`font-family:`
-      nöbetçisi); kullanıcı *"6.7'de"* derse bu maddenin **ilk işi** olur —
-      DataTable o bileşenlerin üstüne kuruluyor.
+      ⚠️ **SORUN-002 BURADA ÇÖZÜLÜR — İLK İŞ** *(6.6'da bulundu, sahibi 6.6
+      kapanışında yazıldı)*: 6.4/6.5'in etiketsiz `font-[var(--font-ui)]` /
+      `text-[var(--text-sm)]` sınıfları üretim CSS'inde `font-weight:` /
+      `color:`a derleniyor (20 dosya; derlenmiş CSS'te ölçüldü). İş: 20
+      dosyada `family-name:` / `length:` etiketi (6.6'nın on dosyası emsal) +
+      derlenmiş CSS'te `font-family:var(--font-ui)` ve `font-size:var(--text-…)`
+      iddia eden bir nöbetçi (bir kez ölçülen şey kapı olur). DataTable bu
+      bileşenlerin üstüne kurulacağı için buradan önce. Kullanıcı *"6.6b"*
+      derse ayrı alt görev olur; söylemezse 6.7'nin ilk işi.
       ⚠️ Kriter 3 (55+ fps) ve kriter 4 (375px kart modu) **bugünkü araçla
       ölçülemez** (ölçüldü: jsdom'da `matchMedia` **undefined**,
       `getBoundingClientRect` **0×0**, `ResizeObserver` **yok**). 6.0'ın ①'i
@@ -3997,6 +4102,10 @@ docs/glossary.md
       §7.2 tipleri ayırmıyor: tek mekanizma "sayı kalınlaşır + desen"). Başka bir
       mekanizma seçilirse 6.6'nın seçicileri **ölü kod** olur (DZ-10) — o zaman
       6.6'nın sınıfları da burada değiştirilir, sessizce bırakılmaz.
+      ℹ️ 6.6 kapanışında ölçüldü (kapıcı BİLGİ-6): seçici literalini
+      `CVD_ATTRIBUTE` ile bir arada tutan **tek** test var (M8 → 1 test) ve
+      derlenmiş CSS'te `[data-cvd]` kuralının varlığını ölçen kapı **yok** (6.6
+      elle ölçtü: 4 hit). Setter buraya gelince ikinci bir bağ kurulur.
       ⚠️ jsdom'da `scrollIntoView` ve `hasPointerCapture` **undefined** (ölçüldü)
       — Radix için doldurma gerekecek; hangi doldurmanın **neyi sahtelediği**
       yazılır. ⚠️ axe'ın `color-contrast` kuralı jsdom'da **koşmuyor**.
@@ -4023,6 +4132,15 @@ docs/glossary.md
       ayrıştırılır** (prose'da yaşayan bir sayı bayatlar). ⚠️ `storybook build`in
       hatasız bitmesi *"koyu/açık temada çalışıyor"* iddiasını **kanıtlamaz** —
       ne iddia edildiği 6.0 ⑨ (c) uyarınca açıkça yazılır.
+      ⚠️ **BORÇ-014 BURADA ÖDENİR** *(6.6'da açıldı, kapıcının ZAAF-2'si)* —
+      `packages/ui/src/components/index.ts` (paket yüzeyi) **elle tutulan bir
+      envanter ve nöbetçisi yok**: mutasyon M15'te `DateChip` bloğu silinince
+      577 test, `tsc`, `eslint`, `i18n:check` hepsi yeşil kaldı (hiçbir test
+      barrel'dan import etmiyor). Bu alt görevin *"envanter ↔ hikaye çift yönlü"*
+      nöbetçisi zaten bileşen envanterini disk üzerinden kuracak; aynı nöbetçi
+      **barrel'ı da** tutar: diskteki her bileşen modülünün dışa aktarımları
+      `index.ts`te var mı (kaynaktan türetilir — 6.6'nın `build-exports.mjs`
+      betiği tek seferlikti, kapı değildi).
 - [ ] **6.10** **`pnpm perf:budget` — performans bütçesi kapısı** *(G-01)*
       §11.6'nın 15 satırından 6.0 ⑦'de **ölçülebilir** bulunanları ölçer.
       ⚠️ **Üç parçalı kanıt zorunlu** (5.6'nın dersi: *"bir kapının VAR olması
@@ -4084,6 +4202,16 @@ docs/glossary.md
       olmalı; aracın kendi başlığı bu tehlikeyi adıyla yazıyor ama çare bir
       **teste** kondu, çıktıya değil. Bu alt görev zaten kapı çıktısı biçimiyle
       uğraşıyor — düzeltme oraya düşüyor.
+      ⚠️ **BORÇ-015 BURADA ÖDENİR** *(6.6'da açıldı, kapıcının ZAAF-1'i)* —
+      `packages/ui/package.json`da **`sideEffects` beyanı yok** (`packages/shared`
+      `false` taşıyor). Ölçüldü (M14): 6.6'nın `apps/web`in hiç render etmediği
+      on bileşeninin üst düzey ifadeleri (`ATTRIBUTE_BANDS.map(...)`, şablon
+      sabitleri, geometri) Rolldown tarafından yan etkili sayılıp web paketine
+      giriyor — JS **384.962 → 390.629 B (+5.667)**; `"sideEffects": false`
+      ile **385.463** ve `@fms/ui` payı 8.145 → 2.994 B. Karar bu alt görevin
+      (`tokens.css` CSS `@import` ile geliyor → `false` ya da `["*.css"]`) ve
+      bütçe tablosunun JS satırı bu ayrımla yazılır: bileşen **yazıldığında**
+      değil **kullanıldığında** büyümeli.
       ⚠️ **BORÇ-013 BURADA ÖDENİR** *(6.6'da açıldı)* — `inventory-guards` §③
       `asama` ile `durum` arasında **tutarlılık denetlemiyor**: ölçüldü,
       `scripts/inventory-guards.test.mjs`in *"asama ve durum kapalı kümelerden"*
@@ -4100,6 +4228,18 @@ docs/glossary.md
       en doğal şey). ⚠️ Erken ödenirse yine **0 vaka** üzerinde ölçülür ve
       hiçbir şey öğrenilmez. **Hâlâ 0 gerçek pozitif çıkarsa çözüm bir kapı
       DEĞİL, yazılı bir bileşen inceleme disiplinidir** (SAPMA-026).
+      ⚠️ **BORÇ-016 BURADA ÖDENİR** *(6.6'da açıldı, kapıcının ZAAF-3/4/5'i)* —
+      K5 kapılarının **üç kör noktası daha**, üçü de 6.6'da ölçüldü: ① sözlük
+      ↔ `common.json` nöbetçisi (`glossary-check` ④) **anahtar-bağımsız**:
+      `ui.kitSwatch.kind.home` ↔ `away` değerleri takas edilince 22/22 yeşil —
+      terimin **doğru anahtarda** olduğu iddia edilmiyor ② **yer tutucu adları**
+      korumasız: `common.json`da `{{level}}` → `{{lvl}}` → `i18n:check` temiz,
+      bileşen testleri yeşil (fixture `common.json` okumuyor); 6.6'da yedi yer
+      tutucu elle hizalı (value · band · count · level · name · entries ·
+      position) ③ **cümle içindeki terim** görünmez: `ui.starRating.unknown` =
+      *"Yıldız Derecesi bilinmiyor"* ama sözlükte *"Star Rating"* satırı yok —
+      K-5 tek yönlü. Üçü de BORÇ-009 ile aynı sınıf (kapı yeşil ama iddia
+      ettiği şeye bakmıyor); çare burada ölçülerek seçilir: kapı mı, disiplin mi.
 - [ ] **6.12** **Faz kapanışı** — faz boyutu **§0.5'in iş birimi ölçüsüyle**
       kaydedilir (*6.6-ön'e kadar "süre §0.5'in iki eşiğiyle ölçülür" yazıyordu;
       gün sayma kaldırıldı*) ·
@@ -4121,7 +4261,7 @@ docs/glossary.md
 - [ ] **Storybook'ta, bileşen envanterindeki HER bileşenin hikayesi var** — ve eşleşme **çift yönlü**: envanterdeki her bileşenin hikayesi var **ve** hikayesi olan her bileşen envanterde. Envanter **tek yerde** yaşar, sayı prose'da değil ayrıştıran bir testte *(SAPMA-041)*
 - [ ] `pnpm perf:budget` çalışıyor ve **bütçe aşımında kırıyor** (negatif testle kanıtlanır) *(G-01)*
 - [ ] DataTable 375px'te **kart moduna geçme KARARINI** doğru veriyor — genişlik → mod fonksiyonu, saf birim testi *(render doğrulaması Faz 18'e taşındı)*
-- [ ] Nitelik ısı skalasının **8 kademesindeki DEĞER** okunabiliyor — her bandın üzerindeki sayı WCAG AA (4.5:1) kontrast aritmetiğiyle iddia ediliyor, **ve yedekli kodlama (ağırlık + desen) uygulanmış** *(ekranda ayırt edilebilirlik Faz 49'a taşındı)* *(SAPMA-043)*
+- [x] Nitelik ısı skalasının **8 kademesindeki DEĞER** okunabiliyor — her bandın üzerindeki sayı WCAG AA (4.5:1) kontrast aritmetiğiyle iddia ediliyor, **ve yedekli kodlama (ağırlık + desen) uygulanmış** *(ekranda ayırt edilebilirlik Faz 49'a taşındı)* *(SAPMA-043)* — **6.2 + 6.6'da kapandı:** `contrast-audit.test.ts` DENETİM ⑦ sekiz bant × (düz + desen bileşkesi, siyah mürekkep alfa 0,10) ≥ 4,5 iddia ediyor ve mutasyon M9 onu kırıyor; ağırlık `[[data-cvd]_&]:font-bold`, desen `--band-pattern` (derlenmiş CSS'te 4 hit). ⚠️ Kanıt kapıcının ölçümü; `denetci` bu turda **koşmadı** (6.6 SONUÇ ⑤). Mürekkep sapması onaylanmazsa `[ ]`e döner.
   > ⚠️ **KRİTER 6.2'DE SPEC'E HİZALANDI — eski metni spec'in ÇÖZMEDİĞİ bir şeyi istiyordu.**
   > 6.1'in yazdığı metin *"renk körlüğünün **üç tipinde** … ayırt edilebiliyor"* diyordu ve bu
   > bir **renk dönüşümü** (CVD simülasyon matrisi) ima ediyordu. `spec/05` §7.2 ise renkleri
@@ -4132,8 +4272,9 @@ docs/glossary.md
   > bile** parlaklık komşu bantları ayırmıyor. Yedekli kodlama bir süs değil, mekanizmanın
   > kendisi. Kriter **spec'e hizalandı**, spec genişletilmedi (otorite #1).
   > **6.2'nin payı:** ölçek + kontrast aritmetiği (**kapandı**). **6.6'nın payı:** ağırlık +
-  > desen (`AttributeBadge`). Kriter **[ ] kalıyor** — bir kriteri kısmen sağlamak
-  > sağlamamaktır.
+  > desen (`AttributeBadge`) — **6.6'da kapandı** (üstteki `[x]` notu; bu satır 6.6'ya kadar
+  > *"kriter [ ] kalıyor"* diyordu — bir kriteri kısmen sağlamak sağlamamaktır, iki pay da
+  > sağlanınca kapandı).
 - [ ] Tüm etkileşimli bileşenler sadece klavyeyle kullanılabiliyor — ⚠️ jsdom'da `scrollIntoView`/`hasPointerCapture` **yok**; hangi doldurmanın **neyi sahtelediği** yazılır
 - [ ] **axe → 0 ihlal, VE atlanan kurallar adıyla listeleniyor** — ⚠️ `color-contrast` jsdom'da **koşmuyor** (`var()` çözülmüyor, `getBoundingClientRect` 0×0); *"0 ihlal"* neyin denetlenmediğini söylemeden yazılmaz *(SAPMA-024)*
 
