@@ -29,15 +29,15 @@
 
 ```yaml
 faz: 6
-alt_gorev: 6.6
+alt_gorev: 6.6b
 durum: tamamlandi
 asama: kapandi
 dal: feature/faz-06-design-system
-taban_commit: bbf3e5e
-son_commit_baslik: docs(memory): 6.6 kaydı — SONUÇ, ANLIK DURUM, CHECKPOINT, rapor; BORÇ-014/015/016, SORUN-002 sahibi 6.7
-kapi_tabani: kapıcı (bbf3e5e ağacı) · typecheck 11/11 · lint 0 (301 dosya) · format 0 (346 dosya baktı, *.md bakmadı) · arch temiz (çıktı saymıyor — BORÇ-012) · test 1701/117 (+1 skipped: §③ son_commit_baslik, kirli ağaç) · test:db 301/10 · fonksiyon %85,71 (522/609) · build 8/8 SOĞUK · gaps 20·3·17·0✗ · debt 16·5·11·0✗ (kayıt turunda ölçüldü; kapıcı 13·5·8) · i18n 117/92 · 58 dosya·2 kök · görünmez 420 · web JS 390.629 · CSS 33.844 · [data-cvd] 4 hit · mutasyon 13/13 (M15 kör → BORÇ-014)
-biten: on alan-özel bileşen + 238 test (kod bbf3e5e) · ui.* +51 anahtar · sözlük §7/§8 (170) · inventory-guards ④ · i18n-keys ② kebab→camel + tek *_KEYS · glossary-check ④ · CVD_ATTRIBUTE · contrast-audit ⑦ · kriter 4 [x] (mürekkep sapması onay bekliyor) · kayıt: ROADMAP SONUÇ, günlük #29–#36, BORÇ-013/014/015/016, SORUN-002 (sahibi 6.7), rapor
-yarim_kalan: DENETİM (denetci) YAPILMADI — oturum limiti; 6.7 açılışında 6.6 ÇIKTI'sı denetlenir · D5 imaj yüzeyi CI'da ölçülmedi (#119 quality kırmızı → İmaj koşmadı) — bu commit'in koşusunda okunur · workflow ölçümü raporda
-siradaki_komut: gh run list --limit 2 (bu commit: §③ yeşil mi, İmaj koştu mu) · kullanıcı kararıyla /faz-yurut 6.7 (ilk iş SORUN-002) ya da 6.6b
-acik_karar: ① mürekkep siyah + alfa 0,10 (sözleşme beyaz diyordu) ② K-4 Türkçe terim tablosu + kalibrasyonlar (moral eşikleri, arma/portre boyutları, yıldız yarım-potansiyel yok) ③ SORUN-002 sahibi 6.7 mi 6.6b mi ④ 6.7'ye geçiş onayı (K11)
+taban_commit: 74c5179
+son_commit_baslik: docs(memory): 6.6b denetim kaydı — yazar iddiaları 10/10, K5 temiz, form-indicator etiketsiz (SORUN-002 6.6'ya uzandı), 6.6c açıldı
+kapi_tabani: 74c5179 ağacı + md-only diff · gaps 20·3·17·0✗ · debt 16·5·11·0✗ · format 0 (değişen *.md ignored:true — denetlenen dosya yok) · i18n 117/92/3 · 58 dosya·2 kök · görünmez 422 (rapor dâhil) · arch temiz (BORÇ-012) · typecheck 11/11 (3 cached) · lint 0 (301 dosya) · test:coverage YERELDE KIRMIZI ortam/D6 (iki koşu, 2→5 zaman aşımı; FC26 20,1 CPU-s/3 s; beşi izole yeşil 4/4·66/66·36/36; §③ iki koşuda yeşil, son_commit_baslik kirli ağaçta atlandı) · fonksiyon ölçülemedi · test:db/build koşturulmadı (kod değişmedi) · D5 aynı kod CI #120 İmaj dâhil yeşil · asıl test ölçümü bu commit'in CI koşusu
+biten: 6.6 DENETİMİ (kod yok) · yazar iddiaları exports 10/10 + testCount 10/10 (238; ui 39 dosya 517/517) · K5 temiz (29 Türkçe kod satırı, 29/29 RangeError bağlamı; JSX'e akan sabit 0) · t() 19 çağrı hepsi *_KEYS · ad listesi↔*_KEYS nöbetçileri var (attribute-badge:127/135 · form-indicator:69/84 · morale-icon:134/147) · D5 imaj CI #120 6/6 yeşil · SAPMA form-indicator.tsx 6 etiketsiz/5 bozuk → SORUN-002 kusur 6.4/6.5 VE 6.6, sahibi 6.6c · ölçek 34 geçiş/12 dosya (15 font-weight · 19 color) derlenmiş CSS'te doğrulandı · kayıt: ROADMAP 6.6b SONUÇ + 6.6c bloğu + 6.7 notu, günlük #37–#40, düzeltme bloğu, rapor
+yarim_kalan: yok — 6.6b'nin altı maddesinden beşi 6.6c'ye adıyla taşındı (SORUN-002 · DZ-21 · §0.5 · §16.2 · 6.8 notu), 6.6b yalnızca denetimdi
+siradaki_komut: gh run list --limit 2 (bu commit: §③ yeşil mi) · kullanıcı onayıyla /faz-yurut 6.6c (ilk iş SORUN-002 — sayı yeniden sayılır, NÖBETÇİ ÖNCE, biçimi ölçümle seçilir)
+acik_karar: ① 6.6c'ye geçiş onayı (K11) ② 6.6c'nin nöbetçi biçimi (lint kuralı mı derlenmiş CSS iddiası mı) — 6.6c'nin ölçümünden sonra sorulur, şimdi değil
 ```

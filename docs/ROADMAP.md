@@ -4070,17 +4070,188 @@ docs/glossary.md
       > HEAD'in başlığı"* der. **Kabul edilen davranış:** ara push = §③ kırmızı,
       > kayıt commit'i kapatır; gevşetilmez. **Yeni kayıt:** BORÇ-013 (§③
       > `asama`↔`durum`, 6.10) · BORÇ-014/015/016 · SORUN-002.
+- [x] **6.6b** **6.6'nın DENETİMİ — ürün özelliği yok, kod yok, ESLint kuralı
+      yok, workflow yok, ajan yok.** *(Kullanıcı kararı 2026-09-12: denetim
+      burada yapılır; mürekkep siyah/alfa 0,10 ve sözlük §7/§8 37 terim +
+      kalibrasyonlar ONAYLANDI. İkinci karar, aynı gün: 6.6b'nin altı maddesi —
+      denetim okuma-ağır, düzeltme yazma-ağır — tek alt görevde bağlamı doldurdu
+      ve ilk oturum denetimi bitirip kaydı yazamadan kesildi; ②–⑥ **6.6c**'ye
+      ayrıldı, 6.6b yalnızca ①.)* Denetçi **bağımsız**: 6.6'nın kodunu yazan
+      oturum yok, bağlam sıfırdan.
+      **Kapsam (K12, bu ve yalnızca bu):** ① **6.6 denetimi** — girdi
+      `docs/reports/faz-06/6.6-on-alan-ozel-bilesen.md` §2/§3/§4 + sözleşme v2;
+      §5'in adıyla saydığı denetlenmemiş iddiaların **her biri ölçülür**:
+      yazarların `exports`/`testCount` iddiaları (dosya dosya) · on dosyada
+      modül düzeyi Türkçe metin sabiti (BORÇ-009 sınıfı) · her `t()` kökü
+      `*_KEYS` mi · etiketsiz `font-[var(`/`text-[var(` on yeni dosyada kaldı
+      mı · ad listeleri ↔ `*_KEYS` ayrışma nöbetçileri var mı · D5 iddialarının
+      yüzey adları. Her sapma bir kayıt (SORUN/BORÇ/SAPMA) ve **sahibi**.
+      **YAPILMAYACAK:** SORUN-002'nin düzeltmesi ve nöbetçisi (6.6c) · DZ-21
+      metni (6.6c) · 6.7 · yeni bileşen · workflow/ajan · 6.3b'nin üç kenarlığı
+      ve `--text-muted` (6.8'in).
+      >
+      > ─────────────────────────────────────────────────────────────────────
+      > **SONUÇ — 6.6b (2026-09-12 → 13; iki oturum: ilki denetimi bitirdi,
+      > bağlam dolunca kaydı yazamadan kesildi; ikincisi ucuz ölçümleri yeniden
+      > saydı ve yazdı — D7: devir notundan sayı kopyalanmadı; kayıt commit'i
+      > kullanım limiti sonrası 13'ünde)**
+      > ─────────────────────────────────────────────────────────────────────
+      >
+      > **① YAZARLARIN İDDİALARI DOĞRU — dosya dosya, ikisi de.** Dışa aktarım
+      > (`index.ts`'in `export { … } from './<ad>.js'` bloklarındaki adlar
+      > sayıldı): AttributeBadge 18 · StarRating 24 · FormIndicator 14 ·
+      > MoraleIcon 16 · ClubCrest 7 · PlayerPortrait 6 · KitSwatch 21 ·
+      > PositionMap 32 · CurrencyValue 3 · DateChip 4 — raporun §2 tablosuyla
+      > **10/10 birebir**. Test (`vitest run --project ui --reporter=json`:
+      > 39 dosya · **517/517**, 0 failed, 0 pending): 40 · 30 · 22 · 22 · 24 ·
+      > 18 · 22 · 30 · 13 · 17 = **238** — **10/10 birebir**. 6.6'nın
+      > *"517 − 274 − 5 = 238"* dolaylı doğrulaması artık doğrudan.
+      >
+      > **② K5 TEMİZ — sayı devir notundan büyük, sonuç aynı.** On dosyanın
+      > kod satırlarında (yorum satırları hariç) Türkçe dize taşıyan **29
+      > satır** var ve **29'u da** `throw new RangeError(` içinde ya da ona
+      > giden `assertStarValue(` argümanı (star-rating 8 · attribute-badge 6 ·
+      > kit-swatch 3 · position-map 3 · form-indicator 2 · morale-icon 2 ·
+      > club-crest 2 · player-portrait 1 · currency-value 1 · date-chip 1).
+      > `no-bare-jsx-text` bunları **sözleşmesiyle** dışarıda tutuyor
+      > (*"`new *Error({ message })` — SAPMA-010: message geliştirici içindir"*
+      > + *"JSX dışındaki dizeler"*). JSX'e akan modül düzeyi Türkçe metin
+      > sabiti: **0** — BORÇ-009 sınıfından vaka yok; 6.11'in ölçümüne girdi.
+      > Devir notu *"star-rating'de beş dize"* demişti; star-rating'de 8 satır,
+      > on dosyada 29 — sınıf aynı, sayı devir notunun değil ölçümün.
+      >
+      > **③ `t()` KÖKLERİ:** kod satırlarında **19 çağrı**, kökü sekiz
+      > `*_KEYS`ten biri (ATTRIBUTE_BADGE 3 · STAR_RATING 2 · FORM_INDICATOR 4
+      > · MORALE_ICON 2 · CLUB_CREST 1 · PLAYER_PORTRAIT 1 · KIT_SWATCH 1 ·
+      > POSITION_MAP 5); literal ilk argüman **0**. CurrencyValue/DateChip
+      > anahtarsız (sözleşme).
+      >
+      > **④ AD LİSTESİ ↔ `*_KEYS` AYRIŞMA NÖBETÇİLERİ VAR — adıyla:**
+      > `attribute-badge.test.tsx`:127 (*bant sırası → anahtar adı:
+      > `ATTRIBUTE_BANDS` kadar, hepsi farklı, hepsi kayıtlı*) + :135 ·
+      > `form-indicator.test.tsx`:69 (*HER sonucun kısa ve uzun anahtar adı var
+      > … çapraz bağlı değil*) + :84 · `morale-icon.test.tsx`:134 (*HER
+      > seviyenin anahtar adı var, ad seviyeyi taşıyor, adlar benzersiz*) + :147.
+      >
+      > **⑤ D5 İMAJ YÜZEYİ KAPANDI:** CI **#120** (`74c5179`, 6.6'nın kayıt
+      > commit'i) **6/6 yeşil** — Kalite kapıları · Entegrasyon · **İmaj**,
+      > üçü de amd64 + arm64 (`gh run view --json jobs`). 6.6 raporunun *"imaj
+      > ÖLÇÜLMEDİ"*si burada kapandı; ara push'un kırmızısı (#119, §③) kayıt
+      > commit'iyle kapandı — günlük #36'nın öngördüğü gibi.
+      >
+      > **⑥ SAPMA — `form-indicator.tsx` ETİKETSİZ; 6.6 kaydının *"on dosyası
+      > etiketli"* iddiası ÇÜRÜTÜLDÜ.** Dosya **6 etiketsiz** keyfi `var()`
+      > sınıfı taşıyor (:138 · :139 · :146 · :148), **5'i yanlış özelliğe**
+      > derleniyor — 2× `font-[var(--font-ui)]` → `font-weight:`, 1×
+      > `text-[var(--text-2xs)]` + 2× `text-[var(--text-xs)]` → `color:` —
+      > 1'i renk (`text-[var(--text-muted)]`, tesadüfen doğru). On dosyanın
+      > dokuzu etiketli, biri değil. **SORUN-002'nin kütük satırı düzeltildi:**
+      > kusur 6.4/6.5 **ve 6.6'da**; sahibi **6.6c**. Diğer dokuz dosya kodda
+      > temiz — ama beşi hatayı JSDoc'ta **anlatıyor** (attribute-badge ·
+      > club-crest · currency-value · date-chip · player-portrait) ve ham
+      > `grep` onları da saydı: **44 geçiş / 17 dosya** çıktı, yorum satırları
+      > çıkınca **34 / 12** (D2: ölçülen şey *"sınıf"* değil *"desen"*di; araç
+      > önce doğrulandı, sayı sonra yazıldı).
+      >
+      > **⑦ SORUN-002'NİN ÖLÇEĞİ — 6.6c'nin girdisi, ölçüldü:** **34 geçiş /
+      > 12 dosya** (kod satırları, `packages/ui/src/components/`): **15×**
+      > `font-[var(--font-ui|mono)]` → `font-weight:` · **19×**
+      > `text-[var(--text-2xs|xs|sm|base|lg)]` → `color:`. Dosya başına: avatar
+      > 2 · badge 2 · button-variants 3 · button 1 · combobox 5 · dialog 4 ·
+      > form-indicator 5 · input 2 · select 4 · tabs 2 · toast 2 · tooltip 2.
+      > Derlenmiş CSS'te doğrulandı (`apps/web/dist/assets/index-OcS9oWGA.css`,
+      > 33.844 B — 6.6'nın paketi; `packages/ui/src` ve `apps/web/src`
+      > `bbf3e5e`'den beri değişmedi): yanlış çiftler
+      > `font-weight:var(--font-ui|mono)` ve `color:var(--text-2xs|xs|sm|base|lg)`
+      > **var**; 6.6'nın etiketli dosyalarından doğru çiftler
+      > `font-family:var(--font-ui)` ×2 · `font-family:var(--font-mono)` ×1 ·
+      > `font-size:var(--text-2xs|sm|xs)` ×3 **var**. **Bozuk önek tam iki
+      > tane:** `font-[var(…)]` ve `text-[var(--text-<boyut>)]`. **Doğru
+      > çözülenler (derlenmiş CSS'te):** `border-` → `border-color:` (3) ·
+      > `gap-` → `gap:` (3) · `shadow-` → `--tw-shadow:` (3) · `duration-` →
+      > `--tw-duration:`/`transition-duration:` (2+2) · `z-` → `z-index:` (5) ·
+      > `rounded-` → `border-radius:` (4) · `bg-` → `background-color:` (9) ·
+      > renk `text-[var(--text-primary|secondary|muted)]` → `color:` (5+1+3).
+      > 6.6c'nin nöbetçisi bu iki öneğe bakar, diğerlerine dokunmaz.
+      >
+      > **⑧ BÖLÜNME — DZ-15:** 6.6b'nin altı maddesinden beşi **adıyla 6.6c'nin
+      > kapsamında** (② SORUN-002 · ③ DZ-21 metni · ④ §0.5 ölçümü · ⑤ §16.2
+      > satırı · ⑥ 6.8 notu); hiçbiri düşmedi, hiçbiri daralmadı. 6.7'nin notu
+      > *"6.6b'de çözüldü"* ve var olmayan bir lint kuralını şimdiki zamanda
+      > iddia ediyordu (kirli ağaçta, commit edilmemiş) — **6.6c'de çözülür**
+      > diye düzeltildi; nöbetçinin biçimi 6.6c'nin ölçümüyle seçilir (DZ-10:
+      > yazılmamış bir kural *"reddediyor"* diye yazılmaz).
+      >
+      > **⑨ KAPILAR (bu commit'in ağacı; diff yalnızca `*.md`):** gaps
+      > **20·3·17·0✗** · debt **16·5·11·0✗** · format **0** (*"All matched files
+      > use Prettier code style"*; değişen dört `*.md` `--file-info` →
+      > `ignored:true` — **bu commit'te denetlenen dosya yok**) · i18n
+      > **117/92/3** · 58 dosya · 2 kök · görünmez 422 (rapor dâhil; ilk koşuda
+      > 421, rapor henüz yoktu) · arch temiz (771 ms;
+      > çıktı saymıyor — BORÇ-012) · typecheck **11/11** (3 cached) · lint **0**
+      > (301 dosya, 0/0) · **test:coverage YERELDE KIRMIZI — ORTAM (D6):** iki
+      > koşu, ikisi de EXIT 1 — ① 1699/1702, **2 zaman aşımı** (web `main.test`
+      > · `main.boot-failure`, 5000 ms) ② 1696/1702, **5 zaman aşımı** (+
+      > `i18n-check` kanaryası 5 s · `no-hardcoded-path`/`no-bare-jsx-text`
+      > uçtan uca kanaryaları 30 s). Sebep **ölçüldü**: `FC26` süreci 3 s'lik
+      > örnekte **20,1 CPU-s** (≈ 6–7 çekirdek), vitest artığı yok (`node`
+      > süreçleri MCP). Beşi **izole yeşil**: web 4/4 (5,44 s) · eslint-rules +
+      > web 66/66 (10,35 s) · i18n-check 36/36 (2,57 s). Test **gevşetilmedi**
+      > (DZ-05). §③ iki koşuda da yeşil — *`kapsam: faz=6 alt_gorev=6.6b
+      > durum=tamamlandi taban=74c5179 · ROADMAP alt görev 81`*,
+      > `son_commit_baslik` kirli ağaçta atlandı (1 skipped, beklenen). Fonksiyon
+      > kapsamı **ölçülemedi** (`coverage/` yazılmadı — koşu kırmızı). **test:db
+      > ve build koşturulmadı** (kod değişmedi; diff `*.md`). **D5:** üç yüzey
+      > yerelde koşturulmadı; aynı kod (`74c5179`) CI #120'de paket + web +
+      > **İmaj** yeşil. `test:coverage`ın asıl ölçümü **bu commit'in CI koşusu**
+      > — push sonrası okunur, sonucu bir sonraki kaydın *"Bilinen kayıt
+      > düzeltmeleri"*ne ya da ANLIK DURUM'a girer.
+- [ ] **6.6c** **SORUN-002 + DZ-21 + §0.5 + §16.2 + 6.8 notu — ürün özelliği
+      yok, workflow yok, ajan yok.** *(6.6b'den bölündü, kullanıcı kararı
+      2026-09-12: denetim okuma-ağır, düzeltme yazma-ağır; ikisi tek alt
+      görevde bağlamı doldurdu. Girdi: 6.6b SONUÇ ⑥/⑦.)*
+      **Kapsam (K12, bunlar ve yalnızca bunlar):**
+      ① **SORUN-002** — ölçek 6.6b'de ölçüldü, **yeniden sayılır, kopyalanmaz**
+      (DZ-01): kod satırlarında 12 dosya · `font-[var(--font-*)]` →
+      `font-weight:` · `text-[var(--text-<boyut>)]` → `color:`;
+      `form-indicator.tsx` dâhil (6.6'nın dosyası). **NÖBETÇİ ÖNCE** (etiketsiz
+      keyfi `var()` değeri bu iki önekle yeniden girerse kapı kırılsın; kanarya
+      gerçek depoda öter — DZ-12; **biçimi** — lint kuralı mı, derlenmiş CSS
+      iddiası mı — 6.6c'nin ölçümüyle seçilir, adı burada iddia edilmez) ·
+      etiketle (`font-[family-name:…]`, `text-[length:…]`; 6.6'nın dokuz
+      etiketli dosyası emsal) · derlenmiş CSS'te DOĞRULA (`font-family:` /
+      `font-size:` gerçekten üretiliyor; yanlış `font-weight:var(--font-*)` /
+      `color:var(--text-<boyut>)` çiftleri **0**) · tailwind-merge tarafı
+      (etiketsiz `font-[var(…)]` `font-medium` ile aynı gruba düşüyordu)
+      yeniden ölçülür · kapanışta SORUN-002 kütük satırı *"çözüldü"*.
+      ② **DZ-21 metni** (CLAUDE.md §18.2) → *"Denetim `## ÇIKTI` üzerinden
+      yapılır; orkestratör denetçiye yalnızca o alanı iletir."* Sebep ölçüldü
+      (6.6, günlük #33 / SONUÇ ⑧): eski ifade + şemada gerekçe alanı
+      `reasoning_extraction` korumasını tetikledi, üç koşu reddedildi, iki
+      bisect ~157 k, teşhis toplamı 214.977 token. `.claude/agents/denetci.md`
+      ve `kapici.md` aynı ifade için **kontrol edilir**.
+      ③ **§0.5 ölçümü:** 6.7 ve 6.8'in kapsamı kaç **bağımsız iş birimi**; 15'i
+      aşan varsa ROADMAP'te **bölünme önerisi** (bölme, öner — karar kullanıcının).
+      ④ **CLAUDE.md §16.2'ye bir satır:** moral eşikleri (0–19 · 20–39 · 40–60 ·
+      61–80 · 81–100) bir **kalibrasyon**; gerçek veriyle ilk karşılaşması Faz 38
+      ve Faz 44.
+      ⑤ **6.8 kapsamına:** nitelik bandı 1'in AA payı **0,055** (düz zeminde
+      4,555); 6.8 `--text-muted` ve kenarlık token'larına dokunacak — o
+      değişiklik bandı sessizce AA'nın altına itebilir; `contrast-audit`in bunu
+      tuttuğu 6.8 açılışında **ölçülür**.
+      **YAPILMAYACAK:** 6.7 · yeni bileşen · workflow/ajan · 6.3b'nin üç
+      kenarlığı ve `--text-muted` (6.8'in) · 6.6 denetiminin tekrarı (6.6b'de
+      kapandı) · `border-`/`gap-`/`shadow-`/`duration-`/`z-` öneklerine dokunmak
+      (derlenmiş CSS'te doğru çözülüyorlar — 6.6b ⑦).
 - [ ] **6.7** **DataTable motoru** — TanStack Table + TanStack Virtual,
       sütun seçimi, sıralama, filtre, kaydedilebilir görünüm, mobilde kart modu.
-      ⚠️ **SORUN-002 BURADA ÇÖZÜLÜR — İLK İŞ** *(6.6'da bulundu, sahibi 6.6
-      kapanışında yazıldı)*: 6.4/6.5'in etiketsiz `font-[var(--font-ui)]` /
-      `text-[var(--text-sm)]` sınıfları üretim CSS'inde `font-weight:` /
-      `color:`a derleniyor (20 dosya; derlenmiş CSS'te ölçüldü). İş: 20
-      dosyada `family-name:` / `length:` etiketi (6.6'nın on dosyası emsal) +
-      derlenmiş CSS'te `font-family:var(--font-ui)` ve `font-size:var(--text-…)`
-      iddia eden bir nöbetçi (bir kez ölçülen şey kapı olur). DataTable bu
-      bileşenlerin üstüne kurulacağı için buradan önce. Kullanıcı *"6.6b"*
-      derse ayrı alt görev olur; söylemezse 6.7'nin ilk işi.
+      ℹ️ **SORUN-002 6.7'NİN İŞİ DEĞİL — 6.6c'de çözülür** *(kullanıcı kararı
+      2026-09-12; bu madde 6.6 kapanışında "6.7'nin ilk işi" diyordu, 6.6b'nin
+      kirli ağacında "6.6b'de çözüldü" + var olmayan bir lint kuralı — ikisi de
+      6.6b kapanışında düzeltildi)*. DataTable etiketli sınıf idiyomuyla başlar
+      (`font-[family-name:…]`, `text-[length:…]`); etiketsiz keyfi `var()`
+      değerinin nöbetçisi 6.6c'de yazılır ve 6.7 onun altında çalışır — 6.6c
+      kapanmadan 6.7 açılmaz.
       ⚠️ Kriter 3 (55+ fps) ve kriter 4 (375px kart modu) **bugünkü araçla
       ölçülemez** (ölçüldü: jsdom'da `matchMedia` **undefined**,
       `getBoundingClientRect` **0×0**, `ResizeObserver` **yok**). 6.0'ın ①'i
