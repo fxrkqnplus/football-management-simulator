@@ -6,6 +6,7 @@ export {
   type ApplyThemeOptions,
   type ApplyThemeResult,
   CLUB_ACCENT_TOKEN,
+  CVD_ATTRIBUTE,
   FONT_SCALE_ATTRIBUTE,
   MOTION_ATTRIBUTE,
   THEME_ATTRIBUTE,

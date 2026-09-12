@@ -41,14 +41,20 @@ yalan söylemeye başlardı.
 | Yön | **Yukarı akış** | Aşağı akış |
 
 ⚠️ **Bir terim ikisinde birden yaşadığında çeviri dosyası BU BELGEYE UYAR.**
-Bugün böyle bir çakışma **yok** ve bu ölçüldü: `locales/tr/squad.json` şu an
-boş (`{}`), yani nitelik etiketleri henüz hiçbir çeviri dosyasında değil.
 
-Bu yüzden burada **koşan bir nöbetçi yok** — bakacak bir şey bulamayan bir
-kontrol, bir onay değildir. Zorlamanın sahibi **Faz 18**: nitelik etiketlerini
-`locales`e ilk yazan faz o, ve anahtar adlandırma sözleşmesi o gün doğacak.
-Bugün o sözleşmeyi uydurmak, Faz 18'in tasarımını **onun yerine sessizce**
-vermek olurdu.
+**6.6'ya kadar böyle bir çakışma yoktu** (ölçülmüştü: `locales/tr/squad.json`
+boş `{}`), bu yüzden nöbetçi de yoktu — *"bakacak bir şey bulamayan bir
+kontrol, bir onay değildir."* **6.6 ilk çakışmayı doğurdu:** on alan-özel
+bileşen §7 ve §8'in terimlerini `locales/tr/common.json` `ui.*` altına yazdı.
+O gün nöbetçi de doğdu (DZ-12 — hata oluşabilecek hâldeyken):
+`tools/glossary-check/index.test.mjs` §7/§8'in **her** Türkçe karşılığının
+`common.json` `ui.*` değerleri arasında **birebir** bulunduğunu iddia eder.
+Kapsam bilerek §7/§8: 6.4/6.5'in cümle anahtarları (*"Seçiniz"*, *"Pencereyi
+kapat"*) terim değildir ve dışarıda kalır.
+
+**Nitelik etiketleri** (§3) hâlâ hiçbir çeviri dosyasında değil; onların
+sözleşmesinin sahibi **Faz 18** (`squad.json`ı ilk yazan faz). Bugün o
+sözleşmeyi uydurmak, Faz 18'in tasarımını onun yerine sessizce vermek olurdu.
 
 ---
 
@@ -295,7 +301,92 @@ Türkçe karşılıkları, o niteliklerin ekrana geldiği fazda yazılır.
 |---|---|---|---|
 | `STAFF_ATTRIBUTES` | `packages/db/src/schema/staff-attributes.ts` | 16 | personel ekranı |
 | `MANAGER_ATTRIBUTES` | `packages/db/src/schema/manager-attributes.ts` | 8 | Faz 14 (menajer oluşturma) |
-| `POSITION_LEVELS` | `packages/db/src/schema/player-positions.ts` | 5 | Faz 18-20 |
 
-Üçünün de **çekirdekle kesişimi 0** (ölçüldü), yani eklendiklerinde sözlük
+İkisinin de **çekirdekle kesişimi 0** (ölçüldü), yani eklendiklerinde sözlük
 tam bu sayılar kadar büyür.
+
+ℹ️ `POSITION_LEVELS` (5 üye) bu tabloda **duruyordu** ("Faz 18-20"); 6.6
+`PositionMap` onları ekrana getirdi ve §7.2'ye yazıldı — satır düştü.
+
+---
+
+## 7. Mevkiler ve mevki yetkinliği
+
+> **6.6'da yazıldı.** Kod adları `packages/db/src/schema/players.ts` →
+> `PLAYER_POSITIONS` (12 üye) ve `player-positions.ts` → `POSITION_LEVELS`
+> (5 üye). `packages/ui` bu paketi **import edemez** (§2.4); `PositionMap`
+> kendi kopyasını taşır ve eşitliği `scripts/inventory-guards.test.mjs` ④
+> iddia eder — iki liste ayrışamaz.
+>
+> Kaynak: **Kaleci · Stoper · Santrfor** `docs/spec/02-attributes.md` §4.2'den
+> (`GK (Kaleci)` / `DC (Stoper)` / `ST (Santrfor)`); kalan dokuz mevki ve beş
+> yetkinlik derecesi spec'te Türkçesiz — **burada doğdu** (6.6, K13: kullanıcı
+> onayına sunuldu). `awkward` ≠ *"Zayıf"* (nitelik bandı 4–6'nın adı) ve
+> `ineffectual` ≠ *"Yabancı"* (Yabancı Kotası ile çakışır) — ROADMAP Faz 10 ve
+> `player-positions.ts`in eski karşılıkları buna hizalandı.
+>
+> ⚠️ Mevki **kodu** (`GK`, `DC`…) arayüzde kod olarak görünür: bir kimlik,
+> çeviri değil (§14'ün `xG` emsali). Aşağıdaki karşılık **uzun ad** içindir
+> (`title`, `aria-label`, liste).
+
+### 7.1 Mevki kodları
+
+| Kod (İngilizce) | Arayüz (Türkçe) |
+|---|---|
+| Goalkeeper (GK) | Kaleci |
+| Centre Back (DC) | Stoper |
+| Left Back (DL) | Sol Bek |
+| Right Back (DR) | Sağ Bek |
+| Defensive Midfielder (DM) | Defansif Orta Saha |
+| Central Midfielder (MC) | Merkez Orta Saha |
+| Left Midfielder (ML) | Sol Orta Saha |
+| Right Midfielder (MR) | Sağ Orta Saha |
+| Attacking Midfielder (AMC) | Ofansif Orta Saha |
+| Left Winger (AML) | Sol Kanat |
+| Right Winger (AMR) | Sağ Kanat |
+| Striker (ST) | Santrfor |
+
+### 7.2 Mevki yetkinliği
+
+| Kod (İngilizce) | Arayüz (Türkçe) |
+|---|---|
+| natural | Doğal |
+| accomplished | Yetkin |
+| competent | Kabul Edilebilir |
+| awkward | Zorlanır |
+| ineffectual | Yetersiz |
+
+---
+
+## 8. Alan bileşeni terimleri
+
+> **6.6'da yazıldı** — on alan-özel bileşenin kullanıcıya gösterdiği kapalı
+> kümeler. Nitelik bandı etiketleri `docs/spec/05-design-system.md` §7.2'den
+> **birebir** (küçük harf spec'in yazımı; kod adı `attribute-badge.tsx`teki
+> anahtar). Moral seviyeleri bir **kalibrasyondur** (spec moral'i 0–100 sayı
+> olarak tanımlar, seviye vermez — eşikler `morale-icon.tsx`te gerekçesiyle).
+> Sonuç harfleri G/B/M Türkçe adların baş harfi (`FormIndicator (G/B/M)`,
+> ROADMAP Faz 6).
+
+| Kod (İngilizce) | Arayüz (Türkçe) |
+|---|---|
+| Win (W) | Galibiyet |
+| Draw (D) | Beraberlik |
+| Loss (L) | Mağlubiyet |
+| Morale: very low | Çok Kötü |
+| Morale: low | Kötü |
+| Morale: neutral | Normal |
+| Morale: high | İyi |
+| Morale: very high | Çok İyi |
+| Home Kit | İç Saha Forması |
+| Away Kit | Deplasman Forması |
+| Third Kit | Üçüncü Forma |
+| Attribute band: very poor | çok zayıf |
+| Attribute band: poor | zayıf |
+| Attribute band: below average | vasat altı |
+| Attribute band: average | vasat |
+| Attribute band: good | iyi |
+| Attribute band: very good | çok iyi |
+| Attribute band: excellent | mükemmel |
+| Attribute band: world class | dünya klasmanı |
+| Unknown | Bilinmiyor |

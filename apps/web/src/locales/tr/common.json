@@ -57,6 +57,89 @@
     },
     "toast": {
       "close": "Bildirimi kapat"
+    },
+    "attributeBadge": {
+      "band": {
+        "veryPoor": "çok zayıf",
+        "poor": "zayıf",
+        "belowAverage": "vasat altı",
+        "average": "vasat",
+        "good": "iyi",
+        "veryGood": "çok iyi",
+        "excellent": "mükemmel",
+        "worldClass": "dünya klasmanı"
+      },
+      "unknown": "Bilinmiyor",
+      "label": "Nitelik {{value}} — {{band}}"
+    },
+    "starRating": {
+      "aria": "{{value}} / {{max}} yıldız",
+      "unknown": "Yıldız Derecesi bilinmiyor"
+    },
+    "formIndicator": {
+      "win": {
+        "short": "G",
+        "long": "Galibiyet"
+      },
+      "draw": {
+        "short": "B",
+        "long": "Beraberlik"
+      },
+      "loss": {
+        "short": "M",
+        "long": "Mağlubiyet"
+      },
+      "aria": "Son {{count}} maç formu",
+      "empty": "Form verisi yok"
+    },
+    "moraleIcon": {
+      "level": {
+        "veryLow": "Çok Kötü",
+        "low": "Kötü",
+        "neutral": "Normal",
+        "high": "İyi",
+        "veryHigh": "Çok İyi"
+      },
+      "aria": "Moral: {{level}}"
+    },
+    "clubCrest": {
+      "alt": "{{name}} arması"
+    },
+    "playerPortrait": {
+      "alt": "{{name}} portresi"
+    },
+    "kitSwatch": {
+      "kind": {
+        "home": "İç Saha Forması",
+        "away": "Deplasman Forması",
+        "third": "Üçüncü Forma"
+      }
+    },
+    "positionMap": {
+      "position": {
+        "gk": "Kaleci",
+        "dc": "Stoper",
+        "dl": "Sol Bek",
+        "dr": "Sağ Bek",
+        "dm": "Defansif Orta Saha",
+        "mc": "Merkez Orta Saha",
+        "ml": "Sol Orta Saha",
+        "mr": "Sağ Orta Saha",
+        "amc": "Ofansif Orta Saha",
+        "aml": "Sol Kanat",
+        "amr": "Sağ Kanat",
+        "st": "Santrfor"
+      },
+      "level": {
+        "natural": "Doğal",
+        "accomplished": "Yetkin",
+        "competent": "Kabul Edilebilir",
+        "awkward": "Zorlanır",
+        "ineffectual": "Yetersiz"
+      },
+      "aria": "Mevki haritası: {{entries}}",
+      "entry": "{{position}}: {{level}}",
+      "empty": "Mevki verisi yok"
     }
   },
   "diagnostics": {

@@ -53,14 +53,20 @@ kendi çıkış koduyla.** `format:check`in senin **değiştirdiğin** dosyalara
 - koşturulan komutlar ve HAM sonuç satırları (sayı yok, satır var)
 - kırılan/geçen kapılar, kapsam satırlarıyla
 - mutasyon adayları (neyi bozarsan hangi test kırılmalı — ADAY, sonuç değil)
-## GEREKÇE
+## TASARIM NOTLARI
 - neden böyle, hangi seçenek elendi, hangi sınır bilerek çizildi
 ```
 
-⚠️ **`denetci` ve `kapici` yalnızca `## ÇIKTI`yı görür — `## GEREKÇE`yi
-görmez.** Gerekçeyi okuyan denetçi gerekçeye ikna olur; iddia **çıktıdan**
-doğrulanmalı. Gerekçe rapora ve commit gövdesine gider, denetime değil. Bu
-ayrımı sen kendin uygularsın: ÇIKTI bölümüne tek bir *"çünkü"* yazma.
+⚠️ **İki bölümün iki ayrı alıcısı var.** `## ÇIKTI` ölçülebilir olguları
+taşır ve denetim (`kapici`, `denetci`) **onun üzerinden** yapılır — iddia
+çıktıdan doğrulanır. `## TASARIM NOTLARI` rapora ve commit gövdesine gider.
+Bu ayrımı sen kendin uygularsın: ÇIKTI bölümüne tek bir *"çünkü"* yazma;
+tasarım notların açık ve tam olsun, raporun DETAY'ı onlardan yazılır.
+
+ℹ️ Bu bölümün adı 6.6'ya kadar *"GEREKÇE"* idi ve ilk workflow koşusunda beş
+yazar ajanın beşi API güvenlik katmanında **`reasoning_extraction`** bayrağıyla
+başlamadan düştü (2026-09-11, 0 token). Ayrım aynı, ifade değişti: denetim
+kapsamı anlatılıyor, bir bölümü "gizle" denmiyor.
 
 Bitince **dur**. ROADMAP'i `[x]` yapmak, ANLIK DURUM'u ve CHECKPOINT'i yazmak
 senin değil `kayitci`nin işi; commit atmak ana oturumun.

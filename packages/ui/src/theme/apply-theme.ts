@@ -21,6 +21,17 @@ import { type ThemeMode } from './theme-mode.js';
 export const THEME_ATTRIBUTE = 'data-theme';
 export const MOTION_ATTRIBUTE = 'data-reduced-motion';
 export const FONT_SCALE_ATTRIBUTE = 'data-font-scale';
+/**
+ * Renk körlüğü modu — **6.6'da yalnızca ADI kondu, kurulumu 6.8'in**.
+ *
+ * `AttributeBadge` (6.6) yedekli kanallarını (ağırlık + desen, spec/05 §7.2)
+ * ata `[data-cvd]` özniteliğine bağlı Tailwind sınıflarıyla yazıyor; sınıf
+ * literali bu sabiti içerdiği bir testle iddia ediliyor ki seçici (6.6) ile
+ * setter (6.8) iki ayrı liste olarak ayrışmasın. `applyTheme` bu özniteliği
+ * **henüz yazmıyor**: üç tip (protanopi / döteranopi / tritanopi), ayar arayüzü
+ * ve tip başına farkın kararı 6.8 kapsamında adıyla duruyor (DZ-14).
+ */
+export const CVD_ATTRIBUTE = 'data-cvd';
 
 /** Kulüp vurgusunun yazıldığı token. §7.1: *"`--accent` … ayarlanır"*. */
 export const CLUB_ACCENT_TOKEN: ColorTokenKey = '--accent';

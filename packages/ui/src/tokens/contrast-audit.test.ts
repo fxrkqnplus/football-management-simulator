@@ -13,18 +13,35 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import {
+  ATTRIBUTE_BADGE_FOREGROUNDS,
+  ATTRIBUTE_PATTERN_ALPHA,
+  attributeBadgeForeground,
+  attributePatternComposite,
+} from '../components/attribute-badge.js';
 import { ATTRIBUTE_BANDS } from './attribute-scale.js';
 import { DARK_COLOR_TOKENS, LIGHT_COLOR_OVERRIDES } from './color.js';
 import { CONTRAST_TARGET_AA, contrastRatio, pickAccessibleForeground } from './contrast.js';
 import { foregroundForTone, SEMANTIC_TONE_TOKENS, SEMANTIC_TONES } from './semantic-tone.js';
 
-/** Rozetin sayısı için iki aday: koyu temanın ana metni ve ters metni. */
-const BADGE_FOREGROUNDS = [
-  DARK_COLOR_TOKENS['--text-primary'],
-  DARK_COLOR_TOKENS['--text-inverse'],
-] as const;
+/**
+ * Rozetin sayısı için iki aday: koyu temanın ana metni ve ters metni.
+ *
+ * ⚠️ 6.6'ya kadar bu liste BURADA elle yazılıydı (`BADGE_FOREGROUNDS`) ve
+ * bileşen yoktu. Bileşen doğduğunda (`attribute-badge.tsx`) aynı listeyi
+ * dışa aktardı; iki liste bir gün ayrışmasın diye denetim artık bileşenin
+ * listesini **import ediyor** (sözleşme 6.6 §1.1: *"iki liste → bir"*).
+ */
+const BADGE_FOREGROUNDS = ATTRIBUTE_BADGE_FOREGROUNDS;
 
 describe('DENETİM ① — sekiz bandın üzerindeki SAYI okunabilir mi', () => {
+  it('aday listesi bileşenden geliyor ve koyu temanın iki metin token DEĞERİ', () => {
+    expect(BADGE_FOREGROUNDS).toEqual([
+      DARK_COLOR_TOKENS['--text-primary'],
+      DARK_COLOR_TOKENS['--text-inverse'],
+    ]);
+  });
+
   it('sekiz bandın HEPSİ, iki adaydan en iyisiyle AA (4.5:1) sağlıyor', () => {
     // Ölçüldü: TEK BİR metin rengi sekiz bandın hepsinde yetmiyor — koyu
     // bantlar açık metin, açık bantlar koyu metin istiyor. Seçim bir tercih
@@ -71,6 +88,61 @@ describe('DENETİM ② — komşu bantlar RENKLE ayrılıyor mu (spec sorusu)', 
     // En yüksek komşu farkı da 2'nin altında; en düşüğü 1'e çok yakın.
     expect(Math.max(...ratios)).toBeLessThan(2);
     expect(Math.min(...ratios)).toBeLessThan(1.1);
+  });
+});
+
+describe('DENETİM ⑦ — AttributeBadge: sekiz bant × (DÜZ + DESEN BİLEŞKESİ) ≥ AA (6.6)', () => {
+  /**
+   * ① yalnızca düz bandı denetliyordu. 6.6'nın yedekli kodlaması bandın
+   * üstüne `ATTRIBUTE_PATTERN_ALPHA` oranında siyah çizgi bindiriyor; sayı
+   * çizginin ÜSTÜNE de düşüyor. Bu blok, bileşenin seçtiği ön planın iki
+   * zeminde de (düz · bileşke) AA'yı geçtiğini iddia ediyor. Kapsam
+   * `ATTRIBUTE_BANDS.length`ten — 16 çift, sayı listeden.
+   */
+  it('bileşenin seçtiği ön plan, her bantta hem düz hem bileşke üzerinde AA', () => {
+    let audited = 0;
+    for (const band of ATTRIBUTE_BANDS) {
+      const picked = attributeBadgeForeground(band);
+      expect(BADGE_FOREGROUNDS).toContain(picked);
+      const composite = attributePatternComposite(band.color);
+      expect(composite).toMatch(/^#[0-9A-F]{6}$/);
+      expect(contrastRatio(picked, band.color), `${band.label} düz`).toBeGreaterThanOrEqual(
+        CONTRAST_TARGET_AA,
+      );
+      expect(contrastRatio(picked, composite), `${band.label} bileşke`).toBeGreaterThanOrEqual(
+        CONTRAST_TARGET_AA,
+      );
+      audited += 2;
+    }
+    expect(audited).toBe(ATTRIBUTE_BANDS.length * 2);
+  });
+
+  it('bileşke düz banttan FARKLI — desen kanalı ölü değil (alfa > 0)', () => {
+    // Alfa 0 olsaydı bileşke = düz ve yukarıdaki test ①'in kopyası olurdu.
+    // Alfanın ölçümü `attribute-badge.test.tsx`te; burada yalnızca kanalın
+    // canlı olduğu iddia ediliyor.
+    expect(ATTRIBUTE_PATTERN_ALPHA).toBeGreaterThan(0);
+    for (const band of ATTRIBUTE_BANDS) {
+      expect(attributePatternComposite(band.color), band.label).not.toBe(band.color);
+    }
+  });
+
+  it('KARŞI KONTROL: bileşke, açık metinli bantlarda kontrastı YÜKSELTİYOR, koyu metinlilerde DÜŞÜRÜYOR', () => {
+    // Siyah mürekkebin gerekçesi (bileşen başlığı): koyu çizgi açık metnin
+    // payını büyütür, koyu metninkini küçültür — sınır koyu metinli bantta.
+    // İki yön de gerçekten oluşuyor; biri boş kalsaydı liste gereksizdi.
+    let raised = 0;
+    let lowered = 0;
+    for (const band of ATTRIBUTE_BANDS) {
+      const picked = attributeBadgeForeground(band);
+      const plain = contrastRatio(picked, band.color);
+      const composite = contrastRatio(picked, attributePatternComposite(band.color));
+      if (composite > plain) raised += 1;
+      if (composite < plain) lowered += 1;
+    }
+    expect(raised).toBeGreaterThan(0);
+    expect(lowered).toBeGreaterThan(0);
+    expect(raised + lowered).toBe(ATTRIBUTE_BANDS.length);
   });
 });
 

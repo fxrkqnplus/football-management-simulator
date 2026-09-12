@@ -46,10 +46,18 @@
  * mi geliyor). Nöbetçi 6.5'te **bileşenlerden ÖNCE** yazıldı ve ilk gerçek
  * unutma vakasında (`DIALOG_KEYS`) **gerçek depoda öttü**.
  */
+import { ATTRIBUTE_BADGE_KEYS } from './attribute-badge.js';
+import { CLUB_CREST_KEYS } from './club-crest.js';
 import { COMBOBOX_KEYS } from './combobox.js';
 import { DIALOG_KEYS } from './dialog.js';
+import { FORM_INDICATOR_KEYS } from './form-indicator.js';
+import { KIT_SWATCH_KEYS } from './kit-swatch.js';
+import { MORALE_ICON_KEYS } from './morale-icon.js';
+import { PLAYER_PORTRAIT_KEYS } from './player-portrait.js';
+import { POSITION_MAP_KEYS } from './position-map.js';
 import { SELECT_KEYS } from './select.js';
 import { SHEET_KEYS } from './sheet.js';
+import { STAR_RATING_KEYS } from './star-rating.js';
 import { TOAST_KEYS } from './toast.js';
 
 /** Ön ek — **nokta ile biter**, ve bu bir kaza değil (yukarı bak). */
@@ -62,11 +70,27 @@ export const UI_KEY_PREFIX = 'common:ui.';
  * `*_KEYS` nesnesini yaymak; anahtar dizeleri **kopyalanmıyor**.
  */
 export const UI_KEYS = {
+  // 6.4 / 6.5 — temel bileşenler
   combobox: COMBOBOX_KEYS,
   dialog: DIALOG_KEYS,
   select: SELECT_KEYS,
   sheet: SHEET_KEYS,
   toast: TOAST_KEYS,
+  // 6.6 — alan-özel bileşenler. Grup adı = dosya adının camelCase'i
+  // (`attribute-badge.tsx` → `attributeBadge`): anahtar segmentleri tire
+  // taşıyamaz (`/^[a-z][a-zA-Z0-9]*$/`), dosya adları ise kebab-case (§1.3).
+  // İkisi arasındaki köprü `i18n-keys.test.ts`teki `groupNameOf` — 6.5 tek
+  // kelimelik adları varsaymıştı; ilk çok kelimeli bileşen 6.6'da geldi.
+  // `currencyValue` ve `dateChip` metin taşımıyor → grupları YOK (nöbetçi
+  // YÖN ② hayalet kaydı reddeder).
+  attributeBadge: ATTRIBUTE_BADGE_KEYS,
+  clubCrest: CLUB_CREST_KEYS,
+  formIndicator: FORM_INDICATOR_KEYS,
+  kitSwatch: KIT_SWATCH_KEYS,
+  moraleIcon: MORALE_ICON_KEYS,
+  playerPortrait: PLAYER_PORTRAIT_KEYS,
+  positionMap: POSITION_MAP_KEYS,
+  starRating: STAR_RATING_KEYS,
 } as const;
 
 /** Bütün anahtar dizeleri, düz bir liste — nöbetçinin taradığı küme. */

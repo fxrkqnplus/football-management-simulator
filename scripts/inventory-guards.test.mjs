@@ -337,7 +337,7 @@ describe('③ docs/CHECKPOINT.md git ve ROADMAP ile örtüşüyor', () => {
     expect(field('son_commit_baslik')).toBe(head.out);
   });
 
-  it('atlanan vakalar SEBEBİYLE basılıyor — sessiz atlama D3 dür', () => {
+  it('atlanan vakalar SEBEBİYLE basılıyor — sessiz atlama D3 dür (§③)', () => {
     const skipped = [
       branchSkip === null ? null : `dal → ${branchSkip}`,
       titleSkip === null ? null : `son_commit_baslik → ${titleSkip}`,
@@ -347,5 +347,88 @@ describe('③ docs/CHECKPOINT.md git ve ROADMAP ile örtüşüyor', () => {
     );
     // Bu vaka bir iddia taşımıyor; yalnızca kapsamı görünür kılıyor.
     expect(Array.isArray(skipped)).toBe(true);
+  });
+});
+
+/**
+ * ④ KAPALI KÜME KOPYALARI — `packages/ui` ↔ `packages/db` (6.6)
+ *
+ * `packages/ui` `packages/db`yi import edemez (§2.4); ama `PositionMap` mevki
+ * kodlarını ve yetkinlik derecelerini, `KitSwatch` forma türlerini ve renk yuvası
+ * sayısını göstermek zorunda. Yani aynı kapalı küme iki pakette **iki kopya**
+ * olarak yaşıyor — DZ-07: *"türetilemeyen elle liste kendi kapısını getirir."*
+ * Bu nöbetçi iki kopyanın **sıra dahil** birebir aynı olduğunu iddia eder.
+ *
+ * ⚠️ Ölçüm aracı: kaynak dosyanın METNİ, import değil — çalışma zamanı
+ * bağımlılığı yaratmadan iki paketi karşılaştırmanın tek yolu. Çıkarma bir
+ * düzenli ifadeyle yapılıyor (`export const AD = [ … ] as const`); `scripts/`
+ * hiçbir workspace paketini/aracını import etmez (§2.4), o yüzden
+ * `tools/glossary-check`in AST ayrıştırıcısı buraya alınmadı. Yeni bir ölçüm
+ * aracı yanlış cevap üretebilir (D2) — bu yüzden **karşı kontrol** var: db
+ * tarafındaki dört sabitin üye sayıları bilinen değerlerle iddia ediliyor
+ * (12 · 5 · 3 · 2). Düzenli ifade bir gün eşleşmezse boş liste "eşit" diye
+ * geçmez, sayım kırılır.
+ *
+ * ⚠️ NÖBETÇİ YAZARDAN ÖNCE YAZILDI (DZ-12): iskele hâlindeki `position-map.tsx`
+ * ve `kit-swatch.tsx` sabitleri henüz taşımıyordu ve bu test **gerçek depoda**
+ * kırmızıydı ("ui tarafında sabit yok"); yazar sabitleri ekleyince yeşile döndü.
+ */
+const CLOSED_SET_PAIRS = [
+  {
+    ui: ['packages/ui/src/components/position-map.tsx', 'POSITION_CODES'],
+    db: ['packages/db/src/schema/players.ts', 'PLAYER_POSITIONS'],
+    expectedSize: 12,
+  },
+  {
+    ui: ['packages/ui/src/components/position-map.tsx', 'POSITION_LEVELS'],
+    db: ['packages/db/src/schema/player-positions.ts', 'POSITION_LEVELS'],
+    expectedSize: 5,
+  },
+  {
+    ui: ['packages/ui/src/components/kit-swatch.tsx', 'KIT_TYPES'],
+    db: ['packages/db/src/schema/club-kits.ts', 'KIT_TYPES'],
+    expectedSize: 3,
+  },
+  {
+    ui: ['packages/ui/src/components/kit-swatch.tsx', 'KIT_COLOR_SLOTS'],
+    db: ['packages/db/src/schema/kit-templates.ts', 'KIT_COLOR_SLOTS'],
+    expectedSize: 2,
+  },
+];
+
+/**
+ * `export const AD = [ 'a', 'b', 3 ] as const;` → `['a', 'b', 3]`.
+ * Sabit yoksa `null` (boş liste ile "yok" ayırt edilsin — glossary-check emsali).
+ */
+const readClosedSet = (rel, name) => {
+  const text = read(rel);
+  const match = new RegExp(`export const ${name}\\s*=\\s*\\[([^\\]]*)\\]\\s*as const`).exec(text);
+  if (match === null) return null;
+  const body = match[1] ?? '';
+  return [...body.matchAll(/'([^']*)'|"([^"]*)"|(\d+(?:\.\d+)?)/g)].map((m) =>
+    m[3] !== undefined ? Number(m[3]) : (m[1] ?? m[2]),
+  );
+};
+
+describe('④ kapalı küme kopyaları — packages/ui ↔ packages/db birebir', () => {
+  it('düzenli ifade db tarafında bakacak bir şey buluyor — sayılar bilinen değerlerle', () => {
+    // Karşı kontrol (D2): çıkarıcı bozulursa boş liste "eşit" diye geçmesin.
+    const sizes = CLOSED_SET_PAIRS.map(({ db, expectedSize }) => ({
+      name: db[1],
+      size: readClosedSet(db[0], db[1])?.length ?? null,
+      expectedSize,
+    }));
+    process.stdout.write(
+      `  inventory-guards ④ kapsam: ${sizes.map((s) => `${s.name}=${String(s.size)}`).join(' · ')}\n`,
+    );
+    for (const s of sizes) expect(s.size, s.name).toBe(s.expectedSize);
+  });
+
+  it.each(CLOSED_SET_PAIRS)('ui $ui.1 ↔ db $db.1 — sıra dahil aynı', ({ ui, db }) => {
+    const uiSet = readClosedSet(ui[0], ui[1]);
+    const dbSet = readClosedSet(db[0], db[1]);
+    expect(uiSet, `ui tarafında sabit yok: ${ui[1]} (${ui[0]})`).not.toBeNull();
+    expect(dbSet, `db tarafında sabit yok: ${db[1]} (${db[0]})`).not.toBeNull();
+    expect(uiSet).toEqual(dbSet);
   });
 });

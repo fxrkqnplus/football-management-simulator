@@ -125,6 +125,10 @@ describe('KRİTER 5 — sözlükte en az 120 terim', () => {
   it('DAĞILIM kaynak bazında sabit — uzunluk tek başına kör bir kontroldür', () => {
     // 5.1'in dersi: 133 tane aynı satır da eşiği geçerdi. Bir bölümden satır
     // silinip başkasına eklenirse toplam korunur ama BU test kırılır.
+    // 6.6: üç bölüm daha — §7.1 mevki kodları (db `PLAYER_POSITIONS`, 12),
+    // §7.2 mevki yetkinliği (db `POSITION_LEVELS`, 5), §8 alan bileşeni
+    // terimleri (20). Sayılar bilinçli GÜNCELLENDİ, gevşetilmedi: ilk on
+    // alan-özel bileşen bu terimleri ekrana getirdi ve sözlük o gün büyüdü.
     expect({
       cekirdek: inSection('Çekirdek terimler').length,
       teknik: inSection('Teknik').length,
@@ -132,6 +136,9 @@ describe('KRİTER 5 — sözlükte en az 120 terim', () => {
       fiziksel: inSection('Fiziksel').length,
       kaleci: inSection('Kaleci').length,
       gizli: inSection('Gizli nitelikler').length,
+      mevki: inSection('Mevki kodları').length,
+      yetkinlik: inSection('Mevki yetkinliği').length,
+      bilesen: inSection('Alan bileşeni').length,
     }).toEqual({
       cekirdek: 77,
       teknik: 14,
@@ -139,13 +146,16 @@ describe('KRİTER 5 — sözlükte en az 120 terim', () => {
       fiziksel: 8,
       kaleci: 11,
       gizli: 9,
+      mevki: 12,
+      yetkinlik: 5,
+      bilesen: 20,
     });
   });
 
   it('toplam, bölümlerin toplamına EŞİT — sayılmayan bir tablo yok', () => {
-    const sum = 77 + 14 + 14 + 8 + 11 + 9;
+    const sum = 77 + 14 + 14 + 8 + 11 + 9 + 12 + 5 + 20;
     expect(terms).toHaveLength(sum);
-    expect(sum).toBe(133);
+    expect(sum).toBe(170);
   });
 
   it('hiçbir terim TEKRARLANMIYOR', () => {
@@ -230,5 +240,54 @@ describe('Kod envanterleriyle eşleşme', () => {
     const rest = hidden.filter((name) => name !== DEDUPED);
     expect(rest).toHaveLength(9);
     expect(rest.filter((name) => !inHiddenTable.has(name))).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ④ SÖZLÜK ↔ ÇEVİRİ DOSYASI — 6.6'da doğdu (K-5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * `docs/glossary.md` §7/§8 ↔ `apps/web/src/locales/tr/common.json` `ui.*`.
+ *
+ * Sözlüğün *"Sözlük mü, çeviri dosyası mı"* bölümü *"bir terim ikisinde birden
+ * yaşadığında çeviri dosyası bu belgeye uyar"* diyor ve 6.6'ya kadar böyle bir
+ * çakışma **yoktu** — nöbetçi de yoktu (*"bakacak bir şey bulamayan kontrol
+ * onay değildir"*). 6.6 ilk çakışmayı doğurdu: on alan-özel bileşenin
+ * etiketleri sözlükten **türetildi** ve `ui.*`a yazıldı. Türetmenin nöbetçisi
+ * bu: §7/§8'in HER Türkçe karşılığı `ui.*` değerleri arasında **birebir** var.
+ *
+ * Kapsam bilerek §7/§8: 6.4/6.5'in cümle anahtarları (*"Seçiniz"*, *"Pencereyi
+ * kapat"*) terim değildir. Ters yön (her `ui.*` değeri sözlükte) iddia
+ * EDİLMİYOR ve sebebi var — `ui.*` cümle ve enterpolasyon şablonu da taşıyor
+ * (*"Nitelik {{value}} — {{band}}"*); bir cümlenin "terim" olup olmadığı
+ * makineyle ayrılamaz. Kapsamın sınırı burada yazılı, sessiz değil.
+ */
+describe('④ sözlük §7/§8 ↔ common.json ui.* — çeviri dosyası sözlüğe uyuyor', () => {
+  const common = JSON.parse(read('apps/web/src/locales/tr/common.json'));
+  const leafValues = (node, out = []) => {
+    for (const value of Object.values(node)) {
+      if (typeof value === 'string') out.push(value);
+      else if (value !== null && typeof value === 'object') leafValues(value, out);
+    }
+    return out;
+  };
+  const uiValues = new Set(leafValues(common.ui));
+  const componentTerms = [
+    ...inSection('Mevki kodları'),
+    ...inSection('Mevki yetkinliği'),
+    ...inSection('Alan bileşeni'),
+  ];
+
+  it('nöbetçi BAKACAK BİR ŞEY buluyor — iki taraf da boş değil', () => {
+    expect(componentTerms.length).toBeGreaterThan(0);
+    expect(uiValues.size).toBeGreaterThan(0);
+    // Anahtar taşıyan bir 6.6 grubu adıyla: tarama `ui.*`ın 6.6 kısmını görüyor.
+    expect(common.ui).toHaveProperty('positionMap');
+  });
+
+  it('§7/§8 in HER Türkçe karşılığı `ui.*` değerleri arasında BİREBİR var', () => {
+    const missing = componentTerms.filter((t) => !uiValues.has(t.tr)).map((t) => t.en);
+    expect(missing).toEqual([]);
   });
 });

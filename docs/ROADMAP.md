@@ -3957,8 +3957,25 @@ docs/glossary.md
       ⚠️ **Etiketler `docs/glossary.md`den TÜRETİLİR, yeniden uydurulmaz**
       (SAPMA-026). Sözlük **bağlayıcı sözleşme** (56 nitelik + 77 çekirdek
       terim); çelişkide **`CLAUDE.md` §14 kazanır**.
+      **UYGULAMA PLANI** *(6.6 açılışı — `olcumcu` ① + `planci` ② workflow'u, ilk koddan önce yazıldı; depo ilk workflow koşusu)*
+      · **Sözleşme:** `docs/reports/faz-06/6.6-0-uygulama-sozlesmesi.md` (v2 — planci 22 bulgu; K11: plan sohbette/scratchpad'de yaşamaz). Yazar = bileşen başına `<ad>.tsx` + `<ad>.test.tsx`; paylaşılan dosyalar ana oturumun (iskele).
+      · **Kapsam (K12, bunlar ve yalnızca bunlar):** on bileşen · sekiz `*_KEYS` grubu (CurrencyValue/DateChip anahtarsız) · `common.json ui.*` · sözlük §7 (mevki 12 · yetkinlik 5) + §8 (alan bileşeni terimleri) · `inventory-guards` ④ ui↔db kapalı kümeler · `CVD_ATTRIBUTE` sabiti (`apply-theme.ts`) · `contrast-audit` DENETİM ③ (desen bileşkesi) · sözlük §7/§8 ↔ `ui.*` nöbetçisi. **YAPILMAYACAK:** CVD modu/ayarı (6.8) · DataTable (6.7) · Storybook (6.9) · shared'a küme taşıma (V2) · `StarRating.max` · `redundant` · `shape`.
+      · **Kaynak ↔ kendi sesimiz (D7):** §7.2 metni ve bant adları KAYNAK · §7.6 yalnızca ORAN (yönelim spec'te yok → dikey, KARAR) · `spec/04` §6.2 yıldız `clamp(0.5, 5)` KAYNAK · `spec/01`:987 moral 0–100, seviye YOK → `MORALE_LEVELS` KALİBRASYON (6.2 `Math.floor` emsali) · `spec/02` §4.2 `GK (Kaleci)`/`DC (Stoper)`/`ST (Santrfor)` KAYNAK; kalan 9 mevki + 5 seviye + forma/sonuç/moral Türkçeleri sözlükte DOĞAR (K-4, kullanıcı onayına sunulur) · `FormIndicator (G/B/M)` ROADMAP'in sesi; `spec/01`:990 `form` oyuncu reytingidir, bu bileşen değil.
+      · **Kriter 4 (SAPMA-043) burada kapanır, ŞARTLA:** desen bileşkesi (`blendTowardWhite(band.color, ATTRIBUTE_PATTERN_ALPHA×100)`) üzerinde 8/8 AA aritmetikle iddia; ön plan TEMA-BAĞIMSIZ hex (açık temada `var(--text-primary)` 1. bantta ≈1,9:1). Şart gelmezse kriter `[ ]` kalır.
+      · **CVD (DZ-14):** kanallar (ağırlık + desen) BURADA, aktivasyon yalnızca ata `[data-cvd]`; mod **6.8** → 6.8 kapsamına adıyla yazıldı. D5: derlenmiş CSS'te `[data-cvd]` seçicisi grep (DZ-10).
+      · **Kararlar (K13):** K-1 StarRating 0,5…5, `max` yok · K-2 `redundant` yok · K-3 Tailwind variant + `CVD_ATTRIBUTE` · K-4 Türkçe terim tablosu (sözleşme §3) · K-5 sözlük↔`ui.*` nöbetçisi 6.6'da · K-6 `shape` yok · K-7 beş yazar (ikişer bileşen) · K-8 mevki işareti İngilizce kod · K-9 küme kopyası + ④ (shared'a taşıma → V2-BACKLOG).
+      · **Kırılması beklenen:** `i18n-keys.test.ts` ② (kebab→camel; modül başına tek `_KEYS`) · `glossary-check` dağılım/133 · `i18n:check` (iskele–yazar arası) · `typecheck` (`@fms/shared` bağımlılığı gelene dek). **Kırılmayacak ve sebebi:** `inventory-guards` ② (yeni dizin yok) · `arch:check` (ui→shared izinli).
+      · **§0.5:** planci 12 bağımsız iş birimi saydı — sığıyor. Ajan: olcumcu · planci · 5 gelistirici · kapici · denetci · kayitci = 10 < 15.
+      · **Sayı prose'da yaşamaz:** anahtar sayısı `i18n:check` kapsam satırından, terim sayısı `glossary-check` dağılımından okunur.
 - [ ] **6.7** **DataTable motoru** — TanStack Table + TanStack Virtual,
       sütun seçimi, sıralama, filtre, kaydedilebilir görünüm, mobilde kart modu.
+      ⚠️ **SORUN-002 (6.6'da bulundu) — SAHİBİ KARAR BEKLİYOR:** 6.4/6.5'in
+      etiketsiz `font-[var(--font-ui)]` / `text-[var(--text-sm)]` sınıfları
+      üretim CSS'inde `font-weight:` / `color:`a derleniyor (20 dosya; derlenmiş
+      CSS'te ölçüldü). 6.6'nın önerisi **6.6b** adlı küçük, ayrı bir alt görev
+      (mekanik etiketleme + derlenmiş CSS'te `font-size:`/`font-family:`
+      nöbetçisi); kullanıcı *"6.7'de"* derse bu maddenin **ilk işi** olur —
+      DataTable o bileşenlerin üstüne kuruluyor.
       ⚠️ Kriter 3 (55+ fps) ve kriter 4 (375px kart modu) **bugünkü araçla
       ölçülemez** (ölçüldü: jsdom'da `matchMedia` **undefined**,
       `getBoundingClientRect` **0×0**, `ResizeObserver` **yok**). 6.0'ın ①'i
@@ -3966,6 +3983,20 @@ docs/glossary.md
       modunun **karar fonksiyonu** (genişlik → mod) her hâlde test edilir.
 - [ ] **6.8** **Erişilebilirlik** — tam klavye navigasyonu, axe denetimi,
       renk körlüğü modu (3 tip), font boyutu ayarı, dokunma hedefi 44×44px.
+      ⚠️ **6.6'DAN DEVİR (DZ-14) — RENK KÖRLÜĞÜ MODUNUN MEKANİZMASI:** 6.6
+      `AttributeBadge`in yedekli kanallarını (ağırlık + desen, spec/05 §7.2)
+      **ata `[data-cvd]` özniteliğine bağlı** Tailwind sınıflarıyla yazdı ve
+      `CVD_ATTRIBUTE = 'data-cvd'` sabitini `theme/apply-theme.ts`e koydu
+      (kardeşleri `THEME_ATTRIBUTE` / `MOTION_ATTRIBUTE` / `FONT_SCALE_ATTRIBUTE`).
+      Bu alt görev **adıyla** şunları yapar: ① `CVD_ATTRIBUTE` üç tip
+      (protanopi / döteranopi / tritanopi) değeriyle `applyTheme` üzerinden
+      `<html>`e kurulur + ayar arayüzü ② AttributeBadge kanallarının bu
+      öznitelikle **gerçekten etkinleştiği** iddia edilir (6.6 yalnızca sınıf
+      literalini ve derlenmiş CSS'teki seçiciyi ölçebildi — jsdom CSS
+      değerlendirmez) ③ tip başına farkın ne olduğu **karara bağlanır** (spec
+      §7.2 tipleri ayırmıyor: tek mekanizma "sayı kalınlaşır + desen"). Başka bir
+      mekanizma seçilirse 6.6'nın seçicileri **ölü kod** olur (DZ-10) — o zaman
+      6.6'nın sınıfları da burada değiştirilir, sessizce bırakılmaz.
       ⚠️ jsdom'da `scrollIntoView` ve `hasPointerCapture` **undefined** (ölçüldü)
       — Radix için doldurma gerekecek; hangi doldurmanın **neyi sahtelediği**
       yazılır. ⚠️ axe'ın `color-contrast` kuralı jsdom'da **koşmuyor**.
@@ -4053,6 +4084,14 @@ docs/glossary.md
       olmalı; aracın kendi başlığı bu tehlikeyi adıyla yazıyor ama çare bir
       **teste** kondu, çıktıya değil. Bu alt görev zaten kapı çıktısı biçimiyle
       uğraşıyor — düzeltme oraya düşüyor.
+      ⚠️ **BORÇ-013 BURADA ÖDENİR** *(6.6'da açıldı)* — `inventory-guards` §③
+      `asama` ile `durum` arasında **tutarlılık denetlemiyor**: ölçüldü,
+      `scripts/inventory-guards.test.mjs`in *"asama ve durum kapalı kümelerden"*
+      vakası yalnızca küme üyeliği sınıyor; `asama: kapandi` + `durum: devam`
+      bugün geçer, ve `asama` kurtarma oturumunun en çok yaslandığı alan.
+      Değişmez tamamen içsel, uydurma kaynak gerektirmiyor:
+      `asama === 'kapandi'` ⟺ `durum === 'tamamlandi'`. Bu alt görev
+      `inventory-guards`a zaten dokunuyor (`perf:budget` deseni) — iddia buraya.
 - [ ] **6.11** **BORÇ-009 yeniden ÖLÇÜLÜR** — K5 kapılarının ortak kör noktası
       (modül düzeyi metin sabitleri). **Geç ödenir ve gerekçesi yapısal:** 5.6'da
       heuristik **3 yanlış pozitif / 0 gerçek pozitif** verdi çünkü ölçülecek
@@ -4353,7 +4392,7 @@ docs/glossary.md
 - **10 gizli nitelik:** Tutarlılık, Önemli Maç, Sakatlığa Yatkınlık, Kirli Oyun, Baskı Altında, Profesyonellik, Hırs, Sadakat, **Uyum Yeteneği (`adaptability`)**, **Mizaç (`temperament`)** — kariyer geçmişi + disiplin + kulüp değiştirme sıklığı + sakatlık geçmişinden türetilir.
   ⚠️ **SAPMA-001:** bu liste Faz 3.0'a kadar **sekiz** nitelik sayıyordu. `adaptability` ve `temperament` spec yazımı sırasında eklenmişti (`docs/spec/02-attributes.md` Bölüm 4.1: *"10 gizli nitelik"*) ama ROADMAP güncellenmemişti. Türetme kaynakları `spec/02` §4.3'te: `adaptability` ← yabancı lig sayısı + oralarda ilk sezon performansı · `temperament` ← kırmızı kart + disiplin olayları (ters).
 - **Kişilik türetimi:** gizli niteliklerden 25+ kişilik etiketi (kural tabanlı eşleme matrisi)
-- **Mevki yetkinlik matrisi:** oynanan dakikalardan Doğal/Yetkin/Kabul Edilebilir/Zayıf/Yabancı
+- **Mevki yetkinlik matrisi:** oynanan dakikalardan Doğal/Yetkin/Kabul Edilebilir/Zorlanır/Yetersiz *(Türkçe karşılıklar `docs/glossary.md` §7.2 — 6.6'da doğdu; bu satır "Zayıf/Yabancı" diyordu, "zayıf" nitelik bandı 4–6 ile, "Yabancı" Yabancı Kotası ile çakışıyordu)*
 - **Özel yetenekler (traits/PPM):** ~30 özellik, istatistik desenlerinden ("uzaktan şut dener" ← ceza sahası dışı şut oranı)
 - **Kalibrasyon paneli:** üretilen dünyada nitelik dağılımı histogramı, en yüksek CA'lı 50 oyuncu listesi, mevki bazlı ortalamalar → gözle doğrulama
 

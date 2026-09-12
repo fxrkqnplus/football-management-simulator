@@ -77,9 +77,17 @@ import { sqlLiterals } from './sql-literals.js';
  * Yetkinlik dereceleri — `spec/01` §3.1 `player_positions.level` satırındaki
  * beş değer, **birebir o sırayla** (en iyiden en kötüye).
  *
- * Türkçe karşılıkları (Faz 5'in i18n anahtarları): Doğal · Yetkin · Kabul
- * Edilebilir · Zayıf · Yabancı. **Arayüz metni burada YAŞAMAZ** (K5) — bu liste
- * yalnızca kodun kapalı kümesi.
+ * Türkçe karşılıkları `docs/glossary.md` §7.2'de (6.6'da doğdu): Doğal · Yetkin ·
+ * Kabul Edilebilir · Zorlanır · Yetersiz. **Arayüz metni burada YAŞAMAZ** (K5) —
+ * bu liste yalnızca kodun kapalı kümesi.
+ *
+ * ⚠️ Bu yorum 6.6'ya kadar *"Faz 5'in i18n anahtarları: … Zayıf · Yabancı"*
+ * diyordu; ölçüldü — `apps/web/src/locales` altında bu terimler için 0 eşleşme,
+ * yani anahtar hiç yoktu (bayat iddia). "Zayıf" nitelik bandı 4–6 ile, "Yabancı"
+ * Yabancı Kotası ile çakışıyordu; sözlük ikisini ayırdı.
+ *
+ * ⚠️ `packages/ui` bu paketi import edemez (§2.4); `PositionMap` listenin
+ * kopyasını taşır ve eşitliği `scripts/inventory-guards.test.mjs` ④ iddia eder.
  */
 export const POSITION_LEVELS = [
   'natural',

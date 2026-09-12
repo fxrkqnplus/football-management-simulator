@@ -103,16 +103,34 @@ describe('① `common:ui.` ön ek sözleşmesi', () => {
  */
 const componentModules = import.meta.glob(['./*.tsx', '!./*.test.tsx'], { eager: true });
 
-/** `./dialog.tsx` → `dialog` */
-const moduleName = (path: string): string => path.replace(/^\.\//, '').replace(/\.tsx$/, '');
+/**
+ * `./dialog.tsx` → `dialog` · `./attribute-badge.tsx` → `attributeBadge`.
+ *
+ * ⚠️ **6.6'DA DEĞİŞTİ — ve önce KIRILDI.** 6.5'in `moduleName`i dosya adını
+ * olduğu gibi grup adı sayıyordu; beş modülün beşi tek kelimelikti ve fark
+ * görünmüyordu. 6.6'nın ilk çok kelimeli bileşeni (`attribute-badge.tsx`)
+ * gelince nöbetçi **üç vakada birden** kırıldı (YÖN ① sekiz "kayıtsız", YÖN ②
+ * sekiz "hayalet", referans eşitliği `undefined`): anahtar segmenti tire
+ * taşıyamaz (`/^[a-z][a-zA-Z0-9]*$/`), dosya adı ise kebab-case (§1.3). Köprü
+ * bu fonksiyon — tek yer, iki liste değil.
+ */
+const groupNameOf = (path: string): string =>
+  path
+    .replace(/^\.\//, '')
+    .replace(/\.tsx$/, '')
+    .replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase());
 
-/** Diskte `*_KEYS` dışa aktaran her modül: ad → anahtar nesnesi. */
+/** Diskte `*_KEYS` dışa aktaran her modül: grup adı → anahtar nesnesi. */
 const keysOnDisk = new Map<string, Record<string, unknown>>();
+/** Modül başına `*_KEYS` dışa aktarım SAYISI — birden fazlası yasak (aşağıda). */
+const keysExportCount = new Map<string, number>();
 for (const [path, module] of Object.entries(componentModules)) {
   for (const [exportName, value] of Object.entries(module)) {
     if (!exportName.endsWith('_KEYS')) continue;
     if (typeof value !== 'object' || value === null) continue;
-    keysOnDisk.set(moduleName(path), value as Record<string, unknown>);
+    const group = groupNameOf(path);
+    keysExportCount.set(group, (keysExportCount.get(group) ?? 0) + 1);
+    keysOnDisk.set(group, value as Record<string, unknown>);
   }
 }
 
@@ -135,12 +153,27 @@ describe('② `UI_KEYS` BÜTÜNLÜK NÖBETÇİSİ — kayıt defteri diskle ört
    * değil.
    */
   it('nöbetçi BAKACAK BİR ŞEY buluyor — beklenen modüller ADIYLA taranmış', () => {
-    const scanned = Object.keys(componentModules).map(moduleName).sort();
+    const scanned = Object.keys(componentModules).map(groupNameOf).sort();
     expect(scanned.length).toBeGreaterThan(0);
     // Anahtar TAŞIYAN ve TAŞIMAYAN birer örnek: tarama her ikisini de görüyor.
     expect(scanned).toContain('dialog');
     expect(scanned).toContain('skeleton');
+    // 6.6: çok kelimeli bir modül (anahtarlı) ve anahtarsız bir 6.6 modülü —
+    // kebab→camelCase köprüsünün gerçekten çalıştığı da burada iddia ediliyor.
+    expect(scanned).toContain('attributeBadge');
+    expect(scanned).toContain('dateChip');
     expect(keysOnDisk.size).toBeGreaterThan(0);
+  });
+
+  it('modül başına EN FAZLA BİR `*_KEYS` dışa aktarımı — ikincisi kayıt defterini EZER', () => {
+    // planci ②'nin bulgusu (6.6): `ATTRIBUTE_BAND_KEYS` gibi ikinci bir `_KEYS`
+    // dışa aktarımı yukarıdaki haritada aynı gruba yazılır ve ES modül ad alanı
+    // alfabetik olduğu için (D < N) asıl kayıt defterini sessizce ezerdi —
+    // referans eşitliği o gün kırmızıya dönerdi ama "neden" görünmezdi. Kural
+    // hata oluşabilecek hâldeyken yazıldı (DZ-12): ad listeleri `_KEYS` ile
+    // BİTMEZ (`ATTRIBUTE_BAND_KEY_ORDER`).
+    const offenders = [...keysExportCount.entries()].filter(([, count]) => count > 1);
+    expect(offenders).toEqual([]);
   });
 
   it('TARAMA TEST DOSYALARINI İÇERMİYOR — kapsamın sınırı da iddia ediliyor', () => {
